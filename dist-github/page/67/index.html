@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #67: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #67
+            
+                 <span class="func-name">filesystem::sysfs::group::{impl#0}::do_create_group</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:06|RAP|WARN|: Dangling pointer detected in function &#34;do_create_group&#34;
+warning: Dangling pointer detected.
+   --&gt; src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &amp;self,
+ 56 | |         kobj: &amp;Arc&lt;dyn KObject&gt;,
+ 57 | |         group: &amp;&#39;static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -&gt; Result&lt;(), SystemError&gt; {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc&lt;KernFSInode&gt;;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&amp;kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _3(group, src/filesystem/sysfs/group.rs:57) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB60(src/filesystem/sysfs/group.rs:106); _3(group, src/filesystem/sysfs/group.rs:57) became dangling.
+    |
+warning: Dangling pointer detected.
+   --&gt; src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &amp;self,
+ 56 | |         kobj: &amp;Arc&lt;dyn KObject&gt;,
+ 57 | |         group: &amp;&#39;static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -&gt; Result&lt;(), SystemError&gt; {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc&lt;KernFSInode&gt;;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&amp;kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _1(self, src/filesystem/sysfs/group.rs:55) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB60(src/filesystem/sysfs/group.rs:106); _1(self, src/filesystem/sysfs/group.rs:55) became dangling.
+    |
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;do_create_group&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &amp;self,
+ 56 | |         kobj: &amp;Arc&lt;dyn KObject&gt;,
+ 57 | |         group: &amp;&#39;static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -&gt; Result&lt;(), SystemError&gt; {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc&lt;KernFSInode&gt;;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&amp;kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _3(group, src/filesystem/sysfs/group.rs:57) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB62(src/filesystem/sysfs/group.rs:106); _3(group, src/filesystem/sysfs/group.rs:57) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &amp;self,
+ 56 | |         kobj: &amp;Arc&lt;dyn KObject&gt;,
+ 57 | |         group: &amp;&#39;static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -&gt; Result&lt;(), SystemError&gt; {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc&lt;KernFSInode&gt;;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&amp;kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _1(self, src/filesystem/sysfs/group.rs:55) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB62(src/filesystem/sysfs/group.rs:106); _1(self, src/filesystem/sysfs/group.rs:55) became dangling.
+    |
+render dot for DefId(0:19005 ~ dragonos_kernel[9e38]::filesystem::sysfs::group::{impl#0}::do_create_group)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/sysfs/group.rs:35:9: 50:10
+bb1 at src/filesystem/sysfs/group.rs:35:32: 35:33
+bb2 at src/filesystem/sysfs/group.rs:35:32: 35:33
+bb3 at src/filesystem/sysfs/group.rs:35:18: 35:33
+bb4 at src/filesystem/sysfs/group.rs:35:32: 35:33
+bb6 at src/filesystem/sysfs/group.rs:35:13: 35:14
+bb7 at src/filesystem/sysfs/group.rs:35:9: 50:10
+bb8 at src/filesystem/sysfs/group.rs:36:25: 36:34
+bb9 at src/filesystem/sysfs/group.rs:37:16: 37:29
+bb11 at src/filesystem/sysfs/group.rs:37:39: 37:40
+bb12 at src/filesystem/sysfs/group.rs:37:39: 37:40
+bb13 at src/filesystem/sysfs/group.rs:40:69: 40:70
+bb14 at src/filesystem/sysfs/group.rs:40:24: 40:25
+bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb20 at src/filesystem/sysfs/group.rs:43:32: 43:33
+bb21 at src/filesystem/sysfs/group.rs:43:46: 43:47
+bb22 at src/filesystem/sysfs/group.rs:42:47: 42:48
+bb23 at src/filesystem/sysfs/group.rs:42:59: 42:60
+bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb25 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb26 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb27 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb28 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb29 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb30 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb31 at src/filesystem/sysfs/group.rs:45:32: 45:33
+bb32 at src/filesystem/sysfs/group.rs:45:38: 45:39
+bb33 at src/filesystem/sysfs/group.rs:45:38: 45:39
+bb34 at src/filesystem/sysfs/group.rs:45:26: 45:39
+bb35 at src/filesystem/sysfs/group.rs:45:38: 45:39
+bb36 at src/filesystem/sysfs/group.rs:45:21: 45:22
+bb37 at src/filesystem/sysfs/group.rs:45:17: 47:18
+bb38 at src/filesystem/sysfs/group.rs:46:45: 46:54
+bb39 at src/filesystem/sysfs/group.rs:46:54: 46:55
+bb40 at src/filesystem/sysfs/group.rs:46:59: 46:60
+bb41 at src/filesystem/sysfs/group.rs:49:14: 49:14
+fn filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_groups
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} [&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased}] 
+_4:  @ bool 
+_5:  @ ! 
+_6:  @ () 
+_7:  @ core::ops::Range&lt;usize&gt; 
+_8:  @ core::ops::Range&lt;usize&gt; 
+_9:  @ usize 
+_10:  @ &amp;&#39;{erased} [&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased}] 
+_11:  @ core::ops::Range&lt;usize&gt; 
+_12:  @ () 
+_13:  @ () 
+_14:  @ core::option::Option&lt;usize&gt; 
+_15:  @ &amp;&#39;{erased} mut core::ops::Range&lt;usize&gt; 
+_16:  @ &amp;&#39;{erased} mut core::ops::Range&lt;usize&gt; 
+_17:  @ isize 
+_18:  @ ! 
+_19:  @ usize 
+_20:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_21:  @ usize 
+_22:  @ usize 
+_23:  @ bool 
+_24:  @ () 
+_25:  @ bool 
+_26:  @ &amp;&#39;{erased} [&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::Attribute), bound_vars: [] }] + &#39;{erased}] 
+_27:  @ &amp;&#39;{erased} [&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::Attribute), bound_vars: [] }] + &#39;{erased}] 
+_28:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_29:  @ ! 
+_30:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_31:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_32:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_33:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_34:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_35:  @ bool 
+_36:  @ isize 
+_37:  @ system_error::SystemError 
+_38:  @ ! 
+_39:  @ () 
+_40:  @ log::Level 
+_41:  @ bool 
+_42:  @ &amp;&#39;{erased} log::Level 
+_43:  @ &amp;&#39;{erased} log::LevelFilter 
+_44:  @ log::LevelFilter 
+_45:  @ bool 
+_46:  @ &amp;&#39;{erased} log::Level 
+_47:  @ &amp;&#39;{erased} log::LevelFilter 
+_48:  @ log::LevelFilter 
+_49:  @ () 
+_50:  @ log::__private_api::GlobalLogger 
+_51:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_52:  @ (&amp;&#39;{erased} &amp;&#39;{erased} str, &amp;&#39;{erased} system_error::SystemError) 
+_53:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_54:  @ &amp;&#39;{erased} str 
+_55:  @ core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_56:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_57:  @ &amp;&#39;{erased} str 
+_58:  @ &amp;&#39;{erased} str 
+_59:  @ &amp;&#39;{erased} system_error::SystemError 
+_60:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_61:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_62:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_63:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_64:  @ &amp;&#39;{erased} system_error::SystemError 
+_65:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_66:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_67:  @ [&amp;&#39;{erased} str; 2_usize] 
+_68:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_69:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_70:  @ log::Level 
+_71:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_72:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_73:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_74:  @ &amp;&#39;{erased} str 
+_75:  @ &amp;&#39;{erased} str 
+_76:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_77:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_78:  @ () 
+_79:  @ () 
+_80:  @ core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; 
+_81:  @ core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; 
+_82:  @ core::ops::RangeInclusive&lt;usize&gt; 
+_83:  @ usize 
+_84:  @ core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; 
+_85:  @ () 
+_86:  @ core::option::Option&lt;usize&gt; 
+_87:  @ &amp;&#39;{erased} mut core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; 
+_88:  @ &amp;&#39;{erased} mut core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; 
+_89:  @ isize 
+_90:  @ ! 
+_91:  @ usize 
+_92:  @ core::option::Option&lt;()&gt; 
+_93:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_94:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_95:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_96:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_97:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_98:  @ usize 
+_99:  @ usize 
+_100:  @ bool 
+_101:  @ system_error::SystemError 
+_102:  @ () 
+_103:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_104:  @ &amp;&#39;{erased} log::LevelFilter 
+_105:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_106:  @ &amp;&#39;{erased} system_error::SystemError 
+_107:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(*_3))) @ _10=&amp;(*_3) @ Ref
+    _9 = core::slice::&lt;impl [&amp;dyn filesystem::sysfs::AttributeGroup]&gt;::len(move _10) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 13970
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    Assign((_8, core::ops::Range::&lt;usize&gt; { start: const 0_usize, end: move _9 })) @ _8=core::ops::Range::&lt;usize&gt; { start: const 0_usize, end: move _9 } @ Aggregate
+    StorageDead(_9) @ StorageDead
+    _7 = &lt;core::ops::Range&lt;usize&gt; as core::iter::IntoIterator&gt;::into_iter(move _8) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 9224
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_11, move _7)) @ _11=move _7 @ Use
+    goto -&gt; bb3 @ Goto
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;mut _11)) @ _16=&amp;mut _11 @ Ref
+    Assign((_15, &amp;mut (*_16))) @ _15=&amp;mut (*_16) @ Ref
+    _14 = &lt;core::ops::Range&lt;usize&gt; as core::iter::Iterator&gt;::next(move _15) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 9356
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    Assign((_17, discriminant(_14))) @ _17=discriminant(_14) @ Discriminant
+    switchInt(move _17) -&gt; [0: bb7, 1: bb6, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 6 {
+CleanUp: false
+    StorageLive(_19) @ StorageLive
+    Assign((_19, copy ((_14 as Some).0: usize))) @ _19=copy ((_14 as Some).0: usize) @ Use
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, copy _19)) @ _21=copy _19 @ Use
+    Assign((_22, PtrMetadata(copy _3))) @ _22=PtrMetadata(copy _3) @ UnaryOp
+    Assign((_23, Lt(copy _21, copy _22))) @ _23=Lt(copy _21, copy _22) @ BinaryOp
+    assert(move _23, &#34;index out of bounds: the length is {} but the index is {}&#34;, move _22, copy _21) -&gt; [success: bb8, unwind continue] @ Assert
+}
+bb 7 {
+CleanUp: false
+    Assign((_6, const ())) @ _6=const () @ Use
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_102) @ StorageLive
+    Assign((_102, ())) @ _102=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _102))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _102) @ Aggregate
+    StorageDead(_102) @ StorageDead
+    goto -&gt; bb42 @ Goto
+}
+bb 8 {
+CleanUp: false
+    Assign((_20, copy (*_3)[_21])) @ _20=copy (*_3)[_21] @ Use
+    StorageDead(_21) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;(*_20))) @ _28=&amp;(*_20) @ Ref
+    _27 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::attrs(move _28) -&gt; [return: bb9, unwind continue] @ Call: FnDid: 19041
+}
+bb 9 {
+CleanUp: false
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
+    StorageDead(_28) @ StorageDead
+    _25 = core::slice::&lt;impl [&amp;dyn filesystem::sysfs::Attribute]&gt;::is_empty(move _26) -&gt; [return: bb10, unwind continue] @ Call: FnDid: 13971
+}
+bb 10 {
+CleanUp: false
+    switchInt(move _25) -&gt; [0: bb12, otherwise: bb11] @ SwitchInt
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    goto -&gt; bb3 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    Assign((_24, const ())) @ _24=const () @ Use
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &amp;(*_1))) @ _31=&amp;(*_1) @ Ref
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;(*_2))) @ _32=&amp;(*_2) @ Ref
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &amp;(*_20))) @ _34=&amp;(*_20) @ Ref
+    Assign((_33, move _34 as &amp;dyn filesystem::sysfs::AttributeGroup (PointerCoercion(Unsize, Implicit)))) @ _33=move _34 as &amp;dyn filesystem::sysfs::AttributeGroup (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_34) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    Assign((_35, copy _4)) @ _35=copy _4 @ Use
+    _30 = filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_group(move _31, move _32, move _33, move _35) -&gt; [return: bb13, unwind continue] @ Call: FnDid: 19005
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_36, discriminant(_30))) @ _36=discriminant(_30) @ Discriminant
+    switchInt(move _36) -&gt; [1: bb14, otherwise: bb41] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_37) @ StorageLive
+    Assign((_37, move ((_30 as Err).0: system_error::SystemError))) @ _37=move ((_30 as Err).0: system_error::SystemError) @ Use
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, log::Level::Error)) @ _40=log::Level::Error @ Aggregate
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_42, &amp;_40)) @ _42=&amp;_40 @ Ref
+    StorageLive(_43) @ StorageLive
+    Assign((_104, const filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_groups::promoted[1])) @ _104=const filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_groups::promoted[1] @ Use
+    Assign((_43, &amp;(*_104))) @ _43=&amp;(*_104) @ Ref
+    _41 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _42, move _43) -&gt; [return: bb15, unwind continue] @ Call: FnDid: 3215
+}
+bb 15 {
+CleanUp: false
+    switchInt(move _41) -&gt; [0: bb28, otherwise: bb16] @ SwitchInt
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    Assign((_46, &amp;_40)) @ _46=&amp;_40 @ Ref
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    _48 = log::max_level() -&gt; [return: bb17, unwind continue] @ Call: FnDid: 134
+}
+bb 17 {
+CleanUp: false
+    Assign((_47, &amp;_48)) @ _47=&amp;_48 @ Ref
+    _45 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _46, move _47) -&gt; [return: bb18, unwind continue] @ Call: FnDid: 3215
+}
+bb 18 {
+CleanUp: false
+    switchInt(move _45) -&gt; [0: bb27, otherwise: bb19] @ SwitchInt
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    Assign((_50, log::__private_api::GlobalLogger)) @ _50=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;(*_20))) @ _56=&amp;(*_20) @ Ref
+    _55 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::name(move _56) -&gt; [return: bb20, unwind continue] @ Call: FnDid: 19040
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, const &#34;&#34;)) @ _58=const &#34;&#34; @ Use
+    Assign((_57, &amp;(*_58))) @ _57=&amp;(*_58) @ Ref
+    _54 = core::option::Option::&lt;&amp;str&gt;::unwrap_or(move _55, move _57) -&gt; [return: bb21, unwind continue] @ Call: FnDid: 10158
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    Assign((_53, &amp;_54)) @ _53=&amp;_54 @ Ref
+    StorageLive(_59) @ StorageLive
+    Assign((_59, &amp;_37)) @ _59=&amp;_37 @ Ref
+    Assign((_52, (move _53, move _59))) @ _52=(move _53, move _59) @ Aggregate
+    StorageDead(_59) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_105, deref_copy (_52.0: &amp;&amp;str))) @ _105=deref_copy (_52.0: &amp;&amp;str) @ CopyForDeref
+    Assign((_62, &amp;(*_105))) @ _62=&amp;(*_105) @ Ref
+    _61 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;&amp;str&gt;(move _62) -&gt; [return: bb22, unwind continue] @ Call: FnDid: 11807
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_62) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    Assign((_106, deref_copy (_52.1: &amp;system_error::SystemError))) @ _106=deref_copy (_52.1: &amp;system_error::SystemError) @ CopyForDeref
+    Assign((_64, &amp;(*_106))) @ _64=&amp;(*_106) @ Ref
+    _63 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;system_error::SystemError&gt;(move _64) -&gt; [return: bb23, unwind continue] @ Call: FnDid: 11809
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    Assign((_60, [move _61, move _63])) @ _60=[move _61, move _63] @ Aggregate
+    StorageDead(_63) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_103, const filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_groups::promoted[0])) @ _103=const filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_groups::promoted[0] @ Use
+    Assign((_66, &amp;(*_103))) @ _66=&amp;(*_103) @ Ref
+    Assign((_65, &amp;(*_66))) @ _65=&amp;(*_66) @ Ref
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, &amp;_60)) @ _69=&amp;_60 @ Ref
+    Assign((_68, &amp;(*_69))) @ _68=&amp;(*_69) @ Ref
+    _51 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _65, move _68) -&gt; [return: bb24, unwind continue] @ Call: FnDid: 11836
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    Assign((_70, copy _40)) @ _70=copy _40 @ Use
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, const &#34;dragonos_kernel::filesystem::sysfs::group&#34;)) @ _75=const &#34;dragonos_kernel::filesystem::sysfs::group&#34; @ Use
+    Assign((_74, &amp;(*_75))) @ _74=&amp;(*_75) @ Ref
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    _77 = log::__private_api::loc() -&gt; [return: bb25, unwind continue] @ Call: FnDid: 184
+}
+bb 25 {
+CleanUp: false
+    Assign((_76, &amp;(*_77))) @ _76=&amp;(*_77) @ Ref
+    Assign((_73, (move _74, const &#34;dragonos_kernel::filesystem::sysfs::group&#34;, move _76))) @ _73=(move _74, const &#34;dragonos_kernel::filesystem::sysfs::group&#34;, move _76) @ Aggregate
+    StorageDead(_76) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    Assign((_72, &amp;_73)) @ _72=&amp;_73 @ Ref
+    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
+    StorageLive(_78) @ StorageLive
+    Assign((_78, ())) @ _78=() @ Aggregate
+    _49 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _50, move _51, move _70, move _71, move _78) -&gt; [return: bb26, unwind continue] @ Call: FnDid: 178
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_78) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    Assign((_39, const ())) @ _39=const () @ Use
+    goto -&gt; bb30 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb29 @ Goto
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    goto -&gt; bb29 @ Goto
+}
+bb 29 {
+CleanUp: false
+    Assign((_39, const ())) @ _39=const () @ Use
+    goto -&gt; bb30 @ Goto
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, copy _19)) @ _83=copy _19 @ Use
+    _82 = core::ops::RangeInclusive::&lt;usize&gt;::new(const 0_usize, move _83) -&gt; [return: bb31, unwind continue] @ Call: FnDid: 4053
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    _81 = &lt;core::ops::RangeInclusive&lt;usize&gt; as core::iter::Iterator&gt;::rev(move _82) -&gt; [return: bb32, unwind continue] @ Call: FnDid: 9578
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    _80 = &lt;core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; as core::iter::IntoIterator&gt;::into_iter(move _81) -&gt; [return: bb33, unwind continue] @ Call: FnDid: 9224
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    Assign((_84, move _80)) @ _84=move _80 @ Use
+    goto -&gt; bb34 @ Goto
+}
+bb 34 {
+CleanUp: false
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_88, &amp;mut _84)) @ _88=&amp;mut _84 @ Ref
+    Assign((_87, &amp;mut (*_88))) @ _87=&amp;mut (*_88) @ Ref
+    _86 = &lt;core::iter::Rev&lt;core::ops::RangeInclusive&lt;usize&gt;&gt; as core::iter::Iterator&gt;::next(move _87) -&gt; [return: bb35, unwind continue] @ Call: FnDid: 9356
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    Assign((_89, discriminant(_86))) @ _89=discriminant(_86) @ Discriminant
+    switchInt(move _89) -&gt; [0: bb37, 1: bb36, otherwise: bb5] @ SwitchInt
+}
+bb 36 {
+CleanUp: false
+    StorageLive(_91) @ StorageLive
+    Assign((_91, copy ((_86 as Some).0: usize))) @ _91=copy ((_86 as Some).0: usize) @ Use
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    Assign((_94, &amp;(*_1))) @ _94=&amp;(*_1) @ Ref
+    StorageLive(_95) @ StorageLive
+    Assign((_95, &amp;(*_2))) @ _95=&amp;(*_2) @ Ref
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_98, copy _91)) @ _98=copy _91 @ Use
+    Assign((_99, PtrMetadata(copy _3))) @ _99=PtrMetadata(copy _3) @ UnaryOp
+    Assign((_100, Lt(copy _98, copy _99))) @ _100=Lt(copy _98, copy _99) @ BinaryOp
+    assert(move _100, &#34;index out of bounds: the length is {} but the index is {}&#34;, move _99, copy _98) -&gt; [success: bb38, unwind continue] @ Assert
+}
+bb 37 {
+CleanUp: false
+    Assign((_79, const ())) @ _79=const () @ Use
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageLive(_101) @ StorageLive
+    Assign((_101, move _37)) @ _101=move _37 @ Use
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _101))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _101) @ Aggregate
+    StorageDead(_101) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb42 @ Goto
+}
+bb 38 {
+CleanUp: false
+    Assign((_107, deref_copy (*_3)[_98])) @ _107=deref_copy (*_3)[_98] @ CopyForDeref
+    Assign((_97, &amp;(*_107))) @ _97=&amp;(*_107) @ Ref
+    Assign((_96, move _97 as &amp;dyn filesystem::sysfs::AttributeGroup (PointerCoercion(Unsize, Implicit)))) @ _96=move _97 as &amp;dyn filesystem::sysfs::AttributeGroup (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_97) @ StorageDead
+    _93 = filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::remove_group(move _94, move _95, move _96) -&gt; [return: bb39, unwind continue] @ Call: FnDid: 19009
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_96) @ StorageDead
+    StorageDead(_95) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    _92 = core::result::Result::&lt;(), system_error::SystemError&gt;::ok(move _93) -&gt; [return: bb40, unwind continue] @ Call: FnDid: 10993
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_93) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    Assign((_85, const ())) @ _85=const () @ Use
+    StorageDead(_91) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    Assign((_12, const ())) @ _12=const () @ Use
+    goto -&gt; bb34 @ Goto
+}
+bb 41 {
+CleanUp: false
+    Assign((_13, const ())) @ _13=const () @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_12, const ())) @ _12=const () @ Use
+    goto -&gt; bb3 @ Goto
+}
+bb 42 {
+CleanUp: false
+    return @ Return
+}
+
+bb0 at src/filesystem/sysfs/group.rs:61:13: 61:23
+bb1 at src/filesystem/sysfs/group.rs:61:26: 61:30
+bb2 at src/filesystem/sysfs/group.rs:61:37: 61:38
+bb3 at src/filesystem/sysfs/group.rs:61:64: 61:65
+bb4 at src/filesystem/sysfs/group.rs:61:65: 61:66
+bb6 at src/filesystem/sysfs/group.rs:61:26: 61:66
+bb7 at src/filesystem/sysfs/group.rs:61:65: 61:66
+bb8 at src/filesystem/sysfs/group.rs:61:65: 61:66
+bb9 at src/filesystem/sysfs/group.rs:63:12: 63:25
+bb11 at src/filesystem/sysfs/group.rs:63:35: 63:36
+bb12 at src/filesystem/sysfs/group.rs:63:35: 63:36
+bb13 at src/filesystem/sysfs/group.rs:68:12: 68:24
+bb15 at src/filesystem/sysfs/group.rs:68:33: 68:34
+bb16 at src/filesystem/sysfs/group.rs:71:32: 75:30
+bb17 at src/filesystem/sysfs/group.rs:71:32: 71:42
+bb18 at src/filesystem/sysfs/group.rs:72:38: 72:39
+bb19 at src/filesystem/sysfs/group.rs:72:27: 72:48
+bb20 at src/filesystem/sysfs/group.rs:72:48: 72:49
+bb21 at src/filesystem/sysfs/group.rs:73:53: 73:54
+bb22 at src/filesystem/sysfs/group.rs:73:54: 73:55
+bb23 at src/filesystem/sysfs/group.rs:71:32: 73:55
+bb24 at src/filesystem/sysfs/group.rs:73:54: 73:55
+bb25 at src/filesystem/sysfs/group.rs:73:54: 73:55
+bb26 at src/filesystem/sysfs/group.rs:74:35: 74:36
+bb27 at src/filesystem/sysfs/group.rs:75:29: 75:30
+bb28 at src/filesystem/sysfs/group.rs:77:21: 77:33
+bb29 at src/filesystem/sysfs/group.rs:78:41: 78:53
+bb30 at src/filesystem/sysfs/group.rs:78:53: 78:54
+bb31 at src/filesystem/sysfs/group.rs:80:32: 80:42
+bb32 at src/filesystem/sysfs/group.rs:82:36: 82:37
+bb33 at src/filesystem/sysfs/group.rs:82:25: 82:46
+bb34 at src/filesystem/sysfs/group.rs:82:57: 82:58
+bb36 at src/filesystem/sysfs/group.rs:83:84: 83:85
+bb37 at src/filesystem/sysfs/group.rs:86:21: 86:22
+bb38 at src/filesystem/sysfs/group.rs:92:22: 92:23
+bb39 at src/filesystem/sysfs/group.rs:92:23: 92:24
+bb40 at src/filesystem/sysfs/group.rs:80:32: 92:24
+bb41 at src/filesystem/sysfs/group.rs:92:23: 92:24
+bb42 at src/filesystem/sysfs/group.rs:92:23: 92:24
+bb43 at src/filesystem/sysfs/group.rs:93:13: 93:14
+bb44 at src/filesystem/sysfs/group.rs:68:33: 68:34
+bb45 at src/filesystem/sysfs/group.rs:95:45: 95:46
+bb46 at src/filesystem/sysfs/group.rs:96:9: 96:10
+bb47 at src/filesystem/sysfs/group.rs:98:68: 98:69
+bb48 at src/filesystem/sysfs/group.rs:98:90: 98:91
+bb49 at src/filesystem/sysfs/group.rs:98:20: 98:21
+bb50 at src/filesystem/sysfs/group.rs:99:16: 99:28
+bb52 at src/filesystem/sysfs/group.rs:99:37: 99:38
+bb53 at src/filesystem/sysfs/group.rs:100:17: 100:29
+bb54 at src/filesystem/sysfs/group.rs:100:47: 100:48
+bb55 at src/filesystem/sysfs/group.rs:99:37: 99:38
+bb56 at src/filesystem/sysfs/group.rs:101:13: 101:14
+bb57 at src/filesystem/sysfs/group.rs:103:10: 103:10
+bb58 at src/filesystem/sysfs/group.rs:93:13: 93:14
+bb59 at src/filesystem/sysfs/group.rs:106:5: 106:6
+bb61 at src/filesystem/sysfs/group.rs:106:5: 106:6
+bb66 at src/filesystem/sysfs/group.rs:92:24: 92:25
+bb71 at src/filesystem/sysfs/group.rs:75:30: 75:31
+bb74 at src/filesystem/sysfs/group.rs:61:66: 61:67
+fn filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_group
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_4:  @ bool 
+_5:  @ ! 
+_6:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_7:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;&gt; 
+_8:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_9:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;&gt; 
+_10:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
+_11:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_13:  @ system_error::SystemError 
+_14:  @ isize 
+_15:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_16:  @ ! 
+_17:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_18:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_19:  @ () 
+_20:  @ bool 
+_21:  @ &amp;&#39;{erased} [&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::Attribute), bound_vars: [] }] + &#39;{erased}] 
+_22:  @ &amp;&#39;{erased} [&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::Attribute), bound_vars: [] }] + &#39;{erased}] 
+_23:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_24:  @ ! 
+_25:  @ system_error::SystemError 
+_26:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_27:  @ () 
+_28:  @ bool 
+_29:  @ &amp;&#39;{erased} core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_30:  @ core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_31:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_32:  @ bool 
+_33:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_34:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;&gt; 
+_35:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_36:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_37:  @ core::result::Result&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_38:  @ core::result::Result&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_39:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_40:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_42:  @ &amp;&#39;{erased} str 
+_43:  @ &amp;&#39;{erased} str 
+_44:  @ core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_45:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_46:  @ Closure(DefId(0:19006 ~ dragonos_kernel[9e38]::filesystem::sysfs::group::{impl#0}::do_create_group::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)) -&gt; system_error::SystemError, bound_vars: [] }, ()]) 
+_47:  @ isize 
+_48:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_49:  @ ! 
+_50:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_51:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_52:  @ filesystem::kernfs::callback::KernInodePrivateData 
+_53:  @ filesystem::sysfs::SysFSKernPrivateData 
+_54:  @ filesystem::sysfs::dir::SysKernDirPriv 
+_55:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_56:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_57:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_58:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_59:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;&gt; 
+_60:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_61:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_62:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_63:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_64:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_65:  @ alloc::string::String 
+_66:  @ &amp;&#39;{erased} str 
+_67:  @ &amp;&#39;{erased} str 
+_68:  @ core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_69:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_70:  @ filesystem::vfs::InodeMode 
+_71:  @ filesystem::vfs::InodeMode 
+_72:  @ core::option::Option&lt;filesystem::kernfs::callback::KernInodePrivateData&gt; 
+_73:  @ filesystem::kernfs::callback::KernInodePrivateData 
+_74:  @ core::option::Option&lt;&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased}&gt; 
+_75:  @ Closure(DefId(0:19007 ~ dragonos_kernel[9e38]::filesystem::sysfs::group::{impl#0}::do_create_group::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)) -&gt; system_error::SystemError, bound_vars: [] }, (&amp;&#39;{erased} filesystem::sysfs::SysFS, &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;, &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased})]) 
+_76:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_77:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_78:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_79:  @ isize 
+_80:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_81:  @ ! 
+_82:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_83:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_84:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_85:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_86:  @ () 
+_87:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_88:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_89:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_90:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_91:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_92:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_93:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_94:  @ bool 
+_95:  @ isize 
+_96:  @ system_error::SystemError 
+_97:  @ ! 
+_98:  @ () 
+_99:  @ bool 
+_100:  @ &amp;&#39;{erased} core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_101:  @ core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_102:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_103:  @ () 
+_104:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_105:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_106:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_107:  @ system_error::SystemError 
+_108:  @ () 
+_109:  @ bool 
+_110:  @ bool 
+_111:  @ bool 
+_112:  @ bool 
+_113:  @ bool 
+_114:  @ isize 
+_115:  @ isize 
+_116:  @ isize 
+_117:  @ isize 
+_118:  @ isize 
+_119:  @ isize 
+_120:  @ isize 
+_121:  @ isize 
+_122:  @ isize 
+_123:  @ isize 
+_124:  @ isize 
+_125:  @ isize 
+_126:  @ isize 
+_127:  @ isize 
+_128:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_109, const false)) @ _109=const false @ Use
+    Assign((_111, const false)) @ _111=const false @ Use
+    Assign((_110, const false)) @ _110=const false @ Use
+    Assign((_113, const false)) @ _113=const false @ Use
+    Assign((_112, const false)) @ _112=const false @ Use
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;(*_2))) @ _12=&amp;(*_2) @ Ref
+    _11 = &lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; as lazy_static::__Deref&gt;::deref(move _12) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_10, &amp;(*_11))) @ _10=&amp;(*_11) @ Ref
+    StorageDead(_12) @ StorageDead
+    _9 = &lt;dyn driver::base::kobject::KObject as driver::base::kobject::KObject&gt;::inode(move _10) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 8331
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    Assign((_13, system_error::SystemError::EINVAL)) @ _13=system_error::SystemError::EINVAL @ Aggregate
+    _8 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _9, move _13) -&gt; [return: bb3, unwind: bb63] @ Call: FnDid: 10178
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    _7 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _8) -&gt; [return: bb4, unwind: bb63] @ Call: FnDid: 4199
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_14, discriminant(_7))) @ _14=discriminant(_7) @ Discriminant
+    switchInt(move _14) -&gt; [0: bb6, 1: bb7, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 6 {
+CleanUp: false
+    StorageLive(_18) @ StorageLive
+    Assign((_18, move ((_7 as Continue).0: alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;))) @ _18=move ((_7 as Continue).0: alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;) @ Use
+    Assign((_6, move _18)) @ _6=move _18 @ Use
+    StorageDead(_18) @ StorageDead
+    Assign((_116, discriminant(_7))) @ _116=discriminant(_7) @ Discriminant
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &amp;(*_3))) @ _23=&amp;(*_3) @ Ref
+    _22 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::attrs(move _23) -&gt; [return: bb9, unwind: bb62] @ Call: FnDid: 19041
+}
+bb 7 {
+CleanUp: false
+    StorageLive(_15) @ StorageLive
+    Assign((_15, move ((_7 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _15=move ((_7 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_17) @ StorageLive
+    Assign((_17, move _15)) @ _17=move _15 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _17) -&gt; [return: bb8, unwind: bb74] @ Call: FnDid: 4202
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    Assign((_114, discriminant(_7))) @ _114=discriminant(_7) @ Discriminant
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb61 @ Goto
+}
+bb 9 {
+CleanUp: false
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    StorageDead(_23) @ StorageDead
+    _20 = core::slice::&lt;impl [&amp;dyn filesystem::sysfs::Attribute]&gt;::is_empty(move _21) -&gt; [return: bb10, unwind: bb62] @ Call: FnDid: 13971
+}
+bb 10 {
+CleanUp: false
+    switchInt(move _20) -&gt; [0: bb12, otherwise: bb11] @ SwitchInt
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    Assign((_25, system_error::SystemError::EINVAL)) @ _25=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _25))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _25) @ Aggregate
+    StorageDead(_25) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    Assign((_19, const ())) @ _19=const () @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &amp;(*_3))) @ _31=&amp;(*_3) @ Ref
+    _30 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::name(move _31) -&gt; [return: bb13, unwind: bb73] @ Call: FnDid: 19040
+}
+bb 13 {
+CleanUp: false
+    Assign((_29, &amp;_30)) @ _29=&amp;_30 @ Ref
+    StorageDead(_31) @ StorageDead
+    _28 = core::option::Option::&lt;&amp;str&gt;::is_some(move _29) -&gt; [return: bb14, unwind: bb73] @ Call: FnDid: 10143
+}
+bb 14 {
+CleanUp: false
+    switchInt(move _28) -&gt; [0: bb44, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    Assign((_32, copy _4)) @ _32=copy _4 @ Use
+    switchInt(move _32) -&gt; [0: bb28, otherwise: bb16] @ SwitchInt
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;_6)) @ _41=&amp;_6 @ Ref
+    _40 = &lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt; as lazy_static::__Deref&gt;::deref(move _41) -&gt; [return: bb17, unwind: bb73] @ Call: FnDid: 3903
+}
+bb 17 {
+CleanUp: false
+    Assign((_39, &amp;(*_40))) @ _39=&amp;(*_40) @ Ref
+    StorageDead(_41) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;(*_3))) @ _45=&amp;(*_3) @ Ref
+    _44 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::name(move _45) -&gt; [return: bb18, unwind: bb73] @ Call: FnDid: 19040
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    _43 = core::option::Option::&lt;&amp;str&gt;::unwrap(move _44) -&gt; [return: bb19, unwind: bb73] @ Call: FnDid: 10157
+}
+bb 19 {
+CleanUp: false
+    Assign((_42, &amp;(*_43))) @ _42=&amp;(*_43) @ Ref
+    StorageDead(_44) @ StorageDead
+    _38 = &lt;filesystem::kernfs::KernFSInode as filesystem::vfs::IndexNode&gt;::find(move _39, move _42) -&gt; [return: bb20, unwind: bb73] @ Call: FnDid: 21772
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    Assign((_46, {closure@src/filesystem/sysfs/group.rs:73:30: 73:33})) @ _46={closure@src/filesystem/sysfs/group.rs:73:30: 73:33} @ Aggregate
+    _37 = core::result::Result::&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt;::map_err::&lt;system_error::SystemError, {closure@src/filesystem/sysfs/group.rs:73:30: 73:33}&gt;(move _38, move _46) -&gt; [return: bb21, unwind: bb73] @ Call: FnDid: 11010
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    _36 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _37) -&gt; [return: bb22, unwind: bb73] @ Call: FnDid: 4199
+}
+bb 22 {
+CleanUp: false
+    Assign((_112, const true)) @ _112=const true @ Use
+    Assign((_113, const true)) @ _113=const true @ Use
+    StorageDead(_37) @ StorageDead
+    Assign((_47, discriminant(_36))) @ _47=discriminant(_36) @ Discriminant
+    switchInt(move _47) -&gt; [0: bb23, 1: bb24, otherwise: bb5] @ SwitchInt
+}
+bb 23 {
+CleanUp: false
+    StorageLive(_51) @ StorageLive
+    Assign((_51, move ((_36 as Continue).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;))) @ _51=move ((_36 as Continue).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;) @ Use
+    Assign((_35, move _51)) @ _35=move _51 @ Use
+    StorageDead(_51) @ StorageDead
+    _34 = &lt;dyn filesystem::vfs::IndexNode as libs::casting::DowncastArc&gt;::downcast_arc::&lt;filesystem::kernfs::KernFSInode&gt;(move _35) -&gt; [return: bb26, unwind: bb71] @ Call: FnDid: 4070
+}
+bb 24 {
+CleanUp: false
+    StorageLive(_48) @ StorageLive
+    Assign((_48, move ((_36 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _48=move ((_36 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_50) @ StorageLive
+    Assign((_50, move _48)) @ _50=move _48 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _50) -&gt; [return: bb25, unwind: bb71] @ Call: FnDid: 4202
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    Assign((_118, discriminant(_36))) @ _118=discriminant(_36) @ Discriminant
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_112, const false)) @ _112=const false @ Use
+    Assign((_113, const false)) @ _113=const false @ Use
+    StorageDead(_36) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    _33 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;&gt;::unwrap(move _34) -&gt; [return: bb27, unwind: bb71] @ Call: FnDid: 10157
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_109, const true)) @ _109=const true @ Use
+    Assign((_26, move _33)) @ _26=move _33 @ Use
+    StorageDead(_33) @ StorageDead
+    Assign((_120, discriminant(_36))) @ _120=discriminant(_36) @ Discriminant
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_112, const false)) @ _112=const false @ Use
+    Assign((_113, const false)) @ _113=const false @ Use
+    StorageDead(_36) @ StorageDead
+    Assign((_27, const ())) @ _27=const () @ Use
+    goto -&gt; bb43 @ Goto
+}
+bb 28 {
+CleanUp: false
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, &amp;(*_2))) @ _57=&amp;(*_2) @ Ref
+    _56 = &lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; as core::clone::Clone&gt;::clone(move _57) -&gt; [return: bb29, unwind: bb73] @ Call: FnDid: 3116
+}
+bb 29 {
+CleanUp: false
+    Assign((_55, move _56 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _55=move _56 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_57) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    _54 = filesystem::sysfs::dir::SysKernDirPriv::new(move _55) -&gt; [return: bb30, unwind: bb73] @ Call: FnDid: 18903
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    Assign((_53, filesystem::sysfs::SysFSKernPrivateData::Dir(move _54))) @ _53=filesystem::sysfs::SysFSKernPrivateData::Dir(move _54) @ Aggregate
+    StorageDead(_54) @ StorageDead
+    Assign((_111, const true)) @ _111=const true @ Use
+    Assign((_52, filesystem::kernfs::callback::KernInodePrivateData::SysFS(move _53))) @ _52=filesystem::kernfs::callback::KernInodePrivateData::SysFS(move _53) @ Aggregate
+    StorageDead(_53) @ StorageDead
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    Assign((_64, &amp;_6)) @ _64=&amp;_6 @ Ref
+    _63 = &lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt; as lazy_static::__Deref&gt;::deref(move _64) -&gt; [return: bb31, unwind: bb70] @ Call: FnDid: 3903
+}
+bb 31 {
+CleanUp: false
+    Assign((_62, &amp;(*_63))) @ _62=&amp;(*_63) @ Ref
+    StorageDead(_64) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, &amp;(*_3))) @ _69=&amp;(*_3) @ Ref
+    _68 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::name(move _69) -&gt; [return: bb32, unwind: bb70] @ Call: FnDid: 19040
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    _67 = core::option::Option::&lt;&amp;str&gt;::unwrap(move _68) -&gt; [return: bb33, unwind: bb70] @ Call: FnDid: 10157
+}
+bb 33 {
+CleanUp: false
+    Assign((_66, &amp;(*_67))) @ _66=&amp;(*_67) @ Ref
+    StorageDead(_68) @ StorageDead
+    _65 = &lt;str as alloc::string::ToString&gt;::to_string(move _66) -&gt; [return: bb34, unwind: bb70] @ Call: FnDid: 6626
+}
+bb 34 {
+CleanUp: false
+    Assign((_110, const true)) @ _110=const true @ Use
+    StorageDead(_66) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    _71 = &lt;filesystem::vfs::InodeMode as core::ops::BitOr&gt;::bitor(const filesystem::vfs::InodeMode::S_IRWXU, const filesystem::vfs::InodeMode::S_IRUGO) -&gt; [return: bb35, unwind: bb68] @ Call: FnDid: 39936
+}
+bb 35 {
+CleanUp: false
+    _70 = &lt;filesystem::vfs::InodeMode as core::ops::BitOr&gt;::bitor(move _71, const filesystem::vfs::InodeMode::S_IXUGO) -&gt; [return: bb36, unwind: bb68] @ Call: FnDid: 39936
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    Assign((_111, const false)) @ _111=const false @ Use
+    Assign((_73, move _52)) @ _73=move _52 @ Use
+    Assign((_72, core::option::Option::&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;::Some(move _73))) @ _72=core::option::Option::&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;::Some(move _73) @ Aggregate
+    StorageDead(_73) @ StorageDead
+    StorageLive(_74) @ StorageLive
+    Assign((_74, core::option::Option::&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;::None)) @ _74=core::option::Option::&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;::None @ Aggregate
+    Assign((_110, const false)) @ _110=const false @ Use
+    _61 = filesystem::kernfs::KernFSInode::add_dir(move _62, move _65, move _70, move _72, move _74) -&gt; [return: bb37, unwind: bb68] @ Call: FnDid: 18160
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_74) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_110, const false)) @ _110=const false @ Use
+    StorageDead(_65) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_76, &amp;(*_1))) @ _76=&amp;(*_1) @ Ref
+    StorageLive(_77) @ StorageLive
+    Assign((_77, &amp;_6)) @ _77=&amp;_6 @ Ref
+    StorageLive(_78) @ StorageLive
+    Assign((_78, &amp;(*_3))) @ _78=&amp;(*_3) @ Ref
+    Assign((_75, {closure@src/filesystem/sysfs/group.rs:87:30: 87:33} { self: move _76, kobj_inode: move _77, group: move _78 })) @ _75={closure@src/filesystem/sysfs/group.rs:87:30: 87:33} { self: move _76, kobj_inode: move _77, group: move _78 } @ Aggregate
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    _60 = core::result::Result::&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;, system_error::SystemError&gt;::map_err::&lt;system_error::SystemError, {closure@src/filesystem/sysfs/group.rs:87:30: 87:33}&gt;(move _61, move _75) -&gt; [return: bb38, unwind: bb70] @ Call: FnDid: 11010
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    _59 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _60) -&gt; [return: bb39, unwind: bb70] @ Call: FnDid: 4199
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    Assign((_79, discriminant(_59))) @ _79=discriminant(_59) @ Discriminant
+    switchInt(move _79) -&gt; [0: bb40, 1: bb41, otherwise: bb5] @ SwitchInt
+}
+bb 40 {
+CleanUp: false
+    StorageLive(_83) @ StorageLive
+    Assign((_83, move ((_59 as Continue).0: alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;))) @ _83=move ((_59 as Continue).0: alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;) @ Use
+    Assign((_58, move _83)) @ _58=move _83 @ Use
+    StorageDead(_83) @ StorageDead
+    Assign((_109, const true)) @ _109=const true @ Use
+    Assign((_26, move _58)) @ _26=move _58 @ Use
+    StorageDead(_58) @ StorageDead
+    Assign((_124, discriminant(_59))) @ _124=discriminant(_59) @ Discriminant
+    StorageDead(_67) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    Assign((_27, const ())) @ _27=const () @ Use
+    Assign((_111, const false)) @ _111=const false @ Use
+    StorageDead(_52) @ StorageDead
+    goto -&gt; bb43 @ Goto
+}
+bb 41 {
+CleanUp: false
+    StorageLive(_80) @ StorageLive
+    Assign((_80, move ((_59 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _80=move ((_59 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_82) @ StorageLive
+    Assign((_82, move _80)) @ _82=move _80 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _82) -&gt; [return: bb42, unwind: bb66] @ Call: FnDid: 4202
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    Assign((_122, discriminant(_59))) @ _122=discriminant(_59) @ Discriminant
+    StorageDead(_67) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    Assign((_111, const false)) @ _111=const false @ Use
+    StorageDead(_52) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    goto -&gt; bb46 @ Goto
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;_6)) @ _85=&amp;_6 @ Ref
+    _84 = &lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt; as core::clone::Clone&gt;::clone(move _85) -&gt; [return: bb45, unwind: bb73] @ Call: FnDid: 3116
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    Assign((_109, const true)) @ _109=const true @ Use
+    Assign((_26, move _84)) @ _26=move _84 @ Use
+    StorageDead(_84) @ StorageDead
+    Assign((_27, const ())) @ _27=const () @ Use
+    goto -&gt; bb46 @ Goto
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_88, &amp;(*_1))) @ _88=&amp;(*_1) @ Ref
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    Assign((_90, &amp;_26)) @ _90=&amp;_26 @ Ref
+    _89 = &lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt; as core::clone::Clone&gt;::clone(move _90) -&gt; [return: bb47, unwind: bb73] @ Call: FnDid: 3116
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    StorageLive(_91) @ StorageLive
+    Assign((_91, &amp;(*_2))) @ _91=&amp;(*_2) @ Ref
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &amp;(*_3))) @ _93=&amp;(*_3) @ Ref
+    Assign((_92, move _93 as &amp;dyn filesystem::sysfs::AttributeGroup (PointerCoercion(Unsize, Implicit)))) @ _92=move _93 as &amp;dyn filesystem::sysfs::AttributeGroup (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_93) @ StorageDead
+    StorageLive(_94) @ StorageLive
+    Assign((_94, copy _4)) @ _94=copy _4 @ Use
+    _87 = filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::group_create_files(move _88, move _89, move _91, move _92, move _94) -&gt; [return: bb48, unwind: bb73] @ Call: FnDid: 19011
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    Assign((_95, discriminant(_87))) @ _95=discriminant(_87) @ Discriminant
+    switchInt(move _95) -&gt; [1: bb49, otherwise: bb57] @ SwitchInt
+}
+bb 49 {
+CleanUp: false
+    StorageLive(_96) @ StorageLive
+    Assign((_96, move ((_87 as Err).0: system_error::SystemError))) @ _96=move ((_87 as Err).0: system_error::SystemError) @ Use
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    Assign((_102, &amp;(*_3))) @ _102=&amp;(*_3) @ Ref
+    _101 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::name(move _102) -&gt; [return: bb50, unwind: bb73] @ Call: FnDid: 19040
+}
+bb 50 {
+CleanUp: false
+    Assign((_100, &amp;_101)) @ _100=&amp;_101 @ Ref
+    StorageDead(_102) @ StorageDead
+    _99 = core::option::Option::&lt;&amp;str&gt;::is_some(move _100) -&gt; [return: bb51, unwind: bb73] @ Call: FnDid: 10143
+}
+bb 51 {
+CleanUp: false
+    switchInt(move _99) -&gt; [0: bb55, otherwise: bb52] @ SwitchInt
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    StorageLive(_105) @ StorageLive
+    StorageLive(_106) @ StorageLive
+    Assign((_106, &amp;_26)) @ _106=&amp;_26 @ Ref
+    _105 = &lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt; as lazy_static::__Deref&gt;::deref(move _106) -&gt; [return: bb53, unwind: bb73] @ Call: FnDid: 3903
+}
+bb 53 {
+CleanUp: false
+    Assign((_104, &amp;(*_105))) @ _104=&amp;(*_105) @ Ref
+    StorageDead(_106) @ StorageDead
+    _103 = filesystem::kernfs::KernFSInode::remove_recursive(move _104) -&gt; [return: bb54, unwind: bb73] @ Call: FnDid: 18170
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_104) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    Assign((_98, const ())) @ _98=const () @ Use
+    goto -&gt; bb56 @ Goto
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    Assign((_98, const ())) @ _98=const () @ Use
+    goto -&gt; bb56 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageLive(_107) @ StorageLive
+    Assign((_107, move _96)) @ _107=move _96 @ Use
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _107))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _107) @ Aggregate
+    StorageDead(_107) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 57 {
+CleanUp: false
+    Assign((_86, const ())) @ _86=const () @ Use
+    StorageDead(_87) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageLive(_108) @ StorageLive
+    Assign((_108, ())) @ _108=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _108))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _108) @ Aggregate
+    StorageDead(_108) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 59 {
+CleanUp: false
+    Assign((_109, const false)) @ _109=const false @ Use
+    StorageDead(_26) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 60 {
+CleanUp: false
+    drop(_6) -&gt; [return: bb61, unwind: bb63] @ Drop
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    return @ Return
+}
+bb 62 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb63, unwind terminate(cleanup)] @ Drop
+}
+bb 63 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 64 {
+CleanUp: false
+    drop(_26) -&gt; [return: bb59, unwind: bb62] @ Drop
+}
+bb 65 {
+CleanUp: false
+    switchInt(copy _109) -&gt; [0: bb59, otherwise: bb64] @ SwitchInt
+}
+bb 66 {
+CleanUp: true
+    Assign((_126, discriminant(_59))) @ _126=discriminant(_59) @ Discriminant
+    goto -&gt; bb70 @ Goto
+}
+bb 67 {
+CleanUp: true
+    drop(_65) -&gt; [return: bb70, unwind terminate(cleanup)] @ Drop
+}
+bb 68 {
+CleanUp: true
+    switchInt(copy _110) -&gt; [0: bb70, otherwise: bb67] @ SwitchInt
+}
+bb 69 {
+CleanUp: true
+    drop(_52) -&gt; [return: bb73, unwind terminate(cleanup)] @ Drop
+}
+bb 70 {
+CleanUp: true
+    switchInt(copy _111) -&gt; [0: bb73, otherwise: bb69] @ SwitchInt
+}
+bb 71 {
+CleanUp: true
+    Assign((_127, discriminant(_36))) @ _127=discriminant(_36) @ Discriminant
+    goto -&gt; bb73 @ Goto
+}
+bb 72 {
+CleanUp: true
+    drop(_26) -&gt; [return: bb62, unwind terminate(cleanup)] @ Drop
+}
+bb 73 {
+CleanUp: true
+    switchInt(copy _109) -&gt; [0: bb62, otherwise: bb72] @ SwitchInt
+}
+bb 74 {
+CleanUp: true
+    Assign((_128, discriminant(_7))) @ _128=discriminant(_7) @ Discriminant
+    goto -&gt; bb63 @ Goto
+}
+
+bb0 at src/filesystem/sysfs/group.rs:73:34: 73:53
+fn filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_group::{closure#0}
+_0:  @ system_error::SystemError 
+_1:  @ Closure(DefId(0:19006 ~ dragonos_kernel[9e38]::filesystem::sysfs::group::{impl#0}::do_create_group::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)) -&gt; system_error::SystemError, bound_vars: [] }, ()]) 
+_2:  @ system_error::SystemError 
+
+bb 0 {
+CleanUp: false
+    Assign((_0, system_error::SystemError::EINVAL)) @ _0=system_error::SystemError::EINVAL @ Aggregate
+    return @ Return
+}
+
+bb0 at src/filesystem/sysfs/group.rs:88:25: 90:26
+bb2 at src/filesystem/sysfs/group.rs:88:51: 88:52
+bb3 at src/filesystem/sysfs/group.rs:89:73: 89:74
+bb4 at src/filesystem/sysfs/group.rs:89:62: 89:83
+bb5 at src/filesystem/sysfs/group.rs:89:83: 89:84
+bb6 at src/filesystem/sysfs/group.rs:88:51: 88:52
+bb7 at src/filesystem/sysfs/group.rs:90:25: 90:26
+fn filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_group::{closure#1}
+_0:  @ system_error::SystemError 
+_1:  @ Closure(DefId(0:19007 ~ dragonos_kernel[9e38]::filesystem::sysfs::group::{impl#0}::do_create_group::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)) -&gt; system_error::SystemError, bound_vars: [] }, (&amp;&#39;{erased} filesystem::sysfs::SysFS, &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;, &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased})]) 
+_2:  @ system_error::SystemError 
+_3:  @ () 
+_4:  @ bool 
+_5:  @ &amp;&#39;{erased} system_error::SystemError 
+_6:  @ &amp;&#39;{erased} system_error::SystemError 
+_7:  @ system_error::SystemError 
+_8:  @ () 
+_9:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} str 
+_13:  @ &amp;&#39;{erased} str 
+_14:  @ core::option::Option&lt;&amp;&#39;{erased} str&gt; 
+_15:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+_16:  @ &amp;&#39;{erased} system_error::SystemError 
+_17:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_18:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_19:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::AttributeGroup), bound_vars: [] }] + &#39;{erased} 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;_2)) @ _5=&amp;_2 @ Ref
+    StorageLive(_6) @ StorageLive
+    Assign((_16, const filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_group::{closure#1}::promoted[0])) @ _16=const filesystem::sysfs::group::&lt;impl filesystem::sysfs::SysFS&gt;::do_create_group::{closure#1}::promoted[0] @ Use
+    Assign((_6, &amp;(*_16))) @ _6=&amp;(*_16) @ Ref
+    _4 = &lt;system_error::SystemError as core::cmp::PartialEq&gt;::eq(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3170
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _4) -&gt; [0: bb6, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_17, deref_copy (_1.0: &amp;filesystem::sysfs::SysFS))) @ _17=deref_copy (_1.0: &amp;filesystem::sysfs::SysFS) @ CopyForDeref
+    Assign((_9, &amp;(*_17))) @ _9=&amp;(*_17) @ Ref
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_18, deref_copy (_1.1: &amp;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;))) @ _18=deref_copy (_1.1: &amp;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;) @ CopyForDeref
+    Assign((_11, &amp;(*_18))) @ _11=&amp;(*_18) @ Ref
+    Assign((_10, &amp;(*_11))) @ _10=&amp;(*_11) @ Ref
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_19, deref_copy (_1.2: &amp;dyn filesystem::sysfs::AttributeGroup))) @ _19=deref_copy (_1.2: &amp;dyn filesystem::sysfs::AttributeGroup) @ CopyForDeref
+    Assign((_15, &amp;(*_19))) @ _15=&amp;(*_19) @ Ref
+    _14 = &lt;dyn filesystem::sysfs::AttributeGroup as filesystem::sysfs::AttributeGroup&gt;::name(move _15) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 19040
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    _13 = core::option::Option::&lt;&amp;str&gt;::unwrap(move _14) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 10157
+}
+bb 4 {
+CleanUp: false
+    Assign((_12, &amp;(*_13))) @ _12=&amp;(*_13) @ Ref
+    StorageDead(_14) @ StorageDead
+    _8 = filesystem::sysfs::SysFS::warn_duplicate(move _9, move _10, move _12) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 19066
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb7 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb7 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, move _2)) @ _0=move _2 @ Use
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

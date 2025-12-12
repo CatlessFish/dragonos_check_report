@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #188: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #188
+            
+                 <span class="func-name">sched::fair::{impl#2}::update_self_load_avg</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:18|RAP|WARN|: Dangling pointer detected in function &#34;update_self_load_avg&#34;
+warning: Dangling pointer detected.
+   --&gt; src/sched/fair.rs:893:1
+    |
+893 | / fn update_self_load_avg(&amp;mut self, now: u64) -&gt; u32 {
+894 | |         let mut removed_load = 0;
+895 | |         let mut removed_util = 0;
+896 | |         let mut removed_runnable = 0;
+897 | |
+898 | |         let mut decayed = 0;
+899 | |
+900 | |         if self.removed.lock().nr &gt; 0 {
+901 | |             let mut removed_guard = self.removed.lock();
+902 | |             let divider = self.avg.get_pelt_divider();
+903 | |
+904 | |             swap::&lt;usize&gt;(&amp;mut removed_guard.util_avg, &amp;mut removed_util);
+905 | |             swap::&lt;usize&gt;(&amp;mut removed_guard.load_avg, &amp;mut removed_load);
+906 | |             swap::&lt;usize&gt;(&amp;mut removed_guard.runnable_avg, &amp;mut removed_runnable);
+907 | |
+908 | |             removed_guard.nr = 0;
+909 | |
+910 | |             let mut r = removed_load;
+911 | |
+912 | |             sub_positive(&amp;mut self.avg.load_avg, r);
+913 | |             sub_positive(&amp;mut (self.avg.load_sum as usize), r * divider);
+914 | |
+915 | |             self.avg.load_sum = self
+916 | |                 .avg
+917 | |                 .load_sum
+918 | |                 .max((self.avg.load_avg * PELT_MIN_DIVIDER) as u64);
+919 | |
+920 | |             r = removed_util;
+921 | |             sub_positive(&amp;mut self.avg.util_avg, r);
+922 | |             sub_positive(&amp;mut (self.avg.util_sum as usize), r * divider);
+923 | |             self.avg.util_sum = self
+924 | |                 .avg
+925 | |                 .util_sum
+926 | |                 .max((self.avg.util_avg * PELT_MIN_DIVIDER) as u64);
+927 | |
+928 | |             r = removed_runnable;
+929 | |             sub_positive(&amp;mut self.avg.runnable_avg, r);
+930 | |             sub_positive(&amp;mut (self.avg.runnable_sum as usize), r * divider);
+931 | |             self.avg.runnable_sum = self
+932 | |                 .avg
+933 | |                 .runnable_sum
+934 | |                 .max((self.avg.runnable_avg * PELT_MIN_DIVIDER) as u64);
+935 | |
+936 | |             drop(removed_guard);
+937 | |             self.add_task_group_propagate(
+938 | |                 -(removed_runnable as isize * divider as isize) &gt;&gt; SCHED_CAPACITY_SHIFT,
+939 | |             );
+940 | |
+941 | |             decayed = 1;
+942 | |         }
+943 | |
+944 | |         decayed |= self.__update_load_avg(now) as u32;
+945 | |
+946 | |         self.last_update_time_copy = self.avg.last_update_time;
+947 | |
+948 | |         return decayed;
+949 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/sched/fair.rs line 893.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in update_self_load_avg and _1(self, src/sched/fair.rs:893) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in update_self_load_avg is dropped at BB18446744073709551615(src/sched/fair.rs:893); _1(self, src/sched/fair.rs:893) became dangling.
+    |
+22:08:18|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;update_self_load_avg&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/sched/fair.rs:893:1
+    |
+893 | / fn update_self_load_avg(&amp;mut self, now: u64) -&gt; u32 {
+894 | |         let mut removed_load = 0;
+895 | |         let mut removed_util = 0;
+896 | |         let mut removed_runnable = 0;
+897 | |
+898 | |         let mut decayed = 0;
+899 | |
+900 | |         if self.removed.lock().nr &gt; 0 {
+901 | |             let mut removed_guard = self.removed.lock();
+902 | |             let divider = self.avg.get_pelt_divider();
+903 | |
+904 | |             swap::&lt;usize&gt;(&amp;mut removed_guard.util_avg, &amp;mut removed_util);
+905 | |             swap::&lt;usize&gt;(&amp;mut removed_guard.load_avg, &amp;mut removed_load);
+906 | |             swap::&lt;usize&gt;(&amp;mut removed_guard.runnable_avg, &amp;mut removed_runnable);
+907 | |
+908 | |             removed_guard.nr = 0;
+909 | |
+910 | |             let mut r = removed_load;
+911 | |
+912 | |             sub_positive(&amp;mut self.avg.load_avg, r);
+913 | |             sub_positive(&amp;mut (self.avg.load_sum as usize), r * divider);
+914 | |
+915 | |             self.avg.load_sum = self
+916 | |                 .avg
+917 | |                 .load_sum
+918 | |                 .max((self.avg.load_avg * PELT_MIN_DIVIDER) as u64);
+919 | |
+920 | |             r = removed_util;
+921 | |             sub_positive(&amp;mut self.avg.util_avg, r);
+922 | |             sub_positive(&amp;mut (self.avg.util_sum as usize), r * divider);
+923 | |             self.avg.util_sum = self
+924 | |                 .avg
+925 | |                 .util_sum
+926 | |                 .max((self.avg.util_avg * PELT_MIN_DIVIDER) as u64);
+927 | |
+928 | |             r = removed_runnable;
+929 | |             sub_positive(&amp;mut self.avg.runnable_avg, r);
+930 | |             sub_positive(&amp;mut (self.avg.runnable_sum as usize), r * divider);
+931 | |             self.avg.runnable_sum = self
+932 | |                 .avg
+933 | |                 .runnable_sum
+934 | |                 .max((self.avg.runnable_avg * PELT_MIN_DIVIDER) as u64);
+935 | |
+936 | |             drop(removed_guard);
+937 | |             self.add_task_group_propagate(
+938 | |                 -(removed_runnable as isize * divider as isize) &gt;&gt; SCHED_CAPACITY_SHIFT,
+939 | |             );
+940 | |
+941 | |             decayed = 1;
+942 | |         }
+943 | |
+944 | |         decayed |= self.__update_load_avg(now) as u32;
+945 | |
+946 | |         self.last_update_time_copy = self.avg.last_update_time;
+947 | |
+948 | |         return decayed;
+949 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/sched/fair.rs line 893.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in update_self_load_avg and _1(self, src/sched/fair.rs:893) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in update_self_load_avg is dropped at BB18446744073709551615(src/sched/fair.rs:893); _1(self, src/sched/fair.rs:893) became dangling.
+    |
+render dot for DefId(0:30250 ~ dragonos_kernel[9e38]::sched::fair::{impl#2}::update_self_load_avg)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/sched/fair.rs:894:13: 894:29
+bb1 at src/sched/fair.rs:900:12: 900:31
+bb2 at src/sched/fair.rs:900:30: 900:31
+bb4 at src/sched/fair.rs:900:37: 900:38
+bb5 at src/sched/fair.rs:901:55: 901:56
+bb6 at src/sched/fair.rs:902:53: 902:54
+bb7 at src/sched/fair.rs:904:44: 904:45
+bb8 at src/sched/fair.rs:904:73: 904:74
+bb9 at src/sched/fair.rs:905:44: 905:45
+bb10 at src/sched/fair.rs:905:73: 905:74
+bb11 at src/sched/fair.rs:906:44: 906:45
+bb12 at src/sched/fair.rs:906:81: 906:82
+bb13 at src/sched/fair.rs:908:25: 908:26
+bb14 at src/sched/fair.rs:912:51: 912:52
+bb15 at src/sched/fair.rs:913:61: 913:72
+bb16 at src/sched/fair.rs:913:72: 913:73
+bb17 at src/sched/fair.rs:918:22: 918:60
+bb18 at src/sched/fair.rs:918:67: 918:68
+bb19 at src/sched/fair.rs:921:51: 921:52
+bb20 at src/sched/fair.rs:922:61: 922:72
+bb21 at src/sched/fair.rs:922:72: 922:73
+bb22 at src/sched/fair.rs:926:22: 926:60
+bb23 at src/sched/fair.rs:926:67: 926:68
+bb24 at src/sched/fair.rs:929:55: 929:56
+bb25 at src/sched/fair.rs:930:65: 930:76
+bb26 at src/sched/fair.rs:930:76: 930:77
+bb27 at src/sched/fair.rs:934:22: 934:64
+bb28 at src/sched/fair.rs:934:71: 934:72
+bb29 at src/sched/fair.rs:936:31: 936:32
+bb30 at src/sched/fair.rs:938:18: 938:64
+bb31 at src/sched/fair.rs:938:17: 938:64
+bb32 at src/sched/fair.rs:938:17: 938:88
+bb33 at src/sched/fair.rs:939:13: 939:14
+bb35 at src/sched/fair.rs:900:37: 900:38
+bb36 at src/sched/fair.rs:942:9: 942:10
+bb37 at src/sched/fair.rs:944:46: 944:47
+fn sched::fair::CfsRunQueue::update_self_load_avg
+_0:  @ u32 
+_1:  @ &amp;&#39;{erased} mut sched::fair::CfsRunQueue 
+_2:  @ u64 
+_3:  @ ! 
+_4:  @ usize 
+_5:  @ usize 
+_6:  @ usize 
+_7:  @ u32 
+_8:  @ () 
+_9:  @ bool 
+_10:  @ u32 
+_11:  @ &amp;&#39;{erased} sched::fair::CfsRemoved 
+_12:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_13:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_14:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;sched::fair::CfsRemoved&gt; 
+_15:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_16:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;sched::fair::CfsRemoved&gt; 
+_17:  @ usize 
+_18:  @ &amp;&#39;{erased} sched::pelt::SchedulerAvg 
+_19:  @ () 
+_20:  @ &amp;&#39;{erased} mut usize 
+_21:  @ &amp;&#39;{erased} mut usize 
+_22:  @ &amp;&#39;{erased} mut sched::fair::CfsRemoved 
+_23:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_24:  @ &amp;&#39;{erased} mut usize 
+_25:  @ &amp;&#39;{erased} mut usize 
+_26:  @ () 
+_27:  @ &amp;&#39;{erased} mut usize 
+_28:  @ &amp;&#39;{erased} mut usize 
+_29:  @ &amp;&#39;{erased} mut sched::fair::CfsRemoved 
+_30:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_31:  @ &amp;&#39;{erased} mut usize 
+_32:  @ &amp;&#39;{erased} mut usize 
+_33:  @ () 
+_34:  @ &amp;&#39;{erased} mut usize 
+_35:  @ &amp;&#39;{erased} mut usize 
+_36:  @ &amp;&#39;{erased} mut sched::fair::CfsRemoved 
+_37:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_38:  @ &amp;&#39;{erased} mut usize 
+_39:  @ &amp;&#39;{erased} mut usize 
+_40:  @ &amp;&#39;{erased} mut sched::fair::CfsRemoved 
+_41:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_42:  @ usize 
+_43:  @ () 
+_44:  @ &amp;&#39;{erased} mut usize 
+_45:  @ &amp;&#39;{erased} mut usize 
+_46:  @ usize 
+_47:  @ () 
+_48:  @ &amp;&#39;{erased} mut usize 
+_49:  @ &amp;&#39;{erased} mut usize 
+_50:  @ usize 
+_51:  @ u64 
+_52:  @ usize 
+_53:  @ usize 
+_54:  @ usize 
+_55:  @ (usize, bool) 
+_56:  @ u64 
+_57:  @ u64 
+_58:  @ u64 
+_59:  @ usize 
+_60:  @ usize 
+_61:  @ (usize, bool) 
+_62:  @ usize 
+_63:  @ () 
+_64:  @ &amp;&#39;{erased} mut usize 
+_65:  @ &amp;&#39;{erased} mut usize 
+_66:  @ usize 
+_67:  @ () 
+_68:  @ &amp;&#39;{erased} mut usize 
+_69:  @ &amp;&#39;{erased} mut usize 
+_70:  @ usize 
+_71:  @ u64 
+_72:  @ usize 
+_73:  @ usize 
+_74:  @ usize 
+_75:  @ (usize, bool) 
+_76:  @ u64 
+_77:  @ u64 
+_78:  @ u64 
+_79:  @ usize 
+_80:  @ usize 
+_81:  @ (usize, bool) 
+_82:  @ usize 
+_83:  @ () 
+_84:  @ &amp;&#39;{erased} mut usize 
+_85:  @ &amp;&#39;{erased} mut usize 
+_86:  @ usize 
+_87:  @ () 
+_88:  @ &amp;&#39;{erased} mut usize 
+_89:  @ &amp;&#39;{erased} mut usize 
+_90:  @ usize 
+_91:  @ u64 
+_92:  @ usize 
+_93:  @ usize 
+_94:  @ usize 
+_95:  @ (usize, bool) 
+_96:  @ u64 
+_97:  @ u64 
+_98:  @ u64 
+_99:  @ usize 
+_100:  @ usize 
+_101:  @ (usize, bool) 
+_102:  @ () 
+_103:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::fair::CfsRemoved&gt; 
+_104:  @ () 
+_105:  @ &amp;&#39;{erased} mut sched::fair::CfsRunQueue 
+_106:  @ isize 
+_107:  @ isize 
+_108:  @ isize 
+_109:  @ isize 
+_110:  @ usize 
+_111:  @ isize 
+_112:  @ usize 
+_113:  @ (isize, bool) 
+_114:  @ bool 
+_115:  @ bool 
+_116:  @ u32 
+_117:  @ bool 
+_118:  @ &amp;&#39;{erased} mut sched::fair::CfsRunQueue 
+_119:  @ u64 
+_120:  @ u64 
+_121:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_121, const false)) @ _121=const false @ Use
+    StorageLive(_4) @ StorageLive
+    Assign((_4, const 0_usize)) @ _4=const 0_usize @ Use
+    StorageLive(_5) @ StorageLive
+    Assign((_5, const 0_usize)) @ _5=const 0_usize @ Use
+    StorageLive(_6) @ StorageLive
+    Assign((_6, const 0_usize)) @ _6=const 0_usize @ Use
+    StorageLive(_7) @ StorageLive
+    Assign((_7, const 0_u32)) @ _7=const 0_u32 @ Use
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;((*_1).26: libs::spinlock::SpinLock&lt;sched::fair::CfsRemoved&gt;))) @ _14=&amp;((*_1).26: libs::spinlock::SpinLock&lt;sched::fair::CfsRemoved&gt;) @ Ref
+    _13 = libs::spinlock::SpinLock::&lt;sched::fair::CfsRemoved&gt;::lock(move _14) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5261
+}
+bb 1 {
+CleanUp: false
+    Assign((_12, &amp;_13)) @ _12=&amp;_13 @ Ref
+    _11 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::fair::CfsRemoved&gt; as lazy_static::__Deref&gt;::deref(move _12) -&gt; [return: bb2, unwind: bb38] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    Assign((_10, copy ((*_11).0: u32))) @ _10=copy ((*_11).0: u32) @ Use
+    Assign((_9, Gt(move _10, const 0_u32))) @ _9=Gt(move _10, const 0_u32) @ BinaryOp
+    switchInt(move _9) -&gt; [0: bb34, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    drop(_13) -&gt; [return: bb4, unwind: bb39] @ Drop
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;((*_1).26: libs::spinlock::SpinLock&lt;sched::fair::CfsRemoved&gt;))) @ _16=&amp;((*_1).26: libs::spinlock::SpinLock&lt;sched::fair::CfsRemoved&gt;) @ Ref
+    Assign((_121, const true)) @ _121=const true @ Use
+    _15 = libs::spinlock::SpinLock::&lt;sched::fair::CfsRemoved&gt;::lock(move _16) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 5261
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, &amp;((*_1).17: sched::pelt::SchedulerAvg))) @ _18=&amp;((*_1).17: sched::pelt::SchedulerAvg) @ Ref
+    _17 = sched::pelt::SchedulerAvg::get_pelt_divider(move _18) -&gt; [return: bb6, unwind: bb41] @ Call: FnDid: 30329
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &amp;mut _15)) @ _23=&amp;mut _15 @ Ref
+    _22 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::fair::CfsRemoved&gt; as core::ops::DerefMut&gt;::deref_mut(move _23) -&gt; [return: bb7, unwind: bb41] @ Call: FnDid: 3915
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    Assign((_21, &amp;mut ((*_22).2: usize))) @ _21=&amp;mut ((*_22).2: usize) @ Ref
+    Assign((_20, &amp;mut (*_21))) @ _20=&amp;mut (*_21) @ Ref
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;mut _5)) @ _25=&amp;mut _5 @ Ref
+    Assign((_24, &amp;mut (*_25))) @ _24=&amp;mut (*_25) @ Ref
+    _19 = core::mem::swap::&lt;usize&gt;(move _20, move _24) -&gt; [return: bb8, unwind: bb41] @ Call: FnDid: 2317
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;mut _15)) @ _30=&amp;mut _15 @ Ref
+    _29 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::fair::CfsRemoved&gt; as core::ops::DerefMut&gt;::deref_mut(move _30) -&gt; [return: bb9, unwind: bb41] @ Call: FnDid: 3915
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    Assign((_28, &amp;mut ((*_29).1: usize))) @ _28=&amp;mut ((*_29).1: usize) @ Ref
+    Assign((_27, &amp;mut (*_28))) @ _27=&amp;mut (*_28) @ Ref
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;mut _4)) @ _32=&amp;mut _4 @ Ref
+    Assign((_31, &amp;mut (*_32))) @ _31=&amp;mut (*_32) @ Ref
+    _26 = core::mem::swap::&lt;usize&gt;(move _27, move _31) -&gt; [return: bb10, unwind: bb41] @ Call: FnDid: 2317
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;mut _15)) @ _37=&amp;mut _15 @ Ref
+    _36 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::fair::CfsRemoved&gt; as core::ops::DerefMut&gt;::deref_mut(move _37) -&gt; [return: bb11, unwind: bb41] @ Call: FnDid: 3915
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    Assign((_35, &amp;mut ((*_36).3: usize))) @ _35=&amp;mut ((*_36).3: usize) @ Ref
+    Assign((_34, &amp;mut (*_35))) @ _34=&amp;mut (*_35) @ Ref
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;mut _6)) @ _39=&amp;mut _6 @ Ref
+    Assign((_38, &amp;mut (*_39))) @ _38=&amp;mut (*_39) @ Ref
+    _33 = core::mem::swap::&lt;usize&gt;(move _34, move _38) -&gt; [return: bb12, unwind: bb41] @ Call: FnDid: 2317
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;mut _15)) @ _41=&amp;mut _15 @ Ref
+    _40 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::fair::CfsRemoved&gt; as core::ops::DerefMut&gt;::deref_mut(move _41) -&gt; [return: bb13, unwind: bb41] @ Call: FnDid: 3915
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((((*_40).0: u32), const 0_u32)) @ ((*_40).0: u32)=const 0_u32 @ Use
+    StorageDead(_40) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    Assign((_42, copy _4)) @ _42=copy _4 @ Use
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;mut (((*_1).17: sched::pelt::SchedulerAvg).5: usize))) @ _45=&amp;mut (((*_1).17: sched::pelt::SchedulerAvg).5: usize) @ Ref
+    Assign((_44, &amp;mut (*_45))) @ _44=&amp;mut (*_45) @ Ref
+    StorageLive(_46) @ StorageLive
+    Assign((_46, copy _42)) @ _46=copy _42 @ Use
+    _43 = sched::pelt::sub_positive(move _44, move _46) -&gt; [return: bb14, unwind: bb41] @ Call: FnDid: 30343
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, copy (((*_1).17: sched::pelt::SchedulerAvg).1: u64))) @ _51=copy (((*_1).17: sched::pelt::SchedulerAvg).1: u64) @ Use
+    Assign((_50, move _51 as usize (IntToInt))) @ _50=move _51 as usize (IntToInt) @ Cast
+    StorageDead(_51) @ StorageDead
+    Assign((_49, &amp;mut _50)) @ _49=&amp;mut _50 @ Ref
+    Assign((_48, &amp;mut (*_49))) @ _48=&amp;mut (*_49) @ Ref
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, copy _42)) @ _53=copy _42 @ Use
+    StorageLive(_54) @ StorageLive
+    Assign((_54, copy _17)) @ _54=copy _17 @ Use
+    Assign((_55, MulWithOverflow(copy _53, copy _54))) @ _55=MulWithOverflow(copy _53, copy _54) @ BinaryOp
+    assert(!move (_55.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _53, move _54) -&gt; [success: bb15, unwind: bb41] @ Assert
+}
+bb 15 {
+CleanUp: false
+    Assign((_52, move (_55.0: usize))) @ _52=move (_55.0: usize) @ Use
+    StorageDead(_54) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    _47 = sched::pelt::sub_positive(move _48, move _52) -&gt; [return: bb16, unwind: bb41] @ Call: FnDid: 30343
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_52) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, copy (((*_1).17: sched::pelt::SchedulerAvg).1: u64))) @ _57=copy (((*_1).17: sched::pelt::SchedulerAvg).1: u64) @ Use
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, copy (((*_1).17: sched::pelt::SchedulerAvg).5: usize))) @ _60=copy (((*_1).17: sched::pelt::SchedulerAvg).5: usize) @ Use
+    Assign((_61, MulWithOverflow(copy _60, const sched::pelt::PELT_MIN_DIVIDER))) @ _61=MulWithOverflow(copy _60, const sched::pelt::PELT_MIN_DIVIDER) @ BinaryOp
+    assert(!move (_61.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _60, const sched::pelt::PELT_MIN_DIVIDER) -&gt; [success: bb17, unwind: bb41] @ Assert
+}
+bb 17 {
+CleanUp: false
+    Assign((_59, move (_61.0: usize))) @ _59=move (_61.0: usize) @ Use
+    StorageDead(_60) @ StorageDead
+    Assign((_58, move _59 as u64 (IntToInt))) @ _58=move _59 as u64 (IntToInt) @ Cast
+    StorageDead(_59) @ StorageDead
+    _56 = &lt;u64 as core::cmp::Ord&gt;::max(move _57, move _58) -&gt; [return: bb18, unwind: bb41] @ Call: FnDid: 3207
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    Assign(((((*_1).17: sched::pelt::SchedulerAvg).1: u64), move _56)) @ (((*_1).17: sched::pelt::SchedulerAvg).1: u64)=move _56 @ Use
+    StorageDead(_56) @ StorageDead
+    StorageLive(_62) @ StorageLive
+    Assign((_62, copy _5)) @ _62=copy _5 @ Use
+    Assign((_42, move _62)) @ _42=move _62 @ Use
+    StorageDead(_62) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;mut (((*_1).17: sched::pelt::SchedulerAvg).7: usize))) @ _65=&amp;mut (((*_1).17: sched::pelt::SchedulerAvg).7: usize) @ Ref
+    Assign((_64, &amp;mut (*_65))) @ _64=&amp;mut (*_65) @ Ref
+    StorageLive(_66) @ StorageLive
+    Assign((_66, copy _42)) @ _66=copy _42 @ Use
+    _63 = sched::pelt::sub_positive(move _64, move _66) -&gt; [return: bb19, unwind: bb41] @ Call: FnDid: 30343
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    Assign((_71, copy (((*_1).17: sched::pelt::SchedulerAvg).3: u64))) @ _71=copy (((*_1).17: sched::pelt::SchedulerAvg).3: u64) @ Use
+    Assign((_70, move _71 as usize (IntToInt))) @ _70=move _71 as usize (IntToInt) @ Cast
+    StorageDead(_71) @ StorageDead
+    Assign((_69, &amp;mut _70)) @ _69=&amp;mut _70 @ Ref
+    Assign((_68, &amp;mut (*_69))) @ _68=&amp;mut (*_69) @ Ref
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    Assign((_73, copy _42)) @ _73=copy _42 @ Use
+    StorageLive(_74) @ StorageLive
+    Assign((_74, copy _17)) @ _74=copy _17 @ Use
+    Assign((_75, MulWithOverflow(copy _73, copy _74))) @ _75=MulWithOverflow(copy _73, copy _74) @ BinaryOp
+    assert(!move (_75.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _73, move _74) -&gt; [success: bb20, unwind: bb41] @ Assert
+}
+bb 20 {
+CleanUp: false
+    Assign((_72, move (_75.0: usize))) @ _72=move (_75.0: usize) @ Use
+    StorageDead(_74) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    _67 = sched::pelt::sub_positive(move _68, move _72) -&gt; [return: bb21, unwind: bb41] @ Call: FnDid: 30343
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_72) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_77, copy (((*_1).17: sched::pelt::SchedulerAvg).3: u64))) @ _77=copy (((*_1).17: sched::pelt::SchedulerAvg).3: u64) @ Use
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    Assign((_80, copy (((*_1).17: sched::pelt::SchedulerAvg).7: usize))) @ _80=copy (((*_1).17: sched::pelt::SchedulerAvg).7: usize) @ Use
+    Assign((_81, MulWithOverflow(copy _80, const sched::pelt::PELT_MIN_DIVIDER))) @ _81=MulWithOverflow(copy _80, const sched::pelt::PELT_MIN_DIVIDER) @ BinaryOp
+    assert(!move (_81.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _80, const sched::pelt::PELT_MIN_DIVIDER) -&gt; [success: bb22, unwind: bb41] @ Assert
+}
+bb 22 {
+CleanUp: false
+    Assign((_79, move (_81.0: usize))) @ _79=move (_81.0: usize) @ Use
+    StorageDead(_80) @ StorageDead
+    Assign((_78, move _79 as u64 (IntToInt))) @ _78=move _79 as u64 (IntToInt) @ Cast
+    StorageDead(_79) @ StorageDead
+    _76 = &lt;u64 as core::cmp::Ord&gt;::max(move _77, move _78) -&gt; [return: bb23, unwind: bb41] @ Call: FnDid: 3207
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    Assign(((((*_1).17: sched::pelt::SchedulerAvg).3: u64), move _76)) @ (((*_1).17: sched::pelt::SchedulerAvg).3: u64)=move _76 @ Use
+    StorageDead(_76) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    Assign((_82, copy _6)) @ _82=copy _6 @ Use
+    Assign((_42, move _82)) @ _42=move _82 @ Use
+    StorageDead(_82) @ StorageDead
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;mut (((*_1).17: sched::pelt::SchedulerAvg).6: usize))) @ _85=&amp;mut (((*_1).17: sched::pelt::SchedulerAvg).6: usize) @ Ref
+    Assign((_84, &amp;mut (*_85))) @ _84=&amp;mut (*_85) @ Ref
+    StorageLive(_86) @ StorageLive
+    Assign((_86, copy _42)) @ _86=copy _42 @ Use
+    _83 = sched::pelt::sub_positive(move _84, move _86) -&gt; [return: bb24, unwind: bb41] @ Call: FnDid: 30343
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_86) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    Assign((_91, copy (((*_1).17: sched::pelt::SchedulerAvg).2: u64))) @ _91=copy (((*_1).17: sched::pelt::SchedulerAvg).2: u64) @ Use
+    Assign((_90, move _91 as usize (IntToInt))) @ _90=move _91 as usize (IntToInt) @ Cast
+    StorageDead(_91) @ StorageDead
+    Assign((_89, &amp;mut _90)) @ _89=&amp;mut _90 @ Ref
+    Assign((_88, &amp;mut (*_89))) @ _88=&amp;mut (*_89) @ Ref
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, copy _42)) @ _93=copy _42 @ Use
+    StorageLive(_94) @ StorageLive
+    Assign((_94, copy _17)) @ _94=copy _17 @ Use
+    Assign((_95, MulWithOverflow(copy _93, copy _94))) @ _95=MulWithOverflow(copy _93, copy _94) @ BinaryOp
+    assert(!move (_95.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _93, move _94) -&gt; [success: bb25, unwind: bb41] @ Assert
+}
+bb 25 {
+CleanUp: false
+    Assign((_92, move (_95.0: usize))) @ _92=move (_95.0: usize) @ Use
+    StorageDead(_94) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    _87 = sched::pelt::sub_positive(move _88, move _92) -&gt; [return: bb26, unwind: bb41] @ Call: FnDid: 30343
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_92) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    Assign((_97, copy (((*_1).17: sched::pelt::SchedulerAvg).2: u64))) @ _97=copy (((*_1).17: sched::pelt::SchedulerAvg).2: u64) @ Use
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    Assign((_100, copy (((*_1).17: sched::pelt::SchedulerAvg).6: usize))) @ _100=copy (((*_1).17: sched::pelt::SchedulerAvg).6: usize) @ Use
+    Assign((_101, MulWithOverflow(copy _100, const sched::pelt::PELT_MIN_DIVIDER))) @ _101=MulWithOverflow(copy _100, const sched::pelt::PELT_MIN_DIVIDER) @ BinaryOp
+    assert(!move (_101.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _100, const sched::pelt::PELT_MIN_DIVIDER) -&gt; [success: bb27, unwind: bb41] @ Assert
+}
+bb 27 {
+CleanUp: false
+    Assign((_99, move (_101.0: usize))) @ _99=move (_101.0: usize) @ Use
+    StorageDead(_100) @ StorageDead
+    Assign((_98, move _99 as u64 (IntToInt))) @ _98=move _99 as u64 (IntToInt) @ Cast
+    StorageDead(_99) @ StorageDead
+    _96 = &lt;u64 as core::cmp::Ord&gt;::max(move _97, move _98) -&gt; [return: bb28, unwind: bb41] @ Call: FnDid: 3207
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    Assign(((((*_1).17: sched::pelt::SchedulerAvg).2: u64), move _96)) @ (((*_1).17: sched::pelt::SchedulerAvg).2: u64)=move _96 @ Use
+    StorageDead(_96) @ StorageDead
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    Assign((_121, const false)) @ _121=const false @ Use
+    Assign((_103, move _15)) @ _103=move _15 @ Use
+    _102 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::fair::CfsRemoved&gt;&gt;(move _103) -&gt; [return: bb29, unwind: bb41] @ Call: FnDid: 2323
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_103) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageLive(_104) @ StorageLive
+    StorageLive(_105) @ StorageLive
+    Assign((_105, &amp;mut (*_1))) @ _105=&amp;mut (*_1) @ Ref
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    StorageLive(_109) @ StorageLive
+    StorageLive(_110) @ StorageLive
+    Assign((_110, copy _6)) @ _110=copy _6 @ Use
+    Assign((_109, move _110 as isize (IntToInt))) @ _109=move _110 as isize (IntToInt) @ Cast
+    StorageDead(_110) @ StorageDead
+    StorageLive(_111) @ StorageLive
+    StorageLive(_112) @ StorageLive
+    Assign((_112, copy _17)) @ _112=copy _17 @ Use
+    Assign((_111, move _112 as isize (IntToInt))) @ _111=move _112 as isize (IntToInt) @ Cast
+    StorageDead(_112) @ StorageDead
+    Assign((_113, MulWithOverflow(copy _109, copy _111))) @ _113=MulWithOverflow(copy _109, copy _111) @ BinaryOp
+    assert(!move (_113.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _109, move _111) -&gt; [success: bb30, unwind: bb41] @ Assert
+}
+bb 30 {
+CleanUp: false
+    Assign((_108, move (_113.0: isize))) @ _108=move (_113.0: isize) @ Use
+    StorageDead(_111) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    Assign((_114, Eq(copy _108, const isize::MIN))) @ _114=Eq(copy _108, const isize::MIN) @ BinaryOp
+    assert(!move _114, &#34;attempt to negate `{}`, which would overflow&#34;, copy _108) -&gt; [success: bb31, unwind: bb41] @ Assert
+}
+bb 31 {
+CleanUp: false
+    Assign((_107, Neg(move _108))) @ _107=Neg(move _108) @ UnaryOp
+    StorageDead(_108) @ StorageDead
+    Assign((_115, Lt(const sched::SCHED_CAPACITY_SHIFT, const 64_u64))) @ _115=Lt(const sched::SCHED_CAPACITY_SHIFT, const 64_u64) @ BinaryOp
+    assert(move _115, &#34;attempt to shift right by `{}`, which would overflow&#34;, const sched::SCHED_CAPACITY_SHIFT) -&gt; [success: bb32, unwind: bb41] @ Assert
+}
+bb 32 {
+CleanUp: false
+    Assign((_106, Shr(move _107, const sched::SCHED_CAPACITY_SHIFT))) @ _106=Shr(move _107, const sched::SCHED_CAPACITY_SHIFT) @ BinaryOp
+    StorageDead(_107) @ StorageDead
+    _104 = sched::fair::CfsRunQueue::add_task_group_propagate(move _105, move _106) -&gt; [return: bb33, unwind: bb41] @ Call: FnDid: 30252
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_106) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    StorageDead(_104) @ StorageDead
+    Assign((_7, const 1_u32)) @ _7=const 1_u32 @ Use
+    Assign((_8, const ())) @ _8=const () @ Use
+    StorageDead(_42) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_121, const false)) @ _121=const false @ Use
+    StorageDead(_15) @ StorageDead
+    goto -&gt; bb36 @ Goto
+}
+bb 34 {
+CleanUp: false
+    drop(_13) -&gt; [return: bb35, unwind: bb39] @ Drop
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_8, const ())) @ _8=const () @ Use
+    goto -&gt; bb36 @ Goto
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_116) @ StorageLive
+    StorageLive(_117) @ StorageLive
+    StorageLive(_118) @ StorageLive
+    Assign((_118, &amp;mut (*_1))) @ _118=&amp;mut (*_1) @ Ref
+    StorageLive(_119) @ StorageLive
+    Assign((_119, copy _2)) @ _119=copy _2 @ Use
+    _117 = sched::fair::CfsRunQueue::__update_load_avg(move _118, move _119) -&gt; [return: bb37, unwind continue] @ Call: FnDid: 30251
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_119) @ StorageDead
+    StorageDead(_118) @ StorageDead
+    Assign((_116, move _117 as u32 (IntToInt))) @ _116=move _117 as u32 (IntToInt) @ Cast
+    StorageDead(_117) @ StorageDead
+    Assign((_7, BitOr(copy _7, move _116))) @ _7=BitOr(copy _7, move _116) @ BinaryOp
+    StorageDead(_116) @ StorageDead
+    StorageLive(_120) @ StorageLive
+    Assign((_120, copy (((*_1).17: sched::pelt::SchedulerAvg).0: u64))) @ _120=copy (((*_1).17: sched::pelt::SchedulerAvg).0: u64) @ Use
+    Assign((((*_1).16: u64), move _120)) @ ((*_1).16: u64)=move _120 @ Use
+    StorageDead(_120) @ StorageDead
+    Assign((_0, copy _7)) @ _0=copy _7 @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 38 {
+CleanUp: true
+    drop(_13) -&gt; [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 39 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 40 {
+CleanUp: true
+    drop(_15) -&gt; [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 41 {
+CleanUp: true
+    switchInt(copy _121) -&gt; [0: bb39, otherwise: bb40] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

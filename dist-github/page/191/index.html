@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #191: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #191
+            
+                 <span class="func-name">time::clocksource::{impl#6}::clocksource_enqueue</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:18|RAP|WARN|: Double free detected in function &#34;clocksource_enqueue&#34;
+warning: Double free detected.
+   --&gt; src/time/clocksource.rs:406:1
+    |
+406 | / pub fn clocksource_enqueue(&amp;self) {
+407 | |         // 根据rating由大到小排序
+408 | |         let cs_data = self.clocksource_data();
+409 | |         let mut list_guard = CLOCKSOURCE_LIST.lock();
+410 | |         let mut spilt_pos: usize = list_guard.len();
+411 | |         for (pos, ele) in list_guard.iter().enumerate() {
+412 | |             if ele.clocksource_data().rating &lt; cs_data.rating {
+413 | |                 spilt_pos = pos;
+414 | |                 break;
+415 | |             }
+416 | |         }
+417 | |         let mut temp_list = list_guard.split_off(spilt_pos);
+418 | |         let cs = self.clocksource();
+419 | |         list_guard.push_back(cs);
+420 | |         list_guard.append(&amp;mut temp_list);
+421 | |         // debug!(
+422 | |         //     &#34;CLOCKSOURCE_LIST len = {:?},clocksource_enqueue sccessfully&#34;,
+423 | |         //     list_guard.len()
+424 | |         // );
+425 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/clocksource.rs line 406.
+    | MIR detail: Value _39(temp_list, src/time/clocksource.rs:417) and _39(temp_list, src/time/clocksource.rs:417) are alias.
+    | MIR detail: _39(temp_list, src/time/clocksource.rs:417) is dropped at BB28(src/time/clocksource.rs:425); _39(temp_list, src/time/clocksource.rs:417) is dropped at BB28(src/time/clocksource.rs:425).
+    |
+22:08:18|RAP|WARN|: Double free detected in function &#34;clocksource_enqueue&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/time/clocksource.rs:406:1
+    |
+406 | / pub fn clocksource_enqueue(&amp;self) {
+407 | |         // 根据rating由大到小排序
+408 | |         let cs_data = self.clocksource_data();
+409 | |         let mut list_guard = CLOCKSOURCE_LIST.lock();
+410 | |         let mut spilt_pos: usize = list_guard.len();
+411 | |         for (pos, ele) in list_guard.iter().enumerate() {
+412 | |             if ele.clocksource_data().rating &lt; cs_data.rating {
+413 | |                 spilt_pos = pos;
+414 | |                 break;
+415 | |             }
+416 | |         }
+417 | |         let mut temp_list = list_guard.split_off(spilt_pos);
+418 | |         let cs = self.clocksource();
+419 | |         list_guard.push_back(cs);
+420 | |         list_guard.append(&amp;mut temp_list);
+421 | |         // debug!(
+422 | |         //     &#34;CLOCKSOURCE_LIST len = {:?},clocksource_enqueue sccessfully&#34;,
+423 | |         //     list_guard.len()
+424 | |         // );
+425 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/clocksource.rs line 406.
+    | MIR detail: Value _39(temp_list, src/time/clocksource.rs:417) and _39(temp_list, src/time/clocksource.rs:417) are alias.
+    | MIR detail: _39(temp_list, src/time/clocksource.rs:417) is dropped at BB32(src/time/clocksource.rs:425); _39(temp_list, src/time/clocksource.rs:417) is dropped at BB32(src/time/clocksource.rs:425).
+    |
+render dot for DefId(0:31071 ~ dragonos_kernel[9e38]::time::clocksource::{impl#6}::clocksource_enqueue)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/time/clocksource.rs:408:13: 408:20
+bb1 at src/time/clocksource.rs:408:45: 408:46
+bb2 at src/time/clocksource.rs:409:30: 409:46
+bb3 at src/time/clocksource.rs:409:52: 409:53
+bb4 at src/time/clocksource.rs:410:36: 410:46
+bb5 at src/time/clocksource.rs:410:51: 410:52
+bb6 at src/time/clocksource.rs:411:27: 411:37
+bb7 at src/time/clocksource.rs:411:43: 411:44
+bb8 at src/time/clocksource.rs:411:55: 411:56
+bb9 at src/time/clocksource.rs:411:55: 411:56
+bb10 at src/time/clocksource.rs:411:27: 411:56
+bb11 at src/time/clocksource.rs:411:55: 411:56
+bb13 at src/time/clocksource.rs:411:14: 411:17
+bb14 at src/time/clocksource.rs:411:9: 416:10
+bb15 at src/time/clocksource.rs:412:16: 412:19
+bb16 at src/time/clocksource.rs:412:37: 412:38
+bb17 at src/time/clocksource.rs:412:61: 412:62
+bb18 at src/time/clocksource.rs:412:61: 412:62
+bb19 at src/time/clocksource.rs:412:61: 412:62
+bb20 at src/time/clocksource.rs:412:61: 412:62
+bb21 at src/time/clocksource.rs:416:9: 416:10
+bb22 at src/time/clocksource.rs:417:29: 417:39
+bb23 at src/time/clocksource.rs:417:59: 417:60
+bb24 at src/time/clocksource.rs:418:35: 418:36
+bb25 at src/time/clocksource.rs:419:9: 419:19
+bb26 at src/time/clocksource.rs:419:32: 419:33
+bb27 at src/time/clocksource.rs:420:9: 420:19
+bb28 at src/time/clocksource.rs:420:41: 420:42
+bb29 at src/time/clocksource.rs:425:5: 425:6
+bb30 at src/time/clocksource.rs:425:5: 425:6
+bb31 at src/time/clocksource.rs:425:5: 425:6
+fn &lt;(dyn time::clocksource::Clocksource + &#39;static)&gt;::clocksource_enqueue
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_2:  @ time::clocksource::ClocksourceData 
+_3:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_4:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_5:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_6:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_7:  @ &amp;&#39;{erased} time::clocksource::CLOCKSOURCE_LIST 
+_8:  @ &amp;&#39;{erased} time::clocksource::CLOCKSOURCE_LIST 
+_9:  @ usize 
+_10:  @ &amp;&#39;{erased} alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_13:  @ () 
+_14:  @ core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;&gt; 
+_15:  @ core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;&gt; 
+_16:  @ alloc::collections::linked_list::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_17:  @ &amp;&#39;{erased} alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_18:  @ &amp;&#39;{erased} alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_19:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_20:  @ core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;&gt; 
+_21:  @ () 
+_22:  @ () 
+_23:  @ core::option::Option&lt;(usize, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)&gt; 
+_24:  @ &amp;&#39;{erased} mut core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;&gt; 
+_25:  @ &amp;&#39;{erased} mut core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;&gt; 
+_26:  @ isize 
+_27:  @ ! 
+_28:  @ usize 
+_29:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_30:  @ bool 
+_31:  @ i32 
+_32:  @ time::clocksource::ClocksourceData 
+_33:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_34:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_36:  @ i32 
+_37:  @ ! 
+_38:  @ usize 
+_39:  @ alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_40:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_41:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_42:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_43:  @ usize 
+_44:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_45:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_46:  @ () 
+_47:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_48:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_49:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_50:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_51:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_52:  @ () 
+_53:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_54:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_55:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_56:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_57:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_58:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_58, const false)) @ _58=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &amp;(*_1))) @ _3=&amp;(*_1) @ Ref
+    _2 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::clocksource_data(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 31061
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, const {alloc165384: &amp;time::clocksource::CLOCKSOURCE_LIST})) @ _8=const {alloc165384: &amp;time::clocksource::CLOCKSOURCE_LIST} @ Use
+    Assign((_7, &amp;(*_8))) @ _7=&amp;(*_8) @ Ref
+    _6 = &lt;time::clocksource::CLOCKSOURCE_LIST as lazy_static::__Deref&gt;::deref(move _7) -&gt; [return: bb2, unwind: bb34] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_5, &amp;(*_6))) @ _5=&amp;(*_6) @ Ref
+    StorageDead(_7) @ StorageDead
+    _4 = libs::spinlock::SpinLock::&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt;::lock(move _5) -&gt; [return: bb3, unwind: bb34] @ Call: FnDid: 5261
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;_4)) @ _12=&amp;_4 @ Ref
+    _11 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as lazy_static::__Deref&gt;::deref(move _12) -&gt; [return: bb4, unwind: bb33] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_10, &amp;(*_11))) @ _10=&amp;(*_11) @ Ref
+    StorageDead(_12) @ StorageDead
+    _9 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::len(move _10) -&gt; [return: bb5, unwind: bb33] @ Call: FnDid: 4227
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &amp;_4)) @ _19=&amp;_4 @ Ref
+    _18 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb6, unwind: bb33] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
+    StorageDead(_19) @ StorageDead
+    _16 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::iter(move _17) -&gt; [return: bb7, unwind: bb33] @ Call: FnDid: 4220
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    _15 = &lt;alloc::collections::linked_list::Iter&lt;&#39;_, alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt; as core::iter::Iterator&gt;::enumerate(move _16) -&gt; [return: bb8, unwind: bb33] @ Call: FnDid: 9400
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    _14 = &lt;core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;_, alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::iter::IntoIterator&gt;::into_iter(move _15) -&gt; [return: bb9, unwind: bb33] @ Call: FnDid: 9224
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    Assign((_20, move _14)) @ _20=move _14 @ Use
+    goto -&gt; bb10 @ Goto
+}
+bb 10 {
+CleanUp: false
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;mut _20)) @ _25=&amp;mut _20 @ Ref
+    Assign((_24, &amp;mut (*_25))) @ _24=&amp;mut (*_25) @ Ref
+    _23 = &lt;core::iter::Enumerate&lt;alloc::collections::linked_list::Iter&lt;&#39;_, alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::iter::Iterator&gt;::next(move _24) -&gt; [return: bb11, unwind: bb33] @ Call: FnDid: 9356
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_26, discriminant(_23))) @ _26=discriminant(_23) @ Discriminant
+    switchInt(move _26) -&gt; [0: bb14, 1: bb13, otherwise: bb12] @ SwitchInt
+}
+bb 12 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 13 {
+CleanUp: false
+    StorageLive(_28) @ StorageLive
+    Assign((_28, copy (((_23 as Some).0: (usize, &amp;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;)).0: usize))) @ _28=copy (((_23 as Some).0: (usize, &amp;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;)).0: usize) @ Use
+    StorageLive(_29) @ StorageLive
+    Assign((_29, copy (((_23 as Some).0: (usize, &amp;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;)).1: &amp;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;))) @ _29=copy (((_23 as Some).0: (usize, &amp;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;)).1: &amp;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;) @ Use
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;(*_29))) @ _35=&amp;(*_29) @ Ref
+    _34 = &lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb15, unwind: bb33] @ Call: FnDid: 3903
+}
+bb 14 {
+CleanUp: false
+    Assign((_13, const ())) @ _13=const () @ Use
+    goto -&gt; bb21 @ Goto
+}
+bb 15 {
+CleanUp: false
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    StorageDead(_35) @ StorageDead
+    _32 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::clocksource_data(move _33) -&gt; [return: bb16, unwind: bb33] @ Call: FnDid: 31061
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    Assign((_31, copy (_32.1: i32))) @ _31=copy (_32.1: i32) @ Use
+    StorageLive(_36) @ StorageLive
+    Assign((_36, copy (_2.1: i32))) @ _36=copy (_2.1: i32) @ Use
+    Assign((_30, Lt(move _31, move _36))) @ _30=Lt(move _31, move _36) @ BinaryOp
+    switchInt(move _30) -&gt; [0: bb19, otherwise: bb17] @ SwitchInt
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    drop(_32) -&gt; [return: bb18, unwind: bb33] @ Drop
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    Assign((_38, copy _28)) @ _38=copy _28 @ Use
+    Assign((_9, move _38)) @ _9=move _38 @ Use
+    StorageDead(_38) @ StorageDead
+    Assign((_13, const ())) @ _13=const () @ Use
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    drop(_32) -&gt; [return: bb20, unwind: bb33] @ Drop
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_22, const ())) @ _22=const () @ Use
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    Assign((_21, const ())) @ _21=const () @ Use
+    goto -&gt; bb10 @ Goto
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_42, &amp;mut _4)) @ _42=&amp;mut _4 @ Ref
+    _41 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _42) -&gt; [return: bb22, unwind: bb33] @ Call: FnDid: 3915
+}
+bb 22 {
+CleanUp: false
+    Assign((_40, &amp;mut (*_41))) @ _40=&amp;mut (*_41) @ Ref
+    StorageDead(_42) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _9)) @ _43=copy _9 @ Use
+    _39 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::split_off(move _40, move _43) -&gt; [return: bb23, unwind: bb33] @ Call: FnDid: 4245
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;(*_1))) @ _45=&amp;(*_1) @ Ref
+    _44 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::clocksource(move _45) -&gt; [return: bb24, unwind: bb32] @ Call: FnDid: 31063
+}
+bb 24 {
+CleanUp: false
+    Assign((_58, const true)) @ _58=const true @ Use
+    StorageDead(_45) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &amp;mut _4)) @ _49=&amp;mut _4 @ Ref
+    _48 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _49) -&gt; [return: bb25, unwind: bb37] @ Call: FnDid: 3915
+}
+bb 25 {
+CleanUp: false
+    Assign((_47, &amp;mut (*_48))) @ _47=&amp;mut (*_48) @ Ref
+    StorageDead(_49) @ StorageDead
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_58, const false)) @ _58=const false @ Use
+    Assign((_51, move _44)) @ _51=move _44 @ Use
+    Assign((_50, move _51 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)))) @ _50=move _51 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_51) @ StorageDead
+    _46 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::push_back(move _47, move _50) -&gt; [return: bb26, unwind: bb37] @ Call: FnDid: 4242
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;mut _4)) @ _55=&amp;mut _4 @ Ref
+    _54 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _55) -&gt; [return: bb27, unwind: bb37] @ Call: FnDid: 3915
+}
+bb 27 {
+CleanUp: false
+    Assign((_53, &amp;mut (*_54))) @ _53=&amp;mut (*_54) @ Ref
+    StorageDead(_55) @ StorageDead
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, &amp;mut _39)) @ _57=&amp;mut _39 @ Ref
+    Assign((_56, &amp;mut (*_57))) @ _56=&amp;mut (*_57) @ Ref
+    _52 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::append(move _53, move _56) -&gt; [return: bb28, unwind: bb37] @ Call: FnDid: 4215
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    Assign((_58, const false)) @ _58=const false @ Use
+    StorageDead(_44) @ StorageDead
+    drop(_39) -&gt; [return: bb29, unwind: bb33] @ Drop
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    drop(_4) -&gt; [return: bb30, unwind: bb34] @ Drop
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    drop(_2) -&gt; [return: bb31, unwind: bb35] @ Drop
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 32 {
+CleanUp: true
+    drop(_39) -&gt; [return: bb33, unwind terminate(cleanup)] @ Drop
+}
+bb 33 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb34, unwind terminate(cleanup)] @ Drop
+}
+bb 34 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb35, unwind terminate(cleanup)] @ Drop
+}
+bb 35 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 36 {
+CleanUp: true
+    drop(_44) -&gt; [return: bb32, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    switchInt(copy _58) -&gt; [0: bb32, otherwise: bb36] @ SwitchInt
+}
+
+bb0 at src/time/clocksource.rs:435:13: 435:24
+bb1 at src/time/clocksource.rs:435:49: 435:50
+bb2 at src/time/clocksource.rs:437:35: 437:36
+bb4 at src/time/clocksource.rs:440:65: 440:66
+bb5 at src/time/clocksource.rs:442:34: 442:47
+bb6 at src/time/clocksource.rs:442:61: 442:62
+bb7 at src/time/clocksource.rs:446:64: 446:65
+bb8 at src/time/clocksource.rs:447:13: 447:15
+bb9 at src/time/clocksource.rs:447:47: 447:48
+bb10 at src/time/clocksource.rs:447:48: 447:49
+bb12 at src/time/clocksource.rs:447:13: 447:49
+bb13 at src/time/clocksource.rs:447:48: 447:49
+bb14 at src/time/clocksource.rs:447:48: 447:49
+bb15 at src/time/clocksource.rs:448:13: 448:23
+bb16 at src/time/clocksource.rs:448:36: 448:37
+bb17 at src/time/clocksource.rs:449:9: 449:10
+bb18 at src/time/clocksource.rs:440:65: 440:66
+bb20 at src/time/clocksource.rs:453:71: 453:72
+bb21 at src/time/clocksource.rs:458:74: 458:75
+bb22 at src/time/clocksource.rs:459:17: 459:19
+bb23 at src/time/clocksource.rs:459:58: 459:59
+bb24 at src/time/clocksource.rs:459:59: 459:60
+bb25 at src/time/clocksource.rs:459:60: 459:61
+bb26 at src/time/clocksource.rs:459:17: 459:61
+bb27 at src/time/clocksource.rs:459:60: 459:61
+bb28 at src/time/clocksource.rs:459:60: 459:61
+bb29 at src/time/clocksource.rs:453:71: 453:72
+bb30 at src/time/clocksource.rs:460:13: 460:14
+bb31 at src/time/clocksource.rs:463:34: 463:47
+bb32 at src/time/clocksource.rs:463:61: 463:62
+bb33 at src/time/clocksource.rs:464:13: 464:23
+bb34 at src/time/clocksource.rs:464:34: 464:44
+bb35 at src/time/clocksource.rs:464:44: 464:45
+bb36 at src/time/clocksource.rs:465:28: 465:29
+bb37 at src/time/clocksource.rs:468:35: 468:55
+bb38 at src/time/clocksource.rs:468:69: 468:70
+bb39 at src/time/clocksource.rs:469:26: 469:27
+bb41 at src/time/clocksource.rs:469:45: 469:46
+bb42 at src/time/clocksource.rs:469:45: 469:46
+bb43 at src/time/clocksource.rs:471:33: 471:34
+bb44 at src/time/clocksource.rs:473:32: 473:33
+bb45 at src/time/clocksource.rs:471:23: 474:34
+bb46 at src/time/clocksource.rs:471:23: 474:34
+bb47 at src/time/clocksource.rs:475:43: 475:44
+bb50 at src/time/clocksource.rs:476:31: 476:32
+bb51 at src/time/clocksource.rs:479:17: 479:49
+bb52 at src/time/clocksource.rs:479:27: 479:28
+bb53 at src/time/clocksource.rs:479:48: 479:49
+bb54 at src/time/clocksource.rs:479:49: 479:50
+bb55 at src/time/clocksource.rs:480:45: 480:46
+bb58 at src/time/clocksource.rs:476:31: 476:32
+bb59 at src/time/clocksource.rs:481:13: 481:14
+bb60 at src/time/clocksource.rs:484:13: 484:24
+bb61 at src/time/clocksource.rs:484:52: 484:53
+bb62 at src/time/clocksource.rs:485:9: 485:10
+bb63 at src/time/clocksource.rs:485:9: 485:10
+bb64 at src/time/clocksource.rs:449:9: 449:10
+bb65 at src/time/clocksource.rs:485:9: 485:10
+bb66 at src/time/clocksource.rs:487:5: 487:6
+bb67 at src/time/clocksource.rs:487:5: 487:6
+fn &lt;(dyn time::clocksource::Clocksource + &#39;static)&gt;::clocksource_enqueue_watchdog
+_0:  @ core::result::Result&lt;i32, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_2:  @ ! 
+_3:  @ time::clocksource::ClocksourceData 
+_4:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_5:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_6:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_7:  @ () 
+_8:  @ bool 
+_9:  @ &amp;&#39;{erased} time::clocksource::ClocksourceFlags 
+_10:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_11:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_12:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_13:  @ &amp;&#39;{erased} time::clocksource::WATCHDOG_LIST 
+_14:  @ &amp;&#39;{erased} time::clocksource::WATCHDOG_LIST 
+_15:  @ () 
+_16:  @ &amp;&#39;{erased} mut time::clocksource::ClocksourceFlags 
+_17:  @ () 
+_18:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_19:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_20:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_21:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_22:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_23:  @ time::clocksource::ClocksourceData 
+_24:  @ isize 
+_25:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_26:  @ ! 
+_27:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_28:  @ () 
+_29:  @ () 
+_30:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_31:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_32:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_33:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_34:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_35:  @ () 
+_36:  @ bool 
+_37:  @ &amp;&#39;{erased} time::clocksource::ClocksourceFlags 
+_38:  @ () 
+_39:  @ &amp;&#39;{erased} mut time::clocksource::ClocksourceFlags 
+_40:  @ () 
+_41:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_42:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_43:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_44:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_45:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_46:  @ time::clocksource::ClocksourceData 
+_47:  @ &amp;&#39;{erased} time::clocksource::ClocksourceData 
+_48:  @ isize 
+_49:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_50:  @ ! 
+_51:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_52:  @ () 
+_53:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_54:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_55:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_56:  @ &amp;&#39;{erased} time::clocksource::WATCHDOG_LIST 
+_57:  @ &amp;&#39;{erased} time::clocksource::WATCHDOG_LIST 
+_58:  @ () 
+_59:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_60:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_61:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_62:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_63:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_64:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_65:  @ () 
+_66:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_67:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::clocksource::ClocksouceWatchdog&gt; 
+_68:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;time::clocksource::ClocksouceWatchdog&gt; 
+_69:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;time::clocksource::ClocksouceWatchdog&gt; 
+_70:  @ &amp;&#39;{erased} time::clocksource::CLOCKSOURCE_WATCHDOG 
+_71:  @ &amp;&#39;{erased} time::clocksource::CLOCKSOURCE_WATCHDOG 
+_72:  @ () 
+_73:  @ bool 
+_74:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_75:  @ &amp;&#39;{erased} time::clocksource::ClocksouceWatchdog 
+_76:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::clocksource::ClocksouceWatchdog&gt; 
+_77:  @ bool 
+_78:  @ i32 
+_79:  @ i32 
+_80:  @ time::clocksource::ClocksourceData 
+_81:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_82:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased} 
+_83:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_84:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_85:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_86:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_87:  @ &amp;&#39;{erased} time::clocksource::ClocksouceWatchdog 
+_88:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::clocksource::ClocksouceWatchdog&gt; 
+_89:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_90:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_91:  @ &amp;&#39;{erased} mut time::clocksource::ClocksouceWatchdog 
+_92:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::clocksource::ClocksouceWatchdog&gt; 
+_93:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_94:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(time::clocksource::Clocksource), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_95:  @ () 
+_96:  @ () 
+_97:  @ &amp;&#39;{erased} mut time::clocksource::ClocksouceWatchdog 
+_98:  @ &amp;&#39;{erased} mut time::clocksource::ClocksouceWatchdog 
+_99:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::clocksource::ClocksouceWatchdog&gt; 
+_100:  @ bool 
+_101:  @ bool 
+_102:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_101, const false)) @ _101=const false @ Use
+    Assign((_100, const false)) @ _100=const false @ Use
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;(*_1))) @ _4=&amp;(*_1) @ Ref
+    Assign((_101, const true)) @ _101=const true @ Use
+    _3 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::clocksource_data(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 31061
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_1))) @ _6=&amp;(*_1) @ Ref
+    _5 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::clocksource(move _6) -&gt; [return: bb2, unwind: bb80] @ Call: FnDid: 31063
+}
+bb 2 {
+CleanUp: false
+    Assign((_100, const true)) @ _100=const true @ Use
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;(_3.6: time::clocksource::ClocksourceFlags))) @ _9=&amp;(_3.6: time::clocksource::ClocksourceFlags) @ Ref
+    _8 = time::clocksource::ClocksourceFlags::contains(move _9, const time::clocksource::ClocksourceFlags::CLOCK_SOURCE_MUST_VERIFY) -&gt; [return: bb3, unwind: bb78] @ Call: FnDid: 68120
+}
+bb 3 {
+CleanUp: false
+    switchInt(move _8) -&gt; [0: bb18, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, const {alloc165401: &amp;time::clocksource::WATCHDOG_LIST})) @ _14=const {alloc165401: &amp;time::clocksource::WATCHDOG_LIST} @ Use
+    Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
+    _12 = &lt;time::clocksource::WATCHDOG_LIST as lazy_static::__Deref&gt;::deref(move _13) -&gt; [return: bb5, unwind: bb78] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = libs::spinlock::SpinLock::&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt;::lock_irqsave(move _11) -&gt; [return: bb6, unwind: bb78] @ Call: FnDid: 5263
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;mut (_3.6: time::clocksource::ClocksourceFlags))) @ _16=&amp;mut (_3.6: time::clocksource::ClocksourceFlags) @ Ref
+    _15 = time::clocksource::ClocksourceFlags::remove(move _16, const time::clocksource::ClocksourceFlags::CLOCK_SOURCE_WATCHDOG) -&gt; [return: bb7, unwind: bb70] @ Call: FnDid: 68122
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_5)) @ _22=&amp;_5 @ Ref
+    _21 = &lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; as lazy_static::__Deref&gt;::deref(move _22) -&gt; [return: bb8, unwind: bb70] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
+    StorageDead(_22) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_101, const false)) @ _101=const false @ Use
+    Assign((_23, move _3)) @ _23=move _3 @ Use
+    _19 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::update_clocksource_data(move _20, move _23) -&gt; [return: bb9, unwind: bb70] @ Call: FnDid: 31062
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    _18 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _19) -&gt; [return: bb10, unwind: bb70] @ Call: FnDid: 4199
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_24, discriminant(_18))) @ _24=discriminant(_18) @ Discriminant
+    switchInt(move _24) -&gt; [0: bb12, 1: bb13, otherwise: bb11] @ SwitchInt
+}
+bb 11 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 12 {
+CleanUp: false
+    StorageLive(_28) @ StorageLive
+    Assign((_28, copy ((_18 as Continue).0: ()))) @ _28=copy ((_18 as Continue).0: ()) @ Use
+    Assign((_17, copy _28)) @ _17=copy _28 @ Use
+    StorageDead(_28) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;mut _10)) @ _32=&amp;mut _10 @ Ref
+    _31 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _32) -&gt; [return: bb15, unwind: bb70] @ Call: FnDid: 3915
+}
+bb 13 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move ((_18 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _25=move ((_18 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move _25)) @ _27=move _25 @ Use
+    _0 = &lt;core::result::Result&lt;i32, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _27) -&gt; [return: bb14, unwind: bb70] @ Call: FnDid: 4202
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    drop(_10) -&gt; [return: bb64, unwind: bb78] @ Drop
+}
+bb 15 {
+CleanUp: false
+    Assign((_30, &amp;mut (*_31))) @ _30=&amp;mut (*_31) @ Ref
+    StorageDead(_32) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_100, const false)) @ _100=const false @ Use
+    Assign((_34, move _5)) @ _34=move _5 @ Use
+    Assign((_33, move _34 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)))) @ _33=move _34 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_34) @ StorageDead
+    _29 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::push_back(move _30, move _33) -&gt; [return: bb16, unwind: bb70] @ Call: FnDid: 4242
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    Assign((_7, const ())) @ _7=const () @ Use
+    drop(_10) -&gt; [return: bb17, unwind: bb78] @ Drop
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb63 @ Goto
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;(_3.6: time::clocksource::ClocksourceFlags))) @ _37=&amp;(_3.6: time::clocksource::ClocksourceFlags) @ Ref
+    _36 = time::clocksource::ClocksourceFlags::contains(move _37, const time::clocksource::ClocksourceFlags::CLOCK_SOURCE_IS_CONTINUOUS) -&gt; [return: bb19, unwind: bb78] @ Call: FnDid: 68120
+}
+bb 19 {
+CleanUp: false
+    switchInt(move _36) -&gt; [0: bb29, otherwise: bb20] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;mut (_3.6: time::clocksource::ClocksourceFlags))) @ _39=&amp;mut (_3.6: time::clocksource::ClocksourceFlags) @ Ref
+    _38 = time::clocksource::ClocksourceFlags::insert(move _39, const time::clocksource::ClocksourceFlags::CLOCK_SOURCE_VALID_FOR_HRES) -&gt; [return: bb21, unwind: bb78] @ Call: FnDid: 68121
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;_5)) @ _45=&amp;_5 @ Ref
+    _44 = &lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; as lazy_static::__Deref&gt;::deref(move _45) -&gt; [return: bb22, unwind: bb78] @ Call: FnDid: 3903
+}
+bb 22 {
+CleanUp: false
+    Assign((_43, &amp;(*_44))) @ _43=&amp;(*_44) @ Ref
+    StorageDead(_45) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;_3)) @ _47=&amp;_3 @ Ref
+    _46 = &lt;time::clocksource::ClocksourceData as core::clone::Clone&gt;::clone(move _47) -&gt; [return: bb23, unwind: bb78] @ Call: FnDid: 3116
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_47) @ StorageDead
+    _42 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::update_clocksource_data(move _43, move _46) -&gt; [return: bb24, unwind: bb78] @ Call: FnDid: 31062
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    _41 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _42) -&gt; [return: bb25, unwind: bb78] @ Call: FnDid: 4199
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    Assign((_48, discriminant(_41))) @ _48=discriminant(_41) @ Discriminant
+    switchInt(move _48) -&gt; [0: bb26, 1: bb27, otherwise: bb11] @ SwitchInt
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_52) @ StorageLive
+    Assign((_52, copy ((_41 as Continue).0: ()))) @ _52=copy ((_41 as Continue).0: ()) @ Use
+    Assign((_40, copy _52)) @ _40=copy _52 @ Use
+    StorageDead(_52) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb30 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageLive(_49) @ StorageLive
+    Assign((_49, move ((_41 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _49=move ((_41 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_51) @ StorageLive
+    Assign((_51, move _49)) @ _51=move _49 @ Use
+    _0 = &lt;core::result::Result&lt;i32, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _51) -&gt; [return: bb28, unwind: bb78] @ Call: FnDid: 4202
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb30 @ Goto
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, const {alloc165401: &amp;time::clocksource::WATCHDOG_LIST})) @ _57=const {alloc165401: &amp;time::clocksource::WATCHDOG_LIST} @ Use
+    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    _55 = &lt;time::clocksource::WATCHDOG_LIST as lazy_static::__Deref&gt;::deref(move _56) -&gt; [return: bb31, unwind: bb78] @ Call: FnDid: 3903
+}
+bb 31 {
+CleanUp: false
+    Assign((_54, &amp;(*_55))) @ _54=&amp;(*_55) @ Ref
+    StorageDead(_56) @ StorageDead
+    _53 = libs::spinlock::SpinLock::&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt;::lock_irqsave(move _54) -&gt; [return: bb32, unwind: bb78] @ Call: FnDid: 5263
+}
+bb 32 {
+CleanUp: false
+    Assign((_102, const true)) @ _102=const true @ Use
+    StorageDead(_54) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    Assign((_61, &amp;mut _53)) @ _61=&amp;mut _53 @ Ref
+    _60 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _61) -&gt; [return: bb33, unwind: bb76] @ Call: FnDid: 3915
+}
+bb 33 {
+CleanUp: false
+    Assign((_59, &amp;mut (*_60))) @ _59=&amp;mut (*_60) @ Ref
+    StorageDead(_61) @ StorageDead
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    Assign((_64, &amp;_5)) @ _64=&amp;_5 @ Ref
+    _63 = &lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; as core::clone::Clone&gt;::clone(move _64) -&gt; [return: bb34, unwind: bb76] @ Call: FnDid: 3116
+}
+bb 34 {
+CleanUp: false
+    Assign((_62, move _63 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)))) @ _62=move _63 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    _58 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::push_back(move _59, move _62) -&gt; [return: bb35, unwind: bb76] @ Call: FnDid: 4242
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_62) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_102, const false)) @ _102=const false @ Use
+    Assign((_66, move _53)) @ _66=move _53 @ Use
+    _65 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;&gt;&gt;(move _66) -&gt; [return: bb36, unwind: bb76] @ Call: FnDid: 2323
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    Assign((_71, const {alloc165405: &amp;time::clocksource::CLOCKSOURCE_WATCHDOG})) @ _71=const {alloc165405: &amp;time::clocksource::CLOCKSOURCE_WATCHDOG} @ Use
+    Assign((_70, &amp;(*_71))) @ _70=&amp;(*_71) @ Ref
+    _69 = &lt;time::clocksource::CLOCKSOURCE_WATCHDOG as lazy_static::__Deref&gt;::deref(move _70) -&gt; [return: bb37, unwind: bb76] @ Call: FnDid: 3903
+}
+bb 37 {
+CleanUp: false
+    Assign((_68, &amp;(*_69))) @ _68=&amp;(*_69) @ Ref
+    StorageDead(_70) @ StorageDead
+    _67 = libs::spinlock::SpinLock::&lt;time::clocksource::ClocksouceWatchdog&gt;::lock_irqsave(move _68) -&gt; [return: bb38, unwind: bb76] @ Call: FnDid: 5263
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_76, &amp;_67)) @ _76=&amp;_67 @ Ref
+    _75 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::clocksource::ClocksouceWatchdog&gt; as lazy_static::__Deref&gt;::deref(move _76) -&gt; [return: bb39, unwind: bb69] @ Call: FnDid: 3903
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    Assign((_74, &amp;((*_75).0: core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;))) @ _74=&amp;((*_75).0: core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;) @ Ref
+    _73 = core::option::Option::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::is_none(move _74) -&gt; [return: bb40, unwind: bb69] @ Call: FnDid: 10146
+}
+bb 40 {
+CleanUp: false
+    switchInt(move _73) -&gt; [0: bb42, otherwise: bb41] @ SwitchInt
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    goto -&gt; bb51 @ Goto
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    Assign((_78, copy (_3.1: i32))) @ _78=copy (_3.1: i32) @ Use
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_88, &amp;_67)) @ _88=&amp;_67 @ Ref
+    _87 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::clocksource::ClocksouceWatchdog&gt; as lazy_static::__Deref&gt;::deref(move _88) -&gt; [return: bb43, unwind: bb69] @ Call: FnDid: 3903
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_88) @ StorageDead
+    Assign((_86, &amp;((*_87).0: core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;))) @ _86=&amp;((*_87).0: core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;) @ Ref
+    _85 = &lt;core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt; as core::clone::Clone&gt;::clone(move _86) -&gt; [return: bb44, unwind: bb69] @ Call: FnDid: 3116
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_86) @ StorageDead
+    _84 = core::option::Option::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::unwrap(move _85) -&gt; [return: bb45, unwind: bb69] @ Call: FnDid: 10157
+}
+bb 45 {
+CleanUp: false
+    Assign((_83, &amp;_84)) @ _83=&amp;_84 @ Ref
+    _82 = &lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; as lazy_static::__Deref&gt;::deref(move _83) -&gt; [return: bb46, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 46 {
+CleanUp: false
+    Assign((_81, &amp;(*_82))) @ _81=&amp;(*_82) @ Ref
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    _80 = &lt;dyn time::clocksource::Clocksource as time::clocksource::Clocksource&gt;::clocksource_data(move _81) -&gt; [return: bb47, unwind: bb68] @ Call: FnDid: 31061
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    Assign((_79, copy (_80.1: i32))) @ _79=copy (_80.1: i32) @ Use
+    Assign((_77, Gt(move _78, move _79))) @ _77=Gt(move _78, move _79) @ BinaryOp
+    switchInt(move _77) -&gt; [0: bb56, otherwise: bb48] @ SwitchInt
+}
+bb 48 {
+CleanUp: false
+    drop(_80) -&gt; [return: bb49, unwind: bb68] @ Drop
+}
+bb 49 {
+CleanUp: false
+    drop(_84) -&gt; [return: bb50, unwind: bb69] @ Drop
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    goto -&gt; bb51 @ Goto
+}
+bb 51 {
+CleanUp: false
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    Assign((_92, &amp;mut _67)) @ _92=&amp;mut _67 @ Ref
+    _91 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::clocksource::ClocksouceWatchdog&gt; as core::ops::DerefMut&gt;::deref_mut(move _92) -&gt; [return: bb52, unwind: bb69] @ Call: FnDid: 3915
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_92) @ StorageDead
+    Assign((_90, &amp;mut ((*_91).0: core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;))) @ _90=&amp;mut ((*_91).0: core::option::Option&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;) @ Ref
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    Assign((_100, const false)) @ _100=const false @ Use
+    Assign((_94, move _5)) @ _94=move _5 @ Use
+    Assign((_93, move _94 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)))) @ _93=move _94 as alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_94) @ StorageDead
+    _89 = core::option::Option::&lt;alloc::sync::Arc&lt;dyn time::clocksource::Clocksource&gt;&gt;::replace(move _90, move _93) -&gt; [return: bb53, unwind: bb69] @ Call: FnDid: 10209
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_93) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    drop(_89) -&gt; [return: bb54, unwind: bb69] @ Drop
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageLive(_95) @ StorageLive
+    _95 = time::clocksource::clocksource_reset_watchdog() -&gt; [return: bb55, unwind: bb69] @ Call: FnDid: 31098
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_95) @ StorageDead
+    Assign((_72, const ())) @ _72=const () @ Use
+    goto -&gt; bb59 @ Goto
+}
+bb 56 {
+CleanUp: false
+    drop(_80) -&gt; [return: bb57, unwind: bb68] @ Drop
+}
+bb 57 {
+CleanUp: false
+    drop(_84) -&gt; [return: bb58, unwind: bb69] @ Drop
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    Assign((_72, const ())) @ _72=const () @ Use
+    goto -&gt; bb59 @ Goto
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    Assign((_99, &amp;mut _67)) @ _99=&amp;mut _67 @ Ref
+    _98 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::clocksource::ClocksouceWatchdog&gt; as core::ops::DerefMut&gt;::deref_mut(move _99) -&gt; [return: bb60, unwind: bb69] @ Call: FnDid: 3915
+}
+bb 60 {
+CleanUp: false
+    Assign((_97, &amp;mut (*_98))) @ _97=&amp;mut (*_98) @ Ref
+    StorageDead(_99) @ StorageDead
+    _96 = time::clocksource::ClocksouceWatchdog::clocksource_start_watchdog(move _97) -&gt; [return: bb61, unwind: bb69] @ Call: FnDid: 31050
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_97) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    Assign((_7, const ())) @ _7=const () @ Use
+    drop(_67) -&gt; [return: bb62, unwind: bb76] @ Drop
+}
+bb 62 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_53) @ StorageDead
+    goto -&gt; bb63 @ Goto
+}
+bb 63 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_0, core::result::Result::&lt;i32, system_error::SystemError&gt;::Ok(const 0_i32))) @ _0=core::result::Result::&lt;i32, system_error::SystemError&gt;::Ok(const 0_i32) @ Aggregate
+    goto -&gt; bb73 @ Goto
+}
+bb 64 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 65 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb73 @ Goto
+}
+bb 66 {
+CleanUp: false
+    Assign((_100, const false)) @ _100=const false @ Use
+    StorageDead(_5) @ StorageDead
+    switchInt(copy _101) -&gt; [0: bb67, otherwise: bb74] @ SwitchInt
+}
+bb 67 {
+CleanUp: false
+    Assign((_101, const false)) @ _101=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 68 {
+CleanUp: true
+    drop(_84) -&gt; [return: bb69, unwind terminate(cleanup)] @ Drop
+}
+bb 69 {
+CleanUp: true
+    drop(_67) -&gt; [return: bb76, unwind terminate(cleanup)] @ Drop
+}
+bb 70 {
+CleanUp: true
+    drop(_10) -&gt; [return: bb78, unwind terminate(cleanup)] @ Drop
+}
+bb 71 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 72 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb66, unwind: bb80] @ Drop
+}
+bb 73 {
+CleanUp: false
+    switchInt(copy _100) -&gt; [0: bb66, otherwise: bb72] @ SwitchInt
+}
+bb 74 {
+CleanUp: false
+    drop(_3) -&gt; [return: bb67, unwind: bb71] @ Drop
+}
+bb 75 {
+CleanUp: true
+    drop(_53) -&gt; [return: bb78, unwind terminate(cleanup)] @ Drop
+}
+bb 76 {
+CleanUp: true
+    switchInt(copy _102) -&gt; [0: bb78, otherwise: bb75] @ SwitchInt
+}
+bb 77 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb80, unwind terminate(cleanup)] @ Drop
+}
+bb 78 {
+CleanUp: true
+    switchInt(copy _100) -&gt; [0: bb80, otherwise: bb77] @ SwitchInt
+}
+bb 79 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb71, unwind terminate(cleanup)] @ Drop
+}
+bb 80 {
+CleanUp: true
+    switchInt(copy _101) -&gt; [0: bb71, otherwise: bb79] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

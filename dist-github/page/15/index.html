@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #15: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #15
+            
+                 <span class="func-name">libs::futex::futex::{impl#5}::get_futex_key</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:54|RAP|WARN|: Double free detected in function &#34;get_futex_key&#34;
+warning: Double free detected.
+   --&gt; src/libs/futex/futex.rs:553:1
+    |
+553 | / pub(super) fn get_futex_key(
+554 | |         uaddr: VirtAddr,
+555 | |         fshared: bool,
+556 | |         _access: FutexAccess,
+557 | |     ) -&gt; Result&lt;FutexKey, SystemError&gt; {
+558 | |         let mut address = uaddr.data();
+559 | |
+560 | |         // 计算相对页的偏移量
+561 | |         let offset = address &amp; (MMArch::PAGE_SIZE - 1);
+562 | |         // 判断内存对齐
+563 | |         if uaddr.data() &amp; (core::mem::size_of::&lt;u32&gt;() - 1) != 0 {
+564 | |             return Err(SystemError::EINVAL);
+565 | |         }
+566 | |
+567 | |         // 目前address指向所在页面的起始地址
+568 | |         address -= offset;
+569 | |
+570 | |         // 非共享：使用地址空间+页首虚拟地址作为私有键
+571 | |         if !fshared {
+572 | |             let address_space = AddressSpace::current()?;
+573 | |             let key = FutexKey {
+574 | |                 ptr: 0,
+575 | |                 word: 0,
+576 | |                 offset: offset as u32,
+577 | |                 key: InnerFutexKey::Private(PrivateKey {
+578 | |                     address: address as u64,
+579 | |                     address_space: Some(Arc::downgrade(&amp;address_space)),
+580 | |                 }),
+581 | |             };
+582 | |             return Ok(key);
+583 | |         }
+584 | |
+585 | |         // 共享：需要生成能跨进程匹配的键
+586 | |         // 按照 Linux 语义，共享 futex 基于物理页帧号（PFN）或文件身份
+587 | |         let address_space = AddressSpace::current()?;
+588 | |         let as_guard = address_space.read();
+589 | |         let vma = as_guard
+590 | |             .mappings
+591 | |             .contains(uaddr)
+592 | |             .ok_or(SystemError::EINVAL)?;
+593 | |         let vma_guard = vma.lock_irqsave();
+594 | |
+595 | |         // 页内索引（相对VMA起始地址）
+596 | |         let page_index =
+597 | |             ((uaddr.data() - vma_guard.region().start().data()) &gt;&gt; MMArch::PAGE_SHIFT) as u64;
+598 | |
+599 | |         if let Some(file) = vma_guard.vm_file() {
+600 | |             // 共享文件映射：使用 inode 唯一标识 + 文件页偏移
+601 | |             let md = file.metadata()?;
+602 | |             let dev = md.dev_id as u64;
+603 | |             let ino = md.inode_id.into() as u64;
+604 | |             let base_pgoff = vma_guard.file_page_offset().unwrap_or(0) as u64;
+605 | |             let shared = SharedKey {
+606 | |                 kind: SharedKeyKind::File { dev, ino },
+607 | |                 page_offset: base_pgoff + page_index,
+608 | |             };
+609 | |             let key = FutexKey {
+610 | |                 ptr: 0,
+611 | |                 word: 0,
+612 | |                 offset: offset as u32,
+613 | |                 key: InnerFutexKey::Shared(shared),
+614 | |             };
+615 | |             return Ok(key);
+616 | |         } else {
+617 | |             // 匿名映射（包括栈、堆、匿名mmap等）
+618 | |             if let Some(shared_anon) = &amp;vma_guard.shared_anon {
+619 | |                 // 显式共享的匿名映射（MAP_SHARED | MAP_ANONYMOUS）
+620 | |                 let shared = SharedKey {
+621 | |                     kind: SharedKeyKind::SharedAnon { id: shared_anon.id },
+622 | |                     page_offset: page_index,
+623 | |                 };
+624 | |                 let key = FutexKey {
+625 | |                     ptr: 0,
+626 | |                     word: 0,
+627 | |                     offset: offset as u32,
+628 | |                     key: InnerFutexKey::Shared(shared),
+629 | |                 };
+630 | |                 return Ok(key);
+631 | |             } else {
+632 | |                 // 私有匿名映射（栈、堆等）+ FUTEX_SHARED 标志
+633 | |                 //
+634 | |                 // 按照 Linux 内核的实际实现（kernel/futex/core.c: get_futex_key）：
+635 | |                 // 对于匿名页的 FUTEX_SHARED，Linux 仍然使用 mm + 虚拟地址作为 key
+636 | |                 // （只是添加了一个 FUT_OFF_MMSHARED 标记）
+637 | |                 //
+638 | |                 // 这种设计的原因：
+639 | |                 // 1. 栈/堆这种私有匿名映射本质上不能跨进程共享
+640 | |                 // 2. 只能在同一进程的线程间同步（它们共享地址空间）
+641 | |                 // 3. 使用虚拟地址而非物理地址，与 swap 机制兼容
+642 | |                 //
+643 | |                 // DragonOS 的实现：
+644 | |                 // 使用 AddressSpace 的全局唯一 ID + 虚拟页号作为 shared key
+645 | |                 // - 同一进程的线程共享 AddressSpace，因此会生成相同的 key
+646 | |                 // - 不同进程的 AddressSpace 有不同的 ID，即使虚拟地址相同也不会冲突
+647 | |                 // - AddressSpace ID 是递增分配的，永不重复，避免了地址重用问题
+648 | |
+649 | |                 let address_space = AddressSpace::current()?;
+650 | |                 let as_id = address_space.id();
+651 | |
+652 | |                 drop(vma_guard);
+653 | |                 drop(as_guard);
+654 | |
+655 | |                 let shared = SharedKey {
+656 | |                     kind: SharedKeyKind::PrivateAnonShared { as_id },
+657 | |                     // 使用虚拟页号（不是物理页号！）
+658 | |                     page_offset: (address &gt;&gt; MMArch::PAGE_SHIFT) as u64,
+659 | |                 };
+660 | |
+661 | |                 let key = FutexKey {
+662 | |                     ptr: 0,
+663 | |                     word: 0,
+664 | |                     offset: offset as u32,
+665 | |                     key: InnerFutexKey::Shared(shared),
+666 | |                 };
+667 | |                 return Ok(key);
+668 | |             }
+669 | |         }
+670 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/futex.rs line 553.
+    | MIR detail: Value _169(_, src/libs/futex/futex.rs:653) and _45(address_space, src/libs/futex/futex.rs:587) are alias.
+    | MIR detail: _169(_, src/libs/futex/futex.rs:653) is dropped at BB68(src/libs/futex/futex.rs:653); _45(address_space, src/libs/futex/futex.rs:587) is dropped at BB78(src/libs/futex/futex.rs:670).
+    |
+22:07:54|RAP|WARN|: Double free detected in function &#34;get_futex_key&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/libs/futex/futex.rs:553:1
+    |
+553 | / pub(super) fn get_futex_key(
+554 | |         uaddr: VirtAddr,
+555 | |         fshared: bool,
+556 | |         _access: FutexAccess,
+557 | |     ) -&gt; Result&lt;FutexKey, SystemError&gt; {
+558 | |         let mut address = uaddr.data();
+559 | |
+560 | |         // 计算相对页的偏移量
+561 | |         let offset = address &amp; (MMArch::PAGE_SIZE - 1);
+562 | |         // 判断内存对齐
+563 | |         if uaddr.data() &amp; (core::mem::size_of::&lt;u32&gt;() - 1) != 0 {
+564 | |             return Err(SystemError::EINVAL);
+565 | |         }
+566 | |
+567 | |         // 目前address指向所在页面的起始地址
+568 | |         address -= offset;
+569 | |
+570 | |         // 非共享：使用地址空间+页首虚拟地址作为私有键
+571 | |         if !fshared {
+572 | |             let address_space = AddressSpace::current()?;
+573 | |             let key = FutexKey {
+574 | |                 ptr: 0,
+575 | |                 word: 0,
+576 | |                 offset: offset as u32,
+577 | |                 key: InnerFutexKey::Private(PrivateKey {
+578 | |                     address: address as u64,
+579 | |                     address_space: Some(Arc::downgrade(&amp;address_space)),
+580 | |                 }),
+581 | |             };
+582 | |             return Ok(key);
+583 | |         }
+584 | |
+585 | |         // 共享：需要生成能跨进程匹配的键
+586 | |         // 按照 Linux 语义，共享 futex 基于物理页帧号（PFN）或文件身份
+587 | |         let address_space = AddressSpace::current()?;
+588 | |         let as_guard = address_space.read();
+589 | |         let vma = as_guard
+590 | |             .mappings
+591 | |             .contains(uaddr)
+592 | |             .ok_or(SystemError::EINVAL)?;
+593 | |         let vma_guard = vma.lock_irqsave();
+594 | |
+595 | |         // 页内索引（相对VMA起始地址）
+596 | |         let page_index =
+597 | |             ((uaddr.data() - vma_guard.region().start().data()) &gt;&gt; MMArch::PAGE_SHIFT) as u64;
+598 | |
+599 | |         if let Some(file) = vma_guard.vm_file() {
+600 | |             // 共享文件映射：使用 inode 唯一标识 + 文件页偏移
+601 | |             let md = file.metadata()?;
+602 | |             let dev = md.dev_id as u64;
+603 | |             let ino = md.inode_id.into() as u64;
+604 | |             let base_pgoff = vma_guard.file_page_offset().unwrap_or(0) as u64;
+605 | |             let shared = SharedKey {
+606 | |                 kind: SharedKeyKind::File { dev, ino },
+607 | |                 page_offset: base_pgoff + page_index,
+608 | |             };
+609 | |             let key = FutexKey {
+610 | |                 ptr: 0,
+611 | |                 word: 0,
+612 | |                 offset: offset as u32,
+613 | |                 key: InnerFutexKey::Shared(shared),
+614 | |             };
+615 | |             return Ok(key);
+616 | |         } else {
+617 | |             // 匿名映射（包括栈、堆、匿名mmap等）
+618 | |             if let Some(shared_anon) = &amp;vma_guard.shared_anon {
+619 | |                 // 显式共享的匿名映射（MAP_SHARED | MAP_ANONYMOUS）
+620 | |                 let shared = SharedKey {
+621 | |                     kind: SharedKeyKind::SharedAnon { id: shared_anon.id },
+622 | |                     page_offset: page_index,
+623 | |                 };
+624 | |                 let key = FutexKey {
+625 | |                     ptr: 0,
+626 | |                     word: 0,
+627 | |                     offset: offset as u32,
+628 | |                     key: InnerFutexKey::Shared(shared),
+629 | |                 };
+630 | |                 return Ok(key);
+631 | |             } else {
+632 | |                 // 私有匿名映射（栈、堆等）+ FUTEX_SHARED 标志
+633 | |                 //
+634 | |                 // 按照 Linux 内核的实际实现（kernel/futex/core.c: get_futex_key）：
+635 | |                 // 对于匿名页的 FUTEX_SHARED，Linux 仍然使用 mm + 虚拟地址作为 key
+636 | |                 // （只是添加了一个 FUT_OFF_MMSHARED 标记）
+637 | |                 //
+638 | |                 // 这种设计的原因：
+639 | |                 // 1. 栈/堆这种私有匿名映射本质上不能跨进程共享
+640 | |                 // 2. 只能在同一进程的线程间同步（它们共享地址空间）
+641 | |                 // 3. 使用虚拟地址而非物理地址，与 swap 机制兼容
+642 | |                 //
+643 | |                 // DragonOS 的实现：
+644 | |                 // 使用 AddressSpace 的全局唯一 ID + 虚拟页号作为 shared key
+645 | |                 // - 同一进程的线程共享 AddressSpace，因此会生成相同的 key
+646 | |                 // - 不同进程的 AddressSpace 有不同的 ID，即使虚拟地址相同也不会冲突
+647 | |                 // - AddressSpace ID 是递增分配的，永不重复，避免了地址重用问题
+648 | |
+649 | |                 let address_space = AddressSpace::current()?;
+650 | |                 let as_id = address_space.id();
+651 | |
+652 | |                 drop(vma_guard);
+653 | |                 drop(as_guard);
+654 | |
+655 | |                 let shared = SharedKey {
+656 | |                     kind: SharedKeyKind::PrivateAnonShared { as_id },
+657 | |                     // 使用虚拟页号（不是物理页号！）
+658 | |                     page_offset: (address &gt;&gt; MMArch::PAGE_SHIFT) as u64,
+659 | |                 };
+660 | |
+661 | |                 let key = FutexKey {
+662 | |                     ptr: 0,
+663 | |                     word: 0,
+664 | |                     offset: offset as u32,
+665 | |                     key: InnerFutexKey::Shared(shared),
+666 | |                 };
+667 | |                 return Ok(key);
+668 | |             }
+669 | |         }
+670 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/futex.rs line 553.
+    | MIR detail: Value _169(_, src/libs/futex/futex.rs:653) and _45(address_space, src/libs/futex/futex.rs:587) are alias.
+    | MIR detail: _169(_, src/libs/futex/futex.rs:653) is dropped at BB68(src/libs/futex/futex.rs:653); _45(address_space, src/libs/futex/futex.rs:587) is dropped at BB88(src/libs/futex/futex.rs:670).
+    |
+render dot for DefId(0:5435 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#5}::get_futex_key)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/libs/futex/futex.rs:558:13: 558:24
+bb1 at src/libs/futex/futex.rs:558:38: 558:39
+bb2 at src/libs/futex/futex.rs:561:32: 561:55
+bb3 at src/libs/futex/futex.rs:563:23: 563:24
+bb4 at src/libs/futex/futex.rs:563:27: 563:60
+bb5 at src/libs/futex/futex.rs:563:27: 563:60
+bb6 at src/libs/futex/futex.rs:563:64: 563:65
+bb7 at src/libs/futex/futex.rs:563:64: 563:65
+bb8 at src/libs/futex/futex.rs:568:9: 568:26
+bb9 at src/libs/futex/futex.rs:572:17: 572:30
+bb11 at src/libs/futex/futex.rs:572:56: 572:57
+bb13 at src/libs/futex/futex.rs:572:33: 572:57
+bb14 at src/libs/futex/futex.rs:572:56: 572:57
+bb15 at src/libs/futex/futex.rs:572:56: 572:57
+bb16 at src/libs/futex/futex.rs:579:70: 579:71
+bb17 at src/libs/futex/futex.rs:583:10: 583:10
+bb19 at src/libs/futex/futex.rs:587:52: 587:53
+bb20 at src/libs/futex/futex.rs:587:29: 587:53
+bb21 at src/libs/futex/futex.rs:587:52: 587:53
+bb22 at src/libs/futex/futex.rs:587:52: 587:53
+bb23 at src/libs/futex/futex.rs:588:24: 588:37
+bb24 at src/libs/futex/futex.rs:588:24: 588:37
+bb25 at src/libs/futex/futex.rs:588:43: 588:44
+bb26 at src/libs/futex/futex.rs:589:26: 589:27
+bb27 at src/libs/futex/futex.rs:591:28: 591:29
+bb28 at src/libs/futex/futex.rs:592:39: 592:40
+bb29 at src/libs/futex/futex.rs:592:40: 592:41
+bb30 at src/libs/futex/futex.rs:589:19: 592:41
+bb31 at src/libs/futex/futex.rs:592:40: 592:41
+bb32 at src/libs/futex/futex.rs:592:40: 592:41
+bb33 at src/libs/futex/futex.rs:593:25: 593:28
+bb34 at src/libs/futex/futex.rs:593:42: 593:43
+bb35 at src/libs/futex/futex.rs:597:26: 597:27
+bb36 at src/libs/futex/futex.rs:597:30: 597:39
+bb37 at src/libs/futex/futex.rs:597:30: 597:48
+bb38 at src/libs/futex/futex.rs:597:30: 597:56
+bb39 at src/libs/futex/futex.rs:597:62: 597:63
+bb40 at src/libs/futex/futex.rs:597:14: 597:64
+bb41 at src/libs/futex/futex.rs:597:13: 597:87
+bb42 at src/libs/futex/futex.rs:599:29: 599:38
+bb43 at src/libs/futex/futex.rs:599:47: 599:48
+bb44 at src/libs/futex/futex.rs:599:21: 599:25
+bb45 at src/libs/futex/futex.rs:601:22: 601:26
+bb46 at src/libs/futex/futex.rs:601:36: 601:37
+bb47 at src/libs/futex/futex.rs:601:37: 601:38
+bb48 at src/libs/futex/futex.rs:601:22: 601:38
+bb49 at src/libs/futex/futex.rs:601:37: 601:38
+bb50 at src/libs/futex/futex.rs:601:37: 601:38
+bb51 at src/libs/futex/futex.rs:603:40: 603:41
+bb52 at src/libs/futex/futex.rs:604:30: 604:39
+bb53 at src/libs/futex/futex.rs:604:57: 604:58
+bb54 at src/libs/futex/futex.rs:604:70: 604:71
+bb55 at src/libs/futex/futex.rs:607:30: 607:53
+bb56 at src/libs/futex/futex.rs:618:40: 618:62
+bb57 at src/libs/futex/futex.rs:618:49: 618:50
+bb58 at src/libs/futex/futex.rs:618:25: 618:36
+bb59 at src/libs/futex/futex.rs:621:69: 621:70
+bb60 at src/libs/futex/futex.rs:649:21: 649:34
+bb62 at src/libs/futex/futex.rs:649:60: 649:61
+bb63 at src/libs/futex/futex.rs:649:37: 649:61
+bb64 at src/libs/futex/futex.rs:649:60: 649:61
+bb65 at src/libs/futex/futex.rs:649:60: 649:61
+bb66 at src/libs/futex/futex.rs:650:29: 650:42
+bb67 at src/libs/futex/futex.rs:650:46: 650:47
+bb68 at src/libs/futex/futex.rs:652:31: 652:32
+bb69 at src/libs/futex/futex.rs:653:30: 653:31
+bb70 at src/libs/futex/futex.rs:658:34: 658:65
+bb71 at src/libs/futex/futex.rs:668:13: 668:14
+bb72 at src/libs/futex/futex.rs:669:9: 669:10
+bb73 at src/libs/futex/futex.rs:616:9: 616:10
+bb74 at src/libs/futex/futex.rs:616:9: 616:10
+bb75 at src/libs/futex/futex.rs:670:5: 670:6
+bb76 at src/libs/futex/futex.rs:670:5: 670:6
+bb77 at src/libs/futex/futex.rs:670:5: 670:6
+bb78 at src/libs/futex/futex.rs:670:5: 670:6
+bb79 at src/libs/futex/futex.rs:670:5: 670:6
+bb80 at src/libs/futex/futex.rs:670:5: 670:6
+bb81 at src/libs/futex/futex.rs:670:5: 670:6
+bb82 at src/libs/futex/futex.rs:583:9: 583:10
+bb83 at src/libs/futex/futex.rs:670:5: 670:6
+bb97 at src/libs/futex/futex.rs:649:61: 649:62
+bb102 at src/libs/futex/futex.rs:670:5: 670:6
+bb103 at src/libs/futex/futex.rs:592:41: 592:42
+bb104 at src/libs/futex/futex.rs:587:53: 587:54
+bb105 at src/libs/futex/futex.rs:572:57: 572:58
+fn libs::futex::futex::Futex::get_futex_key
+_0:  @ core::result::Result&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt; 
+_1:  @ mm::VirtAddr 
+_2:  @ bool 
+_3:  @ libs::futex::futex::FutexAccess 
+_4:  @ usize 
+_5:  @ &amp;&#39;{erased} mm::VirtAddr 
+_6:  @ usize 
+_7:  @ usize 
+_8:  @ usize 
+_9:  @ (usize, bool) 
+_10:  @ () 
+_11:  @ bool 
+_12:  @ usize 
+_13:  @ usize 
+_14:  @ &amp;&#39;{erased} mm::VirtAddr 
+_15:  @ usize 
+_16:  @ usize 
+_17:  @ (usize, bool) 
+_18:  @ ! 
+_19:  @ system_error::SystemError 
+_20:  @ usize 
+_21:  @ (usize, bool) 
+_22:  @ () 
+_23:  @ bool 
+_24:  @ ! 
+_25:  @ alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_26:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;&gt; 
+_27:  @ core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_28:  @ isize 
+_29:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_30:  @ ! 
+_31:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_32:  @ alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_33:  @ libs::futex::futex::FutexKey 
+_34:  @ u32 
+_35:  @ usize 
+_36:  @ libs::futex::futex::InnerFutexKey 
+_37:  @ libs::futex::futex::PrivateKey 
+_38:  @ u64 
+_39:  @ usize 
+_40:  @ core::option::Option&lt;alloc::sync::Weak&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;&gt; 
+_41:  @ alloc::sync::Weak&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_42:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_43:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_44:  @ libs::futex::futex::FutexKey 
+_45:  @ alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_46:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;&gt; 
+_47:  @ core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_48:  @ isize 
+_49:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_50:  @ ! 
+_51:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_52:  @ alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_53:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, mm::ucontext::InnerAddressSpace&gt; 
+_54:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;mm::ucontext::InnerAddressSpace&gt; 
+_55:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;mm::ucontext::InnerAddressSpace&gt; 
+_56:  @ &amp;&#39;{erased} mm::ucontext::AddressSpace 
+_57:  @ &amp;&#39;{erased} mm::ucontext::AddressSpace 
+_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_59:  @ alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt; 
+_60:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt;&gt; 
+_61:  @ core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_62:  @ core::option::Option&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt;&gt; 
+_63:  @ &amp;&#39;{erased} mm::ucontext::UserMappings 
+_64:  @ &amp;&#39;{erased} mm::ucontext::InnerAddressSpace 
+_65:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, mm::ucontext::InnerAddressSpace&gt; 
+_66:  @ mm::VirtAddr 
+_67:  @ system_error::SystemError 
+_68:  @ isize 
+_69:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_70:  @ ! 
+_71:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_72:  @ alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt; 
+_73:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::ucontext::VMA&gt; 
+_74:  @ &amp;&#39;{erased} mm::ucontext::LockedVMA 
+_75:  @ &amp;&#39;{erased} mm::ucontext::LockedVMA 
+_76:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt; 
+_77:  @ u64 
+_78:  @ usize 
+_79:  @ usize 
+_80:  @ usize 
+_81:  @ &amp;&#39;{erased} mm::VirtAddr 
+_82:  @ usize 
+_83:  @ &amp;&#39;{erased} mm::VirtAddr 
+_84:  @ mm::VirtAddr 
+_85:  @ &amp;&#39;{erased} mm::VirtRegion 
+_86:  @ &amp;&#39;{erased} mm::VirtRegion 
+_87:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_88:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_89:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::ucontext::VMA&gt; 
+_90:  @ (usize, bool) 
+_91:  @ bool 
+_92:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_93:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_94:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_95:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::ucontext::VMA&gt; 
+_96:  @ isize 
+_97:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_98:  @ ! 
+_99:  @ filesystem::vfs::Metadata 
+_100:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, filesystem::vfs::Metadata&gt; 
+_101:  @ core::result::Result&lt;filesystem::vfs::Metadata, system_error::SystemError&gt; 
+_102:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_103:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_104:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_105:  @ isize 
+_106:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_107:  @ ! 
+_108:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_109:  @ filesystem::vfs::Metadata 
+_110:  @ u64 
+_111:  @ usize 
+_112:  @ u64 
+_113:  @ usize 
+_114:  @ filesystem::vfs::InodeId 
+_115:  @ u64 
+_116:  @ usize 
+_117:  @ core::option::Option&lt;usize&gt; 
+_118:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_119:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_120:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::ucontext::VMA&gt; 
+_121:  @ libs::futex::futex::SharedKey 
+_122:  @ libs::futex::futex::SharedKeyKind 
+_123:  @ u64 
+_124:  @ u64 
+_125:  @ u64 
+_126:  @ u64 
+_127:  @ u64 
+_128:  @ (u64, bool) 
+_129:  @ libs::futex::futex::FutexKey 
+_130:  @ u32 
+_131:  @ usize 
+_132:  @ libs::futex::futex::InnerFutexKey 
+_133:  @ libs::futex::futex::SharedKey 
+_134:  @ libs::futex::futex::FutexKey 
+_135:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping, alloc::alloc::Global&gt;&gt; 
+_136:  @ &amp;&#39;{erased} mm::ucontext::VMA 
+_137:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::ucontext::VMA&gt; 
+_138:  @ isize 
+_139:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping, alloc::alloc::Global&gt; 
+_140:  @ ! 
+_141:  @ libs::futex::futex::SharedKey 
+_142:  @ libs::futex::futex::SharedKeyKind 
+_143:  @ u64 
+_144:  @ &amp;&#39;{erased} mm::ucontext::AnonSharedMapping 
+_145:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping, alloc::alloc::Global&gt; 
+_146:  @ u64 
+_147:  @ libs::futex::futex::FutexKey 
+_148:  @ u32 
+_149:  @ usize 
+_150:  @ libs::futex::futex::InnerFutexKey 
+_151:  @ libs::futex::futex::SharedKey 
+_152:  @ libs::futex::futex::FutexKey 
+_153:  @ ! 
+_154:  @ alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_155:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;&gt; 
+_156:  @ core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_157:  @ isize 
+_158:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_159:  @ ! 
+_160:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_161:  @ alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_162:  @ u64 
+_163:  @ &amp;&#39;{erased} mm::ucontext::AddressSpace 
+_164:  @ &amp;&#39;{erased} mm::ucontext::AddressSpace 
+_165:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::ucontext::AddressSpace, alloc::alloc::Global&gt; 
+_166:  @ () 
+_167:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::ucontext::VMA&gt; 
+_168:  @ () 
+_169:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, mm::ucontext::InnerAddressSpace&gt; 
+_170:  @ libs::futex::futex::SharedKey 
+_171:  @ libs::futex::futex::SharedKeyKind 
+_172:  @ u64 
+_173:  @ u64 
+_174:  @ usize 
+_175:  @ usize 
+_176:  @ bool 
+_177:  @ libs::futex::futex::FutexKey 
+_178:  @ u32 
+_179:  @ usize 
+_180:  @ libs::futex::futex::InnerFutexKey 
+_181:  @ libs::futex::futex::SharedKey 
+_182:  @ libs::futex::futex::FutexKey 
+_183:  @ bool 
+_184:  @ bool 
+_185:  @ bool 
+_186:  @ isize 
+_187:  @ isize 
+_188:  @ isize 
+_189:  @ isize 
+_190:  @ isize 
+_191:  @ isize 
+_192:  @ isize 
+_193:  @ isize 
+_194:  @ isize 
+_195:  @ isize 
+_196:  @ isize 
+_197:  @ isize 
+_198:  @ isize 
+_199:  @ isize 
+_200:  @ isize 
+_201:  @ isize 
+_202:  @ isize 
+_203:  @ isize 
+_204:  @ isize 
+_205:  @ isize 
+_206:  @ isize 
+_207:  @ isize 
+_208:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_184, const false)) @ _184=const false @ Use
+    Assign((_183, const false)) @ _183=const false @ Use
+    Assign((_185, const false)) @ _185=const false @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;_1)) @ _5=&amp;_1 @ Ref
+    _4 = mm::VirtAddr::data(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 25246
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, copy _4)) @ _7=copy _4 @ Use
+    StorageLive(_8) @ StorageLive
+    Assign((_9, SubWithOverflow(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE, const 1_usize))) @ _9=SubWithOverflow(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE, const 1_usize) @ BinaryOp
+    assert(!move (_9.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE, const 1_usize) -&gt; [success: bb2, unwind continue] @ Assert
+}
+bb 2 {
+CleanUp: false
+    Assign((_8, move (_9.0: usize))) @ _8=move (_9.0: usize) @ Use
+    Assign((_6, BitAnd(move _7, move _8))) @ _6=BitAnd(move _7, move _8) @ BinaryOp
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;_1)) @ _14=&amp;_1 @ Ref
+    _13 = mm::VirtAddr::data(move _14) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 25246
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    _16 = core::mem::size_of::&lt;u32&gt;() -&gt; [return: bb4, unwind continue] @ Call: FnDid: 2294
+}
+bb 4 {
+CleanUp: false
+    Assign((_17, SubWithOverflow(copy _16, const 1_usize))) @ _17=SubWithOverflow(copy _16, const 1_usize) @ BinaryOp
+    assert(!move (_17.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, move _16, const 1_usize) -&gt; [success: bb5, unwind continue] @ Assert
+}
+bb 5 {
+CleanUp: false
+    Assign((_15, move (_17.0: usize))) @ _15=move (_17.0: usize) @ Use
+    StorageDead(_16) @ StorageDead
+    Assign((_12, BitAnd(move _13, move _15))) @ _12=BitAnd(move _13, move _15) @ BinaryOp
+    StorageDead(_15) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_11, Ne(move _12, const 0_usize))) @ _11=Ne(move _12, const 0_usize) @ BinaryOp
+    switchInt(move _11) -&gt; [0: bb7, otherwise: bb6] @ SwitchInt
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    Assign((_19, system_error::SystemError::EINVAL)) @ _19=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Err(move _19))) @ _0=core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Err(move _19) @ Aggregate
+    StorageDead(_19) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb83 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    Assign((_10, const ())) @ _10=const () @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    Assign((_20, copy _6)) @ _20=copy _6 @ Use
+    Assign((_21, SubWithOverflow(copy _4, copy _20))) @ _21=SubWithOverflow(copy _4, copy _20) @ BinaryOp
+    assert(!move (_21.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy _4, move _20) -&gt; [success: bb8, unwind continue] @ Assert
+}
+bb 8 {
+CleanUp: false
+    Assign((_4, move (_21.0: usize))) @ _4=move (_21.0: usize) @ Use
+    StorageDead(_20) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, copy _2)) @ _23=copy _2 @ Use
+    switchInt(move _23) -&gt; [0: bb9, otherwise: bb17] @ SwitchInt
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    _27 = mm::ucontext::AddressSpace::current() -&gt; [return: bb10, unwind continue] @ Call: FnDid: 25061
+}
+bb 10 {
+CleanUp: false
+    _26 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _27) -&gt; [return: bb11, unwind: bb94] @ Call: FnDid: 4199
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    Assign((_28, discriminant(_26))) @ _28=discriminant(_26) @ Discriminant
+    switchInt(move _28) -&gt; [0: bb13, 1: bb14, otherwise: bb12] @ SwitchInt
+}
+bb 12 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 13 {
+CleanUp: false
+    StorageLive(_32) @ StorageLive
+    Assign((_32, move ((_26 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;))) @ _32=move ((_26 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;) @ Use
+    Assign((_25, move _32)) @ _25=move _32 @ Use
+    StorageDead(_32) @ StorageDead
+    Assign((_188, discriminant(_26))) @ _188=discriminant(_26) @ Discriminant
+    StorageDead(_26) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, copy _6)) @ _35=copy _6 @ Use
+    Assign((_34, move _35 as u32 (IntToInt))) @ _34=move _35 as u32 (IntToInt) @ Cast
+    StorageDead(_35) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, copy _4)) @ _39=copy _4 @ Use
+    Assign((_38, move _39 as u64 (IntToInt))) @ _38=move _39 as u64 (IntToInt) @ Cast
+    StorageDead(_39) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, &amp;_25)) @ _43=&amp;_25 @ Ref
+    Assign((_42, &amp;(*_43))) @ _42=&amp;(*_43) @ Ref
+    _41 = alloc::sync::Arc::&lt;mm::ucontext::AddressSpace&gt;::downgrade(move _42) -&gt; [return: bb16, unwind: bb93] @ Call: FnDid: 6946
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_29) @ StorageLive
+    Assign((_29, move ((_26 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _29=move ((_26 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_31) @ StorageLive
+    Assign((_31, move _29)) @ _31=move _29 @ Use
+    _0 = &lt;core::result::Result&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _31) -&gt; [return: bb15, unwind: bb105] @ Call: FnDid: 4202
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    Assign((_186, discriminant(_26))) @ _186=discriminant(_26) @ Discriminant
+    StorageDead(_26) @ StorageDead
+    goto -&gt; bb82 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    Assign((_40, core::option::Option::&lt;alloc::sync::Weak&lt;mm::ucontext::AddressSpace&gt;&gt;::Some(move _41))) @ _40=core::option::Option::&lt;alloc::sync::Weak&lt;mm::ucontext::AddressSpace&gt;&gt;::Some(move _41) @ Aggregate
+    StorageDead(_41) @ StorageDead
+    Assign((_37, libs::futex::futex::PrivateKey { address_space: move _40, address: move _38 })) @ _37=libs::futex::futex::PrivateKey { address_space: move _40, address: move _38 } @ Aggregate
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    Assign((_36, libs::futex::futex::InnerFutexKey::Private(move _37))) @ _36=libs::futex::futex::InnerFutexKey::Private(move _37) @ Aggregate
+    StorageDead(_37) @ StorageDead
+    Assign((_33, libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _34, key: move _36 })) @ _33=libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _34, key: move _36 } @ Aggregate
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    Assign((_44, move _33)) @ _44=move _33 @ Use
+    Assign((_0, core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _44))) @ _0=core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _44) @ Aggregate
+    StorageDead(_44) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    drop(_25) -&gt; [return: bb82, unwind: bb94] @ Drop
+}
+bb 17 {
+CleanUp: false
+    Assign((_22, const ())) @ _22=const () @ Use
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    _47 = mm::ucontext::AddressSpace::current() -&gt; [return: bb18, unwind continue] @ Call: FnDid: 25061
+}
+bb 18 {
+CleanUp: false
+    _46 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _47) -&gt; [return: bb19, unwind: bb94] @ Call: FnDid: 4199
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_47) @ StorageDead
+    Assign((_48, discriminant(_46))) @ _48=discriminant(_46) @ Discriminant
+    switchInt(move _48) -&gt; [0: bb20, 1: bb21, otherwise: bb12] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    StorageLive(_52) @ StorageLive
+    Assign((_52, move ((_46 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;))) @ _52=move ((_46 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;) @ Use
+    Assign((_45, move _52)) @ _45=move _52 @ Use
+    StorageDead(_52) @ StorageDead
+    Assign((_192, discriminant(_46))) @ _192=discriminant(_46) @ Discriminant
+    StorageDead(_46) @ StorageDead
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &amp;_45)) @ _58=&amp;_45 @ Ref
+    _57 = &lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt; as lazy_static::__Deref&gt;::deref(move _58) -&gt; [return: bb23, unwind: bb92] @ Call: FnDid: 3903
+}
+bb 21 {
+CleanUp: false
+    StorageLive(_49) @ StorageLive
+    Assign((_49, move ((_46 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _49=move ((_46 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_51) @ StorageLive
+    Assign((_51, move _49)) @ _51=move _49 @ Use
+    _0 = &lt;core::result::Result&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _51) -&gt; [return: bb22, unwind: bb104] @ Call: FnDid: 4202
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    Assign((_190, discriminant(_46))) @ _190=discriminant(_46) @ Discriminant
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb81 @ Goto
+}
+bb 23 {
+CleanUp: false
+    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    _55 = &lt;mm::ucontext::AddressSpace as lazy_static::__Deref&gt;::deref(move _56) -&gt; [return: bb24, unwind: bb92] @ Call: FnDid: 3903
+}
+bb 24 {
+CleanUp: false
+    Assign((_54, &amp;(*_55))) @ _54=&amp;(*_55) @ Ref
+    StorageDead(_58) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    _53 = libs::rwlock::RwLock::&lt;mm::ucontext::InnerAddressSpace&gt;::read(move _54) -&gt; [return: bb25, unwind: bb92] @ Call: FnDid: 5156
+}
+bb 25 {
+CleanUp: false
+    Assign((_184, const true)) @ _184=const true @ Use
+    StorageDead(_54) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;_53)) @ _65=&amp;_53 @ Ref
+    _64 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, mm::ucontext::InnerAddressSpace&gt; as lazy_static::__Deref&gt;::deref(move _65) -&gt; [return: bb26, unwind: bb91] @ Call: FnDid: 3903
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    Assign((_63, &amp;((*_64).1: mm::ucontext::UserMappings))) @ _63=&amp;((*_64).1: mm::ucontext::UserMappings) @ Ref
+    StorageLive(_66) @ StorageLive
+    Assign((_66, copy _1)) @ _66=copy _1 @ Use
+    _62 = mm::ucontext::UserMappings::contains(move _63, move _66) -&gt; [return: bb27, unwind: bb91] @ Call: FnDid: 25103
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    Assign((_67, system_error::SystemError::EINVAL)) @ _67=system_error::SystemError::EINVAL @ Aggregate
+    _61 = core::option::Option::&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _62, move _67) -&gt; [return: bb28, unwind: bb91] @ Call: FnDid: 10178
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    _60 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _61) -&gt; [return: bb29, unwind: bb91] @ Call: FnDid: 4199
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    Assign((_68, discriminant(_60))) @ _68=discriminant(_60) @ Discriminant
+    switchInt(move _68) -&gt; [0: bb30, 1: bb31, otherwise: bb12] @ SwitchInt
+}
+bb 30 {
+CleanUp: false
+    StorageLive(_72) @ StorageLive
+    Assign((_72, move ((_60 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt;))) @ _72=move ((_60 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt;) @ Use
+    Assign((_59, move _72)) @ _59=move _72 @ Use
+    StorageDead(_72) @ StorageDead
+    Assign((_196, discriminant(_60))) @ _196=discriminant(_60) @ Discriminant
+    StorageDead(_64) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_76, &amp;_59)) @ _76=&amp;_59 @ Ref
+    _75 = &lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt; as lazy_static::__Deref&gt;::deref(move _76) -&gt; [return: bb33, unwind: bb90] @ Call: FnDid: 3903
+}
+bb 31 {
+CleanUp: false
+    StorageLive(_69) @ StorageLive
+    Assign((_69, move ((_60 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _69=move ((_60 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_71) @ StorageLive
+    Assign((_71, move _69)) @ _71=move _69 @ Use
+    _0 = &lt;core::result::Result&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _71) -&gt; [return: bb32, unwind: bb103] @ Call: FnDid: 4202
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    Assign((_194, discriminant(_60))) @ _194=discriminant(_60) @ Discriminant
+    StorageDead(_64) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    drop(_53) -&gt; [return: bb80, unwind: bb92] @ Drop
+}
+bb 33 {
+CleanUp: false
+    Assign((_74, &amp;(*_75))) @ _74=&amp;(*_75) @ Ref
+    StorageDead(_76) @ StorageDead
+    _73 = mm::ucontext::LockedVMA::lock_irqsave(move _74) -&gt; [return: bb34, unwind: bb90] @ Call: FnDid: 25130
+}
+bb 34 {
+CleanUp: false
+    Assign((_183, const true)) @ _183=const true @ Use
+    StorageDead(_74) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &amp;_1)) @ _81=&amp;_1 @ Ref
+    _80 = mm::VirtAddr::data(move _81) -&gt; [return: bb35, unwind: bb89] @ Call: FnDid: 25246
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    Assign((_89, &amp;_73)) @ _89=&amp;_73 @ Ref
+    _88 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::ucontext::VMA&gt; as lazy_static::__Deref&gt;::deref(move _89) -&gt; [return: bb36, unwind: bb89] @ Call: FnDid: 3903
+}
+bb 36 {
+CleanUp: false
+    Assign((_87, &amp;(*_88))) @ _87=&amp;(*_88) @ Ref
+    StorageDead(_89) @ StorageDead
+    _86 = mm::ucontext::VMA::region(move _87) -&gt; [return: bb37, unwind: bb89] @ Call: FnDid: 25161
+}
+bb 37 {
+CleanUp: false
+    Assign((_85, &amp;(*_86))) @ _85=&amp;(*_86) @ Ref
+    StorageDead(_87) @ StorageDead
+    _84 = mm::VirtRegion::start(move _85) -&gt; [return: bb38, unwind: bb89] @ Call: FnDid: 25369
+}
+bb 38 {
+CleanUp: false
+    Assign((_83, &amp;_84)) @ _83=&amp;_84 @ Ref
+    StorageDead(_85) @ StorageDead
+    _82 = mm::VirtAddr::data(move _83) -&gt; [return: bb39, unwind: bb89] @ Call: FnDid: 25246
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    Assign((_90, SubWithOverflow(copy _80, copy _82))) @ _90=SubWithOverflow(copy _80, copy _82) @ BinaryOp
+    assert(!move (_90.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, move _80, move _82) -&gt; [success: bb40, unwind: bb89] @ Assert
+}
+bb 40 {
+CleanUp: false
+    Assign((_79, move (_90.0: usize))) @ _79=move (_90.0: usize) @ Use
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    Assign((_91, Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize))) @ _91=Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize) @ BinaryOp
+    assert(move _91, &#34;attempt to shift right by `{}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) -&gt; [success: bb41, unwind: bb89] @ Assert
+}
+bb 41 {
+CleanUp: false
+    Assign((_78, Shr(move _79, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT))) @ _78=Shr(move _79, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) @ BinaryOp
+    StorageDead(_79) @ StorageDead
+    Assign((_77, move _78 as u64 (IntToInt))) @ _77=move _78 as u64 (IntToInt) @ Cast
+    StorageDead(_78) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    Assign((_95, &amp;_73)) @ _95=&amp;_73 @ Ref
+    _94 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::ucontext::VMA&gt; as lazy_static::__Deref&gt;::deref(move _95) -&gt; [return: bb42, unwind: bb89] @ Call: FnDid: 3903
+}
+bb 42 {
+CleanUp: false
+    Assign((_93, &amp;(*_94))) @ _93=&amp;(*_94) @ Ref
+    StorageDead(_95) @ StorageDead
+    _92 = mm::ucontext::VMA::vm_file(move _93) -&gt; [return: bb43, unwind: bb89] @ Call: FnDid: 25163
+}
+bb 43 {
+CleanUp: false
+    Assign((_185, const true)) @ _185=const true @ Use
+    StorageDead(_93) @ StorageDead
+    Assign((_96, discriminant(_92))) @ _96=discriminant(_92) @ Discriminant
+    switchInt(move _96) -&gt; [1: bb44, otherwise: bb56] @ SwitchInt
+}
+bb 44 {
+CleanUp: false
+    StorageLive(_97) @ StorageLive
+    Assign((_97, move ((_92 as Some).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _97=move ((_92 as Some).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    Assign((_104, &amp;_97)) @ _104=&amp;_97 @ Ref
+    _103 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _104) -&gt; [return: bb45, unwind: bb86] @ Call: FnDid: 3903
+}
+bb 45 {
+CleanUp: false
+    Assign((_102, &amp;(*_103))) @ _102=&amp;(*_103) @ Ref
+    StorageDead(_104) @ StorageDead
+    _101 = filesystem::vfs::file::File::metadata(move _102) -&gt; [return: bb46, unwind: bb86] @ Call: FnDid: 19191
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    _100 = &lt;core::result::Result&lt;filesystem::vfs::Metadata, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _101) -&gt; [return: bb47, unwind: bb86] @ Call: FnDid: 4199
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    Assign((_105, discriminant(_100))) @ _105=discriminant(_100) @ Discriminant
+    switchInt(move _105) -&gt; [0: bb48, 1: bb49, otherwise: bb12] @ SwitchInt
+}
+bb 48 {
+CleanUp: false
+    StorageLive(_109) @ StorageLive
+    Assign((_109, move ((_100 as Continue).0: filesystem::vfs::Metadata))) @ _109=move ((_100 as Continue).0: filesystem::vfs::Metadata) @ Use
+    Assign((_99, move _109)) @ _99=move _109 @ Use
+    StorageDead(_109) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageLive(_110) @ StorageLive
+    StorageLive(_111) @ StorageLive
+    Assign((_111, copy (_99.0: usize))) @ _111=copy (_99.0: usize) @ Use
+    Assign((_110, move _111 as u64 (IntToInt))) @ _110=move _111 as u64 (IntToInt) @ Cast
+    StorageDead(_111) @ StorageDead
+    StorageLive(_112) @ StorageLive
+    StorageLive(_113) @ StorageLive
+    StorageLive(_114) @ StorageLive
+    Assign((_114, copy (_99.1: filesystem::vfs::InodeId))) @ _114=copy (_99.1: filesystem::vfs::InodeId) @ Use
+    _113 = filesystem::vfs::InodeId::into(move _114) -&gt; [return: bb51, unwind: bb86] @ Call: FnDid: 55518
+}
+bb 49 {
+CleanUp: false
+    StorageLive(_106) @ StorageLive
+    Assign((_106, move ((_100 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _106=move ((_100 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_108) @ StorageLive
+    Assign((_108, move _106)) @ _108=move _106 @ Use
+    _0 = &lt;core::result::Result&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _108) -&gt; [return: bb50, unwind: bb86] @ Call: FnDid: 4202
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_108) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    goto -&gt; bb73 @ Goto
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_114) @ StorageDead
+    Assign((_112, move _113 as u64 (IntToInt))) @ _112=move _113 as u64 (IntToInt) @ Cast
+    StorageDead(_113) @ StorageDead
+    StorageLive(_115) @ StorageLive
+    StorageLive(_116) @ StorageLive
+    StorageLive(_117) @ StorageLive
+    StorageLive(_118) @ StorageLive
+    StorageLive(_119) @ StorageLive
+    StorageLive(_120) @ StorageLive
+    Assign((_120, &amp;_73)) @ _120=&amp;_73 @ Ref
+    _119 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::ucontext::VMA&gt; as lazy_static::__Deref&gt;::deref(move _120) -&gt; [return: bb52, unwind: bb86] @ Call: FnDid: 3903
+}
+bb 52 {
+CleanUp: false
+    Assign((_118, &amp;(*_119))) @ _118=&amp;(*_119) @ Ref
+    StorageDead(_120) @ StorageDead
+    _117 = mm::ucontext::VMA::file_page_offset(move _118) -&gt; [return: bb53, unwind: bb86] @ Call: FnDid: 25173
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_118) @ StorageDead
+    _116 = core::option::Option::&lt;usize&gt;::unwrap_or(move _117, const 0_usize) -&gt; [return: bb54, unwind: bb86] @ Call: FnDid: 10158
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_117) @ StorageDead
+    Assign((_115, move _116 as u64 (IntToInt))) @ _115=move _116 as u64 (IntToInt) @ Cast
+    StorageDead(_116) @ StorageDead
+    StorageDead(_119) @ StorageDead
+    StorageLive(_121) @ StorageLive
+    StorageLive(_122) @ StorageLive
+    StorageLive(_123) @ StorageLive
+    Assign((_123, copy _110)) @ _123=copy _110 @ Use
+    StorageLive(_124) @ StorageLive
+    Assign((_124, copy _112)) @ _124=copy _112 @ Use
+    Assign((_122, libs::futex::futex::SharedKeyKind::File { dev: move _123, ino: move _124 })) @ _122=libs::futex::futex::SharedKeyKind::File { dev: move _123, ino: move _124 } @ Aggregate
+    StorageDead(_124) @ StorageDead
+    StorageDead(_123) @ StorageDead
+    StorageLive(_125) @ StorageLive
+    StorageLive(_126) @ StorageLive
+    Assign((_126, copy _115)) @ _126=copy _115 @ Use
+    StorageLive(_127) @ StorageLive
+    Assign((_127, copy _77)) @ _127=copy _77 @ Use
+    Assign((_128, AddWithOverflow(copy _126, copy _127))) @ _128=AddWithOverflow(copy _126, copy _127) @ BinaryOp
+    assert(!move (_128.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, move _126, move _127) -&gt; [success: bb55, unwind: bb86] @ Assert
+}
+bb 55 {
+CleanUp: false
+    Assign((_125, move (_128.0: u64))) @ _125=move (_128.0: u64) @ Use
+    StorageDead(_127) @ StorageDead
+    StorageDead(_126) @ StorageDead
+    Assign((_121, libs::futex::futex::SharedKey { kind: move _122, page_offset: move _125 })) @ _121=libs::futex::futex::SharedKey { kind: move _122, page_offset: move _125 } @ Aggregate
+    StorageDead(_125) @ StorageDead
+    StorageDead(_122) @ StorageDead
+    StorageLive(_129) @ StorageLive
+    StorageLive(_130) @ StorageLive
+    StorageLive(_131) @ StorageLive
+    Assign((_131, copy _6)) @ _131=copy _6 @ Use
+    Assign((_130, move _131 as u32 (IntToInt))) @ _130=move _131 as u32 (IntToInt) @ Cast
+    StorageDead(_131) @ StorageDead
+    StorageLive(_132) @ StorageLive
+    StorageLive(_133) @ StorageLive
+    Assign((_133, move _121)) @ _133=move _121 @ Use
+    Assign((_132, libs::futex::futex::InnerFutexKey::Shared(move _133))) @ _132=libs::futex::futex::InnerFutexKey::Shared(move _133) @ Aggregate
+    StorageDead(_133) @ StorageDead
+    Assign((_129, libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _130, key: move _132 })) @ _129=libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _130, key: move _132 } @ Aggregate
+    StorageDead(_132) @ StorageDead
+    StorageDead(_130) @ StorageDead
+    StorageLive(_134) @ StorageLive
+    Assign((_134, move _129)) @ _134=move _129 @ Use
+    Assign((_0, core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _134))) @ _0=core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _134) @ Aggregate
+    StorageDead(_134) @ StorageDead
+    StorageDead(_129) @ StorageDead
+    StorageDead(_121) @ StorageDead
+    StorageDead(_115) @ StorageDead
+    StorageDead(_112) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    goto -&gt; bb73 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageLive(_135) @ StorageLive
+    StorageLive(_136) @ StorageLive
+    StorageLive(_137) @ StorageLive
+    Assign((_137, &amp;_73)) @ _137=&amp;_73 @ Ref
+    _136 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::ucontext::VMA&gt; as lazy_static::__Deref&gt;::deref(move _137) -&gt; [return: bb57, unwind: bb99] @ Call: FnDid: 3903
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_137) @ StorageDead
+    Assign((_135, &amp;((*_136).10: core::option::Option&lt;alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping&gt;&gt;))) @ _135=&amp;((*_136).10: core::option::Option&lt;alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping&gt;&gt;) @ Ref
+    Assign((_138, discriminant((*_135)))) @ _138=discriminant((*_135)) @ Discriminant
+    switchInt(move _138) -&gt; [1: bb58, otherwise: bb60] @ SwitchInt
+}
+bb 58 {
+CleanUp: false
+    StorageLive(_139) @ StorageLive
+    Assign((_139, &amp;(((*_135) as Some).0: alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping&gt;))) @ _139=&amp;(((*_135) as Some).0: alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping&gt;) @ Ref
+    StorageLive(_141) @ StorageLive
+    StorageLive(_142) @ StorageLive
+    StorageLive(_143) @ StorageLive
+    StorageLive(_144) @ StorageLive
+    StorageLive(_145) @ StorageLive
+    Assign((_145, &amp;(*_139))) @ _145=&amp;(*_139) @ Ref
+    _144 = &lt;alloc::sync::Arc&lt;mm::ucontext::AnonSharedMapping&gt; as lazy_static::__Deref&gt;::deref(move _145) -&gt; [return: bb59, unwind: bb99] @ Call: FnDid: 3903
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_145) @ StorageDead
+    Assign((_143, copy ((*_144).0: u64))) @ _143=copy ((*_144).0: u64) @ Use
+    Assign((_142, libs::futex::futex::SharedKeyKind::SharedAnon { id: move _143 })) @ _142=libs::futex::futex::SharedKeyKind::SharedAnon { id: move _143 } @ Aggregate
+    StorageDead(_143) @ StorageDead
+    StorageLive(_146) @ StorageLive
+    Assign((_146, copy _77)) @ _146=copy _77 @ Use
+    Assign((_141, libs::futex::futex::SharedKey { kind: move _142, page_offset: move _146 })) @ _141=libs::futex::futex::SharedKey { kind: move _142, page_offset: move _146 } @ Aggregate
+    StorageDead(_146) @ StorageDead
+    StorageDead(_142) @ StorageDead
+    StorageDead(_144) @ StorageDead
+    StorageLive(_147) @ StorageLive
+    StorageLive(_148) @ StorageLive
+    StorageLive(_149) @ StorageLive
+    Assign((_149, copy _6)) @ _149=copy _6 @ Use
+    Assign((_148, move _149 as u32 (IntToInt))) @ _148=move _149 as u32 (IntToInt) @ Cast
+    StorageDead(_149) @ StorageDead
+    StorageLive(_150) @ StorageLive
+    StorageLive(_151) @ StorageLive
+    Assign((_151, move _141)) @ _151=move _141 @ Use
+    Assign((_150, libs::futex::futex::InnerFutexKey::Shared(move _151))) @ _150=libs::futex::futex::InnerFutexKey::Shared(move _151) @ Aggregate
+    StorageDead(_151) @ StorageDead
+    Assign((_147, libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _148, key: move _150 })) @ _147=libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _148, key: move _150 } @ Aggregate
+    StorageDead(_150) @ StorageDead
+    StorageDead(_148) @ StorageDead
+    StorageLive(_152) @ StorageLive
+    Assign((_152, move _147)) @ _152=move _147 @ Use
+    Assign((_0, core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _152))) @ _0=core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _152) @ Aggregate
+    StorageDead(_152) @ StorageDead
+    StorageDead(_147) @ StorageDead
+    StorageDead(_141) @ StorageDead
+    StorageDead(_139) @ StorageDead
+    goto -&gt; bb72 @ Goto
+}
+bb 60 {
+CleanUp: false
+    StorageLive(_154) @ StorageLive
+    StorageLive(_155) @ StorageLive
+    StorageLive(_156) @ StorageLive
+    _156 = mm::ucontext::AddressSpace::current() -&gt; [return: bb61, unwind: bb99] @ Call: FnDid: 25061
+}
+bb 61 {
+CleanUp: false
+    _155 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _156) -&gt; [return: bb62, unwind: bb99] @ Call: FnDid: 4199
+}
+bb 62 {
+CleanUp: false
+    StorageDead(_156) @ StorageDead
+    Assign((_157, discriminant(_155))) @ _157=discriminant(_155) @ Discriminant
+    switchInt(move _157) -&gt; [0: bb63, 1: bb64, otherwise: bb12] @ SwitchInt
+}
+bb 63 {
+CleanUp: false
+    StorageLive(_161) @ StorageLive
+    Assign((_161, move ((_155 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;))) @ _161=move ((_155 as Continue).0: alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt;) @ Use
+    Assign((_154, move _161)) @ _154=move _161 @ Use
+    StorageDead(_161) @ StorageDead
+    Assign((_200, discriminant(_155))) @ _200=discriminant(_155) @ Discriminant
+    StorageDead(_155) @ StorageDead
+    StorageLive(_162) @ StorageLive
+    StorageLive(_163) @ StorageLive
+    StorageLive(_164) @ StorageLive
+    StorageLive(_165) @ StorageLive
+    Assign((_165, &amp;_154)) @ _165=&amp;_154 @ Ref
+    _164 = &lt;alloc::sync::Arc&lt;mm::ucontext::AddressSpace&gt; as lazy_static::__Deref&gt;::deref(move _165) -&gt; [return: bb66, unwind: bb85] @ Call: FnDid: 3903
+}
+bb 64 {
+CleanUp: false
+    StorageLive(_158) @ StorageLive
+    Assign((_158, move ((_155 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _158=move ((_155 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_160) @ StorageLive
+    Assign((_160, move _158)) @ _160=move _158 @ Use
+    _0 = &lt;core::result::Result&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _160) -&gt; [return: bb65, unwind: bb97] @ Call: FnDid: 4202
+}
+bb 65 {
+CleanUp: false
+    StorageDead(_160) @ StorageDead
+    StorageDead(_158) @ StorageDead
+    Assign((_198, discriminant(_155))) @ _198=discriminant(_155) @ Discriminant
+    StorageDead(_155) @ StorageDead
+    goto -&gt; bb71 @ Goto
+}
+bb 66 {
+CleanUp: false
+    Assign((_163, &amp;(*_164))) @ _163=&amp;(*_164) @ Ref
+    StorageDead(_165) @ StorageDead
+    _162 = mm::ucontext::AddressSpace::id(move _163) -&gt; [return: bb67, unwind: bb85] @ Call: FnDid: 25060
+}
+bb 67 {
+CleanUp: false
+    StorageDead(_163) @ StorageDead
+    StorageDead(_164) @ StorageDead
+    StorageLive(_166) @ StorageLive
+    StorageLive(_167) @ StorageLive
+    Assign((_183, const false)) @ _183=const false @ Use
+    Assign((_167, move _73)) @ _167=move _73 @ Use
+    _166 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::ucontext::VMA&gt;&gt;(move _167) -&gt; [return: bb68, unwind: bb85] @ Call: FnDid: 2323
+}
+bb 68 {
+CleanUp: false
+    StorageDead(_167) @ StorageDead
+    StorageDead(_166) @ StorageDead
+    StorageLive(_168) @ StorageLive
+    StorageLive(_169) @ StorageLive
+    Assign((_184, const false)) @ _184=const false @ Use
+    Assign((_169, move _53)) @ _169=move _53 @ Use
+    _168 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, mm::ucontext::InnerAddressSpace&gt;&gt;(move _169) -&gt; [return: bb69, unwind: bb85] @ Call: FnDid: 2323
+}
+bb 69 {
+CleanUp: false
+    StorageDead(_169) @ StorageDead
+    StorageDead(_168) @ StorageDead
+    StorageLive(_170) @ StorageLive
+    StorageLive(_171) @ StorageLive
+    StorageLive(_172) @ StorageLive
+    Assign((_172, copy _162)) @ _172=copy _162 @ Use
+    Assign((_171, libs::futex::futex::SharedKeyKind::PrivateAnonShared { as_id: move _172 })) @ _171=libs::futex::futex::SharedKeyKind::PrivateAnonShared { as_id: move _172 } @ Aggregate
+    StorageDead(_172) @ StorageDead
+    StorageLive(_173) @ StorageLive
+    StorageLive(_174) @ StorageLive
+    StorageLive(_175) @ StorageLive
+    Assign((_175, copy _4)) @ _175=copy _4 @ Use
+    Assign((_176, Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize))) @ _176=Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize) @ BinaryOp
+    assert(move _176, &#34;attempt to shift right by `{}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) -&gt; [success: bb70, unwind: bb85] @ Assert
+}
+bb 70 {
+CleanUp: false
+    Assign((_174, Shr(move _175, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT))) @ _174=Shr(move _175, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) @ BinaryOp
+    StorageDead(_175) @ StorageDead
+    Assign((_173, move _174 as u64 (IntToInt))) @ _173=move _174 as u64 (IntToInt) @ Cast
+    StorageDead(_174) @ StorageDead
+    Assign((_170, libs::futex::futex::SharedKey { kind: move _171, page_offset: move _173 })) @ _170=libs::futex::futex::SharedKey { kind: move _171, page_offset: move _173 } @ Aggregate
+    StorageDead(_173) @ StorageDead
+    StorageDead(_171) @ StorageDead
+    StorageLive(_177) @ StorageLive
+    StorageLive(_178) @ StorageLive
+    StorageLive(_179) @ StorageLive
+    Assign((_179, copy _6)) @ _179=copy _6 @ Use
+    Assign((_178, move _179 as u32 (IntToInt))) @ _178=move _179 as u32 (IntToInt) @ Cast
+    StorageDead(_179) @ StorageDead
+    StorageLive(_180) @ StorageLive
+    StorageLive(_181) @ StorageLive
+    Assign((_181, move _170)) @ _181=move _170 @ Use
+    Assign((_180, libs::futex::futex::InnerFutexKey::Shared(move _181))) @ _180=libs::futex::futex::InnerFutexKey::Shared(move _181) @ Aggregate
+    StorageDead(_181) @ StorageDead
+    Assign((_177, libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _178, key: move _180 })) @ _177=libs::futex::futex::FutexKey { ptr: const 0_u64, word: const 0_u64, offset: move _178, key: move _180 } @ Aggregate
+    StorageDead(_180) @ StorageDead
+    StorageDead(_178) @ StorageDead
+    StorageLive(_182) @ StorageLive
+    Assign((_182, move _177)) @ _182=move _177 @ Use
+    Assign((_0, core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _182))) @ _0=core::result::Result::&lt;libs::futex::futex::FutexKey, system_error::SystemError&gt;::Ok(move _182) @ Aggregate
+    StorageDead(_182) @ StorageDead
+    StorageDead(_177) @ StorageDead
+    StorageDead(_170) @ StorageDead
+    StorageDead(_162) @ StorageDead
+    drop(_154) -&gt; [return: bb71, unwind: bb99] @ Drop
+}
+bb 71 {
+CleanUp: false
+    StorageDead(_154) @ StorageDead
+    goto -&gt; bb72 @ Goto
+}
+bb 72 {
+CleanUp: false
+    StorageDead(_136) @ StorageDead
+    StorageDead(_135) @ StorageDead
+    goto -&gt; bb75 @ Goto
+}
+bb 73 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    drop(_97) -&gt; [return: bb74, unwind: bb99] @ Drop
+}
+bb 74 {
+CleanUp: false
+    StorageDead(_97) @ StorageDead
+    goto -&gt; bb75 @ Goto
+}
+bb 75 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    switchInt(copy _183) -&gt; [0: bb76, otherwise: bb95] @ SwitchInt
+}
+bb 76 {
+CleanUp: false
+    Assign((_183, const false)) @ _183=const false @ Use
+    StorageDead(_73) @ StorageDead
+    drop(_59) -&gt; [return: bb77, unwind: bb101] @ Drop
+}
+bb 77 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    switchInt(copy _184) -&gt; [0: bb78, otherwise: bb96] @ SwitchInt
+}
+bb 78 {
+CleanUp: false
+    Assign((_184, const false)) @ _184=const false @ Use
+    StorageDead(_53) @ StorageDead
+    drop(_45) -&gt; [return: bb79, unwind: bb102] @ Drop
+}
+bb 79 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    Assign((_202, discriminant(_92))) @ _202=discriminant(_92) @ Discriminant
+    StorageDead(_94) @ StorageDead
+    Assign((_185, const false)) @ _185=const false @ Use
+    StorageDead(_92) @ StorageDead
+    goto -&gt; bb84 @ Goto
+}
+bb 80 {
+CleanUp: false
+    Assign((_184, const false)) @ _184=const false @ Use
+    StorageDead(_53) @ StorageDead
+    drop(_45) -&gt; [return: bb81, unwind: bb94] @ Drop
+}
+bb 81 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    goto -&gt; bb83 @ Goto
+}
+bb 82 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    goto -&gt; bb83 @ Goto
+}
+bb 83 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb84 @ Goto
+}
+bb 84 {
+CleanUp: false
+    return @ Return
+}
+bb 85 {
+CleanUp: true
+    drop(_154) -&gt; [return: bb99, unwind terminate(cleanup)] @ Drop
+}
+bb 86 {
+CleanUp: true
+    drop(_97) -&gt; [return: bb99, unwind terminate(cleanup)] @ Drop
+}
+bb 87 {
+CleanUp: true
+    drop(_59) -&gt; [return: bb101, unwind terminate(cleanup)] @ Drop
+}
+bb 88 {
+CleanUp: true
+    drop(_45) -&gt; [return: bb102, unwind terminate(cleanup)] @ Drop
+}
+bb 89 {
+CleanUp: true
+    drop(_73) -&gt; [return: bb90, unwind terminate(cleanup)] @ Drop
+}
+bb 90 {
+CleanUp: true
+    drop(_59) -&gt; [return: bb91, unwind terminate(cleanup)] @ Drop
+}
+bb 91 {
+CleanUp: true
+    drop(_53) -&gt; [return: bb92, unwind terminate(cleanup)] @ Drop
+}
+bb 92 {
+CleanUp: true
+    drop(_45) -&gt; [return: bb94, unwind terminate(cleanup)] @ Drop
+}
+bb 93 {
+CleanUp: true
+    drop(_25) -&gt; [return: bb94, unwind terminate(cleanup)] @ Drop
+}
+bb 94 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 95 {
+CleanUp: false
+    drop(_73) -&gt; [return: bb76, unwind: bb87] @ Drop
+}
+bb 96 {
+CleanUp: false
+    drop(_53) -&gt; [return: bb78, unwind: bb88] @ Drop
+}
+bb 97 {
+CleanUp: true
+    Assign((_204, discriminant(_155))) @ _204=discriminant(_155) @ Discriminant
+    goto -&gt; bb99 @ Goto
+}
+bb 98 {
+CleanUp: true
+    drop(_73) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 99 {
+CleanUp: true
+    switchInt(copy _183) -&gt; [0: bb87, otherwise: bb98] @ SwitchInt
+}
+bb 100 {
+CleanUp: true
+    drop(_53) -&gt; [return: bb88, unwind terminate(cleanup)] @ Drop
+}
+bb 101 {
+CleanUp: true
+    switchInt(copy _184) -&gt; [0: bb88, otherwise: bb100] @ SwitchInt
+}
+bb 102 {
+CleanUp: true
+    Assign((_205, discriminant(_92))) @ _205=discriminant(_92) @ Discriminant
+    goto -&gt; bb94 @ Goto
+}
+bb 103 {
+CleanUp: true
+    Assign((_206, discriminant(_60))) @ _206=discriminant(_60) @ Discriminant
+    goto -&gt; bb91 @ Goto
+}
+bb 104 {
+CleanUp: true
+    Assign((_207, discriminant(_46))) @ _207=discriminant(_46) @ Discriminant
+    goto -&gt; bb94 @ Goto
+}
+bb 105 {
+CleanUp: true
+    Assign((_208, discriminant(_26))) @ _208=discriminant(_26) @ Discriminant
+    goto -&gt; bb94 @ Goto
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

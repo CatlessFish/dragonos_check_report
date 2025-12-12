@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #170: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #170
+            
+                 <span class="func-name">net::socket::unix::stream::{impl#1}::connect</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:15|RAP|WARN|: Dangling pointer detected in function &#34;connect&#34;
+warning: Dangling pointer detected.
+   --&gt; src/net/socket/unix/stream/mod.rs:167:1
+    |
+167 | / fn connect(&amp;self, server_endpoint: Endpoint) -&gt; Result&lt;(), SystemError&gt; {
+168 | |         let remote_addr = UnixEndpoint::try_from(server_endpoint)?.connect()?;
+169 | |         let backlog = get_backlog(&amp;remote_addr)?;
+170 | |
+171 | |         if self.is_nonblocking() {
+172 | |             self.try_connect(&amp;backlog)
+173 | |         } else {
+174 | |             backlog.pause_until(|| self.try_connect(&amp;backlog))
+175 | |         }
+176 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 167.
+    | MIR detail: Value _21(backlog, src/net/socket/unix/stream/mod.rs:169) and _1(self, src/net/socket/unix/stream/mod.rs:167) are alias.
+    | MIR detail: _21(backlog, src/net/socket/unix/stream/mod.rs:169) is dropped at BB23(src/net/socket/unix/stream/mod.rs:176); _1(self, src/net/socket/unix/stream/mod.rs:167) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;connect&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/net/socket/unix/stream/mod.rs:167:1
+    |
+167 | / fn connect(&amp;self, server_endpoint: Endpoint) -&gt; Result&lt;(), SystemError&gt; {
+168 | |         let remote_addr = UnixEndpoint::try_from(server_endpoint)?.connect()?;
+169 | |         let backlog = get_backlog(&amp;remote_addr)?;
+170 | |
+171 | |         if self.is_nonblocking() {
+172 | |             self.try_connect(&amp;backlog)
+173 | |         } else {
+174 | |             backlog.pause_until(|| self.try_connect(&amp;backlog))
+175 | |         }
+176 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 167.
+    | MIR detail: Value _21(backlog, src/net/socket/unix/stream/mod.rs:169) and _1(self, src/net/socket/unix/stream/mod.rs:167) are alias.
+    | MIR detail: _21(backlog, src/net/socket/unix/stream/mod.rs:169) is dropped at BB28(src/net/socket/unix/stream/mod.rs:176); _1(self, src/net/socket/unix/stream/mod.rs:167) became dangling.
+    |
+render dot for DefId(0:27103 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/net/socket/unix/stream/mod.rs:168:13: 168:24
+bb1 at src/net/socket/unix/stream/mod.rs:168:65: 168:66
+bb2 at src/net/socket/unix/stream/mod.rs:168:66: 168:67
+bb4 at src/net/socket/unix/stream/mod.rs:168:27: 168:67
+bb5 at src/net/socket/unix/stream/mod.rs:168:66: 168:67
+bb6 at src/net/socket/unix/stream/mod.rs:168:66: 168:67
+bb7 at src/net/socket/unix/stream/mod.rs:168:76: 168:77
+bb8 at src/net/socket/unix/stream/mod.rs:168:77: 168:78
+bb9 at src/net/socket/unix/stream/mod.rs:168:27: 168:78
+bb10 at src/net/socket/unix/stream/mod.rs:168:77: 168:78
+bb11 at src/net/socket/unix/stream/mod.rs:168:77: 168:78
+bb12 at src/net/socket/unix/stream/mod.rs:169:47: 169:48
+bb13 at src/net/socket/unix/stream/mod.rs:169:48: 169:49
+bb14 at src/net/socket/unix/stream/mod.rs:169:23: 169:49
+bb15 at src/net/socket/unix/stream/mod.rs:169:48: 169:49
+bb16 at src/net/socket/unix/stream/mod.rs:169:48: 169:49
+bb18 at src/net/socket/unix/stream/mod.rs:171:32: 171:33
+bb19 at src/net/socket/unix/stream/mod.rs:172:38: 172:39
+bb20 at src/net/socket/unix/stream/mod.rs:171:32: 171:33
+bb21 at src/net/socket/unix/stream/mod.rs:174:13: 174:20
+bb22 at src/net/socket/unix/stream/mod.rs:174:62: 174:63
+bb23 at src/net/socket/unix/stream/mod.rs:175:9: 175:10
+bb24 at src/net/socket/unix/stream/mod.rs:176:5: 176:6
+bb25 at src/net/socket/unix/stream/mod.rs:176:5: 176:6
+bb26 at src/net/socket/unix/stream/mod.rs:176:5: 176:6
+bb32 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb33 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb34 at src/net/socket/unix/stream/mod.rs:169:49: 169:50
+bb35 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb36 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb37 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+fn &lt;net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket&gt;::connect
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_2:  @ net::socket::endpoint::Endpoint 
+_3:  @ net::socket::unix::UnixEndpointBound 
+_4:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, net::socket::unix::UnixEndpointBound&gt; 
+_5:  @ core::result::Result&lt;net::socket::unix::UnixEndpointBound, system_error::SystemError&gt; 
+_6:  @ &amp;&#39;{erased} net::socket::unix::UnixEndpoint 
+_7:  @ net::socket::unix::UnixEndpoint 
+_8:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, net::socket::unix::UnixEndpoint&gt; 
+_9:  @ core::result::Result&lt;net::socket::unix::UnixEndpoint, system_error::SystemError&gt; 
+_10:  @ net::socket::endpoint::Endpoint 
+_11:  @ isize 
+_12:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_13:  @ ! 
+_14:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_15:  @ net::socket::unix::UnixEndpoint 
+_16:  @ isize 
+_17:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_18:  @ ! 
+_19:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_20:  @ net::socket::unix::UnixEndpointBound 
+_21:  @ alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_22:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;&gt; 
+_23:  @ core::result::Result&lt;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_24:  @ &amp;&#39;{erased} net::socket::unix::UnixEndpointBound 
+_25:  @ &amp;&#39;{erased} net::socket::unix::UnixEndpointBound 
+_26:  @ isize 
+_27:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_28:  @ ! 
+_29:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_30:  @ alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_31:  @ bool 
+_32:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_33:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_34:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_36:  @ &amp;&#39;{erased} net::socket::unix::stream::inner::Backlog 
+_37:  @ &amp;&#39;{erased} net::socket::unix::stream::inner::Backlog 
+_38:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_39:  @ Closure(DefId(0:27104 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket, &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;)]) 
+_40:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_42:  @ bool 
+_43:  @ bool 
+_44:  @ isize 
+_45:  @ isize 
+_46:  @ isize 
+_47:  @ isize 
+_48:  @ isize 
+_49:  @ isize 
+_50:  @ isize 
+_51:  @ isize 
+_52:  @ isize 
+_53:  @ isize 
+_54:  @ isize 
+_55:  @ isize 
+_56:  @ isize 
+_57:  @ isize 
+_58:  @ isize 
+_59:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_43, const false)) @ _43=const false @ Use
+    Assign((_42, const false)) @ _42=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, move _2)) @ _10=move _2 @ Use
+    _9 = &lt;net::socket::unix::UnixEndpoint as core::convert::TryFrom&lt;net::socket::endpoint::Endpoint&gt;&gt;::try_from(move _10) -&gt; [return: bb1, unwind: bb31] @ Call: FnDid: 3398
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    _8 = &lt;core::result::Result&lt;net::socket::unix::UnixEndpoint, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _9) -&gt; [return: bb2, unwind: bb31] @ Call: FnDid: 4199
+}
+bb 2 {
+CleanUp: false
+    Assign((_42, const true)) @ _42=const true @ Use
+    Assign((_43, const true)) @ _43=const true @ Use
+    StorageDead(_9) @ StorageDead
+    Assign((_11, discriminant(_8))) @ _11=discriminant(_8) @ Discriminant
+    switchInt(move _11) -&gt; [0: bb4, 1: bb5, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_15) @ StorageLive
+    Assign((_15, move ((_8 as Continue).0: net::socket::unix::UnixEndpoint))) @ _15=move ((_8 as Continue).0: net::socket::unix::UnixEndpoint) @ Use
+    Assign((_7, move _15)) @ _7=move _15 @ Use
+    StorageDead(_15) @ StorageDead
+    Assign((_6, &amp;_7)) @ _6=&amp;_7 @ Ref
+    _5 = net::socket::unix::UnixEndpoint::connect(move _6) -&gt; [return: bb7, unwind: bb30] @ Call: FnDid: 27171
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_12) @ StorageLive
+    Assign((_12, move ((_8 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _12=move ((_8 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_14) @ StorageLive
+    Assign((_14, move _12)) @ _14=move _12 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _14) -&gt; [return: bb6, unwind: bb37] @ Call: FnDid: 4202
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb33 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    _4 = &lt;core::result::Result&lt;net::socket::unix::UnixEndpointBound, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _5) -&gt; [return: bb8, unwind: bb30] @ Call: FnDid: 4199
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    Assign((_16, discriminant(_4))) @ _16=discriminant(_4) @ Discriminant
+    switchInt(move _16) -&gt; [0: bb9, 1: bb10, otherwise: bb3] @ SwitchInt
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_20) @ StorageLive
+    Assign((_20, move ((_4 as Continue).0: net::socket::unix::UnixEndpointBound))) @ _20=move ((_4 as Continue).0: net::socket::unix::UnixEndpointBound) @ Use
+    Assign((_3, move _20)) @ _3=move _20 @ Use
+    StorageDead(_20) @ StorageDead
+    Assign((_46, discriminant(_4))) @ _46=discriminant(_4) @ Discriminant
+    drop(_7) -&gt; [return: bb32, unwind: bb35] @ Drop
+}
+bb 10 {
+CleanUp: false
+    StorageLive(_17) @ StorageLive
+    Assign((_17, move ((_4 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _17=move ((_4 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_19) @ StorageLive
+    Assign((_19, move _17)) @ _19=move _17 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _19) -&gt; [return: bb11, unwind: bb36] @ Call: FnDid: 4202
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_44, discriminant(_4))) @ _44=discriminant(_4) @ Discriminant
+    drop(_7) -&gt; [return: bb33, unwind: bb37] @ Drop
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    _22 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _23) -&gt; [return: bb13, unwind: bb29] @ Call: FnDid: 4199
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    Assign((_26, discriminant(_22))) @ _26=discriminant(_22) @ Discriminant
+    switchInt(move _26) -&gt; [0: bb14, 1: bb15, otherwise: bb3] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_30) @ StorageLive
+    Assign((_30, move ((_22 as Continue).0: alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;))) @ _30=move ((_22 as Continue).0: alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;) @ Use
+    Assign((_21, move _30)) @ _21=move _30 @ Use
+    StorageDead(_30) @ StorageDead
+    Assign((_52, discriminant(_22))) @ _52=discriminant(_22) @ Discriminant
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;(*_1))) @ _32=&amp;(*_1) @ Ref
+    _31 = net::socket::unix::stream::UnixStreamSocket::is_nonblocking(move _32) -&gt; [return: bb17, unwind: bb28] @ Call: FnDid: 27100
+}
+bb 15 {
+CleanUp: false
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move ((_22 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _27=move ((_22 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_29) @ StorageLive
+    Assign((_29, move _27)) @ _29=move _27 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _29) -&gt; [return: bb16, unwind: bb34] @ Call: FnDid: 4202
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    Assign((_50, discriminant(_22))) @ _50=discriminant(_22) @ Discriminant
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    drop(_3) -&gt; [return: bb26, unwind: bb31] @ Drop
+}
+bb 17 {
+CleanUp: false
+    switchInt(move _31) -&gt; [0: bb20, otherwise: bb18] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;(*_1))) @ _33=&amp;(*_1) @ Ref
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_21)) @ _35=&amp;_21 @ Ref
+    Assign((_34, &amp;(*_35))) @ _34=&amp;(*_35) @ Ref
+    _0 = net::socket::unix::stream::UnixStreamSocket::try_connect(move _33, move _34) -&gt; [return: bb19, unwind: bb28] @ Call: FnDid: 27098
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    goto -&gt; bb23 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;_21)) @ _38=&amp;_21 @ Ref
+    _37 = &lt;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt; as lazy_static::__Deref&gt;::deref(move _38) -&gt; [return: bb21, unwind: bb28] @ Call: FnDid: 3903
+}
+bb 21 {
+CleanUp: false
+    Assign((_36, &amp;(*_37))) @ _36=&amp;(*_37) @ Ref
+    StorageDead(_38) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;(*_1))) @ _40=&amp;(*_1) @ Ref
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;_21)) @ _41=&amp;_21 @ Ref
+    Assign((_39, {closure@src/net/socket/unix/stream/mod.rs:174:33: 174:35} { self: move _40, backlog: move _41 })) @ _39={closure@src/net/socket/unix/stream/mod.rs:174:33: 174:35} { self: move _40, backlog: move _41 } @ Aggregate
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    _0 = net::socket::unix::stream::inner::Backlog::pause_until::&lt;{closure@src/net/socket/unix/stream/mod.rs:174:33: 174:35}&gt;(move _36, move _39) -&gt; [return: bb22, unwind: bb28] @ Call: FnDid: 27084
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    goto -&gt; bb23 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    drop(_21) -&gt; [return: bb24, unwind: bb29] @ Drop
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    drop(_3) -&gt; [return: bb25, unwind: bb31] @ Drop
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    goto -&gt; bb27 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    goto -&gt; bb27 @ Goto
+}
+bb 27 {
+CleanUp: false
+    return @ Return
+}
+bb 28 {
+CleanUp: true
+    drop(_21) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 30 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 31 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 32 {
+CleanUp: false
+    Assign((_48, discriminant(_8))) @ _48=discriminant(_8) @ Discriminant
+    Assign((_42, const false)) @ _42=const false @ Use
+    Assign((_43, const false)) @ _43=const false @ Use
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_3)) @ _25=&amp;_3 @ Ref
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    _23 = net::socket::unix::stream::inner::get_backlog(move _24) -&gt; [return: bb12, unwind: bb29] @ Call: FnDid: 27088
+}
+bb 33 {
+CleanUp: false
+    Assign((_54, discriminant(_8))) @ _54=discriminant(_8) @ Discriminant
+    Assign((_42, const false)) @ _42=const false @ Use
+    Assign((_43, const false)) @ _43=const false @ Use
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb26 @ Goto
+}
+bb 34 {
+CleanUp: true
+    Assign((_56, discriminant(_22))) @ _56=discriminant(_22) @ Discriminant
+    goto -&gt; bb29 @ Goto
+}
+bb 35 {
+CleanUp: true
+    Assign((_57, discriminant(_8))) @ _57=discriminant(_8) @ Discriminant
+    goto -&gt; bb29 @ Goto
+}
+bb 36 {
+CleanUp: true
+    Assign((_58, discriminant(_4))) @ _58=discriminant(_4) @ Discriminant
+    goto -&gt; bb30 @ Goto
+}
+bb 37 {
+CleanUp: true
+    Assign((_59, discriminant(_8))) @ _59=discriminant(_8) @ Discriminant
+    goto -&gt; bb31 @ Goto
+}
+
+bb0 at src/net/socket/unix/stream/mod.rs:174:36: 174:40
+bb1 at src/net/socket/unix/stream/mod.rs:174:61: 174:62
+fn &lt;net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket&gt;::connect::{closure#0}
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:27104 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket, &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;)]) 
+_2:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_3:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_4:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_5:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_2) @ StorageLive
+    Assign((_5, deref_copy ((*_1).0: &amp;net::socket::unix::stream::UnixStreamSocket))) @ _5=deref_copy ((*_1).0: &amp;net::socket::unix::stream::UnixStreamSocket) @ CopyForDeref
+    Assign((_2, &amp;(*_5))) @ _2=&amp;(*_5) @ Ref
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_6, deref_copy ((*_1).1: &amp;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;))) @ _6=deref_copy ((*_1).1: &amp;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;) @ CopyForDeref
+    Assign((_4, &amp;(*_6))) @ _4=&amp;(*_6) @ Ref
+    Assign((_3, &amp;(*_4))) @ _3=&amp;(*_4) @ Ref
+    _0 = net::socket::unix::stream::UnixStreamSocket::try_connect(move _2, move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 27098
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

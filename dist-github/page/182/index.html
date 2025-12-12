@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #182: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #182
+            
+                 <span class="func-name">process::syscall::sys_prctl::{impl#1}::entry_format</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:17|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/process/syscall/sys_prctl.rs:96:1
+    |
+ 96 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 97 | |         let option_val = args.first().copied().unwrap_or(0);
+ 98 | |         let option_str = if let Ok(option) = PrctlOption::try_from(option_val) {
+ 99 | |             format!(&#34;{:#x} ({:?})&#34;, option_val, option)
+100 | |         } else {
+101 | |             format!(&#34;{:#x}&#34;, option_val)
+102 | |         };
+103 | |
+104 | |         vec![
+105 | |             FormattedSyscallParam::new(&#34;option&#34;, option_str),
+106 | |             FormattedSyscallParam::new(&#34;arg2&#34;, format!(&#34;{:#x}&#34;, args.get(1).copied().unwrap_or(0))),
+107 | |             FormattedSyscallParam::new(&#34;arg3&#34;, format!(&#34;{:#x}&#34;, args.get(2).copied().unwrap_or(0))),
+108 | |             FormattedSyscallParam::new(&#34;arg4&#34;, format!(&#34;{:#x}&#34;, args.get(3).copied().unwrap_or(0))),
+109 | |             FormattedSyscallParam::new(&#34;arg5&#34;, format!(&#34;{:#x}&#34;, args.get(4).copied().unwrap_or(0))),
+110 | |         ]
+111 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prctl.rs line 96.
+    | MIR detail: Value _119(_, src/process/syscall/sys_prctl.rs:108) and _93(_, src/process/syscall/sys_prctl.rs:107) are alias.
+    | MIR detail: _119(_, src/process/syscall/sys_prctl.rs:108) is dropped at BB52(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _93(_, src/process/syscall/sys_prctl.rs:107) is dropped at BB53(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/process/syscall/sys_prctl.rs:96:1
+    |
+ 96 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 97 | |         let option_val = args.first().copied().unwrap_or(0);
+ 98 | |         let option_str = if let Ok(option) = PrctlOption::try_from(option_val) {
+ 99 | |             format!(&#34;{:#x} ({:?})&#34;, option_val, option)
+100 | |         } else {
+101 | |             format!(&#34;{:#x}&#34;, option_val)
+102 | |         };
+103 | |
+104 | |         vec![
+105 | |             FormattedSyscallParam::new(&#34;option&#34;, option_str),
+106 | |             FormattedSyscallParam::new(&#34;arg2&#34;, format!(&#34;{:#x}&#34;, args.get(1).copied().unwrap_or(0))),
+107 | |             FormattedSyscallParam::new(&#34;arg3&#34;, format!(&#34;{:#x}&#34;, args.get(2).copied().unwrap_or(0))),
+108 | |             FormattedSyscallParam::new(&#34;arg4&#34;, format!(&#34;{:#x}&#34;, args.get(3).copied().unwrap_or(0))),
+109 | |             FormattedSyscallParam::new(&#34;arg5&#34;, format!(&#34;{:#x}&#34;, args.get(4).copied().unwrap_or(0))),
+110 | |         ]
+111 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prctl.rs line 96.
+    | MIR detail: Value _67(_, src/process/syscall/sys_prctl.rs:106) and _65(_, src/process/syscall/sys_prctl.rs:105) are alias.
+    | MIR detail: _67(_, src/process/syscall/sys_prctl.rs:106) is dropped at BB54(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _65(_, src/process/syscall/sys_prctl.rs:105) is dropped at BB55(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/process/syscall/sys_prctl.rs:96:1
+    |
+ 96 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 97 | |         let option_val = args.first().copied().unwrap_or(0);
+ 98 | |         let option_str = if let Ok(option) = PrctlOption::try_from(option_val) {
+ 99 | |             format!(&#34;{:#x} ({:?})&#34;, option_val, option)
+100 | |         } else {
+101 | |             format!(&#34;{:#x}&#34;, option_val)
+102 | |         };
+103 | |
+104 | |         vec![
+105 | |             FormattedSyscallParam::new(&#34;option&#34;, option_str),
+106 | |             FormattedSyscallParam::new(&#34;arg2&#34;, format!(&#34;{:#x}&#34;, args.get(1).copied().unwrap_or(0))),
+107 | |             FormattedSyscallParam::new(&#34;arg3&#34;, format!(&#34;{:#x}&#34;, args.get(2).copied().unwrap_or(0))),
+108 | |             FormattedSyscallParam::new(&#34;arg4&#34;, format!(&#34;{:#x}&#34;, args.get(3).copied().unwrap_or(0))),
+109 | |             FormattedSyscallParam::new(&#34;arg5&#34;, format!(&#34;{:#x}&#34;, args.get(4).copied().unwrap_or(0))),
+110 | |         ]
+111 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prctl.rs line 96.
+    | MIR detail: Value _93(_, src/process/syscall/sys_prctl.rs:107) and _67(_, src/process/syscall/sys_prctl.rs:106) are alias.
+    | MIR detail: _93(_, src/process/syscall/sys_prctl.rs:107) is dropped at BB53(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _67(_, src/process/syscall/sys_prctl.rs:106) is dropped at BB54(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:29351 ~ dragonos_kernel[9e38]::process::syscall::sys_prctl::{impl#1}::entry_format)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/process/syscall/sys_prctl.rs:97:13: 97:23
+bb1 at src/process/syscall/sys_prctl.rs:97:37: 97:38
+bb2 at src/process/syscall/sys_prctl.rs:97:46: 97:47
+bb3 at src/process/syscall/sys_prctl.rs:97:59: 97:60
+bb4 at src/process/syscall/sys_prctl.rs:98:78: 98:79
+bb5 at src/process/syscall/sys_prctl.rs:98:36: 98:42
+bb6 at src/process/syscall/sys_prctl.rs:99:26: 99:27
+bb7 at src/process/syscall/sys_prctl.rs:99:32: 99:33
+bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb10 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb11 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:107:36: 109:10
+bb12 at src/process/syscall/sys_prctl.rs:101:26: 101:27
+bb13 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb14 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb15 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb16 at src/process/syscall/sys_prctl.rs:102:10: 102:11
+bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
+bb18 at src/process/syscall/sys_prctl.rs:105:60: 105:61
+bb19 at src/process/syscall/sys_prctl.rs:106:75: 106:76
+bb20 at src/process/syscall/sys_prctl.rs:106:84: 106:85
+bb21 at src/process/syscall/sys_prctl.rs:106:97: 106:98
+bb22 at src/process/syscall/sys_prctl.rs:106:61: 106:62
+bb23 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb24 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb25 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb26 at src/process/syscall/sys_prctl.rs:106:99: 106:100
+bb27 at src/process/syscall/sys_prctl.rs:107:75: 107:76
+bb28 at src/process/syscall/sys_prctl.rs:107:84: 107:85
+bb29 at src/process/syscall/sys_prctl.rs:107:97: 107:98
+bb30 at src/process/syscall/sys_prctl.rs:107:61: 107:62
+bb31 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb32 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb33 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb34 at src/process/syscall/sys_prctl.rs:107:99: 107:100
+bb35 at src/process/syscall/sys_prctl.rs:108:75: 108:76
+bb36 at src/process/syscall/sys_prctl.rs:108:84: 108:85
+bb37 at src/process/syscall/sys_prctl.rs:108:97: 108:98
+bb38 at src/process/syscall/sys_prctl.rs:108:61: 108:62
+bb39 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb40 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb41 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb42 at src/process/syscall/sys_prctl.rs:108:99: 108:100
+bb43 at src/process/syscall/sys_prctl.rs:109:75: 109:76
+bb44 at src/process/syscall/sys_prctl.rs:109:84: 109:85
+bb45 at src/process/syscall/sys_prctl.rs:109:97: 109:98
+bb46 at src/process/syscall/sys_prctl.rs:109:61: 109:62
+bb47 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb48 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb49 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb50 at src/process/syscall/sys_prctl.rs:109:99: 109:100
+bb51 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
+bb57 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
+bb60 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+bb61 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+fn &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format
+_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
+_1:  @ &amp;&#39;{erased} process::syscall::sys_prctl::SysPrctl 
+_2:  @ &amp;&#39;{erased} [usize] 
+_3:  @ usize 
+_4:  @ core::option::Option&lt;usize&gt; 
+_5:  @ core::option::Option&lt;&amp;&#39;{erased} usize&gt; 
+_6:  @ &amp;&#39;{erased} [usize] 
+_7:  @ alloc::string::String 
+_8:  @ core::result::Result&lt;process::syscall::sys_prctl::PrctlOption, system_error::SystemError&gt; 
+_9:  @ usize 
+_10:  @ isize 
+_11:  @ process::syscall::sys_prctl::PrctlOption 
+_12:  @ alloc::string::String 
+_13:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_14:  @ (&amp;&#39;{erased} usize, &amp;&#39;{erased} process::syscall::sys_prctl::PrctlOption) 
+_15:  @ &amp;&#39;{erased} usize 
+_16:  @ &amp;&#39;{erased} process::syscall::sys_prctl::PrctlOption 
+_17:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_18:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_19:  @ &amp;&#39;{erased} usize 
+_20:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_21:  @ &amp;&#39;{erased} process::syscall::sys_prctl::PrctlOption 
+_22:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_23:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_24:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_25:  @ [&amp;&#39;{erased} str; 3_usize] 
+_26:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_27:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_28:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_29:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_30:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 2_usize] 
+_31:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 2_usize] 
+_32:  @ [core::fmt::rt::Placeholder; 2_usize] 
+_33:  @ core::fmt::rt::Placeholder 
+_34:  @ core::fmt::rt::Count 
+_35:  @ core::fmt::rt::Count 
+_36:  @ core::fmt::rt::Placeholder 
+_37:  @ core::fmt::rt::Count 
+_38:  @ core::fmt::rt::Count 
+_39:  @ alloc::string::String 
+_40:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_41:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_42:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_43:  @ &amp;&#39;{erased} usize 
+_44:  @ &amp;&#39;{erased} usize 
+_45:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_46:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_47:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_48:  @ [&amp;&#39;{erased} str; 1_usize] 
+_49:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_50:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_51:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_52:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_53:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_54:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_55:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_56:  @ core::fmt::rt::Placeholder 
+_57:  @ core::fmt::rt::Count 
+_58:  @ core::fmt::rt::Count 
+_59:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
+_60:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5_usize], alloc::alloc::Global&gt; 
+_61:  @ usize 
+_62:  @ usize 
+_63:  @ *mut u8 
+_64:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5_usize], alloc::alloc::Global&gt; 
+_65:  @ syscall::table::FormattedSyscallParam 
+_66:  @ alloc::string::String 
+_67:  @ syscall::table::FormattedSyscallParam 
+_68:  @ alloc::string::String 
+_69:  @ alloc::string::String 
+_70:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_71:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_72:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_73:  @ &amp;&#39;{erased} usize 
+_74:  @ &amp;&#39;{erased} usize 
+_75:  @ usize 
+_76:  @ core::option::Option&lt;usize&gt; 
+_77:  @ core::option::Option&lt;&amp;&#39;{erased} usize&gt; 
+_78:  @ &amp;&#39;{erased} [usize] 
+_79:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_80:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_81:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_82:  @ [&amp;&#39;{erased} str; 1_usize] 
+_83:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_84:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_85:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_86:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_87:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_88:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_89:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_90:  @ core::fmt::rt::Placeholder 
+_91:  @ core::fmt::rt::Count 
+_92:  @ core::fmt::rt::Count 
+_93:  @ syscall::table::FormattedSyscallParam 
+_94:  @ alloc::string::String 
+_95:  @ alloc::string::String 
+_96:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_97:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_98:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_99:  @ &amp;&#39;{erased} usize 
+_100:  @ &amp;&#39;{erased} usize 
+_101:  @ usize 
+_102:  @ core::option::Option&lt;usize&gt; 
+_103:  @ core::option::Option&lt;&amp;&#39;{erased} usize&gt; 
+_104:  @ &amp;&#39;{erased} [usize] 
+_105:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_106:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_107:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_108:  @ [&amp;&#39;{erased} str; 1_usize] 
+_109:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_110:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_111:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_112:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_113:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_114:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_115:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_116:  @ core::fmt::rt::Placeholder 
+_117:  @ core::fmt::rt::Count 
+_118:  @ core::fmt::rt::Count 
+_119:  @ syscall::table::FormattedSyscallParam 
+_120:  @ alloc::string::String 
+_121:  @ alloc::string::String 
+_122:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_123:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_124:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_125:  @ &amp;&#39;{erased} usize 
+_126:  @ &amp;&#39;{erased} usize 
+_127:  @ usize 
+_128:  @ core::option::Option&lt;usize&gt; 
+_129:  @ core::option::Option&lt;&amp;&#39;{erased} usize&gt; 
+_130:  @ &amp;&#39;{erased} [usize] 
+_131:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_132:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_133:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_134:  @ [&amp;&#39;{erased} str; 1_usize] 
+_135:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_136:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_137:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_138:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_139:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_140:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_141:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_142:  @ core::fmt::rt::Placeholder 
+_143:  @ core::fmt::rt::Count 
+_144:  @ core::fmt::rt::Count 
+_145:  @ syscall::table::FormattedSyscallParam 
+_146:  @ alloc::string::String 
+_147:  @ alloc::string::String 
+_148:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_149:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_150:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_151:  @ &amp;&#39;{erased} usize 
+_152:  @ &amp;&#39;{erased} usize 
+_153:  @ usize 
+_154:  @ core::option::Option&lt;usize&gt; 
+_155:  @ core::option::Option&lt;&amp;&#39;{erased} usize&gt; 
+_156:  @ &amp;&#39;{erased} [usize] 
+_157:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_158:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_159:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_160:  @ [&amp;&#39;{erased} str; 1_usize] 
+_161:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_162:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_163:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_164:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_165:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_166:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_167:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_168:  @ core::fmt::rt::Placeholder 
+_169:  @ core::fmt::rt::Count 
+_170:  @ core::fmt::rt::Count 
+_171:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_172:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_173:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_174:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_175:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_176:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_177:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_178:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_179:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_180:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_181:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 2_usize] 
+_182:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_183:  @ &amp;&#39;{erased} usize 
+_184:  @ &amp;&#39;{erased} process::syscall::sys_prctl::PrctlOption 
+_185:  @ bool 
+_186:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5_usize], alloc::alloc::Global&gt; 
+_187:  @ () 
+_188:  @ *const [syscall::table::FormattedSyscallParam; 5_usize] 
+_189:  @ *const [syscall::table::FormattedSyscallParam; 5_usize] 
+_190:  @ *const () 
+_191:  @ usize 
+_192:  @ usize 
+_193:  @ usize 
+_194:  @ usize 
+_195:  @ bool 
+_196:  @ *const () 
+_197:  @ usize 
+_198:  @ usize 
+_199:  @ bool 
+_200:  @ bool 
+_201:  @ bool 
+_202:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_185, const false)) @ _185=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _5 = core::slice::&lt;impl [usize]&gt;::first(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 13972
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    _4 = core::option::Option::&lt;&amp;usize&gt;::copied(move _5) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 10222
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    _3 = core::option::Option::&lt;usize&gt;::unwrap_or(move _4, const 0_usize) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 10158
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _3)) @ _9=copy _3 @ Use
+    _8 = &lt;process::syscall::sys_prctl::PrctlOption as core::convert::TryFrom&lt;usize&gt;&gt;::try_from(move _9) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 3398
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_10, discriminant(_8))) @ _10=discriminant(_8) @ Discriminant
+    switchInt(move _10) -&gt; [0: bb5, otherwise: bb11] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_11) @ StorageLive
+    Assign((_11, copy ((_8 as Ok).0: process::syscall::sys_prctl::PrctlOption))) @ _11=copy ((_8 as Ok).0: process::syscall::sys_prctl::PrctlOption) @ Use
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;_3)) @ _15=&amp;_3 @ Ref
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;_11)) @ _16=&amp;_11 @ Ref
+    Assign((_14, (move _15, move _16))) @ _14=(move _15, move _16) @ Aggregate
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_183, deref_copy (_14.0: &amp;usize))) @ _183=deref_copy (_14.0: &amp;usize) @ CopyForDeref
+    Assign((_19, &amp;(*_183))) @ _19=&amp;(*_183) @ Ref
+    _18 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _19) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 11815
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_184, deref_copy (_14.1: &amp;process::syscall::sys_prctl::PrctlOption))) @ _184=deref_copy (_14.1: &amp;process::syscall::sys_prctl::PrctlOption) @ CopyForDeref
+    Assign((_21, &amp;(*_184))) @ _21=&amp;(*_184) @ Ref
+    _20 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;process::syscall::sys_prctl::PrctlOption&gt;(move _21) -&gt; [return: bb7, unwind continue] @ Call: FnDid: 11809
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_17, [move _18, move _20])) @ _17=[move _18, move _20] @ Aggregate
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_182, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[11])) @ _182=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[11] @ Use
+    Assign((_24, &amp;(*_182))) @ _24=&amp;(*_182) @ Ref
+    Assign((_23, &amp;(*_24))) @ _23=&amp;(*_24) @ Ref
+    Assign((_22, move _23 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _22=move _23 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_23) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;_17)) @ _28=&amp;_17 @ Ref
+    Assign((_27, &amp;(*_28))) @ _27=&amp;(*_28) @ Ref
+    Assign((_26, move _27 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _26=move _27 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_27) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_181, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[10])) @ _181=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[10] @ Use
+    Assign((_31, &amp;(*_181))) @ _31=&amp;(*_181) @ Ref
+    Assign((_30, &amp;(*_31))) @ _30=&amp;(*_31) @ Ref
+    Assign((_29, move _30 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _29=move _30 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_30) @ StorageDead
+    _13 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _22, move _26, move _29) -&gt; [return: bb8, unwind continue] @ Call: FnDid: 11842
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    _12 = alloc::fmt::format(move _13) -&gt; [return: bb9, unwind continue] @ Call: FnDid: 5475
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    _7 = core::hint::must_use::&lt;alloc::string::String&gt;(move _12) -&gt; [return: bb10, unwind: bb56] @ Call: FnDid: 1455
+}
+bb 10 {
+CleanUp: false
+    Assign((_185, const true)) @ _185=const true @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    goto -&gt; bb16 @ Goto
+}
+bb 11 {
+CleanUp: false
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_44, &amp;_3)) @ _44=&amp;_3 @ Ref
+    Assign((_43, &amp;(*_44))) @ _43=&amp;(*_44) @ Ref
+    _42 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _43) -&gt; [return: bb12, unwind continue] @ Call: FnDid: 11815
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    Assign((_41, [move _42])) @ _41=[move _42] @ Aggregate
+    StorageDead(_42) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_180, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[9])) @ _180=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[9] @ Use
+    Assign((_47, &amp;(*_180))) @ _47=&amp;(*_180) @ Ref
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    Assign((_45, move _46 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _45=move _46 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_46) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;_41)) @ _51=&amp;_41 @ Ref
+    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
+    Assign((_49, move _50 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _49=move _50 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_50) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_179, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[8])) @ _179=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[8] @ Use
+    Assign((_54, &amp;(*_179))) @ _54=&amp;(*_179) @ Ref
+    Assign((_53, &amp;(*_54))) @ _53=&amp;(*_54) @ Ref
+    Assign((_52, move _53 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _52=move _53 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_53) @ StorageDead
+    _40 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _45, move _49, move _52) -&gt; [return: bb13, unwind continue] @ Call: FnDid: 11842
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    _39 = alloc::fmt::format(move _40) -&gt; [return: bb14, unwind continue] @ Call: FnDid: 5475
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    _7 = core::hint::must_use::&lt;alloc::string::String&gt;(move _39) -&gt; [return: bb15, unwind: bb56] @ Call: FnDid: 1455
+}
+bb 15 {
+CleanUp: false
+    Assign((_185, const true)) @ _185=const true @ Use
+    StorageDead(_39) @ StorageDead
+    goto -&gt; bb16 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_61, SizeOf([syscall::table::FormattedSyscallParam; 5]))) @ _61=SizeOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
+    Assign((_62, AlignOf([syscall::table::FormattedSyscallParam; 5]))) @ _62=AlignOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
+    _63 = alloc::alloc::exchange_malloc(move _61, move _62) -&gt; [return: bb17, unwind: bb59] @ Call: FnDid: 147
+}
+bb 17 {
+CleanUp: false
+    StorageLive(_64) @ StorageLive
+    Assign((_64, ShallowInitBox(move _63, [syscall::table::FormattedSyscallParam; 5]))) @ _64=ShallowInitBox(move _63, [syscall::table::FormattedSyscallParam; 5]) @ ShallowInitBox
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_185, const false)) @ _185=const false @ Use
+    Assign((_66, move _7)) @ _66=move _7 @ Use
+    _65 = syscall::table::FormattedSyscallParam::new(const &#34;option&#34;, move _66) -&gt; [return: bb18, unwind: bb57] @ Call: FnDid: 30792
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    Assign((_78, &amp;(*_2))) @ _78=&amp;(*_2) @ Ref
+    _77 = core::slice::&lt;impl [usize]&gt;::get::&lt;usize&gt;(move _78, const 1_usize) -&gt; [return: bb19, unwind: bb55] @ Call: FnDid: 14012
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_78) @ StorageDead
+    _76 = core::option::Option::&lt;&amp;usize&gt;::copied(move _77) -&gt; [return: bb20, unwind: bb55] @ Call: FnDid: 10222
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    _75 = core::option::Option::&lt;usize&gt;::unwrap_or(move _76, const 0_usize) -&gt; [return: bb21, unwind: bb55] @ Call: FnDid: 10158
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    Assign((_74, &amp;_75)) @ _74=&amp;_75 @ Ref
+    Assign((_73, &amp;(*_74))) @ _73=&amp;(*_74) @ Ref
+    _72 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _73) -&gt; [return: bb22, unwind: bb55] @ Call: FnDid: 11815
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_73) @ StorageDead
+    Assign((_71, [move _72])) @ _71=[move _72] @ Aggregate
+    StorageDead(_72) @ StorageDead
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_178, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[7])) @ _178=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[7] @ Use
+    Assign((_81, &amp;(*_178))) @ _81=&amp;(*_178) @ Ref
+    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
+    Assign((_79, move _80 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _79=move _80 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_80) @ StorageDead
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;_71)) @ _85=&amp;_71 @ Ref
+    Assign((_84, &amp;(*_85))) @ _84=&amp;(*_85) @ Ref
+    Assign((_83, move _84 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _83=move _84 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_84) @ StorageDead
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_177, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[6])) @ _177=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[6] @ Use
+    Assign((_88, &amp;(*_177))) @ _88=&amp;(*_177) @ Ref
+    Assign((_87, &amp;(*_88))) @ _87=&amp;(*_88) @ Ref
+    Assign((_86, move _87 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _86=move _87 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_87) @ StorageDead
+    _70 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _79, move _83, move _86) -&gt; [return: bb23, unwind: bb55] @ Call: FnDid: 11842
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    _69 = alloc::fmt::format(move _70) -&gt; [return: bb24, unwind: bb55] @ Call: FnDid: 5475
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    _68 = core::hint::must_use::&lt;alloc::string::String&gt;(move _69) -&gt; [return: bb25, unwind: bb55] @ Call: FnDid: 1455
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    _67 = syscall::table::FormattedSyscallParam::new(const &#34;arg2&#34;, move _68) -&gt; [return: bb26, unwind: bb55] @ Call: FnDid: 30792
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    Assign((_104, &amp;(*_2))) @ _104=&amp;(*_2) @ Ref
+    _103 = core::slice::&lt;impl [usize]&gt;::get::&lt;usize&gt;(move _104, const 2_usize) -&gt; [return: bb27, unwind: bb54] @ Call: FnDid: 14012
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_104) @ StorageDead
+    _102 = core::option::Option::&lt;&amp;usize&gt;::copied(move _103) -&gt; [return: bb28, unwind: bb54] @ Call: FnDid: 10222
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_103) @ StorageDead
+    _101 = core::option::Option::&lt;usize&gt;::unwrap_or(move _102, const 0_usize) -&gt; [return: bb29, unwind: bb54] @ Call: FnDid: 10158
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    Assign((_100, &amp;_101)) @ _100=&amp;_101 @ Ref
+    Assign((_99, &amp;(*_100))) @ _99=&amp;(*_100) @ Ref
+    _98 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _99) -&gt; [return: bb30, unwind: bb54] @ Call: FnDid: 11815
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    Assign((_97, [move _98])) @ _97=[move _98] @ Aggregate
+    StorageDead(_98) @ StorageDead
+    StorageLive(_105) @ StorageLive
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    Assign((_176, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[5])) @ _176=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[5] @ Use
+    Assign((_107, &amp;(*_176))) @ _107=&amp;(*_176) @ Ref
+    Assign((_106, &amp;(*_107))) @ _106=&amp;(*_107) @ Ref
+    Assign((_105, move _106 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _105=move _106 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_106) @ StorageDead
+    StorageLive(_109) @ StorageLive
+    StorageLive(_110) @ StorageLive
+    StorageLive(_111) @ StorageLive
+    Assign((_111, &amp;_97)) @ _111=&amp;_97 @ Ref
+    Assign((_110, &amp;(*_111))) @ _110=&amp;(*_111) @ Ref
+    Assign((_109, move _110 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _109=move _110 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_110) @ StorageDead
+    StorageLive(_112) @ StorageLive
+    StorageLive(_113) @ StorageLive
+    StorageLive(_114) @ StorageLive
+    Assign((_175, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[4])) @ _175=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[4] @ Use
+    Assign((_114, &amp;(*_175))) @ _114=&amp;(*_175) @ Ref
+    Assign((_113, &amp;(*_114))) @ _113=&amp;(*_114) @ Ref
+    Assign((_112, move _113 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _112=move _113 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_113) @ StorageDead
+    _96 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _105, move _109, move _112) -&gt; [return: bb31, unwind: bb54] @ Call: FnDid: 11842
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_114) @ StorageDead
+    StorageDead(_112) @ StorageDead
+    StorageDead(_111) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    _95 = alloc::fmt::format(move _96) -&gt; [return: bb32, unwind: bb54] @ Call: FnDid: 5475
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    _94 = core::hint::must_use::&lt;alloc::string::String&gt;(move _95) -&gt; [return: bb33, unwind: bb54] @ Call: FnDid: 1455
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_95) @ StorageDead
+    _93 = syscall::table::FormattedSyscallParam::new(const &#34;arg3&#34;, move _94) -&gt; [return: bb34, unwind: bb54] @ Call: FnDid: 30792
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageLive(_119) @ StorageLive
+    StorageLive(_120) @ StorageLive
+    StorageLive(_121) @ StorageLive
+    StorageLive(_122) @ StorageLive
+    StorageLive(_123) @ StorageLive
+    StorageLive(_124) @ StorageLive
+    StorageLive(_125) @ StorageLive
+    StorageLive(_126) @ StorageLive
+    StorageLive(_127) @ StorageLive
+    StorageLive(_128) @ StorageLive
+    StorageLive(_129) @ StorageLive
+    StorageLive(_130) @ StorageLive
+    Assign((_130, &amp;(*_2))) @ _130=&amp;(*_2) @ Ref
+    _129 = core::slice::&lt;impl [usize]&gt;::get::&lt;usize&gt;(move _130, const 3_usize) -&gt; [return: bb35, unwind: bb53] @ Call: FnDid: 14012
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_130) @ StorageDead
+    _128 = core::option::Option::&lt;&amp;usize&gt;::copied(move _129) -&gt; [return: bb36, unwind: bb53] @ Call: FnDid: 10222
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_129) @ StorageDead
+    _127 = core::option::Option::&lt;usize&gt;::unwrap_or(move _128, const 0_usize) -&gt; [return: bb37, unwind: bb53] @ Call: FnDid: 10158
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_128) @ StorageDead
+    Assign((_126, &amp;_127)) @ _126=&amp;_127 @ Ref
+    Assign((_125, &amp;(*_126))) @ _125=&amp;(*_126) @ Ref
+    _124 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _125) -&gt; [return: bb38, unwind: bb53] @ Call: FnDid: 11815
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_125) @ StorageDead
+    Assign((_123, [move _124])) @ _123=[move _124] @ Aggregate
+    StorageDead(_124) @ StorageDead
+    StorageLive(_131) @ StorageLive
+    StorageLive(_132) @ StorageLive
+    StorageLive(_133) @ StorageLive
+    Assign((_174, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[3])) @ _174=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[3] @ Use
+    Assign((_133, &amp;(*_174))) @ _133=&amp;(*_174) @ Ref
+    Assign((_132, &amp;(*_133))) @ _132=&amp;(*_133) @ Ref
+    Assign((_131, move _132 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _131=move _132 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_132) @ StorageDead
+    StorageLive(_135) @ StorageLive
+    StorageLive(_136) @ StorageLive
+    StorageLive(_137) @ StorageLive
+    Assign((_137, &amp;_123)) @ _137=&amp;_123 @ Ref
+    Assign((_136, &amp;(*_137))) @ _136=&amp;(*_137) @ Ref
+    Assign((_135, move _136 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _135=move _136 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_136) @ StorageDead
+    StorageLive(_138) @ StorageLive
+    StorageLive(_139) @ StorageLive
+    StorageLive(_140) @ StorageLive
+    Assign((_173, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[2])) @ _173=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[2] @ Use
+    Assign((_140, &amp;(*_173))) @ _140=&amp;(*_173) @ Ref
+    Assign((_139, &amp;(*_140))) @ _139=&amp;(*_140) @ Ref
+    Assign((_138, move _139 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _138=move _139 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_139) @ StorageDead
+    _122 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _131, move _135, move _138) -&gt; [return: bb39, unwind: bb53] @ Call: FnDid: 11842
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_140) @ StorageDead
+    StorageDead(_138) @ StorageDead
+    StorageDead(_137) @ StorageDead
+    StorageDead(_135) @ StorageDead
+    StorageDead(_133) @ StorageDead
+    StorageDead(_131) @ StorageDead
+    _121 = alloc::fmt::format(move _122) -&gt; [return: bb40, unwind: bb53] @ Call: FnDid: 5475
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_127) @ StorageDead
+    StorageDead(_126) @ StorageDead
+    StorageDead(_123) @ StorageDead
+    StorageDead(_122) @ StorageDead
+    _120 = core::hint::must_use::&lt;alloc::string::String&gt;(move _121) -&gt; [return: bb41, unwind: bb53] @ Call: FnDid: 1455
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_121) @ StorageDead
+    _119 = syscall::table::FormattedSyscallParam::new(const &#34;arg4&#34;, move _120) -&gt; [return: bb42, unwind: bb53] @ Call: FnDid: 30792
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_120) @ StorageDead
+    StorageLive(_145) @ StorageLive
+    StorageLive(_146) @ StorageLive
+    StorageLive(_147) @ StorageLive
+    StorageLive(_148) @ StorageLive
+    StorageLive(_149) @ StorageLive
+    StorageLive(_150) @ StorageLive
+    StorageLive(_151) @ StorageLive
+    StorageLive(_152) @ StorageLive
+    StorageLive(_153) @ StorageLive
+    StorageLive(_154) @ StorageLive
+    StorageLive(_155) @ StorageLive
+    StorageLive(_156) @ StorageLive
+    Assign((_156, &amp;(*_2))) @ _156=&amp;(*_2) @ Ref
+    _155 = core::slice::&lt;impl [usize]&gt;::get::&lt;usize&gt;(move _156, const 4_usize) -&gt; [return: bb43, unwind: bb52] @ Call: FnDid: 14012
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_156) @ StorageDead
+    _154 = core::option::Option::&lt;&amp;usize&gt;::copied(move _155) -&gt; [return: bb44, unwind: bb52] @ Call: FnDid: 10222
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_155) @ StorageDead
+    _153 = core::option::Option::&lt;usize&gt;::unwrap_or(move _154, const 0_usize) -&gt; [return: bb45, unwind: bb52] @ Call: FnDid: 10158
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_154) @ StorageDead
+    Assign((_152, &amp;_153)) @ _152=&amp;_153 @ Ref
+    Assign((_151, &amp;(*_152))) @ _151=&amp;(*_152) @ Ref
+    _150 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _151) -&gt; [return: bb46, unwind: bb52] @ Call: FnDid: 11815
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_151) @ StorageDead
+    Assign((_149, [move _150])) @ _149=[move _150] @ Aggregate
+    StorageDead(_150) @ StorageDead
+    StorageLive(_157) @ StorageLive
+    StorageLive(_158) @ StorageLive
+    StorageLive(_159) @ StorageLive
+    Assign((_172, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _172=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
+    Assign((_159, &amp;(*_172))) @ _159=&amp;(*_172) @ Ref
+    Assign((_158, &amp;(*_159))) @ _158=&amp;(*_159) @ Ref
+    Assign((_157, move _158 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _157=move _158 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_158) @ StorageDead
+    StorageLive(_161) @ StorageLive
+    StorageLive(_162) @ StorageLive
+    StorageLive(_163) @ StorageLive
+    Assign((_163, &amp;_149)) @ _163=&amp;_149 @ Ref
+    Assign((_162, &amp;(*_163))) @ _162=&amp;(*_163) @ Ref
+    Assign((_161, move _162 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _161=move _162 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_162) @ StorageDead
+    StorageLive(_164) @ StorageLive
+    StorageLive(_165) @ StorageLive
+    StorageLive(_166) @ StorageLive
+    Assign((_171, const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _171=const &lt;process::syscall::sys_prctl::SysPrctl as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
+    Assign((_166, &amp;(*_171))) @ _166=&amp;(*_171) @ Ref
+    Assign((_165, &amp;(*_166))) @ _165=&amp;(*_166) @ Ref
+    Assign((_164, move _165 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _164=move _165 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_165) @ StorageDead
+    _148 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _157, move _161, move _164) -&gt; [return: bb47, unwind: bb52] @ Call: FnDid: 11842
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_166) @ StorageDead
+    StorageDead(_164) @ StorageDead
+    StorageDead(_163) @ StorageDead
+    StorageDead(_161) @ StorageDead
+    StorageDead(_159) @ StorageDead
+    StorageDead(_157) @ StorageDead
+    _147 = alloc::fmt::format(move _148) -&gt; [return: bb48, unwind: bb52] @ Call: FnDid: 5475
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_153) @ StorageDead
+    StorageDead(_152) @ StorageDead
+    StorageDead(_149) @ StorageDead
+    StorageDead(_148) @ StorageDead
+    _146 = core::hint::must_use::&lt;alloc::string::String&gt;(move _147) -&gt; [return: bb49, unwind: bb52] @ Call: FnDid: 1455
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_147) @ StorageDead
+    _145 = syscall::table::FormattedSyscallParam::new(const &#34;arg5&#34;, move _146) -&gt; [return: bb50, unwind: bb52] @ Call: FnDid: 30792
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_146) @ StorageDead
+    Assign((_189, copy ((_64.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute))) @ _189=copy ((_64.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute) @ Cast
+    Assign((_190, copy _189 as *const () (PtrToPtr))) @ _190=copy _189 as *const () (PtrToPtr) @ Cast
+    Assign((_191, copy _190 as usize (Transmute))) @ _191=copy _190 as usize (Transmute) @ Cast
+    Assign((_192, AlignOf([syscall::table::FormattedSyscallParam; 5]))) @ _192=AlignOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
+    Assign((_193, Sub(copy _192, const 1_usize))) @ _193=Sub(copy _192, const 1_usize) @ BinaryOp
+    Assign((_194, BitAnd(copy _191, copy _193))) @ _194=BitAnd(copy _191, copy _193) @ BinaryOp
+    Assign((_195, Eq(copy _194, const 0_usize))) @ _195=Eq(copy _194, const 0_usize) @ BinaryOp
+    assert(copy _195, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _192, copy _191) -&gt; [success: bb60, unwind unreachable] @ Assert
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    Assign((_185, const false)) @ _185=const false @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 52 {
+CleanUp: true
+    drop(_119) -&gt; [return: bb53, unwind terminate(cleanup)] @ Drop
+}
+bb 53 {
+CleanUp: true
+    drop(_93) -&gt; [return: bb54, unwind terminate(cleanup)] @ Drop
+}
+bb 54 {
+CleanUp: true
+    drop(_67) -&gt; [return: bb55, unwind terminate(cleanup)] @ Drop
+}
+bb 55 {
+CleanUp: true
+    drop(_65) -&gt; [return: bb57, unwind terminate(cleanup)] @ Drop
+}
+bb 56 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 57 {
+CleanUp: true
+    Assign((_188, copy ((_64.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute))) @ _188=copy ((_64.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute) @ Cast
+    Assign((_186, &amp;mut _64)) @ _186=&amp;mut _64 @ Ref
+    _187 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5]&gt; as core::ops::Drop&gt;::drop(move _186) -&gt; [return: bb62, unwind terminate(cleanup)] @ Call: FnDid: 3937
+}
+bb 58 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb56, unwind terminate(cleanup)] @ Drop
+}
+bb 59 {
+CleanUp: true
+    switchInt(copy _185) -&gt; [0: bb56, otherwise: bb58] @ SwitchInt
+}
+bb 60 {
+CleanUp: false
+    Assign((_196, copy _189 as *const () (PtrToPtr))) @ _196=copy _189 as *const () (PtrToPtr) @ Cast
+    Assign((_197, copy _196 as usize (Transmute))) @ _197=copy _196 as usize (Transmute) @ Cast
+    Assign((_198, SizeOf([syscall::table::FormattedSyscallParam; 5]))) @ _198=SizeOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
+    Assign((_199, Ne(copy _198, const 0_usize))) @ _199=Ne(copy _198, const 0_usize) @ BinaryOp
+    Assign((_200, Eq(copy _197, const 0_usize))) @ _200=Eq(copy _197, const 0_usize) @ BinaryOp
+    Assign((_201, BitAnd(copy _200, copy _199))) @ _201=BitAnd(copy _200, copy _199) @ BinaryOp
+    Assign((_202, Not(copy _201))) @ _202=Not(copy _201) @ UnaryOp
+    assert(copy _202, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb61, unwind unreachable] @ Assert
+}
+bb 61 {
+CleanUp: false
+    Assign(((*_189), [move _65, move _67, move _93, move _119, move _145])) @ (*_189)=[move _65, move _67, move _93, move _119, move _145] @ Aggregate
+    StorageDead(_145) @ StorageDead
+    StorageDead(_119) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    Assign((_60, move _64)) @ _60=move _64 @ Use
+    Assign((_59, move _60 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _59=move _60 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_64) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _59) -&gt; [return: bb51, unwind: bb59] @ Call: FnDid: 6192
+}
+bb 62 {
+CleanUp: true
+    goto -&gt; bb59 @ Goto
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

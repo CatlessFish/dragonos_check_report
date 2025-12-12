@@ -35,6 +35,14 @@ function fixHtmlPaths(filePath) {
         return `${attr}="./${p2}"`;
     });
 
+    // 修复 <a href="/"> 返回目录（仅在 page/x/index.html 才应该修改）
+    if (filePath.includes(`${path.sep}page${path.sep}`)) {
+        html = html.replace(
+            /<a\s+href="\/"\s+class="back-link">/g,
+            `<a href="../../index.html" class="back-link">`
+        );
+    }
+
     fs.writeFileSync(filePath, html);
 }
 

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #8: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #8
+            
+                 <span class="func-name">arch::x86_64::smp::print_cpus</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:48|RAP|WARN|: Dangling pointer detected in function &#34;print_cpus&#34;
+22:07:48|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;print_cpus&#34;
+warning: Dangling pointer detected.
+   --&gt; src/arch/x86_64/smp/mod.rs:187:1
+    |
+187 | / fn print_cpus(s: &amp;str, mask: &amp;CpuMask) {
+188 | |     let mut v = vec![];
+189 | |     for cpu in mask.iter_cpu() {
+190 | |         v.push(cpu.data());
+191 | |     }
+192 | |
+193 | |     debug!(&#34;{s}: cpus: {v:?}\n&#34;);
+194 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/smp/mod.rs line 187.
+    | MIR detail: Value _3(v, src/arch/x86_64/smp/mod.rs:188) and _1(s, src/arch/x86_64/smp/mod.rs:187) are alias.
+    | MIR detail: _3(v, src/arch/x86_64/smp/mod.rs:188) is dropped at BB24(src/arch/x86_64/smp/mod.rs:194); _1(s, src/arch/x86_64/smp/mod.rs:187) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/arch/x86_64/smp/mod.rs:187:1
+    |
+187 | / fn print_cpus(s: &amp;str, mask: &amp;CpuMask) {
+188 | |     let mut v = vec![];
+189 | |     for cpu in mask.iter_cpu() {
+190 | |         v.push(cpu.data());
+191 | |     }
+192 | |
+193 | |     debug!(&#34;{s}: cpus: {v:?}\n&#34;);
+194 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/smp/mod.rs line 187.
+    | MIR detail: Value _3(v, src/arch/x86_64/smp/mod.rs:188) and _1(s, src/arch/x86_64/smp/mod.rs:187) are alias.
+    | MIR detail: _3(v, src/arch/x86_64/smp/mod.rs:188) is dropped at BB26(src/arch/x86_64/smp/mod.rs:194); _1(s, src/arch/x86_64/smp/mod.rs:187) became dangling.
+    |
+render dot for DefId(0:2123 ~ dragonos_kernel[9e38]::arch::x86_64::smp::print_cpus)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/arch/x86_64/smp/mod.rs:188:9: 188:14
+bb1 at src/arch/x86_64/smp/mod.rs:189:5: 191:6
+bb2 at src/arch/x86_64/smp/mod.rs:189:30: 189:31
+bb3 at src/arch/x86_64/smp/mod.rs:189:30: 189:31
+bb4 at src/arch/x86_64/smp/mod.rs:189:16: 189:31
+bb5 at src/arch/x86_64/smp/mod.rs:189:30: 189:31
+bb7 at src/arch/x86_64/smp/mod.rs:189:9: 189:12
+bb8 at src/arch/x86_64/smp/mod.rs:189:5: 191:6
+bb9 at src/arch/x86_64/smp/mod.rs:190:25: 190:26
+bb10 at src/arch/x86_64/smp/mod.rs:190:26: 190:27
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb16 at src/arch/x86_64/smp/mod.rs:193:15: 193:16
+bb17 at src/arch/x86_64/smp/mod.rs:193:28: 193:29
+bb18 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb20 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb23 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb25 at src/arch/x86_64/smp/mod.rs:194:1: 194:2
+fn arch::x86_64::smp::print_cpus
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} str 
+_2:  @ &amp;&#39;{erased} libs::cpumask::CpuMask 
+_3:  @ alloc::vec::Vec&lt;u32, alloc::alloc::Global&gt; 
+_4:  @ () 
+_5:  @ libs::cpumask::CpuMaskIter&lt;&#39;{erased}&gt; 
+_6:  @ libs::cpumask::CpuMaskIter&lt;&#39;{erased}&gt; 
+_7:  @ &amp;&#39;{erased} libs::cpumask::CpuMask 
+_8:  @ libs::cpumask::CpuMaskIter&lt;&#39;{erased}&gt; 
+_9:  @ () 
+_10:  @ () 
+_11:  @ core::option::Option&lt;smp::cpu::ProcessorId&gt; 
+_12:  @ &amp;&#39;{erased} mut libs::cpumask::CpuMaskIter&lt;&#39;{erased}&gt; 
+_13:  @ &amp;&#39;{erased} mut libs::cpumask::CpuMaskIter&lt;&#39;{erased}&gt; 
+_14:  @ isize 
+_15:  @ ! 
+_16:  @ smp::cpu::ProcessorId 
+_17:  @ () 
+_18:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;u32, alloc::alloc::Global&gt; 
+_19:  @ u32 
+_20:  @ &amp;&#39;{erased} smp::cpu::ProcessorId 
+_21:  @ () 
+_22:  @ log::Level 
+_23:  @ bool 
+_24:  @ &amp;&#39;{erased} log::Level 
+_25:  @ &amp;&#39;{erased} log::LevelFilter 
+_26:  @ log::LevelFilter 
+_27:  @ bool 
+_28:  @ &amp;&#39;{erased} log::Level 
+_29:  @ &amp;&#39;{erased} log::LevelFilter 
+_30:  @ log::LevelFilter 
+_31:  @ () 
+_32:  @ log::__private_api::GlobalLogger 
+_33:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_34:  @ (&amp;&#39;{erased} &amp;&#39;{erased} str, &amp;&#39;{erased} alloc::vec::Vec&lt;u32, alloc::alloc::Global&gt;) 
+_35:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_36:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;u32, alloc::alloc::Global&gt; 
+_37:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_38:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_39:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_40:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_41:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;u32, alloc::alloc::Global&gt; 
+_42:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_43:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_44:  @ [&amp;&#39;{erased} str; 3_usize] 
+_45:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_46:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_47:  @ log::Level 
+_48:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_49:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_50:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_51:  @ &amp;&#39;{erased} str 
+_52:  @ &amp;&#39;{erased} str 
+_53:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_54:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_55:  @ () 
+_56:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_57:  @ &amp;&#39;{erased} log::LevelFilter 
+_58:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_59:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;u32, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    _3 = alloc::vec::Vec::&lt;u32&gt;::new() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 8097
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;(*_2))) @ _7=&amp;(*_2) @ Ref
+    _6 = libs::cpumask::CpuMask::iter_cpu(move _7) -&gt; [return: bb2, unwind: bb26] @ Call: FnDid: 4096
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    _5 = &lt;libs::cpumask::CpuMaskIter&lt;&#39;_&gt; as core::iter::IntoIterator&gt;::into_iter(move _6) -&gt; [return: bb3, unwind: bb26] @ Call: FnDid: 9224
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    Assign((_8, move _5)) @ _8=move _5 @ Use
+    goto -&gt; bb4 @ Goto
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;mut _8)) @ _13=&amp;mut _8 @ Ref
+    Assign((_12, &amp;mut (*_13))) @ _12=&amp;mut (*_13) @ Ref
+    _11 = &lt;libs::cpumask::CpuMaskIter&lt;&#39;_&gt; as core::iter::Iterator&gt;::next(move _12) -&gt; [return: bb5, unwind: bb26] @ Call: FnDid: 9356
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    Assign((_14, discriminant(_11))) @ _14=discriminant(_11) @ Discriminant
+    switchInt(move _14) -&gt; [0: bb8, 1: bb7, otherwise: bb6] @ SwitchInt
+}
+bb 6 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 7 {
+CleanUp: false
+    StorageLive(_16) @ StorageLive
+    Assign((_16, copy ((_11 as Some).0: smp::cpu::ProcessorId))) @ _16=copy ((_11 as Some).0: smp::cpu::ProcessorId) @ Use
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, &amp;mut _3)) @ _18=&amp;mut _3 @ Ref
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &amp;_16)) @ _20=&amp;_16 @ Ref
+    _19 = smp::cpu::ProcessorId::data(move _20) -&gt; [return: bb9, unwind: bb26] @ Call: FnDid: 67847
+}
+bb 8 {
+CleanUp: false
+    Assign((_4, const ())) @ _4=const () @ Use
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, log::Level::Debug)) @ _22=log::Level::Debug @ Aggregate
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, &amp;_22)) @ _24=&amp;_22 @ Ref
+    StorageLive(_25) @ StorageLive
+    Assign((_57, const arch::x86_64::smp::print_cpus::promoted[1])) @ _57=const arch::x86_64::smp::print_cpus::promoted[1] @ Use
+    Assign((_25, &amp;(*_57))) @ _25=&amp;(*_57) @ Ref
+    _23 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _24, move _25) -&gt; [return: bb11, unwind: bb26] @ Call: FnDid: 3215
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    _17 = alloc::vec::Vec::&lt;u32&gt;::push(move _18, move _19) -&gt; [return: bb10, unwind: bb26] @ Call: FnDid: 8180
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_10, const ())) @ _10=const () @ Use
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_9, const ())) @ _9=const () @ Use
+    goto -&gt; bb4 @ Goto
+}
+bb 11 {
+CleanUp: false
+    switchInt(move _23) -&gt; [0: bb22, otherwise: bb12] @ SwitchInt
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;_22)) @ _28=&amp;_22 @ Ref
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    _30 = log::max_level() -&gt; [return: bb13, unwind: bb26] @ Call: FnDid: 134
+}
+bb 13 {
+CleanUp: false
+    Assign((_29, &amp;_30)) @ _29=&amp;_30 @ Ref
+    _27 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _28, move _29) -&gt; [return: bb14, unwind: bb26] @ Call: FnDid: 3215
+}
+bb 14 {
+CleanUp: false
+    switchInt(move _27) -&gt; [0: bb21, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, log::__private_api::GlobalLogger)) @ _32=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_1)) @ _35=&amp;_1 @ Ref
+    StorageLive(_36) @ StorageLive
+    Assign((_36, &amp;_3)) @ _36=&amp;_3 @ Ref
+    Assign((_34, (move _35, move _36))) @ _34=(move _35, move _36) @ Aggregate
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_58, deref_copy (_34.0: &amp;&amp;str))) @ _58=deref_copy (_34.0: &amp;&amp;str) @ CopyForDeref
+    Assign((_39, &amp;(*_58))) @ _39=&amp;(*_58) @ Ref
+    _38 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;&amp;str&gt;(move _39) -&gt; [return: bb16, unwind: bb26] @ Call: FnDid: 11807
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_59, deref_copy (_34.1: &amp;alloc::vec::Vec&lt;u32&gt;))) @ _59=deref_copy (_34.1: &amp;alloc::vec::Vec&lt;u32&gt;) @ CopyForDeref
+    Assign((_41, &amp;(*_59))) @ _41=&amp;(*_59) @ Ref
+    _40 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;alloc::vec::Vec&lt;u32&gt;&gt;(move _41) -&gt; [return: bb17, unwind: bb26] @ Call: FnDid: 11809
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_37, [move _38, move _40])) @ _37=[move _38, move _40] @ Aggregate
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_56, const arch::x86_64::smp::print_cpus::promoted[0])) @ _56=const arch::x86_64::smp::print_cpus::promoted[0] @ Use
+    Assign((_43, &amp;(*_56))) @ _43=&amp;(*_56) @ Ref
+    Assign((_42, &amp;(*_43))) @ _42=&amp;(*_43) @ Ref
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    Assign((_46, &amp;_37)) @ _46=&amp;_37 @ Ref
+    Assign((_45, &amp;(*_46))) @ _45=&amp;(*_46) @ Ref
+    _33 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;3, 2&gt;(move _42, move _45) -&gt; [return: bb18, unwind: bb26] @ Call: FnDid: 11836
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_47) @ StorageLive
+    Assign((_47, copy _22)) @ _47=copy _22 @ Use
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    Assign((_52, const &#34;dragonos_kernel::arch::x86_64::smp&#34;)) @ _52=const &#34;dragonos_kernel::arch::x86_64::smp&#34; @ Use
+    Assign((_51, &amp;(*_52))) @ _51=&amp;(*_52) @ Ref
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    _54 = log::__private_api::loc() -&gt; [return: bb19, unwind: bb26] @ Call: FnDid: 184
+}
+bb 19 {
+CleanUp: false
+    Assign((_53, &amp;(*_54))) @ _53=&amp;(*_54) @ Ref
+    Assign((_50, (move _51, const &#34;dragonos_kernel::arch::x86_64::smp&#34;, move _53))) @ _50=(move _51, const &#34;dragonos_kernel::arch::x86_64::smp&#34;, move _53) @ Aggregate
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    Assign((_49, &amp;_50)) @ _49=&amp;_50 @ Ref
+    Assign((_48, &amp;(*_49))) @ _48=&amp;(*_49) @ Ref
+    StorageLive(_55) @ StorageLive
+    Assign((_55, ())) @ _55=() @ Aggregate
+    _31 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _32, move _33, move _47, move _48, move _55) -&gt; [return: bb20, unwind: bb26] @ Call: FnDid: 178
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_21, const ())) @ _21=const () @ Use
+    goto -&gt; bb24 @ Goto
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -&gt; bb23 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    goto -&gt; bb23 @ Goto
+}
+bb 23 {
+CleanUp: false
+    Assign((_21, const ())) @ _21=const () @ Use
+    goto -&gt; bb24 @ Goto
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_3) -&gt; [return: bb25, unwind: bb27] @ Drop
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 26 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb27, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

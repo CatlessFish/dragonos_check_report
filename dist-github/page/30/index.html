@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #30: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #30
+            
+                 <span class="func-name">driver::net::e1000e::e1000e_driver::e1000e_driver_init</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:58|RAP|WARN|: Double free detected in function &#34;e1000e_driver_init&#34;
+22:07:58|RAP|WARN|: Double free detected in function &#34;e1000e_driver_init&#34;
+warning: Double free detected.
+   --&gt; src/driver/net/e1000e/e1000e_driver.rs:417:1
+    |
+417 | / pub fn e1000e_driver_init(device: E1000EDevice) {
+418 | |     let mac = smoltcp::wire::EthernetAddress::from_bytes(&amp;device.mac_address());
+419 | |     let driver = E1000EDriver::new(device);
+420 | |     let iface = E1000EInterface::new(driver);
+421 | |     // 标识网络设备已经启动
+422 | |     iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+423 | |
+424 | |     // 将网卡的接口信息注册到全局的网卡接口信息表中
+425 | |     // NET_DEVICES
+426 | |     //     .write_irqsave()
+427 | |     //     .insert(iface.nic_id(), iface.clone());
+428 | |     INIT_NET_NAMESPACE.add_device(iface.clone());
+429 | |     iface.common.set_net_namespace(INIT_NET_NAMESPACE.clone());
+430 | |
+431 | |     info!(&#34;e1000e driver init successfully!\tMAC: [{}]&#34;, mac);
+432 | |
+433 | |     register_netdevice(iface.clone()).expect(&#34;register lo device failed&#34;);
+434 | | }
+    | |_- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 417.
+    | MIR detail: Value _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) and _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) are alias.
+    | MIR detail: _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB30(src/driver/net/e1000e/e1000e_driver.rs:434); _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB30(src/driver/net/e1000e/e1000e_driver.rs:434).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/driver/net/e1000e/e1000e_driver.rs:417:1
+    |
+417 | / pub fn e1000e_driver_init(device: E1000EDevice) {
+418 | |     let mac = smoltcp::wire::EthernetAddress::from_bytes(&amp;device.mac_address());
+419 | |     let driver = E1000EDriver::new(device);
+420 | |     let iface = E1000EInterface::new(driver);
+421 | |     // 标识网络设备已经启动
+422 | |     iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+423 | |
+424 | |     // 将网卡的接口信息注册到全局的网卡接口信息表中
+425 | |     // NET_DEVICES
+426 | |     //     .write_irqsave()
+427 | |     //     .insert(iface.nic_id(), iface.clone());
+428 | |     INIT_NET_NAMESPACE.add_device(iface.clone());
+429 | |     iface.common.set_net_namespace(INIT_NET_NAMESPACE.clone());
+430 | |
+431 | |     info!(&#34;e1000e driver init successfully!\tMAC: [{}]&#34;, mac);
+432 | |
+433 | |     register_netdevice(iface.clone()).expect(&#34;register lo device failed&#34;);
+434 | | }
+    | |_- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 417.
+    | MIR detail: Value _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) and _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) are alias.
+    | MIR detail: _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB32(src/driver/net/e1000e/e1000e_driver.rs:434); _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB32(src/driver/net/e1000e/e1000e_driver.rs:434).
+    |
+render dot for DefId(0:10934 ~ dragonos_kernel[9e38]::driver::net::e1000e::e1000e_driver::e1000e_driver_init)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/e1000e/e1000e_driver.rs:418:9: 418:12
+bb1 at src/driver/net/e1000e/e1000e_driver.rs:418:78: 418:79
+bb2 at src/driver/net/e1000e/e1000e_driver.rs:418:79: 418:80
+bb3 at src/driver/net/e1000e/e1000e_driver.rs:419:42: 419:43
+bb4 at src/driver/net/e1000e/e1000e_driver.rs:420:44: 420:45
+bb5 at src/driver/net/e1000e/e1000e_driver.rs:422:5: 422:10
+bb6 at src/driver/net/e1000e/e1000e_driver.rs:422:59: 422:60
+bb7 at src/driver/net/e1000e/e1000e_driver.rs:428:5: 428:23
+bb8 at src/driver/net/e1000e/e1000e_driver.rs:428:5: 428:23
+bb9 at src/driver/net/e1000e/e1000e_driver.rs:428:35: 428:48
+bb10 at src/driver/net/e1000e/e1000e_driver.rs:428:48: 428:49
+bb11 at src/driver/net/e1000e/e1000e_driver.rs:429:9: 429:10
+bb12 at src/driver/net/e1000e/e1000e_driver.rs:429:36: 429:54
+bb13 at src/driver/net/e1000e/e1000e_driver.rs:429:61: 429:62
+bb14 at src/driver/net/e1000e/e1000e_driver.rs:429:62: 429:63
+bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb20 at src/driver/net/e1000e/e1000e_driver.rs:431:53: 431:54
+bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb23 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb25 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb26 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb27 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb28 at src/driver/net/e1000e/e1000e_driver.rs:433:24: 433:37
+bb29 at src/driver/net/e1000e/e1000e_driver.rs:433:37: 433:38
+bb30 at src/driver/net/e1000e/e1000e_driver.rs:433:73: 433:74
+bb31 at src/driver/net/e1000e/e1000e_driver.rs:434:1: 434:2
+fn driver::net::e1000e::e1000e_driver::e1000e_driver_init
+_0:  @ () 
+_1:  @ driver::net::e1000e::e1000e::E1000EDevice 
+_2:  @ smoltcp::wire::EthernetAddress 
+_3:  @ &amp;&#39;{erased} [u8] 
+_4:  @ &amp;&#39;{erased} [u8; 6_usize] 
+_5:  @ &amp;&#39;{erased} [u8; 6_usize] 
+_6:  @ [u8; 6_usize] 
+_7:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e::E1000EDevice 
+_8:  @ driver::net::e1000e::e1000e_driver::E1000EDriver 
+_9:  @ driver::net::e1000e::e1000e::E1000EDevice 
+_10:  @ alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_11:  @ driver::net::e1000e::e1000e_driver::E1000EDriver 
+_12:  @ () 
+_13:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e_driver::E1000EInterface 
+_14:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e_driver::E1000EInterface 
+_15:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_16:  @ () 
+_17:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
+_18:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
+_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_20:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_21:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_22:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_23:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_24:  @ alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_25:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_26:  @ () 
+_27:  @ &amp;&#39;{erased} driver::net::IfaceCommon 
+_28:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e_driver::E1000EInterface 
+_29:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_30:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_31:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_32:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_33:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_34:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_35:  @ () 
+_36:  @ log::Level 
+_37:  @ bool 
+_38:  @ &amp;&#39;{erased} log::Level 
+_39:  @ &amp;&#39;{erased} log::LevelFilter 
+_40:  @ log::LevelFilter 
+_41:  @ bool 
+_42:  @ &amp;&#39;{erased} log::Level 
+_43:  @ &amp;&#39;{erased} log::LevelFilter 
+_44:  @ log::LevelFilter 
+_45:  @ () 
+_46:  @ log::__private_api::GlobalLogger 
+_47:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_48:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_49:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_50:  @ &amp;&#39;{erased} smoltcp::wire::EthernetAddress 
+_51:  @ &amp;&#39;{erased} smoltcp::wire::EthernetAddress 
+_52:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_53:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_54:  @ [&amp;&#39;{erased} str; 2_usize] 
+_55:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_56:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_57:  @ log::Level 
+_58:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_59:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_60:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_61:  @ &amp;&#39;{erased} str 
+_62:  @ &amp;&#39;{erased} str 
+_63:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_64:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_65:  @ () 
+_66:  @ () 
+_67:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_68:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_69:  @ alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_70:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
+_71:  @ &amp;&#39;{erased} str 
+_72:  @ &amp;&#39;{erased} str 
+_73:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_74:  @ &amp;&#39;{erased} log::LevelFilter 
+_75:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_75, const false)) @ _75=const false @ Use
+    Assign((_75, const true)) @ _75=const true @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;_1)) @ _7=&amp;_1 @ Ref
+    _6 = driver::net::e1000e::e1000e::E1000EDevice::mac_address(move _7) -&gt; [return: bb1, unwind: bb35] @ Call: FnDid: 10672
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    Assign((_5, &amp;_6)) @ _5=&amp;_6 @ Ref
+    Assign((_4, &amp;(*_5))) @ _4=&amp;(*_5) @ Ref
+    Assign((_3, move _4 as &amp;[u8] (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as &amp;[u8] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_4) @ StorageDead
+    _2 = smoltcp::wire::EthernetAddress::from_bytes(move _3) -&gt; [return: bb2, unwind: bb35] @ Call: FnDid: 2026
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_75, const false)) @ _75=const false @ Use
+    Assign((_9, move _1)) @ _9=move _1 @ Use
+    _8 = driver::net::e1000e::e1000e_driver::E1000EDriver::new(move _9) -&gt; [return: bb3, unwind: bb35] @ Call: FnDid: 10877
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, move _8)) @ _11=move _8 @ Use
+    _10 = driver::net::e1000e::e1000e_driver::E1000EInterface::new(move _11) -&gt; [return: bb4, unwind: bb35] @ Call: FnDid: 10889
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;_10)) @ _15=&amp;_10 @ Ref
+    _14 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb5, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
+    StorageDead(_15) @ StorageDead
+    _12 = &lt;driver::net::e1000e::e1000e_driver::E1000EInterface as driver::net::Iface&gt;::set_net_state(move _13, const driver::net::NetDeivceState::__LINK_STATE_START) -&gt; [return: bb6, unwind: bb32] @ Call: FnDid: 11788
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _22=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    _20 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb7, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    _18 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb8, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_10)) @ _25=&amp;_10 @ Ref
+    _24 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as core::clone::Clone&gt;::clone(move _25) -&gt; [return: bb9, unwind: bb32] @ Call: FnDid: 3116
+}
+bb 9 {
+CleanUp: false
+    Assign((_23, move _24 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _23=move _24 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    _16 = process::namespace::net_namespace::NetNamespace::add_device(move _17, move _23) -&gt; [return: bb10, unwind: bb32] @ Call: FnDid: 28324
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;_10)) @ _29=&amp;_10 @ Ref
+    _28 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as lazy_static::__Deref&gt;::deref(move _29) -&gt; [return: bb11, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    Assign((_27, &amp;((*_28).1: driver::net::IfaceCommon))) @ _27=&amp;((*_28).1: driver::net::IfaceCommon) @ Ref
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _34=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    _32 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb12, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 12 {
+CleanUp: false
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    StorageDead(_33) @ StorageDead
+    _30 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as core::clone::Clone&gt;::clone(move _31) -&gt; [return: bb13, unwind: bb32] @ Call: FnDid: 3116
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    _26 = driver::net::IfaceCommon::set_net_namespace(move _27, move _30) -&gt; [return: bb14, unwind: bb32] @ Call: FnDid: 11831
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, log::Level::Info)) @ _36=log::Level::Info @ Aggregate
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;_36)) @ _38=&amp;_36 @ Ref
+    StorageLive(_39) @ StorageLive
+    Assign((_74, const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[1])) @ _74=const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[1] @ Use
+    Assign((_39, &amp;(*_74))) @ _39=&amp;(*_74) @ Ref
+    _37 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _38, move _39) -&gt; [return: bb15, unwind: bb32] @ Call: FnDid: 3215
+}
+bb 15 {
+CleanUp: false
+    switchInt(move _37) -&gt; [0: bb25, otherwise: bb16] @ SwitchInt
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_42, &amp;_36)) @ _42=&amp;_36 @ Ref
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    _44 = log::max_level() -&gt; [return: bb17, unwind: bb32] @ Call: FnDid: 134
+}
+bb 17 {
+CleanUp: false
+    Assign((_43, &amp;_44)) @ _43=&amp;_44 @ Ref
+    _41 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _42, move _43) -&gt; [return: bb18, unwind: bb32] @ Call: FnDid: 3215
+}
+bb 18 {
+CleanUp: false
+    switchInt(move _41) -&gt; [0: bb24, otherwise: bb19] @ SwitchInt
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    Assign((_46, log::__private_api::GlobalLogger)) @ _46=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;_2)) @ _51=&amp;_2 @ Ref
+    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
+    _49 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;smoltcp::wire::EthernetAddress&gt;(move _50) -&gt; [return: bb20, unwind: bb32] @ Call: FnDid: 11807
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    Assign((_48, [move _49])) @ _48=[move _49] @ Aggregate
+    StorageDead(_49) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_73, const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[0])) @ _73=const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[0] @ Use
+    Assign((_53, &amp;(*_73))) @ _53=&amp;(*_73) @ Ref
+    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;_48)) @ _56=&amp;_48 @ Ref
+    Assign((_55, &amp;(*_56))) @ _55=&amp;(*_56) @ Ref
+    _47 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 1&gt;(move _52, move _55) -&gt; [return: bb21, unwind: bb32] @ Call: FnDid: 11836
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    Assign((_57, copy _36)) @ _57=copy _36 @ Use
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_62, const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34;)) @ _62=const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34; @ Use
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    _64 = log::__private_api::loc() -&gt; [return: bb22, unwind: bb32] @ Call: FnDid: 184
+}
+bb 22 {
+CleanUp: false
+    Assign((_63, &amp;(*_64))) @ _63=&amp;(*_64) @ Ref
+    Assign((_60, (move _61, const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34;, move _63))) @ _60=(move _61, const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34;, move _63) @ Aggregate
+    StorageDead(_63) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    Assign((_59, &amp;_60)) @ _59=&amp;_60 @ Ref
+    Assign((_58, &amp;(*_59))) @ _58=&amp;(*_59) @ Ref
+    StorageLive(_65) @ StorageLive
+    Assign((_65, ())) @ _65=() @ Aggregate
+    _45 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _46, move _47, move _57, move _58, move _65) -&gt; [return: bb23, unwind: bb32] @ Call: FnDid: 178
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb27 @ Goto
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    goto -&gt; bb26 @ Goto
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    goto -&gt; bb26 @ Goto
+}
+bb 26 {
+CleanUp: false
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb27 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, &amp;_10)) @ _70=&amp;_10 @ Ref
+    _69 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as core::clone::Clone&gt;::clone(move _70) -&gt; [return: bb28, unwind: bb32] @ Call: FnDid: 3116
+}
+bb 28 {
+CleanUp: false
+    Assign((_68, move _69 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _68=move _69 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    _67 = driver::net::register_netdevice(move _68) -&gt; [return: bb29, unwind: bb32] @ Call: FnDid: 11800
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_72, const &#34;register lo device failed&#34;)) @ _72=const &#34;register lo device failed&#34; @ Use
+    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
+    _66 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _67, move _71) -&gt; [return: bb30, unwind: bb32] @ Call: FnDid: 11023
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_10) -&gt; [return: bb31, unwind: bb35] @ Drop
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 32 {
+CleanUp: true
+    drop(_10) -&gt; [return: bb35, unwind terminate(cleanup)] @ Drop
+}
+bb 33 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 34 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb33, unwind terminate(cleanup)] @ Drop
+}
+bb 35 {
+CleanUp: true
+    switchInt(copy _75) -&gt; [0: bb33, otherwise: bb34] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

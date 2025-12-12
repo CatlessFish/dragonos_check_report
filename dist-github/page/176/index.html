@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #176: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #176
+            
+                 <span class="func-name">process::kthread::{impl#7}::init_stage2::{closure#0}</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:16|RAP|WARN|: Double free detected in function &#34;no symbol available&#34;
+22:08:16|RAP|WARN|: Double free detected in function &#34;no symbol available&#34;
+warning: Double free detected.
+   --&gt; src/process/kthread.rs:308:1
+    |
+308 | / || {
+309 | |             info!(&#34;Initializing kernel thread mechanism stage2...&#34;);
+310 | |             // 初始化kthreadd
+311 | |             let closure = KernelThreadClosure::EmptyClosure((Box::new(Self::kthread_daemon), ()));
+312 | |             let info = KernelThreadCreateInfo::new(closure, &#34;kthreadd&#34;.to_string());
+313 | |             info.set_to_mark_sleep(false)
+314 | |                 .expect(&#34;kthreadadd should be run first&#34;);
+315 | |             let kthreadd_pid: RawPid = Self::__inner_create(
+316 | |                 &amp;info,
+317 | |                 CloneFlags::CLONE_VM | CloneFlags::CLONE_FS | CloneFlags::CLONE_FILES,
+318 | |             )
+319 | |             .expect(&#34;Failed to create kthread daemon&#34;);
+320 | |             let pcb = ProcessManager::find_task_by_vpid(kthreadd_pid).unwrap();
+321 | |             ProcessManager::wakeup(&amp;pcb).expect(&#34;Failed to wakeup kthread daemon&#34;);
+322 | |             unsafe {
+323 | |                 KTHREAD_DAEMON_PCB.replace(pcb);
+324 | |             }
+325 | |             info!(&#34;Initialize kernel thread mechanism stage2 complete&#34;);
+326 | |         }
+    | |_________- Double free (confidence 99%): Location in file src/process/kthread.rs line 308.
+    | MIR detail: Value _32(info, src/process/kthread.rs:312) and _32(info, src/process/kthread.rs:312) are alias.
+    | MIR detail: _32(info, src/process/kthread.rs:312) is dropped at BB40(src/process/kthread.rs:326); _32(info, src/process/kthread.rs:312) is dropped at BB40(src/process/kthread.rs:326).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/process/kthread.rs:308:1
+    |
+308 | / || {
+309 | |             info!(&#34;Initializing kernel thread mechanism stage2...&#34;);
+310 | |             // 初始化kthreadd
+311 | |             let closure = KernelThreadClosure::EmptyClosure((Box::new(Self::kthread_daemon), ()));
+312 | |             let info = KernelThreadCreateInfo::new(closure, &#34;kthreadd&#34;.to_string());
+313 | |             info.set_to_mark_sleep(false)
+314 | |                 .expect(&#34;kthreadadd should be run first&#34;);
+315 | |             let kthreadd_pid: RawPid = Self::__inner_create(
+316 | |                 &amp;info,
+317 | |                 CloneFlags::CLONE_VM | CloneFlags::CLONE_FS | CloneFlags::CLONE_FILES,
+318 | |             )
+319 | |             .expect(&#34;Failed to create kthread daemon&#34;);
+320 | |             let pcb = ProcessManager::find_task_by_vpid(kthreadd_pid).unwrap();
+321 | |             ProcessManager::wakeup(&amp;pcb).expect(&#34;Failed to wakeup kthread daemon&#34;);
+322 | |             unsafe {
+323 | |                 KTHREAD_DAEMON_PCB.replace(pcb);
+324 | |             }
+325 | |             info!(&#34;Initialize kernel thread mechanism stage2 complete&#34;);
+326 | |         }
+    | |_________- Double free (confidence 99%): Location in file src/process/kthread.rs line 308.
+    | MIR detail: Value _32(info, src/process/kthread.rs:312) and _32(info, src/process/kthread.rs:312) are alias.
+    | MIR detail: _32(info, src/process/kthread.rs:312) is dropped at BB42(src/process/kthread.rs:326); _32(info, src/process/kthread.rs:312) is dropped at BB42(src/process/kthread.rs:326).
+    |
+render dot for DefId(0:28147 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::init_stage2::{closure#0})
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:107:34: 114:6
+bb2 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb3 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb6 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb7 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb8 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb9 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb10 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb13 at src/process/kthread.rs:311:62: 311:92
+bb14 at src/process/kthread.rs:312:82: 312:83
+bb15 at src/process/kthread.rs:312:83: 312:84
+bb16 at src/process/kthread.rs:313:13: 313:17
+bb17 at src/process/kthread.rs:313:41: 313:42
+bb18 at src/process/kthread.rs:314:57: 314:58
+bb20 at src/process/kthread.rs:317:85: 317:86
+bb21 at src/process/kthread.rs:318:13: 318:14
+bb22 at src/process/kthread.rs:319:54: 319:55
+bb23 at src/process/kthread.rs:320:69: 320:70
+bb24 at src/process/kthread.rs:320:78: 320:79
+bb25 at src/process/kthread.rs:321:40: 321:41
+bb26 at src/process/kthread.rs:321:82: 321:83
+bb27 at src/process/kthread.rs:323:47: 323:48
+bb28 at src/process/kthread.rs:323:48: 323:49
+bb30 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb31 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb33 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb34 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb35 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb36 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb37 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb38 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb39 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb40 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb41 at src/process/kthread.rs:326:9: 326:10
+bb48 at src/process/kthread.rs:323:17: 323:35
+bb49 at src/process/kthread.rs:323:17: 323:35
+fn process::kthread::KernelThreadMechanism::init_stage2::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:28147 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::init_stage2::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, ()]) 
+_2:  @ () 
+_3:  @ log::Level 
+_4:  @ bool 
+_5:  @ &amp;&#39;{erased} log::Level 
+_6:  @ &amp;&#39;{erased} log::LevelFilter 
+_7:  @ log::LevelFilter 
+_8:  @ bool 
+_9:  @ &amp;&#39;{erased} log::Level 
+_10:  @ &amp;&#39;{erased} log::LevelFilter 
+_11:  @ log::LevelFilter 
+_12:  @ () 
+_13:  @ log::__private_api::GlobalLogger 
+_14:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_15:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_16:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_17:  @ [&amp;&#39;{erased} str; 1_usize] 
+_18:  @ log::Level 
+_19:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_20:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_21:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_22:  @ &amp;&#39;{erased} str 
+_23:  @ &amp;&#39;{erased} str 
+_24:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_25:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_26:  @ () 
+_27:  @ process::kthread::KernelThreadClosure 
+_28:  @ (alloc::boxed::Box&lt;dyn [Binder { value: Trait(core::ops::Fn&lt;()&gt;), bound_vars: [] }, Binder { value: Projection(ExistentialProjection { def_id: DefId(1:3948 ~ core[2d8e]::ops::function::FnOnce::Output), args: [()], term: Term::Ty(i32), use_existential_projection_new_instead: () }), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, ()) 
+_29:  @ alloc::boxed::Box&lt;dyn [Binder { value: Trait(core::ops::Fn&lt;()&gt;), bound_vars: [] }, Binder { value: Projection(ExistentialProjection { def_id: DefId(1:3948 ~ core[2d8e]::ops::function::FnOnce::Output), args: [()], term: Term::Ty(i32), use_existential_projection_new_instead: () }), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_30:  @ alloc::boxed::Box&lt;FnDef(DefId(0:28153 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::kthread_daemon), []), alloc::alloc::Global&gt; 
+_31:  @ () 
+_32:  @ alloc::sync::Arc&lt;process::kthread::KernelThreadCreateInfo, alloc::alloc::Global&gt; 
+_33:  @ process::kthread::KernelThreadClosure 
+_34:  @ alloc::string::String 
+_35:  @ &amp;&#39;{erased} str 
+_36:  @ &amp;&#39;{erased} str 
+_37:  @ () 
+_38:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_39:  @ &amp;&#39;{erased} process::kthread::KernelThreadCreateInfo 
+_40:  @ &amp;&#39;{erased} process::kthread::KernelThreadCreateInfo 
+_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::kthread::KernelThreadCreateInfo, alloc::alloc::Global&gt; 
+_42:  @ &amp;&#39;{erased} str 
+_43:  @ &amp;&#39;{erased} str 
+_44:  @ process::RawPid 
+_45:  @ core::result::Result&lt;process::RawPid, system_error::SystemError&gt; 
+_46:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::kthread::KernelThreadCreateInfo, alloc::alloc::Global&gt; 
+_47:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::kthread::KernelThreadCreateInfo, alloc::alloc::Global&gt; 
+_48:  @ process::fork::CloneFlags 
+_49:  @ process::fork::CloneFlags 
+_50:  @ &amp;&#39;{erased} str 
+_51:  @ &amp;&#39;{erased} str 
+_52:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_53:  @ core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;&gt; 
+_54:  @ process::RawPid 
+_55:  @ () 
+_56:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_57:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_59:  @ &amp;&#39;{erased} str 
+_60:  @ &amp;&#39;{erased} str 
+_61:  @ () 
+_62:  @ core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;&gt; 
+_63:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;&gt; 
+_64:  @ *mut core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;&gt; 
+_65:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_66:  @ () 
+_67:  @ log::Level 
+_68:  @ bool 
+_69:  @ &amp;&#39;{erased} log::Level 
+_70:  @ &amp;&#39;{erased} log::LevelFilter 
+_71:  @ log::LevelFilter 
+_72:  @ bool 
+_73:  @ &amp;&#39;{erased} log::Level 
+_74:  @ &amp;&#39;{erased} log::LevelFilter 
+_75:  @ log::LevelFilter 
+_76:  @ () 
+_77:  @ log::__private_api::GlobalLogger 
+_78:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_79:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_80:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_81:  @ [&amp;&#39;{erased} str; 1_usize] 
+_82:  @ log::Level 
+_83:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_84:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_85:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_86:  @ &amp;&#39;{erased} str 
+_87:  @ &amp;&#39;{erased} str 
+_88:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_89:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_90:  @ () 
+_91:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_92:  @ &amp;&#39;{erased} log::LevelFilter 
+_93:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_94:  @ &amp;&#39;{erased} log::LevelFilter 
+_95:  @ bool 
+_96:  @ bool 
+_97:  @ *const () 
+_98:  @ usize 
+_99:  @ usize 
+_100:  @ usize 
+_101:  @ usize 
+_102:  @ bool 
+_103:  @ *const () 
+_104:  @ usize 
+_105:  @ bool 
+_106:  @ bool 
+_107:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_96, const false)) @ _96=const false @ Use
+    Assign((_95, const false)) @ _95=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    Assign((_3, log::Level::Info)) @ _3=log::Level::Info @ Aggregate
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;_3)) @ _5=&amp;_3 @ Ref
+    StorageLive(_6) @ StorageLive
+    Assign((_94, const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[3])) @ _94=const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[3] @ Use
+    Assign((_6, &amp;(*_94))) @ _6=&amp;(*_94) @ Ref
+    _4 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3215
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _4) -&gt; [0: bb10, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;_3)) @ _9=&amp;_3 @ Ref
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    _11 = log::max_level() -&gt; [return: bb3, unwind continue] @ Call: FnDid: 134
+}
+bb 3 {
+CleanUp: false
+    Assign((_10, &amp;_11)) @ _10=&amp;_11 @ Ref
+    _8 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _9, move _10) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 3215
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _8) -&gt; [0: bb9, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, log::__private_api::GlobalLogger)) @ _13=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_93, const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[2])) @ _93=const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[2] @ Use
+    Assign((_16, &amp;(*_93))) @ _16=&amp;(*_93) @ Ref
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
+    _14 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _15) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 11832
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    Assign((_18, copy _3)) @ _18=copy _3 @ Use
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, const &#34;dragonos_kernel::process::kthread&#34;)) @ _23=const &#34;dragonos_kernel::process::kthread&#34; @ Use
+    Assign((_22, &amp;(*_23))) @ _22=&amp;(*_23) @ Ref
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    _25 = log::__private_api::loc() -&gt; [return: bb7, unwind continue] @ Call: FnDid: 184
+}
+bb 7 {
+CleanUp: false
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    Assign((_21, (move _22, const &#34;dragonos_kernel::process::kthread&#34;, move _24))) @ _21=(move _22, const &#34;dragonos_kernel::process::kthread&#34;, move _24) @ Aggregate
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    Assign((_20, &amp;_21)) @ _20=&amp;_21 @ Ref
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    StorageLive(_26) @ StorageLive
+    Assign((_26, ())) @ _26=() @ Aggregate
+    _12 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _13, move _14, move _18, move _19, move _26) -&gt; [return: bb8, unwind continue] @ Call: FnDid: 178
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    Assign((_2, const ())) @ _2=const () @ Use
+    goto -&gt; bb12 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    goto -&gt; bb11 @ Goto
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb11 @ Goto
+}
+bb 11 {
+CleanUp: false
+    Assign((_2, const ())) @ _2=const () @ Use
+    goto -&gt; bb12 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    _30 = alloc::boxed::Box::&lt;fn() -&gt; i32 {process::kthread::KernelThreadMechanism::kthread_daemon}&gt;::new(process::kthread::KernelThreadMechanism::kthread_daemon) -&gt; [return: bb13, unwind continue] @ Call: FnDid: 682
+}
+bb 13 {
+CleanUp: false
+    Assign((_29, move _30 as alloc::boxed::Box&lt;dyn core::ops::Fn() -&gt; i32 + core::marker::Send + core::marker::Sync&gt; (PointerCoercion(Unsize, Implicit)))) @ _29=move _30 as alloc::boxed::Box&lt;dyn core::ops::Fn() -&gt; i32 + core::marker::Send + core::marker::Sync&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_30) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, ())) @ _31=() @ Aggregate
+    Assign((_28, (move _29, move _31))) @ _28=(move _29, move _31) @ Aggregate
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    Assign((_27, process::kthread::KernelThreadClosure::EmptyClosure(move _28))) @ _27=process::kthread::KernelThreadClosure::EmptyClosure(move _28) @ Aggregate
+    StorageDead(_28) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_96, const true)) @ _96=const true @ Use
+    Assign((_33, move _27)) @ _33=move _27 @ Use
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, const &#34;kthreadd&#34;)) @ _36=const &#34;kthreadd&#34; @ Use
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    _34 = &lt;str as alloc::string::ToString&gt;::to_string(move _35) -&gt; [return: bb14, unwind: bb47] @ Call: FnDid: 6626
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    Assign((_96, const false)) @ _96=const false @ Use
+    _32 = process::kthread::KernelThreadCreateInfo::new(move _33, move _34) -&gt; [return: bb15, unwind: bb47] @ Call: FnDid: 28131
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_96, const false)) @ _96=const false @ Use
+    StorageDead(_33) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;_32)) @ _41=&amp;_32 @ Ref
+    _40 = &lt;alloc::sync::Arc&lt;process::kthread::KernelThreadCreateInfo&gt; as lazy_static::__Deref&gt;::deref(move _41) -&gt; [return: bb16, unwind: bb42] @ Call: FnDid: 3903
+}
+bb 16 {
+CleanUp: false
+    Assign((_39, &amp;(*_40))) @ _39=&amp;(*_40) @ Ref
+    StorageDead(_41) @ StorageDead
+    _38 = process::kthread::KernelThreadCreateInfo::set_to_mark_sleep(move _39, const false) -&gt; [return: bb17, unwind: bb42] @ Call: FnDid: 28138
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, const &#34;kthreadadd should be run first&#34;)) @ _43=const &#34;kthreadadd should be run first&#34; @ Use
+    Assign((_42, &amp;(*_43))) @ _42=&amp;(*_43) @ Ref
+    _37 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _38, move _42) -&gt; [return: bb18, unwind: bb42] @ Call: FnDid: 11023
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;_32)) @ _47=&amp;_32 @ Ref
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    _49 = &lt;process::fork::CloneFlags as core::ops::BitOr&gt;::bitor(const process::fork::CloneFlags::CLONE_VM, const process::fork::CloneFlags::CLONE_FS) -&gt; [return: bb19, unwind: bb42] @ Call: FnDid: 39936
+}
+bb 19 {
+CleanUp: false
+    _48 = &lt;process::fork::CloneFlags as core::ops::BitOr&gt;::bitor(move _49, const process::fork::CloneFlags::CLONE_FILES) -&gt; [return: bb20, unwind: bb42] @ Call: FnDid: 39936
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    _45 = arch::x86_64::process::kthread::&lt;impl process::kthread::KernelThreadMechanism&gt;::__inner_create(move _46, move _48) -&gt; [return: bb21, unwind: bb42] @ Call: FnDid: 1894
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, const &#34;Failed to create kthread daemon&#34;)) @ _51=const &#34;Failed to create kthread daemon&#34; @ Use
+    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
+    _44 = core::result::Result::&lt;process::RawPid, system_error::SystemError&gt;::expect(move _45, move _50) -&gt; [return: bb22, unwind: bb42] @ Call: FnDid: 11023
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, copy _44)) @ _54=copy _44 @ Use
+    _53 = process::pid::&lt;impl process::ProcessManager&gt;::find_task_by_vpid(move _54) -&gt; [return: bb23, unwind: bb42] @ Call: FnDid: 28777
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    _52 = core::option::Option::&lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;&gt;::unwrap(move _53) -&gt; [return: bb24, unwind: bb42] @ Call: FnDid: 10157
+}
+bb 24 {
+CleanUp: false
+    Assign((_95, const true)) @ _95=const true @ Use
+    StorageDead(_53) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &amp;_52)) @ _58=&amp;_52 @ Ref
+    Assign((_57, &amp;(*_58))) @ _57=&amp;(*_58) @ Ref
+    _56 = process::ProcessManager::wakeup(move _57) -&gt; [return: bb25, unwind: bb45] @ Call: FnDid: 29871
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_57) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, const &#34;Failed to wakeup kthread daemon&#34;)) @ _60=const &#34;Failed to wakeup kthread daemon&#34; @ Use
+    Assign((_59, &amp;(*_60))) @ _59=&amp;(*_60) @ Ref
+    _55 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _56, move _59) -&gt; [return: bb26, unwind: bb45] @ Call: FnDid: 11023
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    Assign((_64, const {alloc164620: *mut core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;&gt;})) @ _64=const {alloc164620: *mut core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;&gt;} @ Use
+    Assign((_97, copy _64 as *const () (PtrToPtr))) @ _97=copy _64 as *const () (PtrToPtr) @ Cast
+    Assign((_98, copy _97 as usize (Transmute))) @ _98=copy _97 as usize (Transmute) @ Cast
+    Assign((_99, AlignOf(core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;&gt;))) @ _99=AlignOf(core::option::Option&lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;&gt;) @ NullaryOp
+    Assign((_100, Sub(copy _99, const 1_usize))) @ _100=Sub(copy _99, const 1_usize) @ BinaryOp
+    Assign((_101, BitAnd(copy _98, copy _100))) @ _101=BitAnd(copy _98, copy _100) @ BinaryOp
+    Assign((_102, Eq(copy _101, const 0_usize))) @ _102=Eq(copy _101, const 0_usize) @ BinaryOp
+    assert(copy _102, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _99, copy _98) -&gt; [success: bb48, unwind unreachable] @ Assert
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    drop(_62) -&gt; [return: bb28, unwind: bb45] @ Drop
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    Assign((_61, const ())) @ _61=const () @ Use
+    StorageDead(_61) @ StorageDead
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    Assign((_67, log::Level::Info)) @ _67=log::Level::Info @ Aggregate
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, &amp;_67)) @ _69=&amp;_67 @ Ref
+    StorageLive(_70) @ StorageLive
+    Assign((_92, const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[1])) @ _92=const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[1] @ Use
+    Assign((_70, &amp;(*_92))) @ _70=&amp;(*_92) @ Ref
+    _68 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _69, move _70) -&gt; [return: bb29, unwind: bb45] @ Call: FnDid: 3215
+}
+bb 29 {
+CleanUp: false
+    switchInt(move _68) -&gt; [0: bb38, otherwise: bb30] @ SwitchInt
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    Assign((_73, &amp;_67)) @ _73=&amp;_67 @ Ref
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    _75 = log::max_level() -&gt; [return: bb31, unwind: bb45] @ Call: FnDid: 134
+}
+bb 31 {
+CleanUp: false
+    Assign((_74, &amp;_75)) @ _74=&amp;_75 @ Ref
+    _72 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _73, move _74) -&gt; [return: bb32, unwind: bb45] @ Call: FnDid: 3215
+}
+bb 32 {
+CleanUp: false
+    switchInt(move _72) -&gt; [0: bb37, otherwise: bb33] @ SwitchInt
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_77, log::__private_api::GlobalLogger)) @ _77=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    Assign((_91, const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[0])) @ _91=const process::kthread::KernelThreadMechanism::init_stage2::{closure#0}::promoted[0] @ Use
+    Assign((_80, &amp;(*_91))) @ _80=&amp;(*_91) @ Ref
+    Assign((_79, &amp;(*_80))) @ _79=&amp;(*_80) @ Ref
+    _78 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _79) -&gt; [return: bb34, unwind: bb45] @ Call: FnDid: 11832
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_79) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    Assign((_82, copy _67)) @ _82=copy _67 @ Use
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    Assign((_87, const &#34;dragonos_kernel::process::kthread&#34;)) @ _87=const &#34;dragonos_kernel::process::kthread&#34; @ Use
+    Assign((_86, &amp;(*_87))) @ _86=&amp;(*_87) @ Ref
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    _89 = log::__private_api::loc() -&gt; [return: bb35, unwind: bb45] @ Call: FnDid: 184
+}
+bb 35 {
+CleanUp: false
+    Assign((_88, &amp;(*_89))) @ _88=&amp;(*_89) @ Ref
+    Assign((_85, (move _86, const &#34;dragonos_kernel::process::kthread&#34;, move _88))) @ _85=(move _86, const &#34;dragonos_kernel::process::kthread&#34;, move _88) @ Aggregate
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    Assign((_84, &amp;_85)) @ _84=&amp;_85 @ Ref
+    Assign((_83, &amp;(*_84))) @ _83=&amp;(*_84) @ Ref
+    StorageLive(_90) @ StorageLive
+    Assign((_90, ())) @ _90=() @ Aggregate
+    _76 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _77, move _78, move _82, move _83, move _90) -&gt; [return: bb36, unwind: bb45] @ Call: FnDid: 178
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    Assign((_66, const ())) @ _66=const () @ Use
+    goto -&gt; bb40 @ Goto
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    goto -&gt; bb39 @ Goto
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    goto -&gt; bb39 @ Goto
+}
+bb 39 {
+CleanUp: false
+    Assign((_66, const ())) @ _66=const () @ Use
+    goto -&gt; bb40 @ Goto
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_72) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    Assign((_95, const false)) @ _95=const false @ Use
+    StorageDead(_52) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    drop(_32) -&gt; [return: bb41, unwind: bb43] @ Drop
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    return @ Return
+}
+bb 42 {
+CleanUp: true
+    drop(_32) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 43 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 44 {
+CleanUp: true
+    drop(_52) -&gt; [return: bb42, unwind terminate(cleanup)] @ Drop
+}
+bb 45 {
+CleanUp: true
+    switchInt(copy _95) -&gt; [0: bb42, otherwise: bb44] @ SwitchInt
+}
+bb 46 {
+CleanUp: true
+    drop(_33) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 47 {
+CleanUp: true
+    switchInt(copy _96) -&gt; [0: bb43, otherwise: bb46] @ SwitchInt
+}
+bb 48 {
+CleanUp: false
+    Assign((_103, copy _64 as *const () (PtrToPtr))) @ _103=copy _64 as *const () (PtrToPtr) @ Cast
+    Assign((_104, copy _103 as usize (Transmute))) @ _104=copy _103 as usize (Transmute) @ Cast
+    Assign((_105, Eq(copy _104, const 0_usize))) @ _105=Eq(copy _104, const 0_usize) @ BinaryOp
+    Assign((_106, BitAnd(copy _105, const true))) @ _106=BitAnd(copy _105, const true) @ BinaryOp
+    Assign((_107, Not(copy _106))) @ _107=Not(copy _106) @ UnaryOp
+    assert(copy _107, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb49, unwind unreachable] @ Assert
+}
+bb 49 {
+CleanUp: false
+    Assign((_63, &amp;mut (*_64))) @ _63=&amp;mut (*_64) @ Ref
+    StorageLive(_65) @ StorageLive
+    Assign((_95, const false)) @ _95=const false @ Use
+    Assign((_65, move _52)) @ _65=move _52 @ Use
+    _62 = core::option::Option::&lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;&gt;::replace(move _63, move _65) -&gt; [return: bb27, unwind: bb45] @ Call: FnDid: 10209
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

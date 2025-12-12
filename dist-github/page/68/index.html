@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #68: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #68
+            
+                 <span class="func-name">filesystem::sysfs::{impl#1}::warn_duplicate</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:06|RAP|WARN|: Dangling pointer detected in function &#34;warn_duplicate&#34;
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;warn_duplicate&#34;
+warning: Dangling pointer detected.
+   --&gt; src/filesystem/sysfs/mod.rs:229:1
+    |
+229 | / pub(self) fn warn_duplicate(&amp;self, parent: &amp;Arc&lt;KernFSInode&gt;, name: &amp;str) {
+230 | |         let path = self.kernfs_path(parent);
+231 | |         warn!(&#34;duplicate sysfs entry: {path}/{name}&#34;);
+232 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/mod.rs line 229.
+    | MIR detail: Value _4(path, src/filesystem/sysfs/mod.rs:230) and _3(name, src/filesystem/sysfs/mod.rs:229) are alias.
+    | MIR detail: _4(path, src/filesystem/sysfs/mod.rs:230) is dropped at BB15(src/filesystem/sysfs/mod.rs:232); _3(name, src/filesystem/sysfs/mod.rs:229) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/filesystem/sysfs/mod.rs:229:1
+    |
+229 | / pub(self) fn warn_duplicate(&amp;self, parent: &amp;Arc&lt;KernFSInode&gt;, name: &amp;str) {
+230 | |         let path = self.kernfs_path(parent);
+231 | |         warn!(&#34;duplicate sysfs entry: {path}/{name}&#34;);
+232 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/mod.rs line 229.
+    | MIR detail: Value _4(path, src/filesystem/sysfs/mod.rs:230) and _3(name, src/filesystem/sysfs/mod.rs:229) are alias.
+    | MIR detail: _4(path, src/filesystem/sysfs/mod.rs:230) is dropped at BB17(src/filesystem/sysfs/mod.rs:232); _3(name, src/filesystem/sysfs/mod.rs:229) became dangling.
+    |
+render dot for DefId(0:19066 ~ dragonos_kernel[9e38]::filesystem::sysfs::{impl#1}::warn_duplicate)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/sysfs/mod.rs:230:13: 230:17
+bb1 at src/filesystem/sysfs/mod.rs:230:43: 230:44
+bb3 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb4 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb6 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb7 at src/filesystem/sysfs/mod.rs:231:44: 231:45
+bb8 at src/filesystem/sysfs/mod.rs:231:51: 231:52
+bb9 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb10 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb16 at src/filesystem/sysfs/mod.rs:232:5: 232:6
+fn filesystem::sysfs::SysFS::warn_duplicate
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} str 
+_4:  @ alloc::string::String 
+_5:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_7:  @ () 
+_8:  @ log::Level 
+_9:  @ bool 
+_10:  @ &amp;&#39;{erased} log::Level 
+_11:  @ &amp;&#39;{erased} log::LevelFilter 
+_12:  @ log::LevelFilter 
+_13:  @ bool 
+_14:  @ &amp;&#39;{erased} log::Level 
+_15:  @ &amp;&#39;{erased} log::LevelFilter 
+_16:  @ log::LevelFilter 
+_17:  @ () 
+_18:  @ log::__private_api::GlobalLogger 
+_19:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_20:  @ (&amp;&#39;{erased} alloc::string::String, &amp;&#39;{erased} &amp;&#39;{erased} str) 
+_21:  @ &amp;&#39;{erased} alloc::string::String 
+_22:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_23:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_24:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_25:  @ &amp;&#39;{erased} alloc::string::String 
+_26:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_27:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+_28:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_29:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_30:  @ [&amp;&#39;{erased} str; 2_usize] 
+_31:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_32:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_33:  @ log::Level 
+_34:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_35:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_36:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_37:  @ &amp;&#39;{erased} str 
+_38:  @ &amp;&#39;{erased} str 
+_39:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_40:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_41:  @ () 
+_42:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_43:  @ &amp;&#39;{erased} log::LevelFilter 
+_44:  @ &amp;&#39;{erased} alloc::string::String 
+_45:  @ &amp;&#39;{erased} &amp;&#39;{erased} str 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;(*_1))) @ _5=&amp;(*_1) @ Ref
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _4 = filesystem::sysfs::dir::&lt;impl filesystem::sysfs::SysFS&gt;::kernfs_path(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 18909
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, log::Level::Warn)) @ _8=log::Level::Warn @ Aggregate
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_8)) @ _10=&amp;_8 @ Ref
+    StorageLive(_11) @ StorageLive
+    Assign((_43, const filesystem::sysfs::SysFS::warn_duplicate::promoted[1])) @ _43=const filesystem::sysfs::SysFS::warn_duplicate::promoted[1] @ Use
+    Assign((_11, &amp;(*_43))) @ _11=&amp;(*_43) @ Ref
+    _9 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _10, move _11) -&gt; [return: bb2, unwind: bb17] @ Call: FnDid: 3215
+}
+bb 2 {
+CleanUp: false
+    switchInt(move _9) -&gt; [0: bb13, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;_8)) @ _14=&amp;_8 @ Ref
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    _16 = log::max_level() -&gt; [return: bb4, unwind: bb17] @ Call: FnDid: 134
+}
+bb 4 {
+CleanUp: false
+    Assign((_15, &amp;_16)) @ _15=&amp;_16 @ Ref
+    _13 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _14, move _15) -&gt; [return: bb5, unwind: bb17] @ Call: FnDid: 3215
+}
+bb 5 {
+CleanUp: false
+    switchInt(move _13) -&gt; [0: bb12, otherwise: bb6] @ SwitchInt
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, log::__private_api::GlobalLogger)) @ _18=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;_4)) @ _21=&amp;_4 @ Ref
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_3)) @ _22=&amp;_3 @ Ref
+    Assign((_20, (move _21, move _22))) @ _20=(move _21, move _22) @ Aggregate
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_44, deref_copy (_20.0: &amp;alloc::string::String))) @ _44=deref_copy (_20.0: &amp;alloc::string::String) @ CopyForDeref
+    Assign((_25, &amp;(*_44))) @ _25=&amp;(*_44) @ Ref
+    _24 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;alloc::string::String&gt;(move _25) -&gt; [return: bb7, unwind: bb17] @ Call: FnDid: 11807
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_45, deref_copy (_20.1: &amp;&amp;str))) @ _45=deref_copy (_20.1: &amp;&amp;str) @ CopyForDeref
+    Assign((_27, &amp;(*_45))) @ _27=&amp;(*_45) @ Ref
+    _26 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;&amp;str&gt;(move _27) -&gt; [return: bb8, unwind: bb17] @ Call: FnDid: 11807
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    Assign((_23, [move _24, move _26])) @ _23=[move _24, move _26] @ Aggregate
+    StorageDead(_26) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_42, const filesystem::sysfs::SysFS::warn_duplicate::promoted[0])) @ _42=const filesystem::sysfs::SysFS::warn_duplicate::promoted[0] @ Use
+    Assign((_29, &amp;(*_42))) @ _29=&amp;(*_42) @ Ref
+    Assign((_28, &amp;(*_29))) @ _28=&amp;(*_29) @ Ref
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;_23)) @ _32=&amp;_23 @ Ref
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    _19 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _28, move _31) -&gt; [return: bb9, unwind: bb17] @ Call: FnDid: 11836
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    Assign((_33, copy _8)) @ _33=copy _8 @ Use
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, const &#34;dragonos_kernel::filesystem::sysfs&#34;)) @ _38=const &#34;dragonos_kernel::filesystem::sysfs&#34; @ Use
+    Assign((_37, &amp;(*_38))) @ _37=&amp;(*_38) @ Ref
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    _40 = log::__private_api::loc() -&gt; [return: bb10, unwind: bb17] @ Call: FnDid: 184
+}
+bb 10 {
+CleanUp: false
+    Assign((_39, &amp;(*_40))) @ _39=&amp;(*_40) @ Ref
+    Assign((_36, (move _37, const &#34;dragonos_kernel::filesystem::sysfs&#34;, move _39))) @ _36=(move _37, const &#34;dragonos_kernel::filesystem::sysfs&#34;, move _39) @ Aggregate
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    Assign((_35, &amp;_36)) @ _35=&amp;_36 @ Ref
+    Assign((_34, &amp;(*_35))) @ _34=&amp;(*_35) @ Ref
+    StorageLive(_41) @ StorageLive
+    Assign((_41, ())) @ _41=() @ Aggregate
+    _17 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _18, move _19, move _33, move _34, move _41) -&gt; [return: bb11, unwind: bb17] @ Call: FnDid: 178
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_7, const ())) @ _7=const () @ Use
+    goto -&gt; bb15 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb14 @ Goto
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb14 @ Goto
+}
+bb 14 {
+CleanUp: false
+    Assign((_7, const ())) @ _7=const () @ Use
+    goto -&gt; bb15 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_4) -&gt; [return: bb16, unwind: bb18] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 17 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb18, unwind terminate(cleanup)] @ Drop
+}
+bb 18 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

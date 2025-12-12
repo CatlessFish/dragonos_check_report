@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #92: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #92
+            
+                 <span class="func-name">filesystem::vfs::syscall::sys_pread64::{impl#0}::handle</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:08|RAP|WARN|: Double free detected in function &#34;handle&#34;
+warning: Double free detected.
+  --&gt; src/filesystem/vfs/syscall/sys_pread64.rs:33:1
+   |
+33 | / fn handle(&amp;self, args: &amp;[usize], frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
+34 | |         let fd = Self::fd(args);
+35 | |         let buf_vaddr = Self::buf(args);
+36 | |         let len = Self::len(args);
+37 | |         let offset = Self::offset(args);
+38 | |
+39 | |         // 检查offset + len是否溢出 同时检查offset是否为负数
+40 | |
+41 | |         let end_pos = offset.checked_add(len).ok_or(SystemError::EINVAL)?;
+42 | |         if offset &gt; i64::MAX as usize || end_pos &gt; i64::MAX as usize {
+43 | |             return Err(SystemError::EINVAL);
+44 | |         }
+45 | |
+46 | |         let mut user_buffer_writer =
+47 | |             UserBufferWriter::new_checked(buf_vaddr, len, frame.is_from_user())?;
+48 | |         let user_buf = user_buffer_writer.buffer(0)?;
+49 | |
+50 | |         let binding = ProcessManager::current_pcb().fd_table();
+51 | |         let fd_table_guard = binding.read();
+52 | |
+53 | |         let file = fd_table_guard
+54 | |             .get_file_by_fd(fd)
+55 | |             .ok_or(SystemError::EBADF)?;
+56 | |
+57 | |         // Drop guard to avoid scheduling issues
+58 | |         drop(fd_table_guard);
+59 | |
+60 | |         // 检查是否是管道/Socket (ESPIPE)
+61 | |         let md = file.metadata()?;
+62 | |         if md.file_type == FileType::Pipe
+63 | |             || md.file_type == FileType::Socket
+64 | |             || md.file_type == FileType::CharDevice
+65 | |         {
+66 | |             return Err(SystemError::ESPIPE);
+67 | |         }
+68 | |
+69 | |         return file.pread(offset, len, user_buf);
+70 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 33.
+    | MIR detail: Value _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) and _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) are alias.
+    | MIR detail: _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) is dropped at BB38(src/filesystem/vfs/syscall/sys_pread64.rs:58); _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) is dropped at BB62(src/filesystem/vfs/syscall/sys_pread64.rs:70).
+   |
+22:08:08|RAP|WARN|: Double free detected in function &#34;handle&#34;
+warning: Double free detected during unwinding.
+  --&gt; src/filesystem/vfs/syscall/sys_pread64.rs:33:1
+   |
+33 | / fn handle(&amp;self, args: &amp;[usize], frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
+34 | |         let fd = Self::fd(args);
+35 | |         let buf_vaddr = Self::buf(args);
+36 | |         let len = Self::len(args);
+37 | |         let offset = Self::offset(args);
+38 | |
+39 | |         // 检查offset + len是否溢出 同时检查offset是否为负数
+40 | |
+41 | |         let end_pos = offset.checked_add(len).ok_or(SystemError::EINVAL)?;
+42 | |         if offset &gt; i64::MAX as usize || end_pos &gt; i64::MAX as usize {
+43 | |             return Err(SystemError::EINVAL);
+44 | |         }
+45 | |
+46 | |         let mut user_buffer_writer =
+47 | |             UserBufferWriter::new_checked(buf_vaddr, len, frame.is_from_user())?;
+48 | |         let user_buf = user_buffer_writer.buffer(0)?;
+49 | |
+50 | |         let binding = ProcessManager::current_pcb().fd_table();
+51 | |         let fd_table_guard = binding.read();
+52 | |
+53 | |         let file = fd_table_guard
+54 | |             .get_file_by_fd(fd)
+55 | |             .ok_or(SystemError::EBADF)?;
+56 | |
+57 | |         // Drop guard to avoid scheduling issues
+58 | |         drop(fd_table_guard);
+59 | |
+60 | |         // 检查是否是管道/Socket (ESPIPE)
+61 | |         let md = file.metadata()?;
+62 | |         if md.file_type == FileType::Pipe
+63 | |             || md.file_type == FileType::Socket
+64 | |             || md.file_type == FileType::CharDevice
+65 | |         {
+66 | |             return Err(SystemError::ESPIPE);
+67 | |         }
+68 | |
+69 | |         return file.pread(offset, len, user_buf);
+70 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 33.
+    | MIR detail: Value _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) and _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) are alias.
+    | MIR detail: _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) is dropped at BB38(src/filesystem/vfs/syscall/sys_pread64.rs:58); _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) is dropped at BB68(src/filesystem/vfs/syscall/sys_pread64.rs:70).
+   |
+render dot for DefId(0:20201 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pread64::{impl#0}::handle)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/vfs/syscall/sys_pread64.rs:34:13: 34:15
+bb1 at src/filesystem/vfs/syscall/sys_pread64.rs:34:31: 34:32
+bb2 at src/filesystem/vfs/syscall/sys_pread64.rs:35:39: 35:40
+bb3 at src/filesystem/vfs/syscall/sys_pread64.rs:36:33: 36:34
+bb4 at src/filesystem/vfs/syscall/sys_pread64.rs:37:39: 37:40
+bb5 at src/filesystem/vfs/syscall/sys_pread64.rs:41:45: 41:46
+bb6 at src/filesystem/vfs/syscall/sys_pread64.rs:41:72: 41:73
+bb7 at src/filesystem/vfs/syscall/sys_pread64.rs:41:73: 41:74
+bb9 at src/filesystem/vfs/syscall/sys_pread64.rs:41:23: 41:74
+bb10 at src/filesystem/vfs/syscall/sys_pread64.rs:41:73: 41:74
+bb11 at src/filesystem/vfs/syscall/sys_pread64.rs:41:73: 41:74
+bb12 at src/filesystem/vfs/syscall/sys_pread64.rs:42:37: 42:38
+bb13 at src/filesystem/vfs/syscall/sys_pread64.rs:42:37: 42:38
+bb14 at src/filesystem/vfs/syscall/sys_pread64.rs:42:68: 42:69
+bb15 at src/filesystem/vfs/syscall/sys_pread64.rs:42:68: 42:69
+bb16 at src/filesystem/vfs/syscall/sys_pread64.rs:43:24: 43:43
+bb17 at src/filesystem/vfs/syscall/sys_pread64.rs:47:78: 47:79
+bb18 at src/filesystem/vfs/syscall/sys_pread64.rs:47:79: 47:80
+bb19 at src/filesystem/vfs/syscall/sys_pread64.rs:47:80: 47:81
+bb20 at src/filesystem/vfs/syscall/sys_pread64.rs:47:13: 47:81
+bb21 at src/filesystem/vfs/syscall/sys_pread64.rs:47:80: 47:81
+bb22 at src/filesystem/vfs/syscall/sys_pread64.rs:47:80: 47:81
+bb23 at src/filesystem/vfs/syscall/sys_pread64.rs:48:51: 48:52
+bb24 at src/filesystem/vfs/syscall/sys_pread64.rs:48:52: 48:53
+bb25 at src/filesystem/vfs/syscall/sys_pread64.rs:48:24: 48:53
+bb26 at src/filesystem/vfs/syscall/sys_pread64.rs:48:52: 48:53
+bb27 at src/filesystem/vfs/syscall/sys_pread64.rs:48:52: 48:53
+bb28 at src/filesystem/vfs/syscall/sys_pread64.rs:50:23: 50:52
+bb29 at src/filesystem/vfs/syscall/sys_pread64.rs:50:23: 50:52
+bb30 at src/filesystem/vfs/syscall/sys_pread64.rs:50:62: 50:63
+bb31 at src/filesystem/vfs/syscall/sys_pread64.rs:50:63: 50:64
+bb32 at src/filesystem/vfs/syscall/sys_pread64.rs:51:30: 51:37
+bb33 at src/filesystem/vfs/syscall/sys_pread64.rs:51:43: 51:44
+bb34 at src/filesystem/vfs/syscall/sys_pread64.rs:53:20: 53:34
+bb35 at src/filesystem/vfs/syscall/sys_pread64.rs:54:31: 54:32
+bb36 at src/filesystem/vfs/syscall/sys_pread64.rs:55:38: 55:39
+bb37 at src/filesystem/vfs/syscall/sys_pread64.rs:55:39: 55:40
+bb38 at src/filesystem/vfs/syscall/sys_pread64.rs:53:20: 55:40
+bb39 at src/filesystem/vfs/syscall/sys_pread64.rs:55:39: 55:40
+bb40 at src/filesystem/vfs/syscall/sys_pread64.rs:55:39: 55:40
+bb41 at src/filesystem/vfs/syscall/sys_pread64.rs:58:28: 58:29
+bb42 at src/filesystem/vfs/syscall/sys_pread64.rs:61:18: 61:22
+bb43 at src/filesystem/vfs/syscall/sys_pread64.rs:61:32: 61:33
+bb44 at src/filesystem/vfs/syscall/sys_pread64.rs:61:33: 61:34
+bb45 at src/filesystem/vfs/syscall/sys_pread64.rs:61:18: 61:34
+bb46 at src/filesystem/vfs/syscall/sys_pread64.rs:61:33: 61:34
+bb47 at src/filesystem/vfs/syscall/sys_pread64.rs:61:33: 61:34
+bb49 at src/filesystem/vfs/syscall/sys_pread64.rs:62:41: 62:42
+bb50 at src/filesystem/vfs/syscall/sys_pread64.rs:62:41: 62:42
+bb52 at src/filesystem/vfs/syscall/sys_pread64.rs:63:47: 63:48
+bb53 at src/filesystem/vfs/syscall/sys_pread64.rs:63:47: 63:48
+bb55 at src/filesystem/vfs/syscall/sys_pread64.rs:64:51: 64:52
+bb56 at src/filesystem/vfs/syscall/sys_pread64.rs:66:24: 66:43
+bb57 at src/filesystem/vfs/syscall/sys_pread64.rs:64:51: 64:52
+bb58 at src/filesystem/vfs/syscall/sys_pread64.rs:69:16: 69:20
+bb59 at src/filesystem/vfs/syscall/sys_pread64.rs:69:48: 69:49
+bb60 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb61 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb62 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb63 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb64 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb65 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb66 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
+bb72 at src/filesystem/vfs/syscall/sys_pread64.rs:55:40: 55:41
+fn &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_pread64::SysPread64Handle 
+_2:  @ &amp;&#39;{erased} [usize] 
+_3:  @ &amp;&#39;{erased} mut arch::x86_64::interrupt::TrapFrame 
+_4:  @ ! 
+_5:  @ i32 
+_6:  @ &amp;&#39;{erased} [usize] 
+_7:  @ *mut u8 
+_8:  @ &amp;&#39;{erased} [usize] 
+_9:  @ usize 
+_10:  @ &amp;&#39;{erased} [usize] 
+_11:  @ usize 
+_12:  @ &amp;&#39;{erased} [usize] 
+_13:  @ usize 
+_14:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
+_15:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_16:  @ core::option::Option&lt;usize&gt; 
+_17:  @ usize 
+_18:  @ usize 
+_19:  @ system_error::SystemError 
+_20:  @ isize 
+_21:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_22:  @ ! 
+_23:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_24:  @ usize 
+_25:  @ () 
+_26:  @ bool 
+_27:  @ usize 
+_28:  @ usize 
+_29:  @ bool 
+_30:  @ usize 
+_31:  @ usize 
+_32:  @ ! 
+_33:  @ system_error::SystemError 
+_34:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_35:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;&gt; 
+_36:  @ core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;, system_error::SystemError&gt; 
+_37:  @ *mut u8 
+_38:  @ usize 
+_39:  @ bool 
+_40:  @ &amp;&#39;{erased} arch::x86_64::interrupt::TrapFrame 
+_41:  @ isize 
+_42:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_43:  @ ! 
+_44:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_45:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_46:  @ &amp;&#39;{erased} mut [u8] 
+_47:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, &amp;&#39;{erased} mut [u8]&gt; 
+_48:  @ core::result::Result&lt;&amp;&#39;{erased} mut [u8], system_error::SystemError&gt; 
+_49:  @ &amp;&#39;{erased} mut syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_50:  @ isize 
+_51:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_52:  @ ! 
+_53:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_54:  @ &amp;&#39;{erased} mut [u8] 
+_55:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_56:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_57:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_59:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_60:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_61:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_62:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_63:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_64:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_65:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_66:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_67:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_68:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_69:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_70:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_71:  @ i32 
+_72:  @ system_error::SystemError 
+_73:  @ isize 
+_74:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_75:  @ ! 
+_76:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_77:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_78:  @ () 
+_79:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_80:  @ filesystem::vfs::Metadata 
+_81:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, filesystem::vfs::Metadata&gt; 
+_82:  @ core::result::Result&lt;filesystem::vfs::Metadata, system_error::SystemError&gt; 
+_83:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_84:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_85:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_86:  @ isize 
+_87:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_88:  @ ! 
+_89:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_90:  @ filesystem::vfs::Metadata 
+_91:  @ () 
+_92:  @ bool 
+_93:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_94:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_95:  @ filesystem::vfs::FileType 
+_96:  @ bool 
+_97:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_98:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_99:  @ filesystem::vfs::FileType 
+_100:  @ bool 
+_101:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_102:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_103:  @ filesystem::vfs::FileType 
+_104:  @ ! 
+_105:  @ system_error::SystemError 
+_106:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_107:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_108:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_109:  @ usize 
+_110:  @ usize 
+_111:  @ &amp;&#39;{erased} mut [u8] 
+_112:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_113:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_114:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_115:  @ bool 
+_116:  @ isize 
+_117:  @ isize 
+_118:  @ isize 
+_119:  @ isize 
+_120:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_115, const false)) @ _115=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _5 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::fd(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 20204
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;(*_2))) @ _8=&amp;(*_2) @ Ref
+    _7 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::buf(move _8) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 20205
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(*_2))) @ _10=&amp;(*_2) @ Ref
+    _9 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::len(move _10) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 20206
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;(*_2))) @ _12=&amp;(*_2) @ Ref
+    _11 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::offset(move _12) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 20207
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, copy _11)) @ _17=copy _11 @ Use
+    StorageLive(_18) @ StorageLive
+    Assign((_18, copy _9)) @ _18=copy _9 @ Use
+    _16 = core::num::&lt;impl usize&gt;::checked_add(move _17, move _18) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 35595
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    Assign((_19, system_error::SystemError::EINVAL)) @ _19=system_error::SystemError::EINVAL @ Aggregate
+    _15 = core::option::Option::&lt;usize&gt;::ok_or::&lt;system_error::SystemError&gt;(move _16, move _19) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 10178
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    _14 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _15) -&gt; [return: bb7, unwind continue] @ Call: FnDid: 4199
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    Assign((_20, discriminant(_14))) @ _20=discriminant(_14) @ Discriminant
+    switchInt(move _20) -&gt; [0: bb9, 1: bb10, otherwise: bb8] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_24) @ StorageLive
+    Assign((_24, copy ((_14 as Continue).0: usize))) @ _24=copy ((_14 as Continue).0: usize) @ Use
+    Assign((_13, copy _24)) @ _13=copy _24 @ Use
+    StorageDead(_24) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, copy _11)) @ _27=copy _11 @ Use
+    StorageLive(_28) @ StorageLive
+    Assign((_28, const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt))) @ _28=const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt) @ Cast
+    Assign((_26, Gt(move _27, move _28))) @ _26=Gt(move _27, move _28) @ BinaryOp
+    switchInt(move _26) -&gt; [0: bb13, otherwise: bb12] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    StorageLive(_21) @ StorageLive
+    Assign((_21, move ((_14 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _21=move ((_14 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_23) @ StorageLive
+    Assign((_23, move _21)) @ _23=move _21 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _23) -&gt; [return: bb11, unwind continue] @ Call: FnDid: 4202
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb66 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    goto -&gt; bb16 @ Goto
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, copy _13)) @ _30=copy _13 @ Use
+    StorageLive(_31) @ StorageLive
+    Assign((_31, const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt))) @ _31=const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt) @ Cast
+    Assign((_29, Gt(move _30, move _31))) @ _29=Gt(move _30, move _31) @ BinaryOp
+    switchInt(move _29) -&gt; [0: bb15, otherwise: bb14] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    goto -&gt; bb16 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    Assign((_25, const ())) @ _25=const () @ Use
+    StorageDead(_29) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, copy _7)) @ _37=copy _7 @ Use
+    StorageLive(_38) @ StorageLive
+    Assign((_38, copy _9)) @ _38=copy _9 @ Use
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;(*_3))) @ _40=&amp;(*_3) @ Ref
+    _39 = arch::x86_64::interrupt::TrapFrame::is_from_user(move _40) -&gt; [return: bb17, unwind continue] @ Call: FnDid: 1378
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_33) @ StorageLive
+    Assign((_33, system_error::SystemError::EINVAL)) @ _33=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _33))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _33) @ Aggregate
+    StorageDead(_33) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    goto -&gt; bb66 @ Goto
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    _36 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::new_checked::&lt;u8&gt;(move _37, move _38, move _39) -&gt; [return: bb18, unwind continue] @ Call: FnDid: 30899
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    _35 = &lt;core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;_&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _36) -&gt; [return: bb19, unwind continue] @ Call: FnDid: 4199
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    Assign((_41, discriminant(_35))) @ _41=discriminant(_35) @ Discriminant
+    switchInt(move _41) -&gt; [0: bb20, 1: bb21, otherwise: bb8] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    StorageLive(_45) @ StorageLive
+    Assign((_45, move ((_35 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;))) @ _45=move ((_35 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;) @ Use
+    Assign((_34, move _45)) @ _34=move _45 @ Use
+    StorageDead(_45) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &amp;mut _34)) @ _49=&amp;mut _34 @ Ref
+    _48 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::buffer::&lt;u8&gt;(move _49, const 0_usize) -&gt; [return: bb23, unwind continue] @ Call: FnDid: 30910
+}
+bb 21 {
+CleanUp: false
+    StorageLive(_42) @ StorageLive
+    Assign((_42, move ((_35 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _42=move ((_35 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_44) @ StorageLive
+    Assign((_44, move _42)) @ _44=move _42 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _44) -&gt; [return: bb22, unwind continue] @ Call: FnDid: 4202
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    _47 = &lt;core::result::Result&lt;&amp;mut [u8], system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _48) -&gt; [return: bb24, unwind continue] @ Call: FnDid: 4199
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    Assign((_50, discriminant(_47))) @ _50=discriminant(_47) @ Discriminant
+    switchInt(move _50) -&gt; [0: bb25, 1: bb26, otherwise: bb8] @ SwitchInt
+}
+bb 25 {
+CleanUp: false
+    StorageLive(_54) @ StorageLive
+    Assign((_54, move ((_47 as Continue).0: &amp;mut [u8]))) @ _54=move ((_47 as Continue).0: &amp;mut [u8]) @ Use
+    Assign((_46, move _54)) @ _46=move _54 @ Use
+    StorageDead(_54) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    _59 = process::ProcessManager::current_pcb() -&gt; [return: bb28, unwind continue] @ Call: FnDid: 29866
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_51) @ StorageLive
+    Assign((_51, move ((_47 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _51=move ((_47 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_53) @ StorageLive
+    Assign((_53, move _51)) @ _53=move _51 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _53) -&gt; [return: bb27, unwind continue] @ Call: FnDid: 4202
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    goto -&gt; bb64 @ Goto
+}
+bb 28 {
+CleanUp: false
+    Assign((_58, &amp;_59)) @ _58=&amp;_59 @ Ref
+    _57 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _58) -&gt; [return: bb29, unwind: bb69] @ Call: FnDid: 3903
+}
+bb 29 {
+CleanUp: false
+    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    StorageDead(_58) @ StorageDead
+    _55 = process::ProcessControlBlock::fd_table(move _56) -&gt; [return: bb30, unwind: bb69] @ Call: FnDid: 29947
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    drop(_59) -&gt; [return: bb31, unwind: bb68] @ Drop
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_63, &amp;_55)) @ _63=&amp;_55 @ Ref
+    _62 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _63) -&gt; [return: bb32, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 32 {
+CleanUp: false
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    StorageDead(_63) @ StorageDead
+    _60 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _61) -&gt; [return: bb33, unwind: bb68] @ Call: FnDid: 5156
+}
+bb 33 {
+CleanUp: false
+    Assign((_115, const true)) @ _115=const true @ Use
+    StorageDead(_61) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, &amp;_60)) @ _70=&amp;_60 @ Ref
+    _69 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _70) -&gt; [return: bb34, unwind: bb74] @ Call: FnDid: 3903
+}
+bb 34 {
+CleanUp: false
+    Assign((_68, &amp;(*_69))) @ _68=&amp;(*_69) @ Ref
+    StorageDead(_70) @ StorageDead
+    StorageLive(_71) @ StorageLive
+    Assign((_71, copy _5)) @ _71=copy _5 @ Use
+    _67 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _68, move _71) -&gt; [return: bb35, unwind: bb74] @ Call: FnDid: 19231
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    Assign((_72, system_error::SystemError::EBADF)) @ _72=system_error::SystemError::EBADF @ Aggregate
+    _66 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _67, move _72) -&gt; [return: bb36, unwind: bb74] @ Call: FnDid: 10178
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_72) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    _65 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _66) -&gt; [return: bb37, unwind: bb74] @ Call: FnDid: 4199
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    Assign((_73, discriminant(_65))) @ _73=discriminant(_65) @ Discriminant
+    switchInt(move _73) -&gt; [0: bb38, 1: bb39, otherwise: bb8] @ SwitchInt
+}
+bb 38 {
+CleanUp: false
+    StorageLive(_77) @ StorageLive
+    Assign((_77, move ((_65 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _77=move ((_65 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
+    Assign((_64, move _77)) @ _64=move _77 @ Use
+    StorageDead(_77) @ StorageDead
+    Assign((_118, discriminant(_65))) @ _118=discriminant(_65) @ Discriminant
+    StorageDead(_69) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_115, const false)) @ _115=const false @ Use
+    Assign((_79, move _60)) @ _79=move _60 @ Use
+    _78 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _79) -&gt; [return: bb41, unwind: bb67] @ Call: FnDid: 2323
+}
+bb 39 {
+CleanUp: false
+    StorageLive(_74) @ StorageLive
+    Assign((_74, move ((_65 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _74=move ((_65 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_76) @ StorageLive
+    Assign((_76, move _74)) @ _76=move _74 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _76) -&gt; [return: bb40, unwind: bb72] @ Call: FnDid: 4202
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    Assign((_116, discriminant(_65))) @ _116=discriminant(_65) @ Discriminant
+    StorageDead(_69) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    goto -&gt; bb61 @ Goto
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;_64)) @ _85=&amp;_64 @ Ref
+    _84 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _85) -&gt; [return: bb42, unwind: bb67] @ Call: FnDid: 3903
+}
+bb 42 {
+CleanUp: false
+    Assign((_83, &amp;(*_84))) @ _83=&amp;(*_84) @ Ref
+    StorageDead(_85) @ StorageDead
+    _82 = filesystem::vfs::file::File::metadata(move _83) -&gt; [return: bb43, unwind: bb67] @ Call: FnDid: 19191
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    _81 = &lt;core::result::Result&lt;filesystem::vfs::Metadata, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _82) -&gt; [return: bb44, unwind: bb67] @ Call: FnDid: 4199
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    Assign((_86, discriminant(_81))) @ _86=discriminant(_81) @ Discriminant
+    switchInt(move _86) -&gt; [0: bb45, 1: bb46, otherwise: bb8] @ SwitchInt
+}
+bb 45 {
+CleanUp: false
+    StorageLive(_90) @ StorageLive
+    Assign((_90, move ((_81 as Continue).0: filesystem::vfs::Metadata))) @ _90=move ((_81 as Continue).0: filesystem::vfs::Metadata) @ Use
+    Assign((_80, move _90)) @ _80=move _90 @ Use
+    StorageDead(_90) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &amp;(_80.9: filesystem::vfs::FileType))) @ _93=&amp;(_80.9: filesystem::vfs::FileType) @ Ref
+    StorageLive(_94) @ StorageLive
+    Assign((_114, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[2])) @ _114=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[2] @ Use
+    Assign((_94, &amp;(*_114))) @ _94=&amp;(*_114) @ Ref
+    _92 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _93, move _94) -&gt; [return: bb48, unwind: bb67] @ Call: FnDid: 3170
+}
+bb 46 {
+CleanUp: false
+    StorageLive(_87) @ StorageLive
+    Assign((_87, move ((_81 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _87=move ((_81 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_89) @ StorageLive
+    Assign((_89, move _87)) @ _89=move _87 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _89) -&gt; [return: bb47, unwind: bb67] @ Call: FnDid: 4202
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_89) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 48 {
+CleanUp: false
+    switchInt(move _92) -&gt; [0: bb50, otherwise: bb49] @ SwitchInt
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    Assign((_97, &amp;(_80.9: filesystem::vfs::FileType))) @ _97=&amp;(_80.9: filesystem::vfs::FileType) @ Ref
+    StorageLive(_98) @ StorageLive
+    Assign((_113, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[1])) @ _113=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[1] @ Use
+    Assign((_98, &amp;(*_113))) @ _98=&amp;(*_113) @ Ref
+    _96 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _97, move _98) -&gt; [return: bb51, unwind: bb67] @ Call: FnDid: 3170
+}
+bb 51 {
+CleanUp: false
+    switchInt(move _96) -&gt; [0: bb53, otherwise: bb52] @ SwitchInt
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    Assign((_101, &amp;(_80.9: filesystem::vfs::FileType))) @ _101=&amp;(_80.9: filesystem::vfs::FileType) @ Ref
+    StorageLive(_102) @ StorageLive
+    Assign((_112, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[0])) @ _112=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[0] @ Use
+    Assign((_102, &amp;(*_112))) @ _102=&amp;(*_112) @ Ref
+    _100 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _101, move _102) -&gt; [return: bb54, unwind: bb67] @ Call: FnDid: 3170
+}
+bb 54 {
+CleanUp: false
+    switchInt(move _100) -&gt; [0: bb57, otherwise: bb55] @ SwitchInt
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageLive(_105) @ StorageLive
+    Assign((_105, system_error::SystemError::ESPIPE)) @ _105=system_error::SystemError::ESPIPE @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _105))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _105) @ Aggregate
+    StorageDead(_105) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    Assign((_91, const ())) @ _91=const () @ Use
+    StorageDead(_100) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    Assign((_108, &amp;_64)) @ _108=&amp;_64 @ Ref
+    _107 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _108) -&gt; [return: bb58, unwind: bb67] @ Call: FnDid: 3903
+}
+bb 58 {
+CleanUp: false
+    Assign((_106, &amp;(*_107))) @ _106=&amp;(*_107) @ Ref
+    StorageDead(_108) @ StorageDead
+    StorageLive(_109) @ StorageLive
+    Assign((_109, copy _11)) @ _109=copy _11 @ Use
+    StorageLive(_110) @ StorageLive
+    Assign((_110, copy _9)) @ _110=copy _9 @ Use
+    StorageLive(_111) @ StorageLive
+    Assign((_111, &amp;mut (*_46))) @ _111=&amp;mut (*_46) @ Ref
+    _0 = filesystem::vfs::file::File::pread(move _106, move _109, move _110, move _111) -&gt; [return: bb59, unwind: bb67] @ Call: FnDid: 19185
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_111) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 60 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    drop(_64) -&gt; [return: bb61, unwind: bb74] @ Drop
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    switchInt(copy _115) -&gt; [0: bb62, otherwise: bb71] @ SwitchInt
+}
+bb 62 {
+CleanUp: false
+    Assign((_115, const false)) @ _115=const false @ Use
+    StorageDead(_60) @ StorageDead
+    drop(_55) -&gt; [return: bb63, unwind: bb70] @ Drop
+}
+bb 63 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    goto -&gt; bb64 @ Goto
+}
+bb 64 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 65 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    goto -&gt; bb66 @ Goto
+}
+bb 66 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    return @ Return
+}
+bb 67 {
+CleanUp: true
+    drop(_64) -&gt; [return: bb74, unwind terminate(cleanup)] @ Drop
+}
+bb 68 {
+CleanUp: true
+    drop(_55) -&gt; [return: bb70, unwind terminate(cleanup)] @ Drop
+}
+bb 69 {
+CleanUp: true
+    drop(_59) -&gt; [return: bb70, unwind terminate(cleanup)] @ Drop
+}
+bb 70 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 71 {
+CleanUp: false
+    drop(_60) -&gt; [return: bb62, unwind: bb68] @ Drop
+}
+bb 72 {
+CleanUp: true
+    Assign((_120, discriminant(_65))) @ _120=discriminant(_65) @ Discriminant
+    goto -&gt; bb74 @ Goto
+}
+bb 73 {
+CleanUp: true
+    drop(_60) -&gt; [return: bb68, unwind terminate(cleanup)] @ Drop
+}
+bb 74 {
+CleanUp: true
+    switchInt(copy _115) -&gt; [0: bb68, otherwise: bb73] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

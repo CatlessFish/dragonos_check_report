@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #31: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #31
+            
+                 <span class="func-name">driver::net::loopback::{impl#12}::new</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:58|RAP|WARN|: Double free detected in function &#34;new&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/net/loopback.rs:288:1
+    |
+288 | / pub fn new(mut driver: LoopbackDriver) -&gt; Arc&lt;Self&gt; {
+289 | |         let iface_id = generate_iface_id();
+290 | |
+291 | |         // let hardware_addr = HardwareAddress::Ethernet(smoltcp::wire::EthernetAddress([
+292 | |         //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+293 | |         // ]));
+294 | |
+295 | |         let hardware_addr = HardwareAddress::Ip;
+296 | |
+297 | |         let mut iface_config = smoltcp::iface::Config::new(hardware_addr);
+298 | |
+299 | |         iface_config.random_seed = rand() as u64;
+300 | |
+301 | |         let mut iface =
+302 | |             smoltcp::iface::Interface::new(iface_config, &amp;mut driver, Instant::now().into());
+303 | |
+304 | |         iface.set_any_ip(true);
+305 | |
+306 | |         let addr = IpAddress::v4(127, 0, 0, 1);
+307 | |         let cidr = IpCidr::new(addr, 8);
+308 | |
+309 | |         //设置网卡地址为127.0.0.1
+310 | |         iface.update_ip_addrs(|ip_addrs| {
+311 | |             ip_addrs.push(cidr).expect(&#34;Push ipCidr failed: full&#34;);
+312 | |         });
+313 | |
+314 | |         iface.routes_mut().update(|routes_map| {
+315 | |             routes_map
+316 | |                 .push(smoltcp::iface::Route {
+317 | |                     cidr,
+318 | |                     via_router: addr,
+319 | |                     preferred_until: None,
+320 | |                     expires_at: None,
+321 | |                 })
+322 | |                 .expect(&#34;Add default ipv4 route failed: full&#34;);
+323 | |         });
+324 | |
+325 | |         let flags = InterfaceFlags::LOOPBACK
+326 | |             | InterfaceFlags::UP
+327 | |             | InterfaceFlags::RUNNING
+328 | |             | InterfaceFlags::LOWER_UP;
+329 | |
+330 | |         Arc::new(LoopbackInterface {
+331 | |             driver: LoopbackDriverWapper(UnsafeCell::new(driver)),
+332 | |             common: IfaceCommon::new(
+333 | |                 iface_id,
+334 | |                 super::types::InterfaceType::LOOPBACK,
+335 | |                 flags,
+336 | |                 iface,
+337 | |             ),
+338 | |             inner: SpinLock::new(InnerLoopbackInterface {
+339 | |                 netdevice_common: NetDeviceCommonData::default(),
+340 | |                 device_common: DeviceCommonData::default(),
+341 | |                 kobj_common: KObjectCommonData::default(),
+342 | |             }),
+343 | |             locked_kobj_state: LockedKObjectState::default(),
+344 | |         })
+345 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/loopback.rs line 288.
+    | MIR detail: Value _36(_, src/driver/net/loopback.rs:332) and _36(_, src/driver/net/loopback.rs:332) are alias.
+    | MIR detail: _36(_, src/driver/net/loopback.rs:332) is dropped at BB26(src/driver/net/loopback.rs:344); _36(_, src/driver/net/loopback.rs:332) is dropped at BB26(src/driver/net/loopback.rs:344).
+    |
+render dot for DefId(0:11057 ~ dragonos_kernel[9e38]::driver::net::loopback::{impl#12}::new)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/loopback.rs:289:13: 289:21
+bb1 at src/driver/net/loopback.rs:295:13: 295:26
+bb2 at src/driver/net/loopback.rs:297:73: 297:74
+bb3 at src/driver/net/loopback.rs:299:9: 299:49
+bb5 at src/driver/net/loopback.rs:302:91: 302:92
+bb6 at src/driver/net/loopback.rs:302:92: 302:93
+bb7 at src/driver/net/loopback.rs:304:30: 304:31
+bb8 at src/driver/net/loopback.rs:307:13: 307:17
+bb9 at src/driver/net/loopback.rs:307:39: 307:40
+bb10 at src/driver/net/loopback.rs:312:10: 312:11
+bb11 at src/driver/net/loopback.rs:314:9: 314:27
+bb12 at src/driver/net/loopback.rs:323:10: 323:11
+bb14 at src/driver/net/loopback.rs:327:37: 327:38
+bb15 at src/driver/net/loopback.rs:328:38: 328:39
+bb16 at src/driver/net/loopback.rs:331:64: 331:65
+bb17 at src/driver/net/loopback.rs:337:13: 337:14
+bb18 at src/driver/net/loopback.rs:340:32: 340:59
+bb19 at src/driver/net/loopback.rs:341:30: 341:58
+bb20 at src/driver/net/loopback.rs:338:34: 342:14
+bb21 at src/driver/net/loopback.rs:342:14: 342:15
+bb22 at src/driver/net/loopback.rs:330:18: 344:10
+bb23 at src/driver/net/loopback.rs:344:10: 344:11
+fn driver::net::loopback::LoopbackInterface::new
+_0:  @ alloc::sync::Arc&lt;driver::net::loopback::LoopbackInterface, alloc::alloc::Global&gt; 
+_1:  @ driver::net::loopback::LoopbackDriver 
+_2:  @ usize 
+_3:  @ smoltcp::wire::HardwareAddress 
+_4:  @ smoltcp::iface::Config 
+_5:  @ smoltcp::wire::HardwareAddress 
+_6:  @ usize 
+_7:  @ smoltcp::iface::Interface 
+_8:  @ smoltcp::iface::Config 
+_9:  @ &amp;&#39;{erased} mut driver::net::loopback::LoopbackDriver 
+_10:  @ &amp;&#39;{erased} mut driver::net::loopback::LoopbackDriver 
+_11:  @ smoltcp::time::Instant 
+_12:  @ time::Instant 
+_13:  @ () 
+_14:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_15:  @ smoltcp::wire::IpAddress 
+_16:  @ smoltcp::wire::IpCidr 
+_17:  @ smoltcp::wire::IpAddress 
+_18:  @ () 
+_19:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_20:  @ Closure(DefId(0:11058 ~ dragonos_kernel[9e38]::driver::net::loopback::{impl#12}::new::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut heapless::vec::Vec&lt;smoltcp::wire::IpCidr, 2_usize&gt;,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} smoltcp::wire::IpCidr,)]) 
+_21:  @ &amp;&#39;{erased} smoltcp::wire::IpCidr 
+_22:  @ () 
+_23:  @ &amp;&#39;{erased} mut smoltcp::iface::Routes 
+_24:  @ &amp;&#39;{erased} mut smoltcp::iface::Routes 
+_25:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_26:  @ Closure(DefId(0:11059 ~ dragonos_kernel[9e38]::driver::net::loopback::{impl#12}::new::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut heapless::vec::Vec&lt;smoltcp::iface::Route, 2_usize&gt;,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} smoltcp::wire::IpCidr, &amp;&#39;{erased} smoltcp::wire::IpAddress)]) 
+_27:  @ &amp;&#39;{erased} smoltcp::wire::IpCidr 
+_28:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+_29:  @ driver::net::types::InterfaceFlags 
+_30:  @ driver::net::types::InterfaceFlags 
+_31:  @ driver::net::types::InterfaceFlags 
+_32:  @ driver::net::loopback::LoopbackInterface 
+_33:  @ driver::net::loopback::LoopbackDriverWapper 
+_34:  @ core::cell::UnsafeCell&lt;driver::net::loopback::LoopbackDriver&gt; 
+_35:  @ driver::net::loopback::LoopbackDriver 
+_36:  @ driver::net::IfaceCommon 
+_37:  @ usize 
+_38:  @ driver::net::types::InterfaceType 
+_39:  @ driver::net::types::InterfaceFlags 
+_40:  @ smoltcp::iface::Interface 
+_41:  @ libs::spinlock::SpinLock&lt;driver::net::loopback::InnerLoopbackInterface&gt; 
+_42:  @ driver::net::loopback::InnerLoopbackInterface 
+_43:  @ driver::net::NetDeviceCommonData 
+_44:  @ driver::base::device::DeviceCommonData 
+_45:  @ driver::base::kobject::KObjectCommonData 
+_46:  @ driver::base::kobject::LockedKObjectState 
+_47:  @ bool 
+_48:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_48, const false)) @ _48=const false @ Use
+    Assign((_47, const false)) @ _47=const false @ Use
+    Assign((_48, const true)) @ _48=const true @ Use
+    StorageLive(_2) @ StorageLive
+    _2 = net::generate_iface_id() -&gt; [return: bb1, unwind: bb32] @ Call: FnDid: 27289
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, smoltcp::wire::HardwareAddress::Ip)) @ _3=smoltcp::wire::HardwareAddress::Ip @ Aggregate
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, copy _3)) @ _5=copy _3 @ Use
+    _4 = smoltcp::iface::Config::new(move _5) -&gt; [return: bb2, unwind: bb32] @ Call: FnDid: 295
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    _6 = arch::x86_64::rand::rand() -&gt; [return: bb3, unwind: bb32] @ Call: FnDid: 2001
+}
+bb 3 {
+CleanUp: false
+    Assign(((_4.0: u64), move _6 as u64 (IntToInt))) @ (_4.0: u64)=move _6 as u64 (IntToInt) @ Cast
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, move _4)) @ _8=move _4 @ Use
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;mut _1)) @ _10=&amp;mut _1 @ Ref
+    Assign((_9, &amp;mut (*_10))) @ _9=&amp;mut (*_10) @ Ref
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    _12 = time::Instant::now() -&gt; [return: bb4, unwind: bb32] @ Call: FnDid: 31615
+}
+bb 4 {
+CleanUp: false
+    _11 = &lt;time::Instant as core::convert::Into&lt;smoltcp::time::Instant&gt;&gt;::into(move _12) -&gt; [return: bb5, unwind: bb32] @ Call: FnDid: 3387
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    _7 = smoltcp::iface::Interface::new::&lt;driver::net::loopback::LoopbackDriver&gt;(move _8, move _9, move _11) -&gt; [return: bb6, unwind: bb32] @ Call: FnDid: 297
+}
+bb 6 {
+CleanUp: false
+    Assign((_47, const true)) @ _47=const true @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;mut _7)) @ _14=&amp;mut _7 @ Ref
+    _13 = smoltcp::iface::Interface::set_any_ip(move _14, const true) -&gt; [return: bb7, unwind: bb30] @ Call: FnDid: 314
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    _15 = smoltcp::wire::IpAddress::v4(const 127_u8, const 0_u8, const 0_u8, const 1_u8) -&gt; [return: bb8, unwind: bb30] @ Call: FnDid: 2369
+}
+bb 8 {
+CleanUp: false
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, copy _15)) @ _17=copy _15 @ Use
+    _16 = smoltcp::wire::IpCidr::new(move _17, const 8_u8) -&gt; [return: bb9, unwind: bb30] @ Call: FnDid: 2388
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &amp;mut _7)) @ _19=&amp;mut _7 @ Ref
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;_16)) @ _21=&amp;_16 @ Ref
+    Assign((_20, {closure@src/driver/net/loopback.rs:310:31: 310:41} { cidr: move _21 })) @ _20={closure@src/driver/net/loopback.rs:310:31: 310:41} { cidr: move _21 } @ Aggregate
+    StorageDead(_21) @ StorageDead
+    _18 = smoltcp::iface::Interface::update_ip_addrs::&lt;{closure@src/driver/net/loopback.rs:310:31: 310:41}&gt;(move _19, move _20) -&gt; [return: bb10, unwind: bb30] @ Call: FnDid: 308
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;mut _7)) @ _25=&amp;mut _7 @ Ref
+    _24 = smoltcp::iface::Interface::routes_mut(move _25) -&gt; [return: bb11, unwind: bb30] @ Call: FnDid: 313
+}
+bb 11 {
+CleanUp: false
+    Assign((_23, &amp;mut (*_24))) @ _23=&amp;mut (*_24) @ Ref
+    StorageDead(_25) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &amp;_16)) @ _27=&amp;_16 @ Ref
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;_15)) @ _28=&amp;_15 @ Ref
+    Assign((_26, {closure@src/driver/net/loopback.rs:314:35: 314:47} { cidr: move _27, addr: move _28 })) @ _26={closure@src/driver/net/loopback.rs:314:35: 314:47} { cidr: move _27, addr: move _28 } @ Aggregate
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    _22 = smoltcp::iface::Routes::update::&lt;{closure@src/driver/net/loopback.rs:314:35: 314:47}&gt;(move _23, move _26) -&gt; [return: bb12, unwind: bb30] @ Call: FnDid: 428
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    _31 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(const driver::net::types::InterfaceFlags::LOOPBACK, const driver::net::types::InterfaceFlags::UP) -&gt; [return: bb13, unwind: bb30] @ Call: FnDid: 39936
+}
+bb 13 {
+CleanUp: false
+    _30 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _31, const driver::net::types::InterfaceFlags::RUNNING) -&gt; [return: bb14, unwind: bb30] @ Call: FnDid: 39936
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    _29 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _30, const driver::net::types::InterfaceFlags::LOWER_UP) -&gt; [return: bb15, unwind: bb30] @ Call: FnDid: 39936
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_48, const false)) @ _48=const false @ Use
+    Assign((_35, move _1)) @ _35=move _1 @ Use
+    _34 = core::cell::UnsafeCell::&lt;driver::net::loopback::LoopbackDriver&gt;::new(move _35) -&gt; [return: bb16, unwind: bb30] @ Call: FnDid: 5681
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    Assign((_33, driver::net::loopback::LoopbackDriverWapper(move _34))) @ _33=driver::net::loopback::LoopbackDriverWapper(move _34) @ Aggregate
+    StorageDead(_34) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, copy _2)) @ _37=copy _2 @ Use
+    StorageLive(_38) @ StorageLive
+    Assign((_38, driver::net::types::InterfaceType::LOOPBACK)) @ _38=driver::net::types::InterfaceType::LOOPBACK @ Aggregate
+    StorageLive(_39) @ StorageLive
+    Assign((_39, copy _29)) @ _39=copy _29 @ Use
+    StorageLive(_40) @ StorageLive
+    Assign((_47, const false)) @ _47=const false @ Use
+    Assign((_40, move _7)) @ _40=move _7 @ Use
+    _36 = driver::net::IfaceCommon::new(move _37, move _38, move _39, move _40) -&gt; [return: bb17, unwind: bb27] @ Call: FnDid: 11816
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    _43 = &lt;driver::net::NetDeviceCommonData as core::default::Default&gt;::default() -&gt; [return: bb18, unwind: bb26] @ Call: FnDid: 3464
+}
+bb 18 {
+CleanUp: false
+    StorageLive(_44) @ StorageLive
+    _44 = &lt;driver::base::device::DeviceCommonData as core::default::Default&gt;::default() -&gt; [return: bb19, unwind: bb26] @ Call: FnDid: 3464
+}
+bb 19 {
+CleanUp: false
+    StorageLive(_45) @ StorageLive
+    _45 = &lt;driver::base::kobject::KObjectCommonData as core::default::Default&gt;::default() -&gt; [return: bb20, unwind: bb25] @ Call: FnDid: 3464
+}
+bb 20 {
+CleanUp: false
+    Assign((_42, driver::net::loopback::InnerLoopbackInterface { netdevice_common: move _43, device_common: move _44, kobj_common: move _45 })) @ _42=driver::net::loopback::InnerLoopbackInterface { netdevice_common: move _43, device_common: move _44, kobj_common: move _45 } @ Aggregate
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    _41 = libs::spinlock::SpinLock::&lt;driver::net::loopback::InnerLoopbackInterface&gt;::new(move _42) -&gt; [return: bb21, unwind: bb26] @ Call: FnDid: 5260
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    _46 = &lt;driver::base::kobject::LockedKObjectState as core::default::Default&gt;::default() -&gt; [return: bb22, unwind: bb24] @ Call: FnDid: 3464
+}
+bb 22 {
+CleanUp: false
+    Assign((_32, driver::net::loopback::LoopbackInterface { driver: move _33, common: move _36, inner: move _41, locked_kobj_state: move _46 })) @ _32=driver::net::loopback::LoopbackInterface { driver: move _33, common: move _36, inner: move _41, locked_kobj_state: move _46 } @ Aggregate
+    StorageDead(_46) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    _0 = alloc::sync::Arc::&lt;driver::net::loopback::LoopbackInterface&gt;::new(move _32) -&gt; [return: bb23, unwind: bb30] @ Call: FnDid: 6875
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    Assign((_47, const false)) @ _47=const false @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 24 {
+CleanUp: true
+    drop(_41) -&gt; [return: bb26, unwind terminate(cleanup)] @ Drop
+}
+bb 25 {
+CleanUp: true
+    drop(_44) -&gt; [return: bb26, unwind terminate(cleanup)] @ Drop
+}
+bb 26 {
+CleanUp: true
+    drop(_36) -&gt; [return: bb27, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    drop(_33) -&gt; [return: bb30, unwind terminate(cleanup)] @ Drop
+}
+bb 28 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 29 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb32, unwind terminate(cleanup)] @ Drop
+}
+bb 30 {
+CleanUp: true
+    switchInt(copy _47) -&gt; [0: bb32, otherwise: bb29] @ SwitchInt
+}
+bb 31 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb28, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    switchInt(copy _48) -&gt; [0: bb28, otherwise: bb31] @ SwitchInt
+}
+
+bb0 at src/driver/net/loopback.rs:311:13: 311:67
+bb1 at src/driver/net/loopback.rs:311:31: 311:32
+bb2 at src/driver/net/loopback.rs:311:66: 311:67
+fn driver::net::loopback::LoopbackInterface::new::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:11058 ~ dragonos_kernel[9e38]::driver::net::loopback::{impl#12}::new::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut heapless::vec::Vec&lt;smoltcp::wire::IpCidr, 2_usize&gt;,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} smoltcp::wire::IpCidr,)]) 
+_2:  @ &amp;&#39;{erased} mut heapless::vec::Vec&lt;smoltcp::wire::IpCidr, 2_usize&gt; 
+_3:  @ () 
+_4:  @ core::result::Result&lt;(), smoltcp::wire::IpCidr&gt; 
+_5:  @ &amp;&#39;{erased} mut heapless::vec::Vec&lt;smoltcp::wire::IpCidr, 2_usize&gt; 
+_6:  @ smoltcp::wire::IpCidr 
+_7:  @ &amp;&#39;{erased} str 
+_8:  @ &amp;&#39;{erased} str 
+_9:  @ &amp;&#39;{erased} smoltcp::wire::IpCidr 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;mut (*_2))) @ _5=&amp;mut (*_2) @ Ref
+    StorageLive(_6) @ StorageLive
+    Assign((_9, deref_copy (_1.0: &amp;smoltcp::wire::IpCidr))) @ _9=deref_copy (_1.0: &amp;smoltcp::wire::IpCidr) @ CopyForDeref
+    Assign((_6, copy (*_9))) @ _6=copy (*_9) @ Use
+    _4 = heapless::vec::Vec::&lt;smoltcp::wire::IpCidr, 2&gt;::push(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 1095
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, const &#34;Push ipCidr failed: full&#34;)) @ _8=const &#34;Push ipCidr failed: full&#34; @ Use
+    Assign((_7, &amp;(*_8))) @ _7=&amp;(*_8) @ Ref
+    _3 = core::result::Result::&lt;(), smoltcp::wire::IpCidr&gt;::expect(move _4, move _7) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 11023
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
+}
+
+bb0 at src/driver/net/loopback.rs:315:13: 322:63
+bb1 at src/driver/net/loopback.rs:321:18: 321:19
+bb2 at src/driver/net/loopback.rs:322:62: 322:63
+fn driver::net::loopback::LoopbackInterface::new::{closure#1}
+_0:  @ () 
+_1:  @ Closure(DefId(0:11059 ~ dragonos_kernel[9e38]::driver::net::loopback::{impl#12}::new::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut heapless::vec::Vec&lt;smoltcp::iface::Route, 2_usize&gt;,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} smoltcp::wire::IpCidr, &amp;&#39;{erased} smoltcp::wire::IpAddress)]) 
+_2:  @ &amp;&#39;{erased} mut heapless::vec::Vec&lt;smoltcp::iface::Route, 2_usize&gt; 
+_3:  @ () 
+_4:  @ core::result::Result&lt;(), smoltcp::iface::Route&gt; 
+_5:  @ &amp;&#39;{erased} mut heapless::vec::Vec&lt;smoltcp::iface::Route, 2_usize&gt; 
+_6:  @ smoltcp::iface::Route 
+_7:  @ smoltcp::wire::IpCidr 
+_8:  @ smoltcp::wire::IpAddress 
+_9:  @ core::option::Option&lt;smoltcp::time::Instant&gt; 
+_10:  @ core::option::Option&lt;smoltcp::time::Instant&gt; 
+_11:  @ &amp;&#39;{erased} str 
+_12:  @ &amp;&#39;{erased} str 
+_13:  @ &amp;&#39;{erased} smoltcp::wire::IpCidr 
+_14:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;mut (*_2))) @ _5=&amp;mut (*_2) @ Ref
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_13, deref_copy (_1.0: &amp;smoltcp::wire::IpCidr))) @ _13=deref_copy (_1.0: &amp;smoltcp::wire::IpCidr) @ CopyForDeref
+    Assign((_7, copy (*_13))) @ _7=copy (*_13) @ Use
+    StorageLive(_8) @ StorageLive
+    Assign((_14, deref_copy (_1.1: &amp;smoltcp::wire::IpAddress))) @ _14=deref_copy (_1.1: &amp;smoltcp::wire::IpAddress) @ CopyForDeref
+    Assign((_8, copy (*_14))) @ _8=copy (*_14) @ Use
+    StorageLive(_9) @ StorageLive
+    Assign((_9, core::option::Option::&lt;smoltcp::time::Instant&gt;::None)) @ _9=core::option::Option::&lt;smoltcp::time::Instant&gt;::None @ Aggregate
+    StorageLive(_10) @ StorageLive
+    Assign((_10, core::option::Option::&lt;smoltcp::time::Instant&gt;::None)) @ _10=core::option::Option::&lt;smoltcp::time::Instant&gt;::None @ Aggregate
+    Assign((_6, smoltcp::iface::Route { cidr: move _7, via_router: move _8, preferred_until: move _9, expires_at: move _10 })) @ _6=smoltcp::iface::Route { cidr: move _7, via_router: move _8, preferred_until: move _9, expires_at: move _10 } @ Aggregate
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    _4 = heapless::vec::Vec::&lt;smoltcp::iface::Route, 2&gt;::push(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 1095
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, const &#34;Add default ipv4 route failed: full&#34;)) @ _12=const &#34;Add default ipv4 route failed: full&#34; @ Use
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    _3 = core::result::Result::&lt;(), smoltcp::iface::Route&gt;::expect(move _4, move _11) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 11023
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #16: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #16
+            
+                 <span class="func-name">libs::futex::syscall::sys_futex::{impl#0}::entry_format</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:54|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new(&#34;uaddr&#34;, format!(&#34;{:#x}&#34;, Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new(&#34;futex_op&#34;, format!(&#34;{:#x}&#34;, Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new(&#34;val&#34;, Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new(&#34;utime&#34;, format!(&#34;{:#x}&#34;, Self::utime(args))),
+100 | |             FormattedSyscallParam::new(&#34;uaddr2&#34;, format!(&#34;{:#x}&#34;, Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new(&#34;val3&#34;, Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _64(_, src/libs/futex/syscall/sys_futex.rs:99) and _35(_, src/libs/futex/syscall/sys_futex.rs:97) are alias.
+    | MIR detail: _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _35(_, src/libs/futex/syscall/sys_futex.rs:97) is dropped at BB38(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new(&#34;uaddr&#34;, format!(&#34;{:#x}&#34;, Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new(&#34;futex_op&#34;, format!(&#34;{:#x}&#34;, Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new(&#34;val&#34;, Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new(&#34;utime&#34;, format!(&#34;{:#x}&#34;, Self::utime(args))),
+100 | |             FormattedSyscallParam::new(&#34;uaddr2&#34;, format!(&#34;{:#x}&#34;, Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new(&#34;val3&#34;, Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _64(_, src/libs/futex/syscall/sys_futex.rs:99) and _9(_, src/libs/futex/syscall/sys_futex.rs:96) are alias.
+    | MIR detail: _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/libs/futex/syscall/sys_futex.rs:96) is dropped at BB39(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new(&#34;uaddr&#34;, format!(&#34;{:#x}&#34;, Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new(&#34;futex_op&#34;, format!(&#34;{:#x}&#34;, Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new(&#34;val&#34;, Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new(&#34;utime&#34;, format!(&#34;{:#x}&#34;, Self::utime(args))),
+100 | |             FormattedSyscallParam::new(&#34;uaddr2&#34;, format!(&#34;{:#x}&#34;, Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new(&#34;val3&#34;, Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _88(_, src/libs/futex/syscall/sys_futex.rs:100) and _64(_, src/libs/futex/syscall/sys_futex.rs:99) are alias.
+    | MIR detail: _88(_, src/libs/futex/syscall/sys_futex.rs:100) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new(&#34;uaddr&#34;, format!(&#34;{:#x}&#34;, Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new(&#34;futex_op&#34;, format!(&#34;{:#x}&#34;, Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new(&#34;val&#34;, Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new(&#34;utime&#34;, format!(&#34;{:#x}&#34;, Self::utime(args))),
+100 | |             FormattedSyscallParam::new(&#34;uaddr2&#34;, format!(&#34;{:#x}&#34;, Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new(&#34;val3&#34;, Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _64(_, src/libs/futex/syscall/sys_futex.rs:99) and _59(_, src/libs/futex/syscall/sys_futex.rs:98) are alias.
+    | MIR detail: _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _59(_, src/libs/futex/syscall/sys_futex.rs:98) is dropped at BB37(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:5539 ~ dragonos_kernel[9e38]::libs::futex::syscall::sys_futex::{impl#0}::entry_format)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
+bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
+bb2 at src/libs/futex/syscall/sys_futex.rs:96:66: 96:83
+bb3 at src/libs/futex/syscall/sys_futex.rs:96:89: 96:90
+bb4 at src/libs/futex/syscall/sys_futex.rs:96:62: 96:63
+bb5 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb6 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb7 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb8 at src/libs/futex/syscall/sys_futex.rs:96:91: 96:92
+bb9 at src/libs/futex/syscall/sys_futex.rs:97:93: 97:94
+bb10 at src/libs/futex/syscall/sys_futex.rs:97:65: 97:66
+bb11 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb12 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb13 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb14 at src/libs/futex/syscall/sys_futex.rs:97:95: 97:96
+bb15 at src/libs/futex/syscall/sys_futex.rs:98:47: 98:62
+bb16 at src/libs/futex/syscall/sys_futex.rs:98:73: 98:74
+bb17 at src/libs/futex/syscall/sys_futex.rs:98:74: 98:75
+bb18 at src/libs/futex/syscall/sys_futex.rs:99:82: 99:83
+bb19 at src/libs/futex/syscall/sys_futex.rs:99:62: 99:63
+bb20 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb21 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb23 at src/libs/futex/syscall/sys_futex.rs:99:84: 99:85
+bb24 at src/libs/futex/syscall/sys_futex.rs:100:67: 100:85
+bb25 at src/libs/futex/syscall/sys_futex.rs:100:91: 100:92
+bb26 at src/libs/futex/syscall/sys_futex.rs:100:63: 100:64
+bb27 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb28 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb29 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb30 at src/libs/futex/syscall/sys_futex.rs:100:93: 100:94
+bb31 at src/libs/futex/syscall/sys_futex.rs:101:48: 101:64
+bb32 at src/libs/futex/syscall/sys_futex.rs:101:75: 101:76
+bb33 at src/libs/futex/syscall/sys_futex.rs:101:76: 101:77
+bb34 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
+bb41 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
+bb42 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+bb43 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+fn &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format
+_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
+_1:  @ &amp;&#39;{erased} libs::futex::syscall::sys_futex::SysFutexHandle 
+_2:  @ &amp;&#39;{erased} [usize] 
+_3:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
+_4:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 6_usize], alloc::alloc::Global&gt; 
+_5:  @ usize 
+_6:  @ usize 
+_7:  @ *mut u8 
+_8:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 6_usize], alloc::alloc::Global&gt; 
+_9:  @ syscall::table::FormattedSyscallParam 
+_10:  @ alloc::string::String 
+_11:  @ alloc::string::String 
+_12:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_13:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_14:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_15:  @ &amp;&#39;{erased} usize 
+_16:  @ &amp;&#39;{erased} usize 
+_17:  @ usize 
+_18:  @ &amp;&#39;{erased} mm::VirtAddr 
+_19:  @ mm::VirtAddr 
+_20:  @ &amp;&#39;{erased} [usize] 
+_21:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_22:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_23:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_24:  @ [&amp;&#39;{erased} str; 1_usize] 
+_25:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_26:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_27:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_28:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_29:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_30:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_31:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_32:  @ core::fmt::rt::Placeholder 
+_33:  @ core::fmt::rt::Count 
+_34:  @ core::fmt::rt::Count 
+_35:  @ syscall::table::FormattedSyscallParam 
+_36:  @ alloc::string::String 
+_37:  @ alloc::string::String 
+_38:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_39:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_40:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_41:  @ &amp;&#39;{erased} u32 
+_42:  @ &amp;&#39;{erased} u32 
+_43:  @ u32 
+_44:  @ &amp;&#39;{erased} [usize] 
+_45:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_46:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_47:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_48:  @ [&amp;&#39;{erased} str; 1_usize] 
+_49:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_50:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_51:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_52:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_53:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_54:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_55:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_56:  @ core::fmt::rt::Placeholder 
+_57:  @ core::fmt::rt::Count 
+_58:  @ core::fmt::rt::Count 
+_59:  @ syscall::table::FormattedSyscallParam 
+_60:  @ alloc::string::String 
+_61:  @ &amp;&#39;{erased} u32 
+_62:  @ u32 
+_63:  @ &amp;&#39;{erased} [usize] 
+_64:  @ syscall::table::FormattedSyscallParam 
+_65:  @ alloc::string::String 
+_66:  @ alloc::string::String 
+_67:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_68:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_69:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_70:  @ &amp;&#39;{erased} usize 
+_71:  @ &amp;&#39;{erased} usize 
+_72:  @ usize 
+_73:  @ &amp;&#39;{erased} [usize] 
+_74:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_75:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_76:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_77:  @ [&amp;&#39;{erased} str; 1_usize] 
+_78:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_79:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_80:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_81:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_82:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_83:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_84:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_85:  @ core::fmt::rt::Placeholder 
+_86:  @ core::fmt::rt::Count 
+_87:  @ core::fmt::rt::Count 
+_88:  @ syscall::table::FormattedSyscallParam 
+_89:  @ alloc::string::String 
+_90:  @ alloc::string::String 
+_91:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_92:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_93:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_94:  @ &amp;&#39;{erased} usize 
+_95:  @ &amp;&#39;{erased} usize 
+_96:  @ usize 
+_97:  @ &amp;&#39;{erased} mm::VirtAddr 
+_98:  @ mm::VirtAddr 
+_99:  @ &amp;&#39;{erased} [usize] 
+_100:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_101:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_102:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_103:  @ [&amp;&#39;{erased} str; 1_usize] 
+_104:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_105:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_106:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_107:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_108:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_109:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_110:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_111:  @ core::fmt::rt::Placeholder 
+_112:  @ core::fmt::rt::Count 
+_113:  @ core::fmt::rt::Count 
+_114:  @ syscall::table::FormattedSyscallParam 
+_115:  @ alloc::string::String 
+_116:  @ &amp;&#39;{erased} u32 
+_117:  @ u32 
+_118:  @ &amp;&#39;{erased} [usize] 
+_119:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_120:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_121:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_122:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_123:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_124:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_125:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_126:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_127:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 6_usize], alloc::alloc::Global&gt; 
+_128:  @ () 
+_129:  @ *const [syscall::table::FormattedSyscallParam; 6_usize] 
+_130:  @ *const [syscall::table::FormattedSyscallParam; 6_usize] 
+_131:  @ *const () 
+_132:  @ usize 
+_133:  @ usize 
+_134:  @ usize 
+_135:  @ usize 
+_136:  @ bool 
+_137:  @ *const () 
+_138:  @ usize 
+_139:  @ usize 
+_140:  @ bool 
+_141:  @ bool 
+_142:  @ bool 
+_143:  @ bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 6]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 6]) @ NullaryOp
+    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 6]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 6]) @ NullaryOp
+    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 147
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 6]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 6]) @ ShallowInitBox
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &amp;(*_2))) @ _20=&amp;(*_2) @ Ref
+    _19 = libs::futex::syscall::sys_futex::SysFutexHandle::uaddr(move _20) -&gt; [return: bb2, unwind: bb41] @ Call: FnDid: 5541
+}
+bb 2 {
+CleanUp: false
+    Assign((_18, &amp;_19)) @ _18=&amp;_19 @ Ref
+    StorageDead(_20) @ StorageDead
+    _17 = mm::VirtAddr::data(move _18) -&gt; [return: bb3, unwind: bb41] @ Call: FnDid: 25246
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    Assign((_16, &amp;_17)) @ _16=&amp;_17 @ Ref
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
+    _14 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _15) -&gt; [return: bb4, unwind: bb41] @ Call: FnDid: 11815
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    Assign((_13, [move _14])) @ _13=[move _14] @ Aggregate
+    StorageDead(_14) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_126, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[7])) @ _126=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[7] @ Use
+    Assign((_23, &amp;(*_126))) @ _23=&amp;(*_126) @ Ref
+    Assign((_22, &amp;(*_23))) @ _22=&amp;(*_23) @ Ref
+    Assign((_21, move _22 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _21=move _22 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_22) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &amp;_13)) @ _27=&amp;_13 @ Ref
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
+    Assign((_25, move _26 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _25=move _26 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_26) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_125, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[6])) @ _125=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[6] @ Use
+    Assign((_30, &amp;(*_125))) @ _30=&amp;(*_125) @ Ref
+    Assign((_29, &amp;(*_30))) @ _29=&amp;(*_30) @ Ref
+    Assign((_28, move _29 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _28=move _29 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_29) @ StorageDead
+    _12 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _21, move _25, move _28) -&gt; [return: bb5, unwind: bb41] @ Call: FnDid: 11842
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    _11 = alloc::fmt::format(move _12) -&gt; [return: bb6, unwind: bb41] @ Call: FnDid: 5475
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    _10 = core::hint::must_use::&lt;alloc::string::String&gt;(move _11) -&gt; [return: bb7, unwind: bb41] @ Call: FnDid: 1455
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    _9 = syscall::table::FormattedSyscallParam::new(const &#34;uaddr&#34;, move _10) -&gt; [return: bb8, unwind: bb41] @ Call: FnDid: 30792
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_44, &amp;(*_2))) @ _44=&amp;(*_2) @ Ref
+    _43 = libs::futex::syscall::sys_futex::SysFutexHandle::operation_raw(move _44) -&gt; [return: bb9, unwind: bb39] @ Call: FnDid: 5543
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    Assign((_42, &amp;_43)) @ _42=&amp;_43 @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    _40 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;u32&gt;(move _41) -&gt; [return: bb10, unwind: bb39] @ Call: FnDid: 11815
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_39, [move _40])) @ _39=[move _40] @ Aggregate
+    StorageDead(_40) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_124, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[5])) @ _124=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[5] @ Use
+    Assign((_47, &amp;(*_124))) @ _47=&amp;(*_124) @ Ref
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    Assign((_45, move _46 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _45=move _46 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_46) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;_39)) @ _51=&amp;_39 @ Ref
+    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
+    Assign((_49, move _50 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _49=move _50 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_50) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_123, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[4])) @ _123=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[4] @ Use
+    Assign((_54, &amp;(*_123))) @ _54=&amp;(*_123) @ Ref
+    Assign((_53, &amp;(*_54))) @ _53=&amp;(*_54) @ Ref
+    Assign((_52, move _53 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _52=move _53 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_53) @ StorageDead
+    _38 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _45, move _49, move _52) -&gt; [return: bb11, unwind: bb39] @ Call: FnDid: 11842
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    _37 = alloc::fmt::format(move _38) -&gt; [return: bb12, unwind: bb39] @ Call: FnDid: 5475
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    _36 = core::hint::must_use::&lt;alloc::string::String&gt;(move _37) -&gt; [return: bb13, unwind: bb39] @ Call: FnDid: 1455
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    _35 = syscall::table::FormattedSyscallParam::new(const &#34;futex_op&#34;, move _36) -&gt; [return: bb14, unwind: bb39] @ Call: FnDid: 30792
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_63, &amp;(*_2))) @ _63=&amp;(*_2) @ Ref
+    _62 = libs::futex::syscall::sys_futex::SysFutexHandle::val(move _63) -&gt; [return: bb15, unwind: bb38] @ Call: FnDid: 5544
+}
+bb 15 {
+CleanUp: false
+    Assign((_61, &amp;_62)) @ _61=&amp;_62 @ Ref
+    StorageDead(_63) @ StorageDead
+    _60 = &lt;u32 as alloc::string::ToString&gt;::to_string(move _61) -&gt; [return: bb16, unwind: bb38] @ Call: FnDid: 6626
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    _59 = syscall::table::FormattedSyscallParam::new(const &#34;val&#34;, move _60) -&gt; [return: bb17, unwind: bb38] @ Call: FnDid: 30792
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    Assign((_73, &amp;(*_2))) @ _73=&amp;(*_2) @ Ref
+    _72 = libs::futex::syscall::sys_futex::SysFutexHandle::utime(move _73) -&gt; [return: bb18, unwind: bb37] @ Call: FnDid: 5545
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_73) @ StorageDead
+    Assign((_71, &amp;_72)) @ _71=&amp;_72 @ Ref
+    Assign((_70, &amp;(*_71))) @ _70=&amp;(*_71) @ Ref
+    _69 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _70) -&gt; [return: bb19, unwind: bb37] @ Call: FnDid: 11815
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    Assign((_68, [move _69])) @ _68=[move _69] @ Aggregate
+    StorageDead(_69) @ StorageDead
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_122, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[3])) @ _122=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[3] @ Use
+    Assign((_76, &amp;(*_122))) @ _76=&amp;(*_122) @ Ref
+    Assign((_75, &amp;(*_76))) @ _75=&amp;(*_76) @ Ref
+    Assign((_74, move _75 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _74=move _75 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_75) @ StorageDead
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    Assign((_80, &amp;_68)) @ _80=&amp;_68 @ Ref
+    Assign((_79, &amp;(*_80))) @ _79=&amp;(*_80) @ Ref
+    Assign((_78, move _79 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _78=move _79 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_79) @ StorageDead
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_121, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[2])) @ _121=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[2] @ Use
+    Assign((_83, &amp;(*_121))) @ _83=&amp;(*_121) @ Ref
+    Assign((_82, &amp;(*_83))) @ _82=&amp;(*_83) @ Ref
+    Assign((_81, move _82 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _81=move _82 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_82) @ StorageDead
+    _67 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _74, move _78, move _81) -&gt; [return: bb20, unwind: bb37] @ Call: FnDid: 11842
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    _66 = alloc::fmt::format(move _67) -&gt; [return: bb21, unwind: bb37] @ Call: FnDid: 5475
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_72) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    _65 = core::hint::must_use::&lt;alloc::string::String&gt;(move _66) -&gt; [return: bb22, unwind: bb37] @ Call: FnDid: 1455
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    _64 = syscall::table::FormattedSyscallParam::new(const &#34;utime&#34;, move _65) -&gt; [return: bb23, unwind: bb37] @ Call: FnDid: 30792
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    Assign((_99, &amp;(*_2))) @ _99=&amp;(*_2) @ Ref
+    _98 = libs::futex::syscall::sys_futex::SysFutexHandle::uaddr2(move _99) -&gt; [return: bb24, unwind: bb36] @ Call: FnDid: 5546
+}
+bb 24 {
+CleanUp: false
+    Assign((_97, &amp;_98)) @ _97=&amp;_98 @ Ref
+    StorageDead(_99) @ StorageDead
+    _96 = mm::VirtAddr::data(move _97) -&gt; [return: bb25, unwind: bb36] @ Call: FnDid: 25246
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_97) @ StorageDead
+    Assign((_95, &amp;_96)) @ _95=&amp;_96 @ Ref
+    Assign((_94, &amp;(*_95))) @ _94=&amp;(*_95) @ Ref
+    _93 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _94) -&gt; [return: bb26, unwind: bb36] @ Call: FnDid: 11815
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    Assign((_92, [move _93])) @ _92=[move _93] @ Aggregate
+    StorageDead(_93) @ StorageDead
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    Assign((_120, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _120=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
+    Assign((_102, &amp;(*_120))) @ _102=&amp;(*_120) @ Ref
+    Assign((_101, &amp;(*_102))) @ _101=&amp;(*_102) @ Ref
+    Assign((_100, move _101 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _100=move _101 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_101) @ StorageDead
+    StorageLive(_104) @ StorageLive
+    StorageLive(_105) @ StorageLive
+    StorageLive(_106) @ StorageLive
+    Assign((_106, &amp;_92)) @ _106=&amp;_92 @ Ref
+    Assign((_105, &amp;(*_106))) @ _105=&amp;(*_106) @ Ref
+    Assign((_104, move _105 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _104=move _105 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_105) @ StorageDead
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    StorageLive(_109) @ StorageLive
+    Assign((_119, const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _119=const &lt;libs::futex::syscall::sys_futex::SysFutexHandle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
+    Assign((_109, &amp;(*_119))) @ _109=&amp;(*_119) @ Ref
+    Assign((_108, &amp;(*_109))) @ _108=&amp;(*_109) @ Ref
+    Assign((_107, move _108 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _107=move _108 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_108) @ StorageDead
+    _91 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _100, move _104, move _107) -&gt; [return: bb27, unwind: bb36] @ Call: FnDid: 11842
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_109) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageDead(_104) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    _90 = alloc::fmt::format(move _91) -&gt; [return: bb28, unwind: bb36] @ Call: FnDid: 5475
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_95) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    _89 = core::hint::must_use::&lt;alloc::string::String&gt;(move _90) -&gt; [return: bb29, unwind: bb36] @ Call: FnDid: 1455
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    _88 = syscall::table::FormattedSyscallParam::new(const &#34;uaddr2&#34;, move _89) -&gt; [return: bb30, unwind: bb36] @ Call: FnDid: 30792
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_89) @ StorageDead
+    StorageLive(_114) @ StorageLive
+    StorageLive(_115) @ StorageLive
+    StorageLive(_116) @ StorageLive
+    StorageLive(_117) @ StorageLive
+    StorageLive(_118) @ StorageLive
+    Assign((_118, &amp;(*_2))) @ _118=&amp;(*_2) @ Ref
+    _117 = libs::futex::syscall::sys_futex::SysFutexHandle::val3(move _118) -&gt; [return: bb31, unwind: bb35] @ Call: FnDid: 5547
+}
+bb 31 {
+CleanUp: false
+    Assign((_116, &amp;_117)) @ _116=&amp;_117 @ Ref
+    StorageDead(_118) @ StorageDead
+    _115 = &lt;u32 as alloc::string::ToString&gt;::to_string(move _116) -&gt; [return: bb32, unwind: bb35] @ Call: FnDid: 6626
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_116) @ StorageDead
+    _114 = syscall::table::FormattedSyscallParam::new(const &#34;val3&#34;, move _115) -&gt; [return: bb33, unwind: bb35] @ Call: FnDid: 30792
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_115) @ StorageDead
+    Assign((_130, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 6]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 6]&gt;) as *const [syscall::table::FormattedSyscallParam; 6] (Transmute))) @ _130=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 6]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 6]&gt;) as *const [syscall::table::FormattedSyscallParam; 6] (Transmute) @ Cast
+    Assign((_131, copy _130 as *const () (PtrToPtr))) @ _131=copy _130 as *const () (PtrToPtr) @ Cast
+    Assign((_132, copy _131 as usize (Transmute))) @ _132=copy _131 as usize (Transmute) @ Cast
+    Assign((_133, AlignOf([syscall::table::FormattedSyscallParam; 6]))) @ _133=AlignOf([syscall::table::FormattedSyscallParam; 6]) @ NullaryOp
+    Assign((_134, Sub(copy _133, const 1_usize))) @ _134=Sub(copy _133, const 1_usize) @ BinaryOp
+    Assign((_135, BitAnd(copy _132, copy _134))) @ _135=BitAnd(copy _132, copy _134) @ BinaryOp
+    Assign((_136, Eq(copy _135, const 0_usize))) @ _136=Eq(copy _135, const 0_usize) @ BinaryOp
+    assert(copy _136, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _133, copy _132) -&gt; [success: bb42, unwind unreachable] @ Assert
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageDead(_117) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    return @ Return
+}
+bb 35 {
+CleanUp: true
+    drop(_88) -&gt; [return: bb36, unwind terminate(cleanup)] @ Drop
+}
+bb 36 {
+CleanUp: true
+    drop(_64) -&gt; [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    drop(_59) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
+}
+bb 38 {
+CleanUp: true
+    drop(_35) -&gt; [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 39 {
+CleanUp: true
+    drop(_9) -&gt; [return: bb41, unwind terminate(cleanup)] @ Drop
+}
+bb 40 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 41 {
+CleanUp: true
+    Assign((_129, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 6]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 6]&gt;) as *const [syscall::table::FormattedSyscallParam; 6] (Transmute))) @ _129=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 6]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 6]&gt;) as *const [syscall::table::FormattedSyscallParam; 6] (Transmute) @ Cast
+    Assign((_127, &amp;mut _8)) @ _127=&amp;mut _8 @ Ref
+    _128 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 6]&gt; as core::ops::Drop&gt;::drop(move _127) -&gt; [return: bb44, unwind terminate(cleanup)] @ Call: FnDid: 3937
+}
+bb 42 {
+CleanUp: false
+    Assign((_137, copy _130 as *const () (PtrToPtr))) @ _137=copy _130 as *const () (PtrToPtr) @ Cast
+    Assign((_138, copy _137 as usize (Transmute))) @ _138=copy _137 as usize (Transmute) @ Cast
+    Assign((_139, SizeOf([syscall::table::FormattedSyscallParam; 6]))) @ _139=SizeOf([syscall::table::FormattedSyscallParam; 6]) @ NullaryOp
+    Assign((_140, Ne(copy _139, const 0_usize))) @ _140=Ne(copy _139, const 0_usize) @ BinaryOp
+    Assign((_141, Eq(copy _138, const 0_usize))) @ _141=Eq(copy _138, const 0_usize) @ BinaryOp
+    Assign((_142, BitAnd(copy _141, copy _140))) @ _142=BitAnd(copy _141, copy _140) @ BinaryOp
+    Assign((_143, Not(copy _142))) @ _143=Not(copy _142) @ UnaryOp
+    assert(copy _143, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb43, unwind unreachable] @ Assert
+}
+bb 43 {
+CleanUp: false
+    Assign(((*_130), [move _9, move _35, move _59, move _64, move _88, move _114])) @ (*_130)=[move _9, move _35, move _59, move _64, move _88, move _114] @ Aggregate
+    StorageDead(_114) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_4, move _8)) @ _4=move _8 @ Use
+    Assign((_3, move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_8) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _3) -&gt; [return: bb34, unwind: bb40] @ Call: FnDid: 6192
+}
+bb 44 {
+CleanUp: true
+    goto -&gt; bb40 @ Goto
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

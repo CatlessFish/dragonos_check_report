@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #80: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #80
+            
+                 <span class="func-name">filesystem::vfs::syscall::sys_ftruncate::{impl#0}::handle</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:07|RAP|WARN|: Double free detected in function &#34;handle&#34;
+22:08:07|RAP|WARN|: Double free detected in function &#34;handle&#34;
+warning: Double free detected.
+  --&gt; src/filesystem/vfs/syscall/sys_ftruncate.rs:32:1
+   |
+32 | / fn handle(&amp;self, args: &amp;[usize], _frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
+33 | |         let fd = Self::fd(args);
+34 | |         let len = Self::len(args);
+35 | |
+36 | |         let binding = ProcessManager::current_pcb().fd_table();
+37 | |         let fd_table_guard = binding.read();
+38 | |
+39 | |         if let Some(file) = fd_table_guard.get_file_by_fd(fd) {
+40 | |             // drop guard 以避免无法调度的问题
+41 | |             drop(fd_table_guard);
+42 | |             let r = file.ftruncate(len).map(|_| 0);
+43 | |             return r;
+44 | |         }
+45 | |
+46 | |         return Err(SystemError::EBADF);
+47 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ftruncate.rs line 32.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) and _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) is dropped at BB11(src/filesystem/vfs/syscall/sys_ftruncate.rs:41); _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) is dropped at BB18(src/filesystem/vfs/syscall/sys_ftruncate.rs:47).
+   |
+warning: Double free detected during unwinding.
+  --&gt; src/filesystem/vfs/syscall/sys_ftruncate.rs:32:1
+   |
+32 | / fn handle(&amp;self, args: &amp;[usize], _frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
+33 | |         let fd = Self::fd(args);
+34 | |         let len = Self::len(args);
+35 | |
+36 | |         let binding = ProcessManager::current_pcb().fd_table();
+37 | |         let fd_table_guard = binding.read();
+38 | |
+39 | |         if let Some(file) = fd_table_guard.get_file_by_fd(fd) {
+40 | |             // drop guard 以避免无法调度的问题
+41 | |             drop(fd_table_guard);
+42 | |             let r = file.ftruncate(len).map(|_| 0);
+43 | |             return r;
+44 | |         }
+45 | |
+46 | |         return Err(SystemError::EBADF);
+47 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ftruncate.rs line 32.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) and _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) is dropped at BB11(src/filesystem/vfs/syscall/sys_ftruncate.rs:41); _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) is dropped at BB21(src/filesystem/vfs/syscall/sys_ftruncate.rs:47).
+   |
+render dot for DefId(0:19961 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_ftruncate::{impl#0}::handle)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/vfs/syscall/sys_ftruncate.rs:33:13: 33:15
+bb1 at src/filesystem/vfs/syscall/sys_ftruncate.rs:33:31: 33:32
+bb2 at src/filesystem/vfs/syscall/sys_ftruncate.rs:34:33: 34:34
+bb3 at src/filesystem/vfs/syscall/sys_ftruncate.rs:36:23: 36:52
+bb4 at src/filesystem/vfs/syscall/sys_ftruncate.rs:36:23: 36:52
+bb5 at src/filesystem/vfs/syscall/sys_ftruncate.rs:36:62: 36:63
+bb6 at src/filesystem/vfs/syscall/sys_ftruncate.rs:36:63: 36:64
+bb7 at src/filesystem/vfs/syscall/sys_ftruncate.rs:37:30: 37:37
+bb8 at src/filesystem/vfs/syscall/sys_ftruncate.rs:37:43: 37:44
+bb9 at src/filesystem/vfs/syscall/sys_ftruncate.rs:39:29: 39:43
+bb10 at src/filesystem/vfs/syscall/sys_ftruncate.rs:39:61: 39:62
+bb11 at src/filesystem/vfs/syscall/sys_ftruncate.rs:39:21: 39:25
+bb12 at src/filesystem/vfs/syscall/sys_ftruncate.rs:41:32: 41:33
+bb13 at src/filesystem/vfs/syscall/sys_ftruncate.rs:42:21: 42:25
+bb14 at src/filesystem/vfs/syscall/sys_ftruncate.rs:42:39: 42:40
+bb15 at src/filesystem/vfs/syscall/sys_ftruncate.rs:42:50: 42:51
+bb16 at src/filesystem/vfs/syscall/sys_ftruncate.rs:44:10: 44:10
+bb17 at src/filesystem/vfs/syscall/sys_ftruncate.rs:44:9: 44:10
+bb18 at src/filesystem/vfs/syscall/sys_ftruncate.rs:47:5: 47:6
+bb19 at src/filesystem/vfs/syscall/sys_ftruncate.rs:47:5: 47:6
+bb26 at src/filesystem/vfs/syscall/sys_ftruncate.rs:44:9: 44:10
+fn &lt;filesystem::vfs::syscall::sys_ftruncate::SysFtruncateHandle as syscall::table::Syscall&gt;::handle
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_ftruncate::SysFtruncateHandle 
+_2:  @ &amp;&#39;{erased} [usize] 
+_3:  @ &amp;&#39;{erased} mut arch::x86_64::interrupt::TrapFrame 
+_4:  @ ! 
+_5:  @ i32 
+_6:  @ &amp;&#39;{erased} [usize] 
+_7:  @ usize 
+_8:  @ &amp;&#39;{erased} [usize] 
+_9:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_10:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_11:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_13:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_14:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_15:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_16:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_17:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_18:  @ () 
+_19:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_20:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_21:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_22:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_23:  @ i32 
+_24:  @ isize 
+_25:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_26:  @ ! 
+_27:  @ () 
+_28:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_29:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_30:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_31:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_32:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_33:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_34:  @ usize 
+_35:  @ Closure(DefId(0:19962 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_ftruncate::{impl#0}::handle::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn(((),)) -&gt; usize, bound_vars: [] }, ()]) 
+_36:  @ system_error::SystemError 
+_37:  @ bool 
+_38:  @ isize 
+_39:  @ isize 
+_40:  @ isize 
+_41:  @ isize 
+_42:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_37, const false)) @ _37=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _5 = filesystem::vfs::syscall::sys_ftruncate::SysFtruncateHandle::fd(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 19965
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;(*_2))) @ _8=&amp;(*_2) @ Ref
+    _7 = filesystem::vfs::syscall::sys_ftruncate::SysFtruncateHandle::len(move _8) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 19966
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    _13 = process::ProcessManager::current_pcb() -&gt; [return: bb3, unwind continue] @ Call: FnDid: 29866
+}
+bb 3 {
+CleanUp: false
+    Assign((_12, &amp;_13)) @ _12=&amp;_13 @ Ref
+    _11 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _12) -&gt; [return: bb4, unwind: bb22] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_10, &amp;(*_11))) @ _10=&amp;(*_11) @ Ref
+    StorageDead(_12) @ StorageDead
+    _9 = process::ProcessControlBlock::fd_table(move _10) -&gt; [return: bb5, unwind: bb22] @ Call: FnDid: 29947
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    drop(_13) -&gt; [return: bb6, unwind: bb21] @ Drop
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;_9)) @ _17=&amp;_9 @ Ref
+    _16 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _17) -&gt; [return: bb7, unwind: bb21] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
+    StorageDead(_17) @ StorageDead
+    _14 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _15) -&gt; [return: bb8, unwind: bb21] @ Call: FnDid: 5156
+}
+bb 8 {
+CleanUp: false
+    Assign((_37, const true)) @ _37=const true @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_14)) @ _22=&amp;_14 @ Ref
+    _21 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _22) -&gt; [return: bb9, unwind: bb28] @ Call: FnDid: 3903
+}
+bb 9 {
+CleanUp: false
+    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
+    StorageDead(_22) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, copy _5)) @ _23=copy _5 @ Use
+    _19 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _20, move _23) -&gt; [return: bb10, unwind: bb28] @ Call: FnDid: 19231
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    Assign((_24, discriminant(_19))) @ _24=discriminant(_19) @ Discriminant
+    switchInt(move _24) -&gt; [1: bb11, otherwise: bb16] @ SwitchInt
+}
+bb 11 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move ((_19 as Some).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _25=move ((_19 as Some).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_37, const false)) @ _37=const false @ Use
+    Assign((_28, move _14)) @ _28=move _14 @ Use
+    _27 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _28) -&gt; [return: bb12, unwind: bb20] @ Call: FnDid: 2323
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;_25)) @ _33=&amp;_25 @ Ref
+    _32 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb13, unwind: bb20] @ Call: FnDid: 3903
+}
+bb 13 {
+CleanUp: false
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    StorageDead(_33) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    Assign((_34, copy _7)) @ _34=copy _7 @ Use
+    _30 = filesystem::vfs::file::File::ftruncate(move _31, move _34) -&gt; [return: bb14, unwind: bb20] @ Call: FnDid: 19206
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    Assign((_35, {closure@src/filesystem/vfs/syscall/sys_ftruncate.rs:42:45: 42:48})) @ _35={closure@src/filesystem/vfs/syscall/sys_ftruncate.rs:42:45: 42:48} @ Aggregate
+    _29 = core::result::Result::&lt;(), system_error::SystemError&gt;::map::&lt;usize, {closure@src/filesystem/vfs/syscall/sys_ftruncate.rs:42:45: 42:48}&gt;(move _30, move _35) -&gt; [return: bb15, unwind: bb20] @ Call: FnDid: 10997
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    Assign((_0, move _29)) @ _0=move _29 @ Use
+    StorageDead(_29) @ StorageDead
+    drop(_25) -&gt; [return: bb17, unwind: bb26] @ Drop
+}
+bb 16 {
+CleanUp: false
+    Assign((_18, const ())) @ _18=const () @ Use
+    Assign((_38, discriminant(_19))) @ _38=discriminant(_19) @ Discriminant
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    Assign((_36, system_error::SystemError::EBADF)) @ _36=system_error::SystemError::EBADF @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _36))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _36) @ Aggregate
+    StorageDead(_36) @ StorageDead
+    goto -&gt; bb25 @ Goto
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    Assign((_40, discriminant(_19))) @ _40=discriminant(_19) @ Discriminant
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    goto -&gt; bb25 @ Goto
+}
+bb 18 {
+CleanUp: false
+    Assign((_37, const false)) @ _37=const false @ Use
+    StorageDead(_14) @ StorageDead
+    drop(_9) -&gt; [return: bb19, unwind: bb23] @ Drop
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    return @ Return
+}
+bb 20 {
+CleanUp: true
+    drop(_25) -&gt; [return: bb26, unwind terminate(cleanup)] @ Drop
+}
+bb 21 {
+CleanUp: true
+    drop(_9) -&gt; [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 22 {
+CleanUp: true
+    drop(_13) -&gt; [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 24 {
+CleanUp: false
+    drop(_14) -&gt; [return: bb18, unwind: bb21] @ Drop
+}
+bb 25 {
+CleanUp: false
+    switchInt(copy _37) -&gt; [0: bb18, otherwise: bb24] @ SwitchInt
+}
+bb 26 {
+CleanUp: true
+    Assign((_42, discriminant(_19))) @ _42=discriminant(_19) @ Discriminant
+    goto -&gt; bb28 @ Goto
+}
+bb 27 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb21, unwind terminate(cleanup)] @ Drop
+}
+bb 28 {
+CleanUp: true
+    switchInt(copy _37) -&gt; [0: bb21, otherwise: bb27] @ SwitchInt
+}
+
+bb0 at src/filesystem/vfs/syscall/sys_ftruncate.rs:42:49: 42:50
+fn &lt;filesystem::vfs::syscall::sys_ftruncate::SysFtruncateHandle as syscall::table::Syscall&gt;::handle::{closure#0}
+_0:  @ usize 
+_1:  @ Closure(DefId(0:19962 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_ftruncate::{impl#0}::handle::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn(((),)) -&gt; usize, bound_vars: [] }, ()]) 
+_2:  @ () 
+
+bb 0 {
+CleanUp: false
+    Assign((_0, const 0_usize)) @ _0=const 0_usize @ Use
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

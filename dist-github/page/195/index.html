@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #195: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #195
+            
+                 <span class="func-name">time::timer::{impl#5}::run</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:19|RAP|WARN|: Use-after-free detected in function &#34;run&#34;
+warning: Use-after-free detected.
+   --&gt; src/time/timer.rs:181:17
+    |
+176 | fn run(&amp;self) {
+177 |         let mut timer = self.inner();
+178 |         timer.triggered = true;
+179 |         let func = timer.timer_func.take();
+180 |         drop(timer);
+181 |         let r = func.map(|mut f| f.run()).unwrap_or(Ok(()));
+    |                 ---- Use-after-free (confidence 99%): Location in file src/time/timer.rs line 181.
+    | MIR detail: Value _11(_, src/time/timer.rs:180) and _6(func, src/time/timer.rs:179) are alias.
+    | MIR detail: _11(_, src/time/timer.rs:180) is dropped at BB4(src/time/timer.rs:180); _6(func, src/time/timer.rs:179) is used at BB5(src/time/timer.rs:181).
+182 |         if unlikely(r.is_err()) {
+183 |             error!(
+184 |                 &#34;Failed to run timer function: {self:?} {:?}&#34;,
+185 |                 r.as_ref().err().unwrap()
+186 |             );
+187 |         }
+188 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/time/timer.rs:181:17
+    |
+176 | fn run(&amp;self) {
+177 |         let mut timer = self.inner();
+178 |         timer.triggered = true;
+179 |         let func = timer.timer_func.take();
+180 |         drop(timer);
+181 |         let r = func.map(|mut f| f.run()).unwrap_or(Ok(()));
+    |                 ------------------------- Use-after-free (confidence 99%): Location in file src/time/timer.rs line 181.
+    | MIR detail: Value _11(_, src/time/timer.rs:180) and _14(_, src/time/timer.rs:181) are alias.
+    | MIR detail: _11(_, src/time/timer.rs:180) is dropped at BB4(src/time/timer.rs:180); _14(_, src/time/timer.rs:181) is used at BB5(src/time/timer.rs:181).
+182 |         if unlikely(r.is_err()) {
+183 |             error!(
+184 |                 &#34;Failed to run timer function: {self:?} {:?}&#34;,
+185 |                 r.as_ref().err().unwrap()
+186 |             );
+187 |         }
+188 |     }
+    |
+render dot for DefId(0:31560 ~ dragonos_kernel[9e38]::time::timer::{impl#5}::run)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/time/timer.rs:177:13: 177:22
+bb1 at src/time/timer.rs:177:36: 177:37
+bb2 at src/time/timer.rs:178:13: 178:14
+bb3 at src/time/timer.rs:179:24: 179:25
+bb4 at src/time/timer.rs:179:42: 179:43
+bb5 at src/time/timer.rs:180:19: 180:20
+bb6 at src/time/timer.rs:181:41: 181:42
+bb7 at src/time/timer.rs:181:59: 181:60
+bb8 at src/time/timer.rs:182:30: 182:31
+bb10 at src/time/timer.rs:182:31: 182:32
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb16 at src/time/timer.rs:185:26: 185:27
+bb17 at src/time/timer.rs:185:32: 185:33
+bb18 at src/time/timer.rs:185:41: 185:42
+bb19 at src/time/timer.rs:184:55: 184:56
+bb20 at src/time/timer.rs:184:60: 184:61
+bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb23 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb25 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb26 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb27 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb28 at src/time/timer.rs:182:31: 182:32
+bb29 at src/time/timer.rs:187:9: 187:10
+fn time::timer::Timer::run
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} time::timer::Timer 
+_2:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::timer::InnerTimer&gt; 
+_3:  @ &amp;&#39;{erased} time::timer::Timer 
+_4:  @ &amp;&#39;{erased} mut time::timer::InnerTimer 
+_5:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::timer::InnerTimer&gt; 
+_6:  @ core::option::Option&lt;alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_7:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_8:  @ &amp;&#39;{erased} mut time::timer::InnerTimer 
+_9:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::timer::InnerTimer&gt; 
+_10:  @ () 
+_11:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, time::timer::InnerTimer&gt; 
+_12:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_13:  @ core::option::Option&lt;core::result::Result&lt;(), system_error::SystemError&gt;&gt; 
+_14:  @ core::option::Option&lt;alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_15:  @ Closure(DefId(0:31561 ~ dragonos_kernel[9e38]::time::timer::{impl#5}::run::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, ()]) 
+_16:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_17:  @ () 
+_18:  @ bool 
+_19:  @ bool 
+_20:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_21:  @ () 
+_22:  @ log::Level 
+_23:  @ bool 
+_24:  @ &amp;&#39;{erased} log::Level 
+_25:  @ &amp;&#39;{erased} log::LevelFilter 
+_26:  @ log::LevelFilter 
+_27:  @ bool 
+_28:  @ &amp;&#39;{erased} log::Level 
+_29:  @ &amp;&#39;{erased} log::LevelFilter 
+_30:  @ log::LevelFilter 
+_31:  @ () 
+_32:  @ log::__private_api::GlobalLogger 
+_33:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_34:  @ (&amp;&#39;{erased} &amp;&#39;{erased} system_error::SystemError, &amp;&#39;{erased} &amp;&#39;{erased} time::timer::Timer) 
+_35:  @ &amp;&#39;{erased} &amp;&#39;{erased} system_error::SystemError 
+_36:  @ &amp;&#39;{erased} system_error::SystemError 
+_37:  @ core::option::Option&lt;&amp;&#39;{erased} system_error::SystemError&gt; 
+_38:  @ core::result::Result&lt;&amp;&#39;{erased} (), &amp;&#39;{erased} system_error::SystemError&gt; 
+_39:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_40:  @ &amp;&#39;{erased} &amp;&#39;{erased} time::timer::Timer 
+_41:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_42:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_43:  @ &amp;&#39;{erased} &amp;&#39;{erased} time::timer::Timer 
+_44:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_45:  @ &amp;&#39;{erased} &amp;&#39;{erased} system_error::SystemError 
+_46:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_47:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_48:  @ [&amp;&#39;{erased} str; 2_usize] 
+_49:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_50:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_51:  @ log::Level 
+_52:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_53:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_54:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_55:  @ &amp;&#39;{erased} str 
+_56:  @ &amp;&#39;{erased} str 
+_57:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_58:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_59:  @ () 
+_60:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_61:  @ &amp;&#39;{erased} log::LevelFilter 
+_62:  @ &amp;&#39;{erased} &amp;&#39;{erased} time::timer::Timer 
+_63:  @ &amp;&#39;{erased} &amp;&#39;{erased} system_error::SystemError 
+_64:  @ bool 
+_65:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_65, const false)) @ _65=const false @ Use
+    Assign((_64, const false)) @ _64=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &amp;(*_1))) @ _3=&amp;(*_1) @ Ref
+    Assign((_65, const true)) @ _65=const true @ Use
+    _2 = time::timer::Timer::inner(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 31558
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;mut _2)) @ _5=&amp;mut _2 @ Ref
+    _4 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::timer::InnerTimer&gt; as core::ops::DerefMut&gt;::deref_mut(move _5) -&gt; [return: bb2, unwind: bb34] @ Call: FnDid: 3915
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    Assign((((*_4).3: bool), const true)) @ ((*_4).3: bool)=const true @ Use
+    StorageDead(_4) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;mut _2)) @ _9=&amp;mut _2 @ Ref
+    _8 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::timer::InnerTimer&gt; as core::ops::DerefMut&gt;::deref_mut(move _9) -&gt; [return: bb3, unwind: bb34] @ Call: FnDid: 3915
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, &amp;mut ((*_8).1: core::option::Option&lt;alloc::boxed::Box&lt;dyn time::timer::TimerFunction&gt;&gt;))) @ _7=&amp;mut ((*_8).1: core::option::Option&lt;alloc::boxed::Box&lt;dyn time::timer::TimerFunction&gt;&gt;) @ Ref
+    _6 = core::option::Option::&lt;alloc::boxed::Box&lt;dyn time::timer::TimerFunction&gt;&gt;::take(move _7) -&gt; [return: bb4, unwind: bb34] @ Call: FnDid: 10206
+}
+bb 4 {
+CleanUp: false
+    Assign((_64, const true)) @ _64=const true @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_65, const false)) @ _65=const false @ Use
+    Assign((_11, move _2)) @ _11=move _2 @ Use
+    _10 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, time::timer::InnerTimer&gt;&gt;(move _11) -&gt; [return: bb5, unwind: bb32] @ Call: FnDid: 2323
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_64, const false)) @ _64=const false @ Use
+    Assign((_14, move _6)) @ _14=move _6 @ Use
+    StorageLive(_15) @ StorageLive
+    Assign((_15, {closure@src/time/timer.rs:181:26: 181:33})) @ _15={closure@src/time/timer.rs:181:26: 181:33} @ Aggregate
+    _13 = core::option::Option::&lt;alloc::boxed::Box&lt;dyn time::timer::TimerFunction&gt;&gt;::map::&lt;core::result::Result&lt;(), system_error::SystemError&gt;, {closure@src/time/timer.rs:181:26: 181:33}&gt;(move _14, move _15) -&gt; [return: bb6, unwind: bb32] @ Call: FnDid: 10163
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, ())) @ _17=() @ Aggregate
+    Assign((_16, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _17))) @ _16=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _17) @ Aggregate
+    StorageDead(_17) @ StorageDead
+    _12 = core::option::Option::&lt;core::result::Result&lt;(), system_error::SystemError&gt;&gt;::unwrap_or(move _13, move _16) -&gt; [return: bb7, unwind: bb32] @ Call: FnDid: 10158
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &amp;_12)) @ _20=&amp;_12 @ Ref
+    _19 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_err(move _20) -&gt; [return: bb8, unwind: bb32] @ Call: FnDid: 10990
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    _18 = core::intrinsics::unlikely(move _19) -&gt; [return: bb9, unwind unreachable] @ Call: FnDid: 1822
+}
+bb 9 {
+CleanUp: false
+    switchInt(move _18) -&gt; [0: bb28, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, log::Level::Error)) @ _22=log::Level::Error @ Aggregate
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, &amp;_22)) @ _24=&amp;_22 @ Ref
+    StorageLive(_25) @ StorageLive
+    Assign((_61, const time::timer::Timer::run::promoted[1])) @ _61=const time::timer::Timer::run::promoted[1] @ Use
+    Assign((_25, &amp;(*_61))) @ _25=&amp;(*_61) @ Ref
+    _23 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _24, move _25) -&gt; [return: bb11, unwind: bb32] @ Call: FnDid: 3215
+}
+bb 11 {
+CleanUp: false
+    switchInt(move _23) -&gt; [0: bb25, otherwise: bb12] @ SwitchInt
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;_22)) @ _28=&amp;_22 @ Ref
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    _30 = log::max_level() -&gt; [return: bb13, unwind: bb32] @ Call: FnDid: 134
+}
+bb 13 {
+CleanUp: false
+    Assign((_29, &amp;_30)) @ _29=&amp;_30 @ Ref
+    _27 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _28, move _29) -&gt; [return: bb14, unwind: bb32] @ Call: FnDid: 3215
+}
+bb 14 {
+CleanUp: false
+    switchInt(move _27) -&gt; [0: bb24, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, log::__private_api::GlobalLogger)) @ _32=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;_12)) @ _39=&amp;_12 @ Ref
+    _38 = core::result::Result::&lt;(), system_error::SystemError&gt;::as_ref(move _39) -&gt; [return: bb16, unwind: bb32] @ Call: FnDid: 10995
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    _37 = core::result::Result::&lt;&amp;(), &amp;system_error::SystemError&gt;::err(move _38) -&gt; [return: bb17, unwind: bb32] @ Call: FnDid: 10994
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    _36 = core::option::Option::&lt;&amp;system_error::SystemError&gt;::unwrap(move _37) -&gt; [return: bb18, unwind: bb32] @ Call: FnDid: 10157
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    Assign((_35, &amp;_36)) @ _35=&amp;_36 @ Ref
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;_1)) @ _40=&amp;_1 @ Ref
+    Assign((_34, (move _35, move _40))) @ _34=(move _35, move _40) @ Aggregate
+    StorageDead(_40) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_62, deref_copy (_34.1: &amp;&amp;time::timer::Timer))) @ _62=deref_copy (_34.1: &amp;&amp;time::timer::Timer) @ CopyForDeref
+    Assign((_43, &amp;(*_62))) @ _43=&amp;(*_62) @ Ref
+    _42 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;&amp;time::timer::Timer&gt;(move _43) -&gt; [return: bb19, unwind: bb32] @ Call: FnDid: 11809
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_63, deref_copy (_34.0: &amp;&amp;system_error::SystemError))) @ _63=deref_copy (_34.0: &amp;&amp;system_error::SystemError) @ CopyForDeref
+    Assign((_45, &amp;(*_63))) @ _45=&amp;(*_63) @ Ref
+    _44 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;&amp;system_error::SystemError&gt;(move _45) -&gt; [return: bb20, unwind: bb32] @ Call: FnDid: 11809
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    Assign((_41, [move _42, move _44])) @ _41=[move _42, move _44] @ Aggregate
+    StorageDead(_44) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_60, const time::timer::Timer::run::promoted[0])) @ _60=const time::timer::Timer::run::promoted[0] @ Use
+    Assign((_47, &amp;(*_60))) @ _47=&amp;(*_60) @ Ref
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    Assign((_50, &amp;_41)) @ _50=&amp;_41 @ Ref
+    Assign((_49, &amp;(*_50))) @ _49=&amp;(*_50) @ Ref
+    _33 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _46, move _49) -&gt; [return: bb21, unwind: bb32] @ Call: FnDid: 11836
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    Assign((_51, copy _22)) @ _51=copy _22 @ Use
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, const &#34;dragonos_kernel::time::timer&#34;)) @ _56=const &#34;dragonos_kernel::time::timer&#34; @ Use
+    Assign((_55, &amp;(*_56))) @ _55=&amp;(*_56) @ Ref
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    _58 = log::__private_api::loc() -&gt; [return: bb22, unwind: bb32] @ Call: FnDid: 184
+}
+bb 22 {
+CleanUp: false
+    Assign((_57, &amp;(*_58))) @ _57=&amp;(*_58) @ Ref
+    Assign((_54, (move _55, const &#34;dragonos_kernel::time::timer&#34;, move _57))) @ _54=(move _55, const &#34;dragonos_kernel::time::timer&#34;, move _57) @ Aggregate
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    Assign((_53, &amp;_54)) @ _53=&amp;_54 @ Ref
+    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
+    StorageLive(_59) @ StorageLive
+    Assign((_59, ())) @ _59=() @ Aggregate
+    _31 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _32, move _33, move _51, move _52, move _59) -&gt; [return: bb23, unwind: bb32] @ Call: FnDid: 178
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_21, const ())) @ _21=const () @ Use
+    goto -&gt; bb27 @ Goto
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -&gt; bb26 @ Goto
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    goto -&gt; bb26 @ Goto
+}
+bb 26 {
+CleanUp: false
+    Assign((_21, const ())) @ _21=const () @ Use
+    goto -&gt; bb27 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    goto -&gt; bb29 @ Goto
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    goto -&gt; bb29 @ Goto
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    Assign((_64, const false)) @ _64=const false @ Use
+    StorageDead(_6) @ StorageDead
+    Assign((_65, const false)) @ _65=const false @ Use
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 30 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 31 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb34, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    switchInt(copy _64) -&gt; [0: bb34, otherwise: bb31] @ SwitchInt
+}
+bb 33 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb30, unwind terminate(cleanup)] @ Drop
+}
+bb 34 {
+CleanUp: true
+    switchInt(copy _65) -&gt; [0: bb30, otherwise: bb33] @ SwitchInt
+}
+
+bb0 at src/time/timer.rs:181:34: 181:35
+bb1 at src/time/timer.rs:181:40: 181:41
+fn time::timer::Timer::run::{closure#0}
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ Closure(DefId(0:31561 ~ dragonos_kernel[9e38]::time::timer::{impl#5}::run::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, ()]) 
+_2:  @ alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} mut dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased} 
+_4:  @ *const dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased} 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_4, copy ((_2.0: core::ptr::Unique&lt;dyn time::timer::TimerFunction&gt;).0: core::ptr::NonNull&lt;dyn time::timer::TimerFunction&gt;) as *const dyn time::timer::TimerFunction (Transmute))) @ _4=copy ((_2.0: core::ptr::Unique&lt;dyn time::timer::TimerFunction&gt;).0: core::ptr::NonNull&lt;dyn time::timer::TimerFunction&gt;) as *const dyn time::timer::TimerFunction (Transmute) @ Cast
+    Assign((_3, &amp;mut (*_4))) @ _3=&amp;mut (*_4) @ Ref
+    _0 = &lt;dyn time::timer::TimerFunction as time::timer::TimerFunction&gt;::run(move _3) -&gt; [return: bb1, unwind: bb3] @ Call: FnDid: 31545
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    drop(_2) -&gt; [return: bb2, unwind: bb4] @ Drop
+}
+bb 2 {
+CleanUp: false
+    return @ Return
+}
+bb 3 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb4, unwind terminate(cleanup)] @ Drop
+}
+bb 4 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

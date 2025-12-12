@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #174: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #174
+            
+                 <span class="func-name">process::cred::{impl#0}::fscmp</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:15|RAP|WARN|: Dangling pointer detected in function &#34;fscmp&#34;
+warning: Dangling pointer detected.
+   --&gt; src/process/cred.rs:143:1
+    |
+143 | / pub fn fscmp(&amp;self, other: Arc&lt;Cred&gt;) -&gt; CredFsCmp {
+144 | |         if Arc::ptr_eq(&amp;self.self_ref.upgrade().unwrap(), &amp;other) {
+145 | |             return CredFsCmp::Equal;
+146 | |         }
+147 | |
+148 | |         if self.fsuid &lt; other.fsuid {
+149 | |             return CredFsCmp::Less;
+150 | |         }
+151 | |         if self.fsuid &gt; other.fsuid {
+152 | |             return CredFsCmp::Greater;
+153 | |         }
+154 | |
+155 | |         if self.fsgid &lt; other.fsgid {
+156 | |             return CredFsCmp::Less;
+157 | |         }
+158 | |         if self.fsgid &gt; other.fsgid {
+159 | |             return CredFsCmp::Greater;
+160 | |         }
+161 | |
+162 | |         if self.group_info == other.group_info {
+163 | |             return CredFsCmp::Equal;
+164 | |         }
+165 | |
+166 | |         if let (Some(ga), Some(gb)) = (&amp;self.group_info, &amp;other.group_info) {
+167 | |             let ga_count = ga.gids.len();
+168 | |             let gb_count = gb.gids.len();
+169 | |
+170 | |             if ga_count &lt; gb_count {
+171 | |                 return CredFsCmp::Less;
+172 | |             }
+173 | |             if ga_count &gt; gb_count {
+174 | |                 return CredFsCmp::Greater;
+175 | |             }
+176 | |
+177 | |             for i in 0..ga_count {
+178 | |                 if ga.gids[i] &lt; gb.gids[i] {
+179 | |                     return CredFsCmp::Less;
+180 | |                 }
+181 | |                 if ga.gids[i] &gt; gb.gids[i] {
+182 | |                     return CredFsCmp::Greater;
+183 | |                 }
+184 | |             }
+185 | |         } else {
+186 | |             if self.group_info.is_none() {
+187 | |                 return CredFsCmp::Less;
+188 | |             }
+189 | |             if other.group_info.is_none() {
+190 | |                 return CredFsCmp::Greater;
+191 | |             }
+192 | |         }
+193 | |
+194 | |         return CredFsCmp::Equal;
+195 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/process/cred.rs line 143.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in fscmp and _1(self, src/process/cred.rs:143) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in fscmp is dropped at BB18446744073709551615(src/process/cred.rs:143); _1(self, src/process/cred.rs:143) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;fscmp&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/process/cred.rs:143:1
+    |
+143 | / pub fn fscmp(&amp;self, other: Arc&lt;Cred&gt;) -&gt; CredFsCmp {
+144 | |         if Arc::ptr_eq(&amp;self.self_ref.upgrade().unwrap(), &amp;other) {
+145 | |             return CredFsCmp::Equal;
+146 | |         }
+147 | |
+148 | |         if self.fsuid &lt; other.fsuid {
+149 | |             return CredFsCmp::Less;
+150 | |         }
+151 | |         if self.fsuid &gt; other.fsuid {
+152 | |             return CredFsCmp::Greater;
+153 | |         }
+154 | |
+155 | |         if self.fsgid &lt; other.fsgid {
+156 | |             return CredFsCmp::Less;
+157 | |         }
+158 | |         if self.fsgid &gt; other.fsgid {
+159 | |             return CredFsCmp::Greater;
+160 | |         }
+161 | |
+162 | |         if self.group_info == other.group_info {
+163 | |             return CredFsCmp::Equal;
+164 | |         }
+165 | |
+166 | |         if let (Some(ga), Some(gb)) = (&amp;self.group_info, &amp;other.group_info) {
+167 | |             let ga_count = ga.gids.len();
+168 | |             let gb_count = gb.gids.len();
+169 | |
+170 | |             if ga_count &lt; gb_count {
+171 | |                 return CredFsCmp::Less;
+172 | |             }
+173 | |             if ga_count &gt; gb_count {
+174 | |                 return CredFsCmp::Greater;
+175 | |             }
+176 | |
+177 | |             for i in 0..ga_count {
+178 | |                 if ga.gids[i] &lt; gb.gids[i] {
+179 | |                     return CredFsCmp::Less;
+180 | |                 }
+181 | |                 if ga.gids[i] &gt; gb.gids[i] {
+182 | |                     return CredFsCmp::Greater;
+183 | |                 }
+184 | |             }
+185 | |         } else {
+186 | |             if self.group_info.is_none() {
+187 | |                 return CredFsCmp::Less;
+188 | |             }
+189 | |             if other.group_info.is_none() {
+190 | |                 return CredFsCmp::Greater;
+191 | |             }
+192 | |         }
+193 | |
+194 | |         return CredFsCmp::Equal;
+195 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/process/cred.rs line 143.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in fscmp and _1(self, src/process/cred.rs:143) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in fscmp is dropped at BB18446744073709551615(src/process/cred.rs:143); _1(self, src/process/cred.rs:143) became dangling.
+    |
+render dot for DefId(0:27788 ~ dragonos_kernel[9e38]::process::cred::{impl#0}::fscmp)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/process/cred.rs:144:9: 146:10
+bb1 at src/process/cred.rs:144:47: 144:48
+bb2 at src/process/cred.rs:144:56: 144:57
+bb4 at src/process/cred.rs:144:65: 144:66
+bb5 at src/process/cred.rs:144:65: 144:66
+bb6 at src/process/cred.rs:144:65: 144:66
+bb7 at src/process/cred.rs:144:65: 144:66
+bb8 at src/process/cred.rs:148:29: 148:30
+bb10 at src/process/cred.rs:148:35: 148:36
+bb11 at src/process/cred.rs:148:35: 148:36
+bb12 at src/process/cred.rs:151:29: 151:30
+bb14 at src/process/cred.rs:151:35: 151:36
+bb15 at src/process/cred.rs:151:35: 151:36
+bb16 at src/process/cred.rs:155:29: 155:30
+bb18 at src/process/cred.rs:155:35: 155:36
+bb19 at src/process/cred.rs:155:35: 155:36
+bb20 at src/process/cred.rs:158:29: 158:30
+bb22 at src/process/cred.rs:158:35: 158:36
+bb23 at src/process/cred.rs:158:35: 158:36
+bb24 at src/process/cred.rs:162:35: 162:36
+bb26 at src/process/cred.rs:162:46: 162:47
+bb27 at src/process/cred.rs:162:46: 162:47
+bb28 at src/process/cred.rs:166:63: 166:64
+bb29 at src/process/cred.rs:166:39: 166:76
+bb30 at src/process/cred.rs:166:22: 166:24
+bb31 at src/process/cred.rs:167:40: 167:41
+bb32 at src/process/cred.rs:168:40: 168:41
+bb33 at src/process/cred.rs:170:34: 170:35
+bb34 at src/process/cred.rs:170:34: 170:35
+bb35 at src/process/cred.rs:173:34: 173:35
+bb36 at src/process/cred.rs:173:34: 173:35
+bb37 at src/process/cred.rs:177:32: 177:33
+bb38 at src/process/cred.rs:177:22: 177:33
+bb39 at src/process/cred.rs:177:32: 177:33
+bb41 at src/process/cred.rs:177:17: 177:18
+bb42 at src/process/cred.rs:177:13: 184:14
+bb43 at src/process/cred.rs:178:20: 178:30
+bb44 at src/process/cred.rs:178:33: 178:43
+bb46 at src/process/cred.rs:178:42: 178:43
+bb47 at src/process/cred.rs:178:42: 178:43
+bb48 at src/process/cred.rs:181:20: 181:30
+bb49 at src/process/cred.rs:181:33: 181:43
+bb51 at src/process/cred.rs:181:42: 181:43
+bb52 at src/process/cred.rs:181:42: 181:43
+bb53 at src/process/cred.rs:186:13: 188:14
+bb55 at src/process/cred.rs:186:40: 186:41
+bb56 at src/process/cred.rs:186:40: 186:41
+bb57 at src/process/cred.rs:189:20: 189:21
+bb59 at src/process/cred.rs:189:41: 189:42
+bb60 at src/process/cred.rs:189:41: 189:42
+bb61 at src/process/cred.rs:192:9: 192:10
+bb62 at src/process/cred.rs:184:13: 184:14
+bb63 at src/process/cred.rs:185:9: 185:10
+bb64 at src/process/cred.rs:192:9: 192:10
+fn process::cred::Cred::fscmp
+_0:  @ process::cred::CredFsCmp 
+_1:  @ &amp;&#39;{erased} process::cred::Cred 
+_2:  @ alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_3:  @ ! 
+_4:  @ () 
+_5:  @ bool 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_7:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_8:  @ alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_9:  @ core::option::Option&lt;alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt;&gt; 
+_10:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_13:  @ ! 
+_14:  @ () 
+_15:  @ bool 
+_16:  @ &amp;&#39;{erased} process::cred::Kuid 
+_17:  @ &amp;&#39;{erased} process::cred::Kuid 
+_18:  @ &amp;&#39;{erased} process::cred::Cred 
+_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_20:  @ ! 
+_21:  @ () 
+_22:  @ bool 
+_23:  @ &amp;&#39;{erased} process::cred::Kuid 
+_24:  @ &amp;&#39;{erased} process::cred::Kuid 
+_25:  @ &amp;&#39;{erased} process::cred::Cred 
+_26:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_27:  @ ! 
+_28:  @ () 
+_29:  @ bool 
+_30:  @ &amp;&#39;{erased} process::cred::Kgid 
+_31:  @ &amp;&#39;{erased} process::cred::Kgid 
+_32:  @ &amp;&#39;{erased} process::cred::Cred 
+_33:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_34:  @ ! 
+_35:  @ () 
+_36:  @ bool 
+_37:  @ &amp;&#39;{erased} process::cred::Kgid 
+_38:  @ &amp;&#39;{erased} process::cred::Kgid 
+_39:  @ &amp;&#39;{erased} process::cred::Cred 
+_40:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_41:  @ ! 
+_42:  @ () 
+_43:  @ bool 
+_44:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_45:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_46:  @ &amp;&#39;{erased} process::cred::Cred 
+_47:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_48:  @ ! 
+_49:  @ () 
+_50:  @ (&amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt;, &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt;) 
+_51:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_52:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_53:  @ &amp;&#39;{erased} process::cred::Cred 
+_54:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_55:  @ isize 
+_56:  @ isize 
+_57:  @ &amp;&#39;{erased} process::cred::GroupInfo 
+_58:  @ &amp;&#39;{erased} process::cred::GroupInfo 
+_59:  @ usize 
+_60:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;process::cred::Kgid, alloc::alloc::Global&gt; 
+_61:  @ usize 
+_62:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;process::cred::Kgid, alloc::alloc::Global&gt; 
+_63:  @ () 
+_64:  @ bool 
+_65:  @ usize 
+_66:  @ usize 
+_67:  @ ! 
+_68:  @ () 
+_69:  @ bool 
+_70:  @ usize 
+_71:  @ usize 
+_72:  @ ! 
+_73:  @ core::ops::Range&lt;usize&gt; 
+_74:  @ core::ops::Range&lt;usize&gt; 
+_75:  @ usize 
+_76:  @ core::ops::Range&lt;usize&gt; 
+_77:  @ () 
+_78:  @ () 
+_79:  @ core::option::Option&lt;usize&gt; 
+_80:  @ &amp;&#39;{erased} mut core::ops::Range&lt;usize&gt; 
+_81:  @ &amp;&#39;{erased} mut core::ops::Range&lt;usize&gt; 
+_82:  @ isize 
+_83:  @ ! 
+_84:  @ usize 
+_85:  @ () 
+_86:  @ bool 
+_87:  @ &amp;&#39;{erased} process::cred::Kgid 
+_88:  @ &amp;&#39;{erased} process::cred::Kgid 
+_89:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;process::cred::Kgid, alloc::alloc::Global&gt; 
+_90:  @ usize 
+_91:  @ &amp;&#39;{erased} process::cred::Kgid 
+_92:  @ &amp;&#39;{erased} process::cred::Kgid 
+_93:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;process::cred::Kgid, alloc::alloc::Global&gt; 
+_94:  @ usize 
+_95:  @ ! 
+_96:  @ bool 
+_97:  @ &amp;&#39;{erased} process::cred::Kgid 
+_98:  @ &amp;&#39;{erased} process::cred::Kgid 
+_99:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;process::cred::Kgid, alloc::alloc::Global&gt; 
+_100:  @ usize 
+_101:  @ &amp;&#39;{erased} process::cred::Kgid 
+_102:  @ &amp;&#39;{erased} process::cred::Kgid 
+_103:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;process::cred::Kgid, alloc::alloc::Global&gt; 
+_104:  @ usize 
+_105:  @ ! 
+_106:  @ () 
+_107:  @ bool 
+_108:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_109:  @ ! 
+_110:  @ bool 
+_111:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_112:  @ &amp;&#39;{erased} process::cred::Cred 
+_113:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::cred::Cred, alloc::alloc::Global&gt; 
+_114:  @ ! 
+_115:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_116:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_117:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+_118:  @ &amp;&#39;{erased} core::option::Option&lt;process::cred::GroupInfo&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;((*_1).0: alloc::sync::Weak&lt;process::cred::Cred&gt;))) @ _10=&amp;((*_1).0: alloc::sync::Weak&lt;process::cred::Cred&gt;) @ Ref
+    _9 = alloc::sync::Weak::&lt;process::cred::Cred&gt;::upgrade(move _10) -&gt; [return: bb1, unwind: bb68] @ Call: FnDid: 7077
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    _8 = core::option::Option::&lt;alloc::sync::Arc&lt;process::cred::Cred&gt;&gt;::unwrap(move _9) -&gt; [return: bb2, unwind: bb68] @ Call: FnDid: 10157
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, &amp;_8)) @ _7=&amp;_8 @ Ref
+    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;_2)) @ _12=&amp;_2 @ Ref
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    _5 = alloc::sync::Arc::&lt;process::cred::Cred&gt;::ptr_eq(move _6, move _11) -&gt; [return: bb3, unwind: bb67] @ Call: FnDid: 6953
+}
+bb 3 {
+CleanUp: false
+    switchInt(move _5) -&gt; [0: bb6, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    drop(_8) -&gt; [return: bb5, unwind: bb68] @ Drop
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Equal)) @ _0=process::cred::CredFsCmp::Equal @ Aggregate
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    drop(_8) -&gt; [return: bb7, unwind: bb68] @ Drop
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    Assign((_4, const ())) @ _4=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;((*_1).8: process::cred::Kuid))) @ _16=&amp;((*_1).8: process::cred::Kuid) @ Ref
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &amp;_2)) @ _19=&amp;_2 @ Ref
+    _18 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb8, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_17, &amp;((*_18).8: process::cred::Kuid))) @ _17=&amp;((*_18).8: process::cred::Kuid) @ Ref
+    _15 = &lt;process::cred::Kuid as core::cmp::PartialOrd&gt;::lt(move _16, move _17) -&gt; [return: bb9, unwind: bb68] @ Call: FnDid: 3214
+}
+bb 9 {
+CleanUp: false
+    switchInt(move _15) -&gt; [0: bb11, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Less)) @ _0=process::cred::CredFsCmp::Less @ Aggregate
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_14, const ())) @ _14=const () @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &amp;((*_1).8: process::cred::Kuid))) @ _23=&amp;((*_1).8: process::cred::Kuid) @ Ref
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &amp;_2)) @ _26=&amp;_2 @ Ref
+    _25 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _26) -&gt; [return: bb12, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    Assign((_24, &amp;((*_25).8: process::cred::Kuid))) @ _24=&amp;((*_25).8: process::cred::Kuid) @ Ref
+    _22 = &lt;process::cred::Kuid as core::cmp::PartialOrd&gt;::gt(move _23, move _24) -&gt; [return: bb13, unwind: bb68] @ Call: FnDid: 3216
+}
+bb 13 {
+CleanUp: false
+    switchInt(move _22) -&gt; [0: bb15, otherwise: bb14] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Greater)) @ _0=process::cred::CredFsCmp::Greater @ Aggregate
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    Assign((_21, const ())) @ _21=const () @ Use
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;((*_1).9: process::cred::Kgid))) @ _30=&amp;((*_1).9: process::cred::Kgid) @ Ref
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;_2)) @ _33=&amp;_2 @ Ref
+    _32 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb16, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    Assign((_31, &amp;((*_32).9: process::cred::Kgid))) @ _31=&amp;((*_32).9: process::cred::Kgid) @ Ref
+    _29 = &lt;process::cred::Kgid as core::cmp::PartialOrd&gt;::lt(move _30, move _31) -&gt; [return: bb17, unwind: bb68] @ Call: FnDid: 3214
+}
+bb 17 {
+CleanUp: false
+    switchInt(move _29) -&gt; [0: bb19, otherwise: bb18] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Less)) @ _0=process::cred::CredFsCmp::Less @ Aggregate
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    Assign((_28, const ())) @ _28=const () @ Use
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;((*_1).9: process::cred::Kgid))) @ _37=&amp;((*_1).9: process::cred::Kgid) @ Ref
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;_2)) @ _40=&amp;_2 @ Ref
+    _39 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _40) -&gt; [return: bb20, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    Assign((_38, &amp;((*_39).9: process::cred::Kgid))) @ _38=&amp;((*_39).9: process::cred::Kgid) @ Ref
+    _36 = &lt;process::cred::Kgid as core::cmp::PartialOrd&gt;::gt(move _37, move _38) -&gt; [return: bb21, unwind: bb68] @ Call: FnDid: 3216
+}
+bb 21 {
+CleanUp: false
+    switchInt(move _36) -&gt; [0: bb23, otherwise: bb22] @ SwitchInt
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Greater)) @ _0=process::cred::CredFsCmp::Greater @ Aggregate
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    Assign((_35, const ())) @ _35=const () @ Use
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_44, &amp;((*_1).15: core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _44=&amp;((*_1).15: core::option::Option&lt;process::cred::GroupInfo&gt;) @ Ref
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;_2)) @ _47=&amp;_2 @ Ref
+    _46 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _47) -&gt; [return: bb24, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_47) @ StorageDead
+    Assign((_45, &amp;((*_46).15: core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _45=&amp;((*_46).15: core::option::Option&lt;process::cred::GroupInfo&gt;) @ Ref
+    _43 = &lt;core::option::Option&lt;process::cred::GroupInfo&gt; as core::cmp::PartialEq&gt;::eq(move _44, move _45) -&gt; [return: bb25, unwind: bb68] @ Call: FnDid: 3170
+}
+bb 25 {
+CleanUp: false
+    switchInt(move _43) -&gt; [0: bb27, otherwise: bb26] @ SwitchInt
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Equal)) @ _0=process::cred::CredFsCmp::Equal @ Aggregate
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    Assign((_42, const ())) @ _42=const () @ Use
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;((*_1).15: core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _51=&amp;((*_1).15: core::option::Option&lt;process::cred::GroupInfo&gt;) @ Ref
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_2)) @ _54=&amp;_2 @ Ref
+    _53 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _54) -&gt; [return: bb28, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    Assign((_52, &amp;((*_53).15: core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _52=&amp;((*_53).15: core::option::Option&lt;process::cred::GroupInfo&gt;) @ Ref
+    Assign((_50, (move _51, move _52))) @ _50=(move _51, move _52) @ Aggregate
+    StorageDead(_52) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    Assign((_115, deref_copy (_50.0: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _115=deref_copy (_50.0: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;) @ CopyForDeref
+    Assign((_56, discriminant((*_115)))) @ _56=discriminant((*_115)) @ Discriminant
+    switchInt(move _56) -&gt; [1: bb29, otherwise: bb53] @ SwitchInt
+}
+bb 29 {
+CleanUp: false
+    Assign((_116, deref_copy (_50.1: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _116=deref_copy (_50.1: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;) @ CopyForDeref
+    Assign((_55, discriminant((*_116)))) @ _55=discriminant((*_116)) @ Discriminant
+    switchInt(move _55) -&gt; [1: bb30, otherwise: bb53] @ SwitchInt
+}
+bb 30 {
+CleanUp: false
+    StorageLive(_57) @ StorageLive
+    Assign((_117, deref_copy (_50.0: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _117=deref_copy (_50.0: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;) @ CopyForDeref
+    Assign((_57, &amp;(((*_117) as Some).0: process::cred::GroupInfo))) @ _57=&amp;(((*_117) as Some).0: process::cred::GroupInfo) @ Ref
+    StorageLive(_58) @ StorageLive
+    Assign((_118, deref_copy (_50.1: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _118=deref_copy (_50.1: &amp;core::option::Option&lt;process::cred::GroupInfo&gt;) @ CopyForDeref
+    Assign((_58, &amp;(((*_118) as Some).0: process::cred::GroupInfo))) @ _58=&amp;(((*_118) as Some).0: process::cred::GroupInfo) @ Ref
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, &amp;((*_57).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;))) @ _60=&amp;((*_57).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;) @ Ref
+    _59 = alloc::vec::Vec::&lt;process::cred::Kgid&gt;::len(move _60) -&gt; [return: bb31, unwind: bb68] @ Call: FnDid: 8193
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_62, &amp;((*_58).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;))) @ _62=&amp;((*_58).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;) @ Ref
+    _61 = alloc::vec::Vec::&lt;process::cred::Kgid&gt;::len(move _62) -&gt; [return: bb32, unwind: bb68] @ Call: FnDid: 8193
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_62) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, copy _59)) @ _65=copy _59 @ Use
+    StorageLive(_66) @ StorageLive
+    Assign((_66, copy _61)) @ _66=copy _61 @ Use
+    Assign((_64, Lt(move _65, move _66))) @ _64=Lt(move _65, move _66) @ BinaryOp
+    switchInt(move _64) -&gt; [0: bb34, otherwise: bb33] @ SwitchInt
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Less)) @ _0=process::cred::CredFsCmp::Less @ Aggregate
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    goto -&gt; bb63 @ Goto
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    Assign((_63, const ())) @ _63=const () @ Use
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, copy _59)) @ _70=copy _59 @ Use
+    StorageLive(_71) @ StorageLive
+    Assign((_71, copy _61)) @ _71=copy _61 @ Use
+    Assign((_69, Gt(move _70, move _71))) @ _69=Gt(move _70, move _71) @ BinaryOp
+    switchInt(move _69) -&gt; [0: bb36, otherwise: bb35] @ SwitchInt
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Greater)) @ _0=process::cred::CredFsCmp::Greater @ Aggregate
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    goto -&gt; bb63 @ Goto
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_68, const ())) @ _68=const () @ Use
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, copy _59)) @ _75=copy _59 @ Use
+    Assign((_74, core::ops::Range::&lt;usize&gt; { start: const 0_usize, end: move _75 })) @ _74=core::ops::Range::&lt;usize&gt; { start: const 0_usize, end: move _75 } @ Aggregate
+    StorageDead(_75) @ StorageDead
+    _73 = &lt;core::ops::Range&lt;usize&gt; as core::iter::IntoIterator&gt;::into_iter(move _74) -&gt; [return: bb37, unwind: bb68] @ Call: FnDid: 9224
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_74) @ StorageDead
+    StorageLive(_76) @ StorageLive
+    Assign((_76, move _73)) @ _76=move _73 @ Use
+    goto -&gt; bb38 @ Goto
+}
+bb 38 {
+CleanUp: false
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &amp;mut _76)) @ _81=&amp;mut _76 @ Ref
+    Assign((_80, &amp;mut (*_81))) @ _80=&amp;mut (*_81) @ Ref
+    _79 = &lt;core::ops::Range&lt;usize&gt; as core::iter::Iterator&gt;::next(move _80) -&gt; [return: bb39, unwind: bb68] @ Call: FnDid: 9356
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    Assign((_82, discriminant(_79))) @ _82=discriminant(_79) @ Discriminant
+    switchInt(move _82) -&gt; [0: bb42, 1: bb41, otherwise: bb40] @ SwitchInt
+}
+bb 40 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 41 {
+CleanUp: false
+    StorageLive(_84) @ StorageLive
+    Assign((_84, copy ((_79 as Some).0: usize))) @ _84=copy ((_79 as Some).0: usize) @ Use
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    Assign((_89, &amp;((*_57).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;))) @ _89=&amp;((*_57).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;) @ Ref
+    StorageLive(_90) @ StorageLive
+    Assign((_90, copy _84)) @ _90=copy _84 @ Use
+    _88 = &lt;alloc::vec::Vec&lt;process::cred::Kgid&gt; as core::ops::Index&lt;usize&gt;&gt;::index(move _89, move _90) -&gt; [return: bb43, unwind: bb68] @ Call: FnDid: 45437
+}
+bb 42 {
+CleanUp: false
+    Assign((_49, const ())) @ _49=const () @ Use
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    goto -&gt; bb61 @ Goto
+}
+bb 43 {
+CleanUp: false
+    Assign((_87, &amp;(*_88))) @ _87=&amp;(*_88) @ Ref
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &amp;((*_58).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;))) @ _93=&amp;((*_58).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;) @ Ref
+    StorageLive(_94) @ StorageLive
+    Assign((_94, copy _84)) @ _94=copy _84 @ Use
+    _92 = &lt;alloc::vec::Vec&lt;process::cred::Kgid&gt; as core::ops::Index&lt;usize&gt;&gt;::index(move _93, move _94) -&gt; [return: bb44, unwind: bb68] @ Call: FnDid: 45437
+}
+bb 44 {
+CleanUp: false
+    Assign((_91, &amp;(*_92))) @ _91=&amp;(*_92) @ Ref
+    StorageDead(_94) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    _86 = &lt;process::cred::Kgid as core::cmp::PartialOrd&gt;::lt(move _87, move _91) -&gt; [return: bb45, unwind: bb68] @ Call: FnDid: 3214
+}
+bb 45 {
+CleanUp: false
+    switchInt(move _86) -&gt; [0: bb47, otherwise: bb46] @ SwitchInt
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_92) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Less)) @ _0=process::cred::CredFsCmp::Less @ Aggregate
+    StorageDead(_86) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    goto -&gt; bb62 @ Goto
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_92) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    Assign((_85, const ())) @ _85=const () @ Use
+    StorageDead(_86) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    Assign((_99, &amp;((*_57).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;))) @ _99=&amp;((*_57).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;) @ Ref
+    StorageLive(_100) @ StorageLive
+    Assign((_100, copy _84)) @ _100=copy _84 @ Use
+    _98 = &lt;alloc::vec::Vec&lt;process::cred::Kgid&gt; as core::ops::Index&lt;usize&gt;&gt;::index(move _99, move _100) -&gt; [return: bb48, unwind: bb68] @ Call: FnDid: 45437
+}
+bb 48 {
+CleanUp: false
+    Assign((_97, &amp;(*_98))) @ _97=&amp;(*_98) @ Ref
+    StorageDead(_100) @ StorageDead
+    StorageDead(_99) @ StorageDead
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    Assign((_103, &amp;((*_58).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;))) @ _103=&amp;((*_58).0: alloc::vec::Vec&lt;process::cred::Kgid&gt;) @ Ref
+    StorageLive(_104) @ StorageLive
+    Assign((_104, copy _84)) @ _104=copy _84 @ Use
+    _102 = &lt;alloc::vec::Vec&lt;process::cred::Kgid&gt; as core::ops::Index&lt;usize&gt;&gt;::index(move _103, move _104) -&gt; [return: bb49, unwind: bb68] @ Call: FnDid: 45437
+}
+bb 49 {
+CleanUp: false
+    Assign((_101, &amp;(*_102))) @ _101=&amp;(*_102) @ Ref
+    StorageDead(_104) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    _96 = &lt;process::cred::Kgid as core::cmp::PartialOrd&gt;::gt(move _97, move _101) -&gt; [return: bb50, unwind: bb68] @ Call: FnDid: 3216
+}
+bb 50 {
+CleanUp: false
+    switchInt(move _96) -&gt; [0: bb52, otherwise: bb51] @ SwitchInt
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Greater)) @ _0=process::cred::CredFsCmp::Greater @ Aggregate
+    StorageDead(_96) @ StorageDead
+    goto -&gt; bb62 @ Goto
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    Assign((_78, const ())) @ _78=const () @ Use
+    StorageDead(_96) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    Assign((_77, const ())) @ _77=const () @ Use
+    goto -&gt; bb38 @ Goto
+}
+bb 53 {
+CleanUp: false
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    Assign((_108, &amp;((*_1).15: core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _108=&amp;((*_1).15: core::option::Option&lt;process::cred::GroupInfo&gt;) @ Ref
+    _107 = core::option::Option::&lt;process::cred::GroupInfo&gt;::is_none(move _108) -&gt; [return: bb54, unwind: bb68] @ Call: FnDid: 10146
+}
+bb 54 {
+CleanUp: false
+    switchInt(move _107) -&gt; [0: bb56, otherwise: bb55] @ SwitchInt
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_108) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Less)) @ _0=process::cred::CredFsCmp::Less @ Aggregate
+    StorageDead(_107) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    goto -&gt; bb64 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_108) @ StorageDead
+    Assign((_106, const ())) @ _106=const () @ Use
+    StorageDead(_107) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageLive(_110) @ StorageLive
+    StorageLive(_111) @ StorageLive
+    StorageLive(_112) @ StorageLive
+    StorageLive(_113) @ StorageLive
+    Assign((_113, &amp;_2)) @ _113=&amp;_2 @ Ref
+    _112 = &lt;alloc::sync::Arc&lt;process::cred::Cred&gt; as lazy_static::__Deref&gt;::deref(move _113) -&gt; [return: bb57, unwind: bb68] @ Call: FnDid: 3903
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_113) @ StorageDead
+    Assign((_111, &amp;((*_112).15: core::option::Option&lt;process::cred::GroupInfo&gt;))) @ _111=&amp;((*_112).15: core::option::Option&lt;process::cred::GroupInfo&gt;) @ Ref
+    _110 = core::option::Option::&lt;process::cred::GroupInfo&gt;::is_none(move _111) -&gt; [return: bb58, unwind: bb68] @ Call: FnDid: 10146
+}
+bb 58 {
+CleanUp: false
+    switchInt(move _110) -&gt; [0: bb60, otherwise: bb59] @ SwitchInt
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_112) @ StorageDead
+    StorageDead(_111) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Greater)) @ _0=process::cred::CredFsCmp::Greater @ Aggregate
+    StorageDead(_110) @ StorageDead
+    goto -&gt; bb64 @ Goto
+}
+bb 60 {
+CleanUp: false
+    StorageDead(_112) @ StorageDead
+    StorageDead(_111) @ StorageDead
+    Assign((_49, const ())) @ _49=const () @ Use
+    StorageDead(_110) @ StorageDead
+    goto -&gt; bb61 @ Goto
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    Assign((_0, process::cred::CredFsCmp::Equal)) @ _0=process::cred::CredFsCmp::Equal @ Aggregate
+    goto -&gt; bb65 @ Goto
+}
+bb 62 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    goto -&gt; bb63 @ Goto
+}
+bb 63 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    goto -&gt; bb64 @ Goto
+}
+bb 64 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 65 {
+CleanUp: false
+    drop(_2) -&gt; [return: bb66, unwind: bb69] @ Drop
+}
+bb 66 {
+CleanUp: false
+    return @ Return
+}
+bb 67 {
+CleanUp: true
+    drop(_8) -&gt; [return: bb68, unwind terminate(cleanup)] @ Drop
+}
+bb 68 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb69, unwind terminate(cleanup)] @ Drop
+}
+bb 69 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

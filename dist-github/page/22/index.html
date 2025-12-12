@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #22: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #22
+            
+                 <span class="func-name">driver::base::device::dd::{impl#2}::add_to_sysfs</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:56|RAP|WARN|: Double free detected in function &#34;add_to_sysfs&#34;
+warning: Double free detected.
+   --&gt; src/driver/base/device/dd.rs:467:1
+    |
+467 | / fn add_to_sysfs(&amp;self, device: &amp;Arc&lt;dyn Device&gt;) -&gt; Result&lt;(), SystemError&gt; {
+468 | |         let driver = device.driver().ok_or(SystemError::EINVAL)?;
+469 | |
+470 | |         if let Some(bus) = device.bus().and_then(|bus| bus.upgrade()) {
+471 | |             bus.subsystem().bus_notifier().call_chain(
+472 | |                 BusNotifyEvent::BindDriver,
+473 | |                 Some(device),
+474 | |                 None,
+475 | |             );
+476 | |         }
+477 | |
+478 | |         let driver_kobj = driver.clone() as Arc&lt;dyn KObject&gt;;
+479 | |         let device_kobj = device.clone() as Arc&lt;dyn KObject&gt;;
+480 | |
+481 | |         sysfs_instance().create_link(Some(&amp;driver_kobj), &amp;device_kobj, device.name())?;
+482 | |
+483 | |         let fail_rm_dev_link = || {
+484 | |             sysfs_instance().remove_link(&amp;driver_kobj, device.name());
+485 | |         };
+486 | |
+487 | |         sysfs_instance()
+488 | |             .create_link(Some(&amp;device_kobj), &amp;driver_kobj, &#34;driver&#34;.to_string())
+489 | |             .inspect_err(|_e| {
+490 | |                 fail_rm_dev_link();
+491 | |             })?;
+492 | |
+493 | |         device_manager()
+494 | |             .create_file(device, &amp;DeviceAttrCoredump)
+495 | |             .inspect_err(|_e| {
+496 | |                 sysfs_instance().remove_link(&amp;device_kobj, &#34;driver&#34;.to_string());
+497 | |                 fail_rm_dev_link();
+498 | |             })?;
+499 | |
+500 | |         return Ok(());
+501 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/dd.rs line 467.
+    | MIR detail: Value _42(device_kobj, src/driver/base/device/dd.rs:479) and _38(driver_kobj, src/driver/base/device/dd.rs:478) are alias.
+    | MIR detail: _42(device_kobj, src/driver/base/device/dd.rs:479) is dropped at BB45(src/driver/base/device/dd.rs:501); _38(driver_kobj, src/driver/base/device/dd.rs:478) is dropped at BB46(src/driver/base/device/dd.rs:501).
+    |
+22:07:56|RAP|WARN|: Double free detected in function &#34;add_to_sysfs&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/base/device/dd.rs:467:1
+    |
+467 | / fn add_to_sysfs(&amp;self, device: &amp;Arc&lt;dyn Device&gt;) -&gt; Result&lt;(), SystemError&gt; {
+468 | |         let driver = device.driver().ok_or(SystemError::EINVAL)?;
+469 | |
+470 | |         if let Some(bus) = device.bus().and_then(|bus| bus.upgrade()) {
+471 | |             bus.subsystem().bus_notifier().call_chain(
+472 | |                 BusNotifyEvent::BindDriver,
+473 | |                 Some(device),
+474 | |                 None,
+475 | |             );
+476 | |         }
+477 | |
+478 | |         let driver_kobj = driver.clone() as Arc&lt;dyn KObject&gt;;
+479 | |         let device_kobj = device.clone() as Arc&lt;dyn KObject&gt;;
+480 | |
+481 | |         sysfs_instance().create_link(Some(&amp;driver_kobj), &amp;device_kobj, device.name())?;
+482 | |
+483 | |         let fail_rm_dev_link = || {
+484 | |             sysfs_instance().remove_link(&amp;driver_kobj, device.name());
+485 | |         };
+486 | |
+487 | |         sysfs_instance()
+488 | |             .create_link(Some(&amp;device_kobj), &amp;driver_kobj, &#34;driver&#34;.to_string())
+489 | |             .inspect_err(|_e| {
+490 | |                 fail_rm_dev_link();
+491 | |             })?;
+492 | |
+493 | |         device_manager()
+494 | |             .create_file(device, &amp;DeviceAttrCoredump)
+495 | |             .inspect_err(|_e| {
+496 | |                 sysfs_instance().remove_link(&amp;device_kobj, &#34;driver&#34;.to_string());
+497 | |                 fail_rm_dev_link();
+498 | |             })?;
+499 | |
+500 | |         return Ok(());
+501 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/dd.rs line 467.
+    | MIR detail: Value _42(device_kobj, src/driver/base/device/dd.rs:479) and _38(driver_kobj, src/driver/base/device/dd.rs:478) are alias.
+    | MIR detail: _42(device_kobj, src/driver/base/device/dd.rs:479) is dropped at BB45(src/driver/base/device/dd.rs:501); _38(driver_kobj, src/driver/base/device/dd.rs:478) is dropped at BB50(src/driver/base/device/dd.rs:501).
+    |
+22:07:56|RAP|WARN|: Dangling pointer detected in function &#34;add_to_sysfs&#34;
+warning: Dangling pointer detected.
+   --&gt; src/driver/base/device/dd.rs:467:1
+    |
+467 | / fn add_to_sysfs(&amp;self, device: &amp;Arc&lt;dyn Device&gt;) -&gt; Result&lt;(), SystemError&gt; {
+468 | |         let driver = device.driver().ok_or(SystemError::EINVAL)?;
+469 | |
+470 | |         if let Some(bus) = device.bus().and_then(|bus| bus.upgrade()) {
+471 | |             bus.subsystem().bus_notifier().call_chain(
+472 | |                 BusNotifyEvent::BindDriver,
+473 | |                 Some(device),
+474 | |                 None,
+475 | |             );
+476 | |         }
+477 | |
+478 | |         let driver_kobj = driver.clone() as Arc&lt;dyn KObject&gt;;
+479 | |         let device_kobj = device.clone() as Arc&lt;dyn KObject&gt;;
+480 | |
+481 | |         sysfs_instance().create_link(Some(&amp;driver_kobj), &amp;device_kobj, device.name())?;
+482 | |
+483 | |         let fail_rm_dev_link = || {
+484 | |             sysfs_instance().remove_link(&amp;driver_kobj, device.name());
+485 | |         };
+486 | |
+487 | |         sysfs_instance()
+488 | |             .create_link(Some(&amp;device_kobj), &amp;driver_kobj, &#34;driver&#34;.to_string())
+489 | |             .inspect_err(|_e| {
+490 | |                 fail_rm_dev_link();
+491 | |             })?;
+492 | |
+493 | |         device_manager()
+494 | |             .create_file(device, &amp;DeviceAttrCoredump)
+495 | |             .inspect_err(|_e| {
+496 | |                 sysfs_instance().remove_link(&amp;device_kobj, &#34;driver&#34;.to_string());
+497 | |                 fail_rm_dev_link();
+498 | |             })?;
+499 | |
+500 | |         return Ok(());
+501 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/base/device/dd.rs line 467.
+    | MIR detail: Value _38(driver_kobj, src/driver/base/device/dd.rs:478) and _2(device, src/driver/base/device/dd.rs:467) are alias.
+    | MIR detail: _38(driver_kobj, src/driver/base/device/dd.rs:478) is dropped at BB46(src/driver/base/device/dd.rs:501); _2(device, src/driver/base/device/dd.rs:467) became dangling.
+    |
+22:07:56|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;add_to_sysfs&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/driver/base/device/dd.rs:467:1
+    |
+467 | / fn add_to_sysfs(&amp;self, device: &amp;Arc&lt;dyn Device&gt;) -&gt; Result&lt;(), SystemError&gt; {
+468 | |         let driver = device.driver().ok_or(SystemError::EINVAL)?;
+469 | |
+470 | |         if let Some(bus) = device.bus().and_then(|bus| bus.upgrade()) {
+471 | |             bus.subsystem().bus_notifier().call_chain(
+472 | |                 BusNotifyEvent::BindDriver,
+473 | |                 Some(device),
+474 | |                 None,
+475 | |             );
+476 | |         }
+477 | |
+478 | |         let driver_kobj = driver.clone() as Arc&lt;dyn KObject&gt;;
+479 | |         let device_kobj = device.clone() as Arc&lt;dyn KObject&gt;;
+480 | |
+481 | |         sysfs_instance().create_link(Some(&amp;driver_kobj), &amp;device_kobj, device.name())?;
+482 | |
+483 | |         let fail_rm_dev_link = || {
+484 | |             sysfs_instance().remove_link(&amp;driver_kobj, device.name());
+485 | |         };
+486 | |
+487 | |         sysfs_instance()
+488 | |             .create_link(Some(&amp;device_kobj), &amp;driver_kobj, &#34;driver&#34;.to_string())
+489 | |             .inspect_err(|_e| {
+490 | |                 fail_rm_dev_link();
+491 | |             })?;
+492 | |
+493 | |         device_manager()
+494 | |             .create_file(device, &amp;DeviceAttrCoredump)
+495 | |             .inspect_err(|_e| {
+496 | |                 sysfs_instance().remove_link(&amp;device_kobj, &#34;driver&#34;.to_string());
+497 | |                 fail_rm_dev_link();
+498 | |             })?;
+499 | |
+500 | |         return Ok(());
+501 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/base/device/dd.rs line 467.
+    | MIR detail: Value _38(driver_kobj, src/driver/base/device/dd.rs:478) and _2(device, src/driver/base/device/dd.rs:467) are alias.
+    | MIR detail: _38(driver_kobj, src/driver/base/device/dd.rs:478) is dropped at BB50(src/driver/base/device/dd.rs:501); _2(device, src/driver/base/device/dd.rs:467) became dangling.
+    |
+render dot for DefId(0:7929 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/base/device/dd.rs:468:13: 468:19
+bb1 at src/driver/base/device/dd.rs:468:22: 468:28
+bb2 at src/driver/base/device/dd.rs:468:36: 468:37
+bb3 at src/driver/base/device/dd.rs:468:63: 468:64
+bb4 at src/driver/base/device/dd.rs:468:64: 468:65
+bb6 at src/driver/base/device/dd.rs:468:22: 468:65
+bb7 at src/driver/base/device/dd.rs:468:64: 468:65
+bb8 at src/driver/base/device/dd.rs:468:64: 468:65
+bb9 at src/driver/base/device/dd.rs:470:28: 470:34
+bb10 at src/driver/base/device/dd.rs:470:39: 470:40
+bb11 at src/driver/base/device/dd.rs:470:69: 470:70
+bb12 at src/driver/base/device/dd.rs:470:21: 470:24
+bb13 at src/driver/base/device/dd.rs:471:13: 471:16
+bb14 at src/driver/base/device/dd.rs:471:13: 471:28
+bb15 at src/driver/base/device/dd.rs:471:13: 471:43
+bb16 at src/driver/base/device/dd.rs:475:13: 475:14
+bb17 at src/driver/base/device/dd.rs:476:10: 476:10
+bb18 at src/driver/base/device/dd.rs:476:9: 476:10
+bb19 at src/driver/base/device/dd.rs:478:27: 478:61
+bb20 at src/driver/base/device/dd.rs:479:27: 479:61
+bb21 at src/driver/base/device/dd.rs:481:9: 481:25
+bb22 at src/driver/base/device/dd.rs:481:72: 481:78
+bb23 at src/driver/base/device/dd.rs:481:84: 481:85
+bb24 at src/driver/base/device/dd.rs:481:85: 481:86
+bb25 at src/driver/base/device/dd.rs:481:86: 481:87
+bb26 at src/driver/base/device/dd.rs:481:9: 481:87
+bb27 at src/driver/base/device/dd.rs:481:86: 481:87
+bb28 at src/driver/base/device/dd.rs:481:86: 481:87
+bb29 at src/driver/base/device/dd.rs:487:9: 487:25
+bb30 at src/driver/base/device/dd.rs:488:79: 488:80
+bb31 at src/driver/base/device/dd.rs:488:80: 488:81
+bb32 at src/driver/base/device/dd.rs:491:14: 491:15
+bb33 at src/driver/base/device/dd.rs:491:15: 491:16
+bb34 at src/driver/base/device/dd.rs:487:9: 491:16
+bb35 at src/driver/base/device/dd.rs:491:15: 491:16
+bb36 at src/driver/base/device/dd.rs:491:15: 491:16
+bb37 at src/driver/base/device/dd.rs:493:9: 493:25
+bb38 at src/driver/base/device/dd.rs:494:53: 494:54
+bb39 at src/driver/base/device/dd.rs:498:14: 498:15
+bb40 at src/driver/base/device/dd.rs:498:15: 498:16
+bb41 at src/driver/base/device/dd.rs:493:9: 498:16
+bb42 at src/driver/base/device/dd.rs:498:15: 498:16
+bb43 at src/driver/base/device/dd.rs:498:15: 498:16
+bb44 at src/driver/base/device/dd.rs:501:5: 501:6
+bb46 at src/driver/base/device/dd.rs:501:5: 501:6
+bb47 at src/driver/base/device/dd.rs:501:5: 501:6
+bb48 at src/driver/base/device/dd.rs:501:5: 501:6
+bb54 at src/driver/base/device/dd.rs:476:9: 476:10
+bb55 at src/driver/base/device/dd.rs:476:9: 476:10
+bb56 at src/driver/base/device/dd.rs:468:65: 468:66
+fn driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} driver::base::device::driver::DriverManager 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ ! 
+_4:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_5:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_6:  @ core::result::Result&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_7:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_8:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_9:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_11:  @ system_error::SystemError 
+_12:  @ isize 
+_13:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_14:  @ ! 
+_15:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_16:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_17:  @ () 
+_18:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_19:  @ core::option::Option&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_20:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_21:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_22:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_23:  @ Closure(DefId(0:7930 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;, bound_vars: [] }, ()]) 
+_24:  @ isize 
+_25:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_26:  @ (i32, usize) 
+_27:  @ &amp;&#39;{erased} libs::notifier::AtomicNotifierChain&lt;driver::base::device::bus::BusNotifyEvent, alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_28:  @ &amp;&#39;{erased} libs::notifier::AtomicNotifierChain&lt;driver::base::device::bus::BusNotifyEvent, alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_29:  @ &amp;&#39;{erased} driver::base::subsys::SubSysPrivate 
+_30:  @ &amp;&#39;{erased} driver::base::subsys::SubSysPrivate 
+_31:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased} 
+_32:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased} 
+_33:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_34:  @ driver::base::device::bus::BusNotifyEvent 
+_35:  @ core::option::Option&lt;&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_36:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_37:  @ core::option::Option&lt;usize&gt; 
+_38:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_39:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_40:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::driver::Driver), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_42:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_43:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_44:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_45:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_46:  @ () 
+_47:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_48:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_49:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_50:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_51:  @ core::option::Option&lt;&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_52:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_53:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_54:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_55:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_56:  @ alloc::string::String 
+_57:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_58:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_59:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_60:  @ isize 
+_61:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_62:  @ ! 
+_63:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_64:  @ () 
+_65:  @ Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+_66:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_67:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_68:  @ () 
+_69:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_70:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_71:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_72:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_73:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_74:  @ core::option::Option&lt;&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_75:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_76:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_77:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_78:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_79:  @ alloc::string::String 
+_80:  @ &amp;&#39;{erased} str 
+_81:  @ &amp;&#39;{erased} str 
+_82:  @ Closure(DefId(0:7932 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#2}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]),)]) 
+_83:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+_84:  @ isize 
+_85:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_86:  @ ! 
+_87:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_88:  @ () 
+_89:  @ () 
+_90:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_91:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_92:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_93:  @ &amp;&#39;{erased} driver::base::device::DeviceManager 
+_94:  @ &amp;&#39;{erased} driver::base::device::DeviceManager 
+_95:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_96:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::sysfs::Attribute), bound_vars: [] }] + &#39;{erased} 
+_97:  @ &amp;&#39;{erased} driver::base::device::dd::DeviceAttrCoredump 
+_98:  @ &amp;&#39;{erased} driver::base::device::dd::DeviceAttrCoredump 
+_99:  @ driver::base::device::dd::DeviceAttrCoredump 
+_100:  @ Closure(DefId(0:7933 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#3}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]))]) 
+_101:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_102:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+_103:  @ isize 
+_104:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_105:  @ ! 
+_106:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_107:  @ () 
+_108:  @ () 
+_109:  @ &amp;&#39;{erased} driver::base::device::dd::DeviceAttrCoredump 
+_110:  @ bool 
+_111:  @ isize 
+_112:  @ isize 
+_113:  @ isize 
+_114:  @ isize 
+_115:  @ isize 
+_116:  @ isize 
+_117:  @ isize 
+_118:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_110, const false)) @ _110=const false @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(*_2))) @ _10=&amp;(*_2) @ Ref
+    _9 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt; as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = &lt;dyn driver::base::device::Device as driver::base::device::Device&gt;::driver(move _8) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 8137
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::EINVAL)) @ _11=system_error::SystemError::EINVAL @ Aggregate
+    _6 = core::option::Option::&lt;alloc::sync::Arc&lt;dyn driver::base::device::driver::Driver&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _7, move _11) -&gt; [return: bb3, unwind: bb53] @ Call: FnDid: 10178
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    _5 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;dyn driver::base::device::driver::Driver&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _6) -&gt; [return: bb4, unwind: bb53] @ Call: FnDid: 4199
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_12, discriminant(_5))) @ _12=discriminant(_5) @ Discriminant
+    switchInt(move _12) -&gt; [0: bb6, 1: bb7, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 6 {
+CleanUp: false
+    StorageLive(_16) @ StorageLive
+    Assign((_16, move ((_5 as Continue).0: alloc::sync::Arc&lt;dyn driver::base::device::driver::Driver&gt;))) @ _16=move ((_5 as Continue).0: alloc::sync::Arc&lt;dyn driver::base::device::driver::Driver&gt;) @ Use
+    Assign((_4, move _16)) @ _4=move _16 @ Use
+    StorageDead(_16) @ StorageDead
+    Assign((_113, discriminant(_5))) @ _113=discriminant(_5) @ Discriminant
+    StorageDead(_9) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;(*_2))) @ _22=&amp;(*_2) @ Ref
+    _21 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt; as lazy_static::__Deref&gt;::deref(move _22) -&gt; [return: bb9, unwind: bb52] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    StorageLive(_13) @ StorageLive
+    Assign((_13, move ((_5 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _13=move ((_5 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_15) @ StorageLive
+    Assign((_15, move _13)) @ _15=move _13 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _15) -&gt; [return: bb8, unwind: bb56] @ Call: FnDid: 4202
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_111, discriminant(_5))) @ _111=discriminant(_5) @ Discriminant
+    StorageDead(_9) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb48 @ Goto
+}
+bb 9 {
+CleanUp: false
+    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
+    StorageDead(_22) @ StorageDead
+    _19 = &lt;dyn driver::base::device::Device as driver::base::device::Device&gt;::bus(move _20) -&gt; [return: bb10, unwind: bb52] @ Call: FnDid: 8133
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, {closure@src/driver/base/device/dd.rs:470:50: 470:55})) @ _23={closure@src/driver/base/device/dd.rs:470:50: 470:55} @ Aggregate
+    _18 = core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::device::bus::Bus&gt;&gt;::and_then::&lt;alloc::sync::Arc&lt;dyn driver::base::device::bus::Bus&gt;, {closure@src/driver/base/device/dd.rs:470:50: 470:55}&gt;(move _19, move _23) -&gt; [return: bb11, unwind: bb52] @ Call: FnDid: 10191
+}
+bb 11 {
+CleanUp: false
+    Assign((_110, const true)) @ _110=const true @ Use
+    StorageDead(_23) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    Assign((_24, discriminant(_18))) @ _24=discriminant(_18) @ Discriminant
+    switchInt(move _24) -&gt; [1: bb12, otherwise: bb17] @ SwitchInt
+}
+bb 12 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move ((_18 as Some).0: alloc::sync::Arc&lt;dyn driver::base::device::bus::Bus&gt;))) @ _25=move ((_18 as Some).0: alloc::sync::Arc&lt;dyn driver::base::device::bus::Bus&gt;) @ Use
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;_25)) @ _33=&amp;_25 @ Ref
+    _32 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::bus::Bus&gt; as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb13, unwind: bb51] @ Call: FnDid: 3903
+}
+bb 13 {
+CleanUp: false
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    StorageDead(_33) @ StorageDead
+    _30 = &lt;dyn driver::base::device::bus::Bus as driver::base::device::bus::Bus&gt;::subsystem(move _31) -&gt; [return: bb14, unwind: bb51] @ Call: FnDid: 7783
+}
+bb 14 {
+CleanUp: false
+    Assign((_29, &amp;(*_30))) @ _29=&amp;(*_30) @ Ref
+    StorageDead(_31) @ StorageDead
+    _28 = driver::base::subsys::SubSysPrivate::bus_notifier(move _29) -&gt; [return: bb15, unwind: bb51] @ Call: FnDid: 8755
+}
+bb 15 {
+CleanUp: false
+    Assign((_27, &amp;(*_28))) @ _27=&amp;(*_28) @ Ref
+    StorageDead(_29) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    Assign((_34, driver::base::device::bus::BusNotifyEvent::BindDriver)) @ _34=driver::base::device::bus::BusNotifyEvent::BindDriver @ Aggregate
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, &amp;(*_2))) @ _36=&amp;(*_2) @ Ref
+    Assign((_35, core::option::Option::&lt;&amp;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt;&gt;::Some(move _36))) @ _35=core::option::Option::&lt;&amp;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt;&gt;::Some(move _36) @ Aggregate
+    StorageDead(_36) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    Assign((_37, core::option::Option::&lt;usize&gt;::None)) @ _37=core::option::Option::&lt;usize&gt;::None @ Aggregate
+    _26 = libs::notifier::AtomicNotifierChain::&lt;driver::base::device::bus::BusNotifyEvent, alloc::sync::Arc&lt;dyn driver::base::device::Device&gt;&gt;::call_chain(move _27, move _34, move _35, move _37) -&gt; [return: bb16, unwind: bb51] @ Call: FnDid: 4696
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    Assign((_17, const ())) @ _17=const () @ Use
+    drop(_25) -&gt; [return: bb18, unwind: bb55] @ Drop
+}
+bb 17 {
+CleanUp: false
+    Assign((_17, const ())) @ _17=const () @ Use
+    goto -&gt; bb54 @ Goto
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    goto -&gt; bb54 @ Goto
+}
+bb 19 {
+CleanUp: false
+    Assign((_39, move _40 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)))) @ _39=move _40 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_38, move _39)) @ _38=move _39 @ Use
+    StorageDead(_39) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;(*_2))) @ _45=&amp;(*_2) @ Ref
+    _44 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt; as core::clone::Clone&gt;::clone(move _45) -&gt; [return: bb20, unwind: bb50] @ Call: FnDid: 3116
+}
+bb 20 {
+CleanUp: false
+    Assign((_43, move _44 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)))) @ _43=move _44 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    Assign((_42, move _43)) @ _42=move _43 @ Use
+    StorageDead(_43) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    _50 = filesystem::sysfs::sysfs_instance() -&gt; [return: bb21, unwind: bb49] @ Call: FnDid: 19032
+}
+bb 21 {
+CleanUp: false
+    Assign((_49, &amp;(*_50))) @ _49=&amp;(*_50) @ Ref
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, &amp;_38)) @ _53=&amp;_38 @ Ref
+    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
+    Assign((_51, core::option::Option::&lt;&amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _52))) @ _51=core::option::Option::&lt;&amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _52) @ Aggregate
+    StorageDead(_52) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;_42)) @ _55=&amp;_42 @ Ref
+    Assign((_54, &amp;(*_55))) @ _54=&amp;(*_55) @ Ref
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    Assign((_59, &amp;(*_2))) @ _59=&amp;(*_2) @ Ref
+    _58 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt; as lazy_static::__Deref&gt;::deref(move _59) -&gt; [return: bb22, unwind: bb49] @ Call: FnDid: 3903
+}
+bb 22 {
+CleanUp: false
+    Assign((_57, &amp;(*_58))) @ _57=&amp;(*_58) @ Ref
+    StorageDead(_59) @ StorageDead
+    _56 = &lt;dyn driver::base::device::Device as driver::base::kobject::KObject&gt;::name(move _57) -&gt; [return: bb23, unwind: bb49] @ Call: FnDid: 8338
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_57) @ StorageDead
+    _48 = filesystem::sysfs::symlink::&lt;impl filesystem::sysfs::SysFS&gt;::create_link(move _49, move _51, move _54, move _56) -&gt; [return: bb24, unwind: bb49] @ Call: FnDid: 19026
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    _47 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _48) -&gt; [return: bb25, unwind: bb49] @ Call: FnDid: 4199
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    Assign((_60, discriminant(_47))) @ _60=discriminant(_47) @ Discriminant
+    switchInt(move _60) -&gt; [0: bb26, 1: bb27, otherwise: bb5] @ SwitchInt
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_64) @ StorageLive
+    Assign((_64, copy ((_47 as Continue).0: ()))) @ _64=copy ((_47 as Continue).0: ()) @ Use
+    Assign((_46, copy _64)) @ _46=copy _64 @ Use
+    StorageDead(_64) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_66, &amp;_38)) @ _66=&amp;_38 @ Ref
+    StorageLive(_67) @ StorageLive
+    Assign((_67, &amp;(*_2))) @ _67=&amp;(*_2) @ Ref
+    Assign((_65, {closure@src/driver/base/device/dd.rs:483:32: 483:34} { driver_kobj: move _66, device: move _67 })) @ _65={closure@src/driver/base/device/dd.rs:483:32: 483:34} { driver_kobj: move _66, device: move _67 } @ Aggregate
+    StorageDead(_67) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    _73 = filesystem::sysfs::sysfs_instance() -&gt; [return: bb29, unwind: bb49] @ Call: FnDid: 19032
+}
+bb 27 {
+CleanUp: false
+    StorageLive(_61) @ StorageLive
+    Assign((_61, move ((_47 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _61=move ((_47 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_63) @ StorageLive
+    Assign((_63, move _61)) @ _63=move _61 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _63) -&gt; [return: bb28, unwind: bb49] @ Call: FnDid: 4202
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_63) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb45 @ Goto
+}
+bb 29 {
+CleanUp: false
+    Assign((_72, &amp;(*_73))) @ _72=&amp;(*_73) @ Ref
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_76, &amp;_42)) @ _76=&amp;_42 @ Ref
+    Assign((_75, &amp;(*_76))) @ _75=&amp;(*_76) @ Ref
+    Assign((_74, core::option::Option::&lt;&amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _75))) @ _74=core::option::Option::&lt;&amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _75) @ Aggregate
+    StorageDead(_75) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    Assign((_78, &amp;_38)) @ _78=&amp;_38 @ Ref
+    Assign((_77, &amp;(*_78))) @ _77=&amp;(*_78) @ Ref
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, const &#34;driver&#34;)) @ _81=const &#34;driver&#34; @ Use
+    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
+    _79 = &lt;str as alloc::string::ToString&gt;::to_string(move _80) -&gt; [return: bb30, unwind: bb49] @ Call: FnDid: 6626
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    _71 = filesystem::sysfs::symlink::&lt;impl filesystem::sysfs::SysFS&gt;::create_link(move _72, move _74, move _77, move _79) -&gt; [return: bb31, unwind: bb49] @ Call: FnDid: 19026
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;_65)) @ _83=&amp;_65 @ Ref
+    Assign((_82, {closure@src/driver/base/device/dd.rs:489:26: 489:30} { fail_rm_dev_link: move _83 })) @ _82={closure@src/driver/base/device/dd.rs:489:26: 489:30} { fail_rm_dev_link: move _83 } @ Aggregate
+    StorageDead(_83) @ StorageDead
+    _70 = core::result::Result::&lt;(), system_error::SystemError&gt;::inspect_err::&lt;{closure@src/driver/base/device/dd.rs:489:26: 489:30}&gt;(move _71, move _82) -&gt; [return: bb32, unwind: bb49] @ Call: FnDid: 11015
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    _69 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _70) -&gt; [return: bb33, unwind: bb49] @ Call: FnDid: 4199
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    Assign((_84, discriminant(_69))) @ _84=discriminant(_69) @ Discriminant
+    switchInt(move _84) -&gt; [0: bb34, 1: bb35, otherwise: bb5] @ SwitchInt
+}
+bb 34 {
+CleanUp: false
+    StorageLive(_88) @ StorageLive
+    Assign((_88, copy ((_69 as Continue).0: ()))) @ _88=copy ((_69 as Continue).0: ()) @ Use
+    Assign((_68, copy _88)) @ _68=copy _88 @ Use
+    StorageDead(_88) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    _94 = driver::base::device::device_manager() -&gt; [return: bb37, unwind: bb49] @ Call: FnDid: 8093
+}
+bb 35 {
+CleanUp: false
+    StorageLive(_85) @ StorageLive
+    Assign((_85, move ((_69 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _85=move ((_69 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_87) @ StorageLive
+    Assign((_87, move _85)) @ _87=move _85 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _87) -&gt; [return: bb36, unwind: bb49] @ Call: FnDid: 4202
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    goto -&gt; bb44 @ Goto
+}
+bb 37 {
+CleanUp: false
+    Assign((_93, &amp;(*_94))) @ _93=&amp;(*_94) @ Ref
+    StorageLive(_95) @ StorageLive
+    Assign((_95, &amp;(*_2))) @ _95=&amp;(*_2) @ Ref
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_109, const driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs::promoted[0])) @ _109=const driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs::promoted[0] @ Use
+    Assign((_98, &amp;(*_109))) @ _98=&amp;(*_109) @ Ref
+    Assign((_97, &amp;(*_98))) @ _97=&amp;(*_98) @ Ref
+    Assign((_96, move _97 as &amp;dyn filesystem::sysfs::Attribute (PointerCoercion(Unsize, Implicit)))) @ _96=move _97 as &amp;dyn filesystem::sysfs::Attribute (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_97) @ StorageDead
+    _92 = driver::base::device::DeviceManager::create_file(move _93, move _95, move _96) -&gt; [return: bb38, unwind: bb49] @ Call: FnDid: 8207
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_96) @ StorageDead
+    StorageDead(_95) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    Assign((_101, &amp;_42)) @ _101=&amp;_42 @ Ref
+    StorageLive(_102) @ StorageLive
+    Assign((_102, &amp;_65)) @ _102=&amp;_65 @ Ref
+    Assign((_100, {closure@src/driver/base/device/dd.rs:495:26: 495:30} { device_kobj: move _101, fail_rm_dev_link: move _102 })) @ _100={closure@src/driver/base/device/dd.rs:495:26: 495:30} { device_kobj: move _101, fail_rm_dev_link: move _102 } @ Aggregate
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    _91 = core::result::Result::&lt;(), system_error::SystemError&gt;::inspect_err::&lt;{closure@src/driver/base/device/dd.rs:495:26: 495:30}&gt;(move _92, move _100) -&gt; [return: bb39, unwind: bb49] @ Call: FnDid: 11015
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_100) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    _90 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _91) -&gt; [return: bb40, unwind: bb49] @ Call: FnDid: 4199
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    Assign((_103, discriminant(_90))) @ _103=discriminant(_90) @ Discriminant
+    switchInt(move _103) -&gt; [0: bb41, 1: bb42, otherwise: bb5] @ SwitchInt
+}
+bb 41 {
+CleanUp: false
+    StorageLive(_107) @ StorageLive
+    Assign((_107, copy ((_90 as Continue).0: ()))) @ _107=copy ((_90 as Continue).0: ()) @ Use
+    Assign((_89, copy _107)) @ _89=copy _107 @ Use
+    StorageDead(_107) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageLive(_108) @ StorageLive
+    Assign((_108, ())) @ _108=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _108))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _108) @ Aggregate
+    StorageDead(_108) @ StorageDead
+    goto -&gt; bb44 @ Goto
+}
+bb 42 {
+CleanUp: false
+    StorageLive(_104) @ StorageLive
+    Assign((_104, move ((_90 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _104=move ((_90 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_106) @ StorageLive
+    Assign((_106, move _104)) @ _106=move _104 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _106) -&gt; [return: bb43, unwind: bb49] @ Call: FnDid: 4202
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_106) @ StorageDead
+    StorageDead(_104) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    goto -&gt; bb44 @ Goto
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    goto -&gt; bb45 @ Goto
+}
+bb 45 {
+CleanUp: false
+    drop(_42) -&gt; [return: bb46, unwind: bb50] @ Drop
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    drop(_38) -&gt; [return: bb47, unwind: bb52] @ Drop
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    drop(_4) -&gt; [return: bb48, unwind: bb53] @ Drop
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 49 {
+CleanUp: true
+    drop(_42) -&gt; [return: bb50, unwind terminate(cleanup)] @ Drop
+}
+bb 50 {
+CleanUp: true
+    drop(_38) -&gt; [return: bb52, unwind terminate(cleanup)] @ Drop
+}
+bb 51 {
+CleanUp: true
+    drop(_25) -&gt; [return: bb55, unwind terminate(cleanup)] @ Drop
+}
+bb 52 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb53, unwind terminate(cleanup)] @ Drop
+}
+bb 53 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 54 {
+CleanUp: false
+    Assign((_115, discriminant(_18))) @ _115=discriminant(_18) @ Discriminant
+    StorageDead(_21) @ StorageDead
+    Assign((_110, const false)) @ _110=const false @ Use
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;_4)) @ _41=&amp;_4 @ Ref
+    _40 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::driver::Driver&gt; as core::clone::Clone&gt;::clone(move _41) -&gt; [return: bb19, unwind: bb52] @ Call: FnDid: 3116
+}
+bb 55 {
+CleanUp: true
+    Assign((_117, discriminant(_18))) @ _117=discriminant(_18) @ Discriminant
+    goto -&gt; bb52 @ Goto
+}
+bb 56 {
+CleanUp: true
+    Assign((_118, discriminant(_5))) @ _118=discriminant(_5) @ Discriminant
+    goto -&gt; bb53 @ Goto
+}
+
+bb0 at src/driver/base/device/dd.rs:470:56: 470:59
+bb1 at src/driver/base/device/dd.rs:470:68: 470:69
+fn driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs::{closure#0}
+_0:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_1:  @ Closure(DefId(0:7930 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt;, bound_vars: [] }, ()]) 
+_2:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::bus::Bus), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &amp;_2)) @ _3=&amp;_2 @ Ref
+    _0 = alloc::sync::Weak::&lt;dyn driver::base::device::bus::Bus&gt;::upgrade(move _3) -&gt; [return: bb1, unwind: bb3] @ Call: FnDid: 7077
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    drop(_2) -&gt; [return: bb2, unwind: bb4] @ Drop
+}
+bb 2 {
+CleanUp: false
+    return @ Return
+}
+bb 3 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb4, unwind terminate(cleanup)] @ Drop
+}
+bb 4 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/driver/base/device/dd.rs:484:13: 484:70
+bb1 at src/driver/base/device/dd.rs:484:13: 484:29
+bb2 at src/driver/base/device/dd.rs:484:56: 484:62
+bb3 at src/driver/base/device/dd.rs:484:68: 484:69
+bb4 at src/driver/base/device/dd.rs:484:69: 484:70
+fn driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs::{closure#1}
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+_2:  @ () 
+_3:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_4:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_5:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_7:  @ alloc::string::String 
+_8:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_9:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased} 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    _4 = filesystem::sysfs::sysfs_instance() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 19032
+}
+bb 1 {
+CleanUp: false
+    Assign((_3, &amp;(*_4))) @ _3=&amp;(*_4) @ Ref
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_11, deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;))) @ _11=deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;) @ CopyForDeref
+    Assign((_6, &amp;(*_11))) @ _6=&amp;(*_11) @ Ref
+    Assign((_5, &amp;(*_6))) @ _5=&amp;(*_6) @ Ref
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_12, deref_copy ((*_1).1: &amp;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt;))) @ _12=deref_copy ((*_1).1: &amp;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt;) @ CopyForDeref
+    Assign((_10, &amp;(*_12))) @ _10=&amp;(*_12) @ Ref
+    _9 = &lt;alloc::sync::Arc&lt;dyn driver::base::device::Device&gt; as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = &lt;dyn driver::base::device::Device as driver::base::kobject::KObject&gt;::name(move _8) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 8338
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    _2 = filesystem::sysfs::symlink::&lt;impl filesystem::sysfs::SysFS&gt;::remove_link(move _3, move _5, move _7) -&gt; [return: bb4, unwind: bb5] @ Call: FnDid: 19027
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/driver/base/device/dd.rs:490:17: 490:35
+bb1 at src/driver/base/device/dd.rs:490:34: 490:35
+fn driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs::{closure#2}
+_0:  @ () 
+_1:  @ Closure(DefId(0:7932 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#2}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]),)]) 
+_2:  @ &amp;&#39;{erased} system_error::SystemError 
+_3:  @ () 
+_4:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+_5:  @ () 
+_6:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_6, deref_copy (_1.0: &amp;{closure@src/driver/base/device/dd.rs:483:32: 483:34}))) @ _6=deref_copy (_1.0: &amp;{closure@src/driver/base/device/dd.rs:483:32: 483:34}) @ CopyForDeref
+    Assign((_4, &amp;(*_6))) @ _4=&amp;(*_6) @ Ref
+    StorageLive(_5) @ StorageLive
+    Assign((_5, ())) @ _5=() @ Aggregate
+    _3 = &lt;{closure@src/driver/base/device/dd.rs:483:32: 483:34} as core::ops::Fn&lt;()&gt;&gt;::call(move _4, move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3942
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
+}
+
+bb0 at src/driver/base/device/dd.rs:496:17: 496:81
+bb1 at src/driver/base/device/dd.rs:496:17: 496:33
+bb2 at src/driver/base/device/dd.rs:496:79: 496:80
+bb3 at src/driver/base/device/dd.rs:496:80: 496:81
+bb4 at src/driver/base/device/dd.rs:497:34: 497:35
+fn driver::base::device::dd::&lt;impl driver::base::device::driver::DriverManager&gt;::add_to_sysfs::{closure#3}
+_0:  @ () 
+_1:  @ Closure(DefId(0:7933 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#3}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]))]) 
+_2:  @ &amp;&#39;{erased} system_error::SystemError 
+_3:  @ () 
+_4:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_5:  @ &amp;&#39;{erased} filesystem::sysfs::SysFS 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_7:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_8:  @ alloc::string::String 
+_9:  @ &amp;&#39;{erased} str 
+_10:  @ &amp;&#39;{erased} str 
+_11:  @ () 
+_12:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+_13:  @ () 
+_14:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_15:  @ &amp;&#39;{erased} Closure(DefId(0:7931 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::add_to_sysfs::{closure#1}), [i8, Binder { value: extern &#34;RustCall&#34; fn(()), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;)]) 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    _5 = filesystem::sysfs::sysfs_instance() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 19032
+}
+bb 1 {
+CleanUp: false
+    Assign((_4, &amp;(*_5))) @ _4=&amp;(*_5) @ Ref
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_14, deref_copy (_1.0: &amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;))) @ _14=deref_copy (_1.0: &amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;) @ CopyForDeref
+    Assign((_7, &amp;(*_14))) @ _7=&amp;(*_14) @ Ref
+    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, const &#34;driver&#34;)) @ _10=const &#34;driver&#34; @ Use
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    _8 = &lt;str as alloc::string::ToString&gt;::to_string(move _9) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 6626
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    _3 = filesystem::sysfs::symlink::&lt;impl filesystem::sysfs::SysFS&gt;::remove_link(move _4, move _6, move _8) -&gt; [return: bb3, unwind: bb5] @ Call: FnDid: 19027
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_15, deref_copy (_1.1: &amp;{closure@src/driver/base/device/dd.rs:483:32: 483:34}))) @ _15=deref_copy (_1.1: &amp;{closure@src/driver/base/device/dd.rs:483:32: 483:34}) @ CopyForDeref
+    Assign((_12, &amp;(*_15))) @ _12=&amp;(*_15) @ Ref
+    StorageLive(_13) @ StorageLive
+    Assign((_13, ())) @ _13=() @ Aggregate
+    _11 = &lt;{closure@src/driver/base/device/dd.rs:483:32: 483:34} as core::ops::Fn&lt;()&gt;&gt;::call(move _12, move _13) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 3942
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #25: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #25
+            
+                 <span class="func-name">driver::base::device::{impl#19}::class_dir_create_and_add</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:57|RAP|WARN|: Double free detected in function &#34;class_dir_create_and_add&#34;
+warning: Double free detected.
+   --&gt; src/driver/base/device/mod.rs:638:1
+    |
+638 | / fn class_dir_create_and_add(
+639 | |         &amp;self,
+640 | |         class: Arc&lt;dyn Class&gt;,
+641 | |         kobject_parent: Arc&lt;dyn KObject&gt;,
+642 | |     ) -&gt; Arc&lt;dyn KObject&gt; {
+643 | |         let mut guard = CLASS_DIR_KSET_INSTANCE.write();
+644 | |         let class_name: String = class.name().to_string();
+645 | |         let kobject_parent_name = kobject_parent.name();
+646 | |         let key = format!(&#34;{}-{}&#34;, class_name, kobject_parent_name);
+647 | |
+648 | |         // 检查设备类目录是否已经存在
+649 | |         if let Some(class_dir) = guard.get(&amp;key) {
+650 | |             return class_dir.clone();
+651 | |         }
+652 | |
+653 | |         let class_dir: Arc&lt;ClassDir&gt; = ClassDir::new();
+654 | |
+655 | |         class_dir.set_name(class_name.clone());
+656 | |         class_dir.set_kobj_type(Some(&amp;ClassKObjbectType));
+657 | |         class_dir.set_parent(Some(Arc::downgrade(&amp;kobject_parent)));
+658 | |
+659 | |         KObjectManager::add_kobj(class_dir.clone() as Arc&lt;dyn KObject&gt;)
+660 | |             .expect(&#34;add class dir failed&#34;);
+661 | |
+662 | |         guard.insert(key, class_dir.clone());
+663 | |
+664 | |         return class_dir;
+665 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/mod.rs line 638.
+    | MIR detail: Value _16(kobject_parent_name, src/driver/base/device/mod.rs:645) and _10(class_name, src/driver/base/device/mod.rs:644) are alias.
+    | MIR detail: _16(kobject_parent_name, src/driver/base/device/mod.rs:645) is dropped at BB35(src/driver/base/device/mod.rs:665); _10(class_name, src/driver/base/device/mod.rs:644) is dropped at BB36(src/driver/base/device/mod.rs:665).
+    |
+22:07:57|RAP|WARN|: Double free detected in function &#34;class_dir_create_and_add&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/base/device/mod.rs:638:1
+    |
+638 | / fn class_dir_create_and_add(
+639 | |         &amp;self,
+640 | |         class: Arc&lt;dyn Class&gt;,
+641 | |         kobject_parent: Arc&lt;dyn KObject&gt;,
+642 | |     ) -&gt; Arc&lt;dyn KObject&gt; {
+643 | |         let mut guard = CLASS_DIR_KSET_INSTANCE.write();
+644 | |         let class_name: String = class.name().to_string();
+645 | |         let kobject_parent_name = kobject_parent.name();
+646 | |         let key = format!(&#34;{}-{}&#34;, class_name, kobject_parent_name);
+647 | |
+648 | |         // 检查设备类目录是否已经存在
+649 | |         if let Some(class_dir) = guard.get(&amp;key) {
+650 | |             return class_dir.clone();
+651 | |         }
+652 | |
+653 | |         let class_dir: Arc&lt;ClassDir&gt; = ClassDir::new();
+654 | |
+655 | |         class_dir.set_name(class_name.clone());
+656 | |         class_dir.set_kobj_type(Some(&amp;ClassKObjbectType));
+657 | |         class_dir.set_parent(Some(Arc::downgrade(&amp;kobject_parent)));
+658 | |
+659 | |         KObjectManager::add_kobj(class_dir.clone() as Arc&lt;dyn KObject&gt;)
+660 | |             .expect(&#34;add class dir failed&#34;);
+661 | |
+662 | |         guard.insert(key, class_dir.clone());
+663 | |
+664 | |         return class_dir;
+665 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/mod.rs line 638.
+    | MIR detail: Value _16(kobject_parent_name, src/driver/base/device/mod.rs:645) and _10(class_name, src/driver/base/device/mod.rs:644) are alias.
+    | MIR detail: _16(kobject_parent_name, src/driver/base/device/mod.rs:645) is dropped at BB42(src/driver/base/device/mod.rs:665); _10(class_name, src/driver/base/device/mod.rs:644) is dropped at BB43(src/driver/base/device/mod.rs:665).
+    |
+render dot for DefId(0:8186 ~ dragonos_kernel[9e38]::driver::base::device::{impl#19}::class_dir_create_and_add)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/base/device/mod.rs:643:13: 643:22
+bb1 at src/driver/base/device/mod.rs:643:25: 643:48
+bb2 at src/driver/base/device/mod.rs:643:55: 643:56
+bb3 at src/driver/base/device/mod.rs:644:34: 644:39
+bb4 at src/driver/base/device/mod.rs:644:34: 644:46
+bb5 at src/driver/base/device/mod.rs:644:57: 644:58
+bb6 at src/driver/base/device/mod.rs:645:35: 645:49
+bb7 at src/driver/base/device/mod.rs:645:55: 645:56
+bb8 at src/driver/base/device/mod.rs:646:29: 646:30
+bb9 at src/driver/base/device/mod.rs:646:32: 646:33
+bb10 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb11 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb12 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb13 at src/driver/base/device/mod.rs:649:34: 649:39
+bb14 at src/driver/base/device/mod.rs:649:48: 649:49
+bb15 at src/driver/base/device/mod.rs:649:21: 649:30
+bb16 at src/driver/base/device/mod.rs:650:20: 650:37
+bb17 at src/driver/base/device/mod.rs:651:10: 651:10
+bb18 at src/driver/base/device/mod.rs:655:9: 655:47
+bb19 at src/driver/base/device/mod.rs:655:9: 655:18
+bb20 at src/driver/base/device/mod.rs:655:45: 655:46
+bb21 at src/driver/base/device/mod.rs:655:46: 655:47
+bb22 at src/driver/base/device/mod.rs:656:9: 656:18
+bb23 at src/driver/base/device/mod.rs:656:57: 656:58
+bb24 at src/driver/base/device/mod.rs:657:9: 657:18
+bb25 at src/driver/base/device/mod.rs:657:35: 657:66
+bb26 at src/driver/base/device/mod.rs:657:67: 657:68
+bb27 at src/driver/base/device/mod.rs:659:34: 659:71
+bb28 at src/driver/base/device/mod.rs:659:71: 659:72
+bb29 at src/driver/base/device/mod.rs:660:43: 660:44
+bb30 at src/driver/base/device/mod.rs:662:9: 662:14
+bb31 at src/driver/base/device/mod.rs:662:43: 662:44
+bb32 at src/driver/base/device/mod.rs:662:44: 662:45
+bb33 at src/driver/base/device/mod.rs:662:45: 662:46
+bb35 at src/driver/base/device/mod.rs:665:5: 665:6
+bb36 at src/driver/base/device/mod.rs:665:5: 665:6
+bb37 at src/driver/base/device/mod.rs:665:5: 665:6
+bb38 at src/driver/base/device/mod.rs:665:5: 665:6
+fn driver::base::device::DeviceManager::class_dir_create_and_add
+_0:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_1:  @ &amp;&#39;{erased} driver::base::device::DeviceManager 
+_2:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_4:  @ ! 
+_5:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_6:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_7:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_8:  @ &amp;&#39;{erased} driver::base::device::CLASS_DIR_KSET_INSTANCE 
+_9:  @ &amp;&#39;{erased} driver::base::device::CLASS_DIR_KSET_INSTANCE 
+_10:  @ alloc::string::String 
+_11:  @ &amp;&#39;{erased} str 
+_12:  @ &amp;&#39;{erased} str 
+_13:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased} 
+_14:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased} 
+_15:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_16:  @ alloc::string::String 
+_17:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
+_18:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
+_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_20:  @ alloc::string::String 
+_21:  @ alloc::string::String 
+_22:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_23:  @ (&amp;&#39;{erased} alloc::string::String, &amp;&#39;{erased} alloc::string::String) 
+_24:  @ &amp;&#39;{erased} alloc::string::String 
+_25:  @ &amp;&#39;{erased} alloc::string::String 
+_26:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_27:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_28:  @ &amp;&#39;{erased} alloc::string::String 
+_29:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_30:  @ &amp;&#39;{erased} alloc::string::String 
+_31:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_32:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_33:  @ [&amp;&#39;{erased} str; 2_usize] 
+_34:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_35:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_36:  @ () 
+_37:  @ core::option::Option&lt;&amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;&gt; 
+_38:  @ &amp;&#39;{erased} alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_39:  @ &amp;&#39;{erased} alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_40:  @ &amp;&#39;{erased} libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_41:  @ &amp;&#39;{erased} alloc::string::String 
+_42:  @ &amp;&#39;{erased} alloc::string::String 
+_43:  @ isize 
+_44:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_45:  @ ! 
+_46:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_47:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_48:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_49:  @ () 
+_50:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
+_51:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
+_52:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_53:  @ alloc::string::String 
+_54:  @ &amp;&#39;{erased} alloc::string::String 
+_55:  @ () 
+_56:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
+_57:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
+_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_59:  @ core::option::Option&lt;&amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObjType), bound_vars: [] }] + &#39;{erased}&gt; 
+_60:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObjType), bound_vars: [] }] + &#39;{erased} 
+_61:  @ &amp;&#39;{erased} driver::base::class::ClassKObjbectType 
+_62:  @ &amp;&#39;{erased} driver::base::class::ClassKObjbectType 
+_63:  @ driver::base::class::ClassKObjbectType 
+_64:  @ () 
+_65:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
+_66:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
+_67:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_68:  @ core::option::Option&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_69:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_70:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_71:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_72:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_73:  @ () 
+_74:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_75:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_76:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_77:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_78:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_79:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_80:  @ &amp;&#39;{erased} str 
+_81:  @ &amp;&#39;{erased} str 
+_82:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;&gt; 
+_83:  @ &amp;&#39;{erased} mut alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_84:  @ &amp;&#39;{erased} mut alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_85:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_86:  @ alloc::string::String 
+_87:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_88:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_89:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
+_90:  @ &amp;&#39;{erased} driver::base::class::ClassKObjbectType 
+_91:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_92:  @ &amp;&#39;{erased} alloc::string::String 
+_93:  @ &amp;&#39;{erased} alloc::string::String 
+_94:  @ bool 
+_95:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_94, const false)) @ _94=const false @ Use
+    Assign((_95, const false)) @ _95=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, const {alloc153170: &amp;driver::base::device::CLASS_DIR_KSET_INSTANCE})) @ _9=const {alloc153170: &amp;driver::base::device::CLASS_DIR_KSET_INSTANCE} @ Use
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    _7 = &lt;driver::base::device::CLASS_DIR_KSET_INSTANCE as lazy_static::__Deref&gt;::deref(move _8) -&gt; [return: bb1, unwind: bb45] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
+    StorageDead(_8) @ StorageDead
+    _5 = libs::rwlock::RwLock::&lt;alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;&gt;::write(move _6) -&gt; [return: bb2, unwind: bb45] @ Call: FnDid: 5165
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;_2)) @ _15=&amp;_2 @ Ref
+    _14 = &lt;alloc::sync::Arc&lt;dyn driver::base::class::Class&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb3, unwind: bb44] @ Call: FnDid: 3903
+}
+bb 3 {
+CleanUp: false
+    Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
+    StorageDead(_15) @ StorageDead
+    _12 = &lt;dyn driver::base::class::Class as driver::base::class::Class&gt;::name(move _13) -&gt; [return: bb4, unwind: bb44] @ Call: FnDid: 7507
+}
+bb 4 {
+CleanUp: false
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = &lt;str as alloc::string::ToString&gt;::to_string(move _11) -&gt; [return: bb5, unwind: bb44] @ Call: FnDid: 6626
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &amp;_3)) @ _19=&amp;_3 @ Ref
+    _18 = &lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb6, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
+    StorageDead(_19) @ StorageDead
+    _16 = &lt;dyn driver::base::kobject::KObject as driver::base::kobject::KObject&gt;::name(move _17) -&gt; [return: bb7, unwind: bb43] @ Call: FnDid: 8338
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, &amp;_10)) @ _24=&amp;_10 @ Ref
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_16)) @ _25=&amp;_16 @ Ref
+    Assign((_23, (move _24, move _25))) @ _23=(move _24, move _25) @ Aggregate
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_92, deref_copy (_23.0: &amp;alloc::string::String))) @ _92=deref_copy (_23.0: &amp;alloc::string::String) @ CopyForDeref
+    Assign((_28, &amp;(*_92))) @ _28=&amp;(*_92) @ Ref
+    _27 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;alloc::string::String&gt;(move _28) -&gt; [return: bb8, unwind: bb42] @ Call: FnDid: 11807
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_93, deref_copy (_23.1: &amp;alloc::string::String))) @ _93=deref_copy (_23.1: &amp;alloc::string::String) @ CopyForDeref
+    Assign((_30, &amp;(*_93))) @ _30=&amp;(*_93) @ Ref
+    _29 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;alloc::string::String&gt;(move _30) -&gt; [return: bb9, unwind: bb42] @ Call: FnDid: 11807
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    Assign((_26, [move _27, move _29])) @ _26=[move _27, move _29] @ Aggregate
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_91, const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[1])) @ _91=const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[1] @ Use
+    Assign((_32, &amp;(*_91))) @ _32=&amp;(*_91) @ Ref
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_26)) @ _35=&amp;_26 @ Ref
+    Assign((_34, &amp;(*_35))) @ _34=&amp;(*_35) @ Ref
+    _22 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _31, move _34) -&gt; [return: bb10, unwind: bb42] @ Call: FnDid: 11836
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    _21 = alloc::fmt::format(move _22) -&gt; [return: bb11, unwind: bb42] @ Call: FnDid: 5475
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    _20 = core::hint::must_use::&lt;alloc::string::String&gt;(move _21) -&gt; [return: bb12, unwind: bb42] @ Call: FnDid: 1455
+}
+bb 12 {
+CleanUp: false
+    Assign((_94, const true)) @ _94=const true @ Use
+    StorageDead(_21) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;_5)) @ _40=&amp;_5 @ Ref
+    _39 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;&gt; as lazy_static::__Deref&gt;::deref(move _40) -&gt; [return: bb13, unwind: bb52] @ Call: FnDid: 3903
+}
+bb 13 {
+CleanUp: false
+    Assign((_38, &amp;(*_39))) @ _38=&amp;(*_39) @ Ref
+    StorageDead(_40) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_42, &amp;_20)) @ _42=&amp;_20 @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    _37 = alloc::collections::BTreeMap::&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;::get::&lt;alloc::string::String&gt;(move _38, move _41) -&gt; [return: bb14, unwind: bb52] @ Call: FnDid: 1921
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    Assign((_43, discriminant(_37))) @ _43=discriminant(_37) @ Discriminant
+    switchInt(move _43) -&gt; [1: bb15, otherwise: bb17] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    StorageLive(_44) @ StorageLive
+    Assign((_44, copy ((_37 as Some).0: &amp;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;))) @ _44=copy ((_37 as Some).0: &amp;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;) @ Use
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;(*_44))) @ _47=&amp;(*_44) @ Ref
+    _46 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as core::clone::Clone&gt;::clone(move _47) -&gt; [return: bb16, unwind: bb52] @ Call: FnDid: 3116
+}
+bb 16 {
+CleanUp: false
+    Assign((_0, move _46 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _0=move _46 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    goto -&gt; bb34 @ Goto
+}
+bb 17 {
+CleanUp: false
+    Assign((_36, const ())) @ _36=const () @ Use
+    StorageDead(_42) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    _48 = driver::base::device::ClassDir::new() -&gt; [return: bb18, unwind: bb52] @ Call: FnDid: 8243
+}
+bb 18 {
+CleanUp: false
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    Assign((_52, &amp;_48)) @ _52=&amp;_48 @ Ref
+    _51 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as lazy_static::__Deref&gt;::deref(move _52) -&gt; [return: bb19, unwind: bb41] @ Call: FnDid: 3903
+}
+bb 19 {
+CleanUp: false
+    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
+    StorageDead(_52) @ StorageDead
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_10)) @ _54=&amp;_10 @ Ref
+    _53 = &lt;alloc::string::String as core::clone::Clone&gt;::clone(move _54) -&gt; [return: bb20, unwind: bb41] @ Call: FnDid: 3116
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    _49 = &lt;driver::base::device::ClassDir as driver::base::kobject::KObject&gt;::set_name(move _50, move _53) -&gt; [return: bb21, unwind: bb41] @ Call: FnDid: 8339
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &amp;_48)) @ _58=&amp;_48 @ Ref
+    _57 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as lazy_static::__Deref&gt;::deref(move _58) -&gt; [return: bb22, unwind: bb41] @ Call: FnDid: 3903
+}
+bb 22 {
+CleanUp: false
+    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    StorageDead(_58) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_90, const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[0])) @ _90=const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[0] @ Use
+    Assign((_62, &amp;(*_90))) @ _62=&amp;(*_90) @ Ref
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    Assign((_60, move _61 as &amp;dyn driver::base::kobject::KObjType (PointerCoercion(Unsize, Implicit)))) @ _60=move _61 as &amp;dyn driver::base::kobject::KObjType (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_61) @ StorageDead
+    Assign((_59, core::option::Option::&lt;&amp;dyn driver::base::kobject::KObjType&gt;::Some(move _60))) @ _59=core::option::Option::&lt;&amp;dyn driver::base::kobject::KObjType&gt;::Some(move _60) @ Aggregate
+    StorageDead(_60) @ StorageDead
+    _55 = &lt;driver::base::device::ClassDir as driver::base::kobject::KObject&gt;::set_kobj_type(move _56, move _59) -&gt; [return: bb23, unwind: bb41] @ Call: FnDid: 8337
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    Assign((_67, &amp;_48)) @ _67=&amp;_48 @ Ref
+    _66 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as lazy_static::__Deref&gt;::deref(move _67) -&gt; [return: bb24, unwind: bb41] @ Call: FnDid: 3903
+}
+bb 24 {
+CleanUp: false
+    Assign((_65, &amp;(*_66))) @ _65=&amp;(*_66) @ Ref
+    StorageDead(_67) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_72, &amp;_3)) @ _72=&amp;_3 @ Ref
+    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
+    _70 = alloc::sync::Arc::&lt;dyn driver::base::kobject::KObject&gt;::downgrade(move _71) -&gt; [return: bb25, unwind: bb41] @ Call: FnDid: 6946
+}
+bb 25 {
+CleanUp: false
+    Assign((_69, move _70 as alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _69=move _70 as alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_68, core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _69))) @ _68=core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _69) @ Aggregate
+    StorageDead(_69) @ StorageDead
+    _64 = &lt;driver::base::device::ClassDir as driver::base::kobject::KObject&gt;::set_parent(move _65, move _68) -&gt; [return: bb26, unwind: bb41] @ Call: FnDid: 8333
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_79, &amp;_48)) @ _79=&amp;_48 @ Ref
+    _78 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as core::clone::Clone&gt;::clone(move _79) -&gt; [return: bb27, unwind: bb41] @ Call: FnDid: 3116
+}
+bb 27 {
+CleanUp: false
+    Assign((_77, move _78 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)))) @ _77=move _78 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    Assign((_76, move _77)) @ _76=move _77 @ Use
+    Assign((_75, move _76 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _75=move _76 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_76) @ StorageDead
+    _74 = driver::base::kobject::KObjectManager::add_kobj(move _75) -&gt; [return: bb28, unwind: bb41] @ Call: FnDid: 8369
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, const &#34;add class dir failed&#34;)) @ _81=const &#34;add class dir failed&#34; @ Use
+    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
+    _73 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _74, move _80) -&gt; [return: bb29, unwind: bb41] @ Call: FnDid: 11023
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;mut _5)) @ _85=&amp;mut _5 @ Ref
+    _84 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _85) -&gt; [return: bb30, unwind: bb41] @ Call: FnDid: 3915
+}
+bb 30 {
+CleanUp: false
+    Assign((_83, &amp;mut (*_84))) @ _83=&amp;mut (*_84) @ Ref
+    StorageDead(_85) @ StorageDead
+    StorageLive(_86) @ StorageLive
+    Assign((_94, const false)) @ _94=const false @ Use
+    Assign((_95, const true)) @ _95=const true @ Use
+    Assign((_86, move _20)) @ _86=move _20 @ Use
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_88, &amp;_48)) @ _88=&amp;_48 @ Ref
+    _87 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as core::clone::Clone&gt;::clone(move _88) -&gt; [return: bb31, unwind: bb50] @ Call: FnDid: 3116
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_88) @ StorageDead
+    Assign((_95, const false)) @ _95=const false @ Use
+    _82 = alloc::collections::BTreeMap::&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;::insert(move _83, move _86, move _87) -&gt; [return: bb32, unwind: bb50] @ Call: FnDid: 1937
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    Assign((_95, const false)) @ _95=const false @ Use
+    StorageDead(_86) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    drop(_82) -&gt; [return: bb33, unwind: bb41] @ Drop
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageLive(_89) @ StorageLive
+    Assign((_89, move _48)) @ _89=move _48 @ Use
+    Assign((_0, move _89 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _0=move _89 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_89) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    goto -&gt; bb34 @ Goto
+}
+bb 34 {
+CleanUp: false
+    switchInt(copy _94) -&gt; [0: bb35, otherwise: bb48] @ SwitchInt
+}
+bb 35 {
+CleanUp: false
+    Assign((_94, const false)) @ _94=const false @ Use
+    StorageDead(_20) @ StorageDead
+    drop(_16) -&gt; [return: bb36, unwind: bb43] @ Drop
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    drop(_10) -&gt; [return: bb37, unwind: bb44] @ Drop
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    drop(_5) -&gt; [return: bb38, unwind: bb45] @ Drop
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    drop(_3) -&gt; [return: bb39, unwind: bb46] @ Drop
+}
+bb 39 {
+CleanUp: false
+    drop(_2) -&gt; [return: bb40, unwind: bb47] @ Drop
+}
+bb 40 {
+CleanUp: false
+    return @ Return
+}
+bb 41 {
+CleanUp: true
+    drop(_48) -&gt; [return: bb52, unwind terminate(cleanup)] @ Drop
+}
+bb 42 {
+CleanUp: true
+    drop(_16) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 43 {
+CleanUp: true
+    drop(_10) -&gt; [return: bb44, unwind terminate(cleanup)] @ Drop
+}
+bb 44 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb45, unwind terminate(cleanup)] @ Drop
+}
+bb 45 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb46, unwind terminate(cleanup)] @ Drop
+}
+bb 46 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+}
+bb 47 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 48 {
+CleanUp: false
+    drop(_20) -&gt; [return: bb35, unwind: bb42] @ Drop
+}
+bb 49 {
+CleanUp: true
+    drop(_86) -&gt; [return: bb41, unwind terminate(cleanup)] @ Drop
+}
+bb 50 {
+CleanUp: true
+    switchInt(copy _95) -&gt; [0: bb41, otherwise: bb49] @ SwitchInt
+}
+bb 51 {
+CleanUp: true
+    drop(_20) -&gt; [return: bb42, unwind terminate(cleanup)] @ Drop
+}
+bb 52 {
+CleanUp: true
+    switchInt(copy _94) -&gt; [0: bb42, otherwise: bb51] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

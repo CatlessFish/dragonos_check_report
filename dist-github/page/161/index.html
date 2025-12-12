@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #161: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #161
+            
+                 <span class="func-name">mm::ucontext::{impl#3}::file_mapping</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:12|RAP|WARN|: Double free detected in function &#34;file_mapping&#34;
+warning: Double free detected.
+   --&gt; src/mm/ucontext.rs:440:1
+    |
+440 | / pub fn file_mapping(
+441 | |         &amp;mut self,
+442 | |         start_vaddr: VirtAddr,
+443 | |         len: usize,
+444 | |         prot_flags: ProtFlags,
+445 | |         map_flags: MapFlags,
+446 | |         fd: i32,
+447 | |         offset: usize,
+448 | |         round_to_min: bool,
+449 | |         allocate_at_once: bool,
+450 | |     ) -&gt; Result&lt;VirtPageFrame, SystemError&gt; {
+451 | |         let allocate_at_once = if MMArch::PAGE_FAULT_ENABLED {
+452 | |             allocate_at_once
+453 | |         } else {
+454 | |             true
+455 | |         };
+456 | |         // 用于对齐hint的函数
+457 | |         let round_hint_to_min = |hint: VirtAddr| {
+458 | |             // 先把hint向下对齐到页边界
+459 | |             let addr = hint.data() &amp; (!MMArch::PAGE_OFFSET_MASK);
+460 | |             // debug!(&#34;map_anonymous: hint = {:?}, addr = {addr:#x}&#34;, hint);
+461 | |             // 如果hint不是0，且hint小于DEFAULT_MMAP_MIN_ADDR，则对齐到DEFAULT_MMAP_MIN_ADDR
+462 | |             if (addr != 0) &amp;&amp; round_to_min &amp;&amp; (addr &lt; DEFAULT_MMAP_MIN_ADDR) {
+463 | |                 Some(VirtAddr::new(page_align_up(DEFAULT_MMAP_MIN_ADDR)))
+464 | |             } else if addr == 0 {
+465 | |                 None
+466 | |             } else {
+467 | |                 Some(VirtAddr::new(addr))
+468 | |             }
+469 | |         };
+470 | |         // debug!(&#34;map_anonymous: start_vaddr = {:?}&#34;, start_vaddr);
+471 | |         // debug!(&#34;map_anonymous: len(no align) = {}&#34;, len);
+472 | |
+473 | |         let len = page_align_up(len);
+474 | |
+475 | |         // debug!(&#34;map_anonymous: len = {}&#34;, len);
+476 | |
+477 | |         let binding = ProcessManager::current_pcb().fd_table();
+478 | |         let fd_table_guard = binding.read();
+479 | |
+480 | |         let file = fd_table_guard.get_file_by_fd(fd);
+481 | |         if file.is_none() {
+482 | |             return Err(SystemError::EBADF);
+483 | |         }
+484 | |         // drop guard 以避免无法调度的问题
+485 | |         drop(fd_table_guard);
+486 | |
+487 | |         // offset需要4K对齐
+488 | |         if (offset &amp; (MMArch::PAGE_SIZE - 1)) != 0 {
+489 | |             return Err(SystemError::EINVAL);
+490 | |         }
+491 | |         let pgoff = offset &gt;&gt; MMArch::PAGE_SHIFT;
+492 | |
+493 | |         let start_page: VirtPageFrame = self.mmap(
+494 | |             round_hint_to_min(start_vaddr),
+495 | |             PageFrameCount::from_bytes(len).unwrap(),
+496 | |             prot_flags,
+497 | |             map_flags,
+498 | |             |page, count, vm_flags, flags, mapper, flusher| {
+499 | |                 if allocate_at_once {
+500 | |                     VMA::zeroed(
+501 | |                         page,
+502 | |                         count,
+503 | |                         vm_flags,
+504 | |                         flags,
+505 | |                         mapper,
+506 | |                         flusher,
+507 | |                         file.clone(),
+508 | |                         Some(pgoff),
+509 | |                     )
+510 | |                 } else {
+511 | |                     Ok(LockedVMA::new(VMA::new(
+512 | |                         VirtRegion::new(page.virt_address(), count.data() * MMArch::PAGE_SIZE),
+513 | |                         vm_flags,
+514 | |                         flags,
+515 | |                         file.clone(),
+516 | |                         Some(pgoff),
+517 | |                         false,
+518 | |                     )))
+519 | |                 }
+520 | |             },
+521 | |         )?;
+522 | |         // todo!(impl mmap for other file)
+523 | |         // https://github.com/DragonOS-Community/DragonOS/pull/912#discussion_r1765334272
+524 | |         let file = file.unwrap();
+525 | |         // 传入实际映射后的起始虚拟地址，而非用户传入的 hint
+526 | |         let _ = file
+527 | |             .inode()
+528 | |             .mmap(start_page.virt_address().data(), len, offset);
+529 | |         return Ok(start_page);
+530 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/ucontext.rs line 440.
+    | MIR detail: Value _37(_, src/mm/ucontext.rs:485) and _17(binding, src/mm/ucontext.rs:477) are alias.
+    | MIR detail: _37(_, src/mm/ucontext.rs:485) is dropped at BB15(src/mm/ucontext.rs:485); _17(binding, src/mm/ucontext.rs:477) is dropped at BB41(src/mm/ucontext.rs:530).
+    |
+22:08:12|RAP|WARN|: Double free detected in function &#34;file_mapping&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/mm/ucontext.rs:440:1
+    |
+440 | / pub fn file_mapping(
+441 | |         &amp;mut self,
+442 | |         start_vaddr: VirtAddr,
+443 | |         len: usize,
+444 | |         prot_flags: ProtFlags,
+445 | |         map_flags: MapFlags,
+446 | |         fd: i32,
+447 | |         offset: usize,
+448 | |         round_to_min: bool,
+449 | |         allocate_at_once: bool,
+450 | |     ) -&gt; Result&lt;VirtPageFrame, SystemError&gt; {
+451 | |         let allocate_at_once = if MMArch::PAGE_FAULT_ENABLED {
+452 | |             allocate_at_once
+453 | |         } else {
+454 | |             true
+455 | |         };
+456 | |         // 用于对齐hint的函数
+457 | |         let round_hint_to_min = |hint: VirtAddr| {
+458 | |             // 先把hint向下对齐到页边界
+459 | |             let addr = hint.data() &amp; (!MMArch::PAGE_OFFSET_MASK);
+460 | |             // debug!(&#34;map_anonymous: hint = {:?}, addr = {addr:#x}&#34;, hint);
+461 | |             // 如果hint不是0，且hint小于DEFAULT_MMAP_MIN_ADDR，则对齐到DEFAULT_MMAP_MIN_ADDR
+462 | |             if (addr != 0) &amp;&amp; round_to_min &amp;&amp; (addr &lt; DEFAULT_MMAP_MIN_ADDR) {
+463 | |                 Some(VirtAddr::new(page_align_up(DEFAULT_MMAP_MIN_ADDR)))
+464 | |             } else if addr == 0 {
+465 | |                 None
+466 | |             } else {
+467 | |                 Some(VirtAddr::new(addr))
+468 | |             }
+469 | |         };
+470 | |         // debug!(&#34;map_anonymous: start_vaddr = {:?}&#34;, start_vaddr);
+471 | |         // debug!(&#34;map_anonymous: len(no align) = {}&#34;, len);
+472 | |
+473 | |         let len = page_align_up(len);
+474 | |
+475 | |         // debug!(&#34;map_anonymous: len = {}&#34;, len);
+476 | |
+477 | |         let binding = ProcessManager::current_pcb().fd_table();
+478 | |         let fd_table_guard = binding.read();
+479 | |
+480 | |         let file = fd_table_guard.get_file_by_fd(fd);
+481 | |         if file.is_none() {
+482 | |             return Err(SystemError::EBADF);
+483 | |         }
+484 | |         // drop guard 以避免无法调度的问题
+485 | |         drop(fd_table_guard);
+486 | |
+487 | |         // offset需要4K对齐
+488 | |         if (offset &amp; (MMArch::PAGE_SIZE - 1)) != 0 {
+489 | |             return Err(SystemError::EINVAL);
+490 | |         }
+491 | |         let pgoff = offset &gt;&gt; MMArch::PAGE_SHIFT;
+492 | |
+493 | |         let start_page: VirtPageFrame = self.mmap(
+494 | |             round_hint_to_min(start_vaddr),
+495 | |             PageFrameCount::from_bytes(len).unwrap(),
+496 | |             prot_flags,
+497 | |             map_flags,
+498 | |             |page, count, vm_flags, flags, mapper, flusher| {
+499 | |                 if allocate_at_once {
+500 | |                     VMA::zeroed(
+501 | |                         page,
+502 | |                         count,
+503 | |                         vm_flags,
+504 | |                         flags,
+505 | |                         mapper,
+506 | |                         flusher,
+507 | |                         file.clone(),
+508 | |                         Some(pgoff),
+509 | |                     )
+510 | |                 } else {
+511 | |                     Ok(LockedVMA::new(VMA::new(
+512 | |                         VirtRegion::new(page.virt_address(), count.data() * MMArch::PAGE_SIZE),
+513 | |                         vm_flags,
+514 | |                         flags,
+515 | |                         file.clone(),
+516 | |                         Some(pgoff),
+517 | |                         false,
+518 | |                     )))
+519 | |                 }
+520 | |             },
+521 | |         )?;
+522 | |         // todo!(impl mmap for other file)
+523 | |         // https://github.com/DragonOS-Community/DragonOS/pull/912#discussion_r1765334272
+524 | |         let file = file.unwrap();
+525 | |         // 传入实际映射后的起始虚拟地址，而非用户传入的 hint
+526 | |         let _ = file
+527 | |             .inode()
+528 | |             .mmap(start_page.virt_address().data(), len, offset);
+529 | |         return Ok(start_page);
+530 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/ucontext.rs line 440.
+    | MIR detail: Value _37(_, src/mm/ucontext.rs:485) and _17(binding, src/mm/ucontext.rs:477) are alias.
+    | MIR detail: _37(_, src/mm/ucontext.rs:485) is dropped at BB15(src/mm/ucontext.rs:485); _17(binding, src/mm/ucontext.rs:477) is dropped at BB45(src/mm/ucontext.rs:530).
+    |
+render dot for DefId(0:25077 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/mm/ucontext.rs:451:13: 451:29
+bb1 at src/mm/ucontext.rs:452:13: 452:29
+bb2 at src/mm/ucontext.rs:454:13: 454:17
+bb3 at src/mm/ucontext.rs:455:9: 455:10
+bb4 at src/mm/ucontext.rs:473:36: 473:37
+bb5 at src/mm/ucontext.rs:477:23: 477:52
+bb6 at src/mm/ucontext.rs:477:23: 477:52
+bb7 at src/mm/ucontext.rs:477:62: 477:63
+bb8 at src/mm/ucontext.rs:477:63: 477:64
+bb9 at src/mm/ucontext.rs:478:30: 478:37
+bb10 at src/mm/ucontext.rs:478:43: 478:44
+bb11 at src/mm/ucontext.rs:480:20: 480:34
+bb12 at src/mm/ucontext.rs:480:52: 480:53
+bb14 at src/mm/ucontext.rs:481:25: 481:26
+bb15 at src/mm/ucontext.rs:481:25: 481:26
+bb16 at src/mm/ucontext.rs:485:28: 485:29
+bb17 at src/mm/ucontext.rs:488:22: 488:45
+bb18 at src/mm/ucontext.rs:488:50: 488:51
+bb19 at src/mm/ucontext.rs:488:50: 488:51
+bb20 at src/mm/ucontext.rs:491:21: 491:49
+bb21 at src/mm/ucontext.rs:494:42: 494:43
+bb22 at src/mm/ucontext.rs:495:43: 495:44
+bb23 at src/mm/ucontext.rs:495:52: 495:53
+bb24 at src/mm/ucontext.rs:521:9: 521:10
+bb25 at src/mm/ucontext.rs:521:10: 521:11
+bb27 at src/mm/ucontext.rs:493:41: 521:11
+bb28 at src/mm/ucontext.rs:521:10: 521:11
+bb29 at src/mm/ucontext.rs:521:10: 521:11
+bb30 at src/mm/ucontext.rs:524:32: 524:33
+bb31 at src/mm/ucontext.rs:526:17: 526:21
+bb32 at src/mm/ucontext.rs:526:17: 527:21
+bb33 at src/mm/ucontext.rs:526:17: 527:21
+bb34 at src/mm/ucontext.rs:528:19: 528:44
+bb35 at src/mm/ucontext.rs:528:50: 528:51
+bb36 at src/mm/ucontext.rs:528:64: 528:65
+bb37 at src/mm/ucontext.rs:528:65: 528:66
+bb38 at src/mm/ucontext.rs:530:5: 530:6
+bb39 at src/mm/ucontext.rs:530:5: 530:6
+bb40 at src/mm/ucontext.rs:530:5: 530:6
+bb41 at src/mm/ucontext.rs:530:5: 530:6
+bb42 at src/mm/ucontext.rs:530:5: 530:6
+fn mm::ucontext::InnerAddressSpace::file_mapping
+_0:  @ core::result::Result&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} mut mm::ucontext::InnerAddressSpace 
+_2:  @ mm::VirtAddr 
+_3:  @ usize 
+_4:  @ mm::syscall::ProtFlags 
+_5:  @ mm::syscall::MapFlags 
+_6:  @ i32 
+_7:  @ usize 
+_8:  @ bool 
+_9:  @ bool 
+_10:  @ ! 
+_11:  @ bool 
+_12:  @ bool 
+_13:  @ Closure(DefId(0:25078 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping::{closure#0}), [i8, Binder { value: extern &#34;RustCall&#34; fn((mm::VirtAddr,)) -&gt; core::option::Option&lt;mm::VirtAddr&gt;, bound_vars: [] }, (&amp;&#39;{erased} bool,)]) 
+_14:  @ &amp;&#39;{erased} bool 
+_15:  @ usize 
+_16:  @ usize 
+_17:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_18:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_19:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_20:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_21:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_22:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_23:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_24:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_25:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_26:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_27:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_28:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_29:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_30:  @ i32 
+_31:  @ () 
+_32:  @ bool 
+_33:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_34:  @ ! 
+_35:  @ system_error::SystemError 
+_36:  @ () 
+_37:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_38:  @ () 
+_39:  @ bool 
+_40:  @ usize 
+_41:  @ usize 
+_42:  @ usize 
+_43:  @ (usize, bool) 
+_44:  @ ! 
+_45:  @ system_error::SystemError 
+_46:  @ usize 
+_47:  @ usize 
+_48:  @ bool 
+_49:  @ mm::allocator::page_frame::VirtPageFrame 
+_50:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, mm::allocator::page_frame::VirtPageFrame&gt; 
+_51:  @ core::result::Result&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt; 
+_52:  @ &amp;&#39;{erased} mut mm::ucontext::InnerAddressSpace 
+_53:  @ core::option::Option&lt;mm::VirtAddr&gt; 
+_54:  @ &amp;&#39;{erased} Closure(DefId(0:25078 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping::{closure#0}), [i8, Binder { value: extern &#34;RustCall&#34; fn((mm::VirtAddr,)) -&gt; core::option::Option&lt;mm::VirtAddr&gt;, bound_vars: [] }, (&amp;&#39;{erased} bool,)]) 
+_55:  @ (mm::VirtAddr,) 
+_56:  @ mm::VirtAddr 
+_57:  @ mm::allocator::page_frame::PageFrameCount 
+_58:  @ core::option::Option&lt;mm::allocator::page_frame::PageFrameCount&gt; 
+_59:  @ usize 
+_60:  @ mm::syscall::ProtFlags 
+_61:  @ mm::syscall::MapFlags 
+_62:  @ Closure(DefId(0:25079 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((mm::allocator::page_frame::VirtPageFrame, mm::allocator::page_frame::PageFrameCount, mm::VmFlags, mm::page::EntryFlags&lt;arch::x86_64::mm::X86_64MMArch&gt;, &amp;&#39;^0 mut mm::page::PageMapper&lt;arch::x86_64::mm::X86_64MMArch, arch::x86_64::mm::LockedFrameAllocator&gt;, &amp;&#39;^1 mut dyn [Binder { value: Trait(mm::page::Flusher&lt;arch::x86_64::mm::X86_64MMArch&gt;), bound_vars: [] }] + &#39;^1)) -&gt; core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt;, system_error::SystemError&gt;, bound_vars: [Region(BrAnon), Region(BrAnon)] }, (&amp;&#39;{erased} bool, &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt;, &amp;&#39;{erased} usize)]) 
+_63:  @ &amp;&#39;{erased} bool 
+_64:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_65:  @ &amp;&#39;{erased} usize 
+_66:  @ isize 
+_67:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_68:  @ ! 
+_69:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_70:  @ mm::allocator::page_frame::VirtPageFrame 
+_71:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_72:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_73:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_74:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased} 
+_75:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased} 
+_76:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_77:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_78:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_79:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_80:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_81:  @ usize 
+_82:  @ &amp;&#39;{erased} mm::VirtAddr 
+_83:  @ mm::VirtAddr 
+_84:  @ &amp;&#39;{erased} mm::allocator::page_frame::VirtPageFrame 
+_85:  @ usize 
+_86:  @ usize 
+_87:  @ mm::allocator::page_frame::VirtPageFrame 
+_88:  @ bool 
+_89:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_89, const false)) @ _89=const false @ Use
+    Assign((_88, const false)) @ _88=const false @ Use
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_FAULT_ENABLED)) @ _12=const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_FAULT_ENABLED @ Use
+    switchInt(move _12) -&gt; [0: bb2, otherwise: bb1] @ SwitchInt
+}
+bb 1 {
+CleanUp: false
+    Assign((_11, copy _9)) @ _11=copy _9 @ Use
+    goto -&gt; bb3 @ Goto
+}
+bb 2 {
+CleanUp: false
+    Assign((_11, const true)) @ _11=const true @ Use
+    goto -&gt; bb3 @ Goto
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;_8)) @ _14=&amp;_8 @ Ref
+    Assign((_13, {closure@src/mm/ucontext.rs:457:33: 457:49} { round_to_min: move _14 })) @ _13={closure@src/mm/ucontext.rs:457:33: 457:49} { round_to_min: move _14 } @ Aggregate
+    StorageDead(_14) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, copy _3)) @ _16=copy _3 @ Use
+    _15 = libs::align::page_align_up(move _16) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 4060
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    _21 = process::ProcessManager::current_pcb() -&gt; [return: bb5, unwind continue] @ Call: FnDid: 29866
+}
+bb 5 {
+CleanUp: false
+    Assign((_20, &amp;_21)) @ _20=&amp;_21 @ Ref
+    _19 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _20) -&gt; [return: bb6, unwind: bb46] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_18, &amp;(*_19))) @ _18=&amp;(*_19) @ Ref
+    StorageDead(_20) @ StorageDead
+    _17 = process::ProcessControlBlock::fd_table(move _18) -&gt; [return: bb7, unwind: bb46] @ Call: FnDid: 29947
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    drop(_21) -&gt; [return: bb8, unwind: bb45] @ Drop
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_17)) @ _25=&amp;_17 @ Ref
+    _24 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _25) -&gt; [return: bb9, unwind: bb45] @ Call: FnDid: 3903
+}
+bb 9 {
+CleanUp: false
+    Assign((_23, &amp;(*_24))) @ _23=&amp;(*_24) @ Ref
+    StorageDead(_25) @ StorageDead
+    _22 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _23) -&gt; [return: bb10, unwind: bb45] @ Call: FnDid: 5156
+}
+bb 10 {
+CleanUp: false
+    Assign((_89, const true)) @ _89=const true @ Use
+    StorageDead(_23) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;_22)) @ _29=&amp;_22 @ Ref
+    _28 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _29) -&gt; [return: bb11, unwind: bb54] @ Call: FnDid: 3903
+}
+bb 11 {
+CleanUp: false
+    Assign((_27, &amp;(*_28))) @ _27=&amp;(*_28) @ Ref
+    StorageDead(_29) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    Assign((_30, copy _6)) @ _30=copy _6 @ Use
+    _26 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _27, move _30) -&gt; [return: bb12, unwind: bb54] @ Call: FnDid: 19231
+}
+bb 12 {
+CleanUp: false
+    Assign((_88, const true)) @ _88=const true @ Use
+    StorageDead(_30) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;_26)) @ _33=&amp;_26 @ Ref
+    _32 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::is_none(move _33) -&gt; [return: bb13, unwind: bb52] @ Call: FnDid: 10146
+}
+bb 13 {
+CleanUp: false
+    switchInt(move _32) -&gt; [0: bb15, otherwise: bb14] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    Assign((_35, system_error::SystemError::EBADF)) @ _35=system_error::SystemError::EBADF @ Aggregate
+    Assign((_0, core::result::Result::&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt;::Err(move _35))) @ _0=core::result::Result::&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt;::Err(move _35) @ Aggregate
+    StorageDead(_35) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    goto -&gt; bb49 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    Assign((_31, const ())) @ _31=const () @ Use
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_89, const false)) @ _89=const false @ Use
+    Assign((_37, move _22)) @ _37=move _22 @ Use
+    _36 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _37) -&gt; [return: bb16, unwind: bb52] @ Call: FnDid: 2323
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, copy _7)) @ _41=copy _7 @ Use
+    StorageLive(_42) @ StorageLive
+    Assign((_43, SubWithOverflow(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE, const 1_usize))) @ _43=SubWithOverflow(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE, const 1_usize) @ BinaryOp
+    assert(!move (_43.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE, const 1_usize) -&gt; [success: bb17, unwind: bb52] @ Assert
+}
+bb 17 {
+CleanUp: false
+    Assign((_42, move (_43.0: usize))) @ _42=move (_43.0: usize) @ Use
+    Assign((_40, BitAnd(move _41, move _42))) @ _40=BitAnd(move _41, move _42) @ BinaryOp
+    StorageDead(_42) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    Assign((_39, Ne(move _40, const 0_usize))) @ _39=Ne(move _40, const 0_usize) @ BinaryOp
+    switchInt(move _39) -&gt; [0: bb19, otherwise: bb18] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    Assign((_45, system_error::SystemError::EINVAL)) @ _45=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt;::Err(move _45))) @ _0=core::result::Result::&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt;::Err(move _45) @ Aggregate
+    StorageDead(_45) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    goto -&gt; bb49 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    Assign((_38, const ())) @ _38=const () @ Use
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, copy _7)) @ _47=copy _7 @ Use
+    Assign((_48, Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize))) @ _48=Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize) @ BinaryOp
+    assert(move _48, &#34;attempt to shift right by `{}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) -&gt; [success: bb20, unwind: bb52] @ Assert
+}
+bb 20 {
+CleanUp: false
+    Assign((_46, Shr(move _47, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT))) @ _46=Shr(move _47, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) @ BinaryOp
+    StorageDead(_47) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    Assign((_52, &amp;mut (*_1))) @ _52=&amp;mut (*_1) @ Ref
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_13)) @ _54=&amp;_13 @ Ref
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, copy _2)) @ _56=copy _2 @ Use
+    Assign((_55, (move _56,))) @ _55=(move _56,) @ Aggregate
+    _53 = &lt;{closure@src/mm/ucontext.rs:457:33: 457:49} as core::ops::Fn&lt;(mm::VirtAddr,)&gt;&gt;::call(move _54, move _55) -&gt; [return: bb21, unwind: bb52] @ Call: FnDid: 3942
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    Assign((_59, copy _15)) @ _59=copy _15 @ Use
+    _58 = mm::allocator::page_frame::PageFrameCount::from_bytes(move _59) -&gt; [return: bb22, unwind: bb52] @ Call: FnDid: 23755
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    _57 = core::option::Option::&lt;mm::allocator::page_frame::PageFrameCount&gt;::unwrap(move _58) -&gt; [return: bb23, unwind: bb52] @ Call: FnDid: 10157
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    Assign((_60, copy _4)) @ _60=copy _4 @ Use
+    StorageLive(_61) @ StorageLive
+    Assign((_61, copy _5)) @ _61=copy _5 @ Use
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_63, &amp;_11)) @ _63=&amp;_11 @ Ref
+    StorageLive(_64) @ StorageLive
+    Assign((_64, &amp;_26)) @ _64=&amp;_26 @ Ref
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;_46)) @ _65=&amp;_46 @ Ref
+    Assign((_62, {closure@src/mm/ucontext.rs:498:13: 498:60} { allocate_at_once: move _63, file: move _64, pgoff: move _65 })) @ _62={closure@src/mm/ucontext.rs:498:13: 498:60} { allocate_at_once: move _63, file: move _64, pgoff: move _65 } @ Aggregate
+    StorageDead(_65) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    _51 = mm::ucontext::InnerAddressSpace::mmap::&lt;{closure@src/mm/ucontext.rs:498:13: 498:60}&gt;(move _52, move _53, move _57, move _60, move _61, move _62) -&gt; [return: bb24, unwind: bb52] @ Call: FnDid: 25080
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_62) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    _50 = &lt;core::result::Result&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _51) -&gt; [return: bb25, unwind: bb52] @ Call: FnDid: 4199
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    Assign((_66, discriminant(_50))) @ _66=discriminant(_50) @ Discriminant
+    switchInt(move _66) -&gt; [0: bb27, 1: bb28, otherwise: bb26] @ SwitchInt
+}
+bb 26 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 27 {
+CleanUp: false
+    StorageLive(_70) @ StorageLive
+    Assign((_70, copy ((_50 as Continue).0: mm::allocator::page_frame::VirtPageFrame))) @ _70=copy ((_50 as Continue).0: mm::allocator::page_frame::VirtPageFrame) @ Use
+    Assign((_49, copy _70)) @ _49=copy _70 @ Use
+    StorageDead(_70) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_88, const false)) @ _88=const false @ Use
+    Assign((_72, move _26)) @ _72=move _26 @ Use
+    _71 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::unwrap(move _72) -&gt; [return: bb30, unwind: bb52] @ Call: FnDid: 10157
+}
+bb 28 {
+CleanUp: false
+    StorageLive(_67) @ StorageLive
+    Assign((_67, move ((_50 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _67=move ((_50 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_69) @ StorageLive
+    Assign((_69, move _67)) @ _69=move _67 @ Use
+    _0 = &lt;core::result::Result&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _69) -&gt; [return: bb29, unwind: bb52] @ Call: FnDid: 4202
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    goto -&gt; bb39 @ Goto
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_72) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    Assign((_80, &amp;_71)) @ _80=&amp;_71 @ Ref
+    _79 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _80) -&gt; [return: bb31, unwind: bb44] @ Call: FnDid: 3903
+}
+bb 31 {
+CleanUp: false
+    Assign((_78, &amp;(*_79))) @ _78=&amp;(*_79) @ Ref
+    StorageDead(_80) @ StorageDead
+    _77 = filesystem::vfs::file::File::inode(move _78) -&gt; [return: bb32, unwind: bb44] @ Call: FnDid: 19197
+}
+bb 32 {
+CleanUp: false
+    Assign((_76, &amp;_77)) @ _76=&amp;_77 @ Ref
+    _75 = &lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt; as lazy_static::__Deref&gt;::deref(move _76) -&gt; [return: bb33, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 33 {
+CleanUp: false
+    Assign((_74, &amp;(*_75))) @ _74=&amp;(*_75) @ Ref
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    Assign((_84, &amp;_49)) @ _84=&amp;_49 @ Ref
+    _83 = mm::allocator::page_frame::VirtPageFrame::virt_address(move _84) -&gt; [return: bb34, unwind: bb43] @ Call: FnDid: 23740
+}
+bb 34 {
+CleanUp: false
+    Assign((_82, &amp;_83)) @ _82=&amp;_83 @ Ref
+    StorageDead(_84) @ StorageDead
+    _81 = mm::VirtAddr::data(move _82) -&gt; [return: bb35, unwind: bb43] @ Call: FnDid: 25246
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageLive(_85) @ StorageLive
+    Assign((_85, copy _15)) @ _85=copy _15 @ Use
+    StorageLive(_86) @ StorageLive
+    Assign((_86, copy _7)) @ _86=copy _7 @ Use
+    _73 = &lt;dyn filesystem::vfs::IndexNode as filesystem::vfs::IndexNode&gt;::mmap(move _74, move _81, move _85, move _86) -&gt; [return: bb36, unwind: bb43] @ Call: FnDid: 21754
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_86) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    drop(_77) -&gt; [return: bb37, unwind: bb44] @ Drop
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_87) @ StorageLive
+    Assign((_87, copy _49)) @ _87=copy _49 @ Use
+    Assign((_0, core::result::Result::&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt;::Ok(move _87))) @ _0=core::result::Result::&lt;mm::allocator::page_frame::VirtPageFrame, system_error::SystemError&gt;::Ok(move _87) @ Aggregate
+    StorageDead(_87) @ StorageDead
+    drop(_71) -&gt; [return: bb38, unwind: bb52] @ Drop
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    goto -&gt; bb39 @ Goto
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb49 @ Goto
+}
+bb 40 {
+CleanUp: false
+    Assign((_88, const false)) @ _88=const false @ Use
+    StorageDead(_26) @ StorageDead
+    switchInt(copy _89) -&gt; [0: bb41, otherwise: bb50] @ SwitchInt
+}
+bb 41 {
+CleanUp: false
+    Assign((_89, const false)) @ _89=const false @ Use
+    StorageDead(_22) @ StorageDead
+    drop(_17) -&gt; [return: bb42, unwind: bb47] @ Drop
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    return @ Return
+}
+bb 43 {
+CleanUp: true
+    drop(_77) -&gt; [return: bb44, unwind terminate(cleanup)] @ Drop
+}
+bb 44 {
+CleanUp: true
+    drop(_71) -&gt; [return: bb52, unwind terminate(cleanup)] @ Drop
+}
+bb 45 {
+CleanUp: true
+    drop(_17) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+}
+bb 46 {
+CleanUp: true
+    drop(_21) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+}
+bb 47 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 48 {
+CleanUp: false
+    drop(_26) -&gt; [return: bb40, unwind: bb54] @ Drop
+}
+bb 49 {
+CleanUp: false
+    switchInt(copy _88) -&gt; [0: bb40, otherwise: bb48] @ SwitchInt
+}
+bb 50 {
+CleanUp: false
+    drop(_22) -&gt; [return: bb41, unwind: bb45] @ Drop
+}
+bb 51 {
+CleanUp: true
+    drop(_26) -&gt; [return: bb54, unwind terminate(cleanup)] @ Drop
+}
+bb 52 {
+CleanUp: true
+    switchInt(copy _88) -&gt; [0: bb54, otherwise: bb51] @ SwitchInt
+}
+bb 53 {
+CleanUp: true
+    drop(_22) -&gt; [return: bb45, unwind terminate(cleanup)] @ Drop
+}
+bb 54 {
+CleanUp: true
+    switchInt(copy _89) -&gt; [0: bb45, otherwise: bb53] @ SwitchInt
+}
+
+bb0 at src/mm/ucontext.rs:459:17: 459:21
+bb1 at src/mm/ucontext.rs:459:34: 459:35
+bb2 at src/mm/ucontext.rs:462:26: 462:27
+bb3 at src/mm/ucontext.rs:462:47: 462:77
+bb4 at src/mm/ucontext.rs:462:76: 462:77
+bb6 at src/mm/ucontext.rs:463:72: 463:73
+bb7 at src/mm/ucontext.rs:462:76: 462:77
+bb8 at src/mm/ucontext.rs:462:26: 462:27
+bb9 at src/mm/ucontext.rs:464:23: 464:32
+bb10 at src/mm/ucontext.rs:464:31: 464:32
+bb11 at src/mm/ucontext.rs:464:31: 464:32
+bb12 at src/mm/ucontext.rs:467:40: 467:41
+bb13 at src/mm/ucontext.rs:468:13: 468:14
+bb14 at src/mm/ucontext.rs:468:13: 468:14
+fn mm::ucontext::InnerAddressSpace::file_mapping::{closure#0}
+_0:  @ core::option::Option&lt;mm::VirtAddr&gt; 
+_1:  @ &amp;&#39;{erased} Closure(DefId(0:25078 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping::{closure#0}), [i8, Binder { value: extern &#34;RustCall&#34; fn((mm::VirtAddr,)) -&gt; core::option::Option&lt;mm::VirtAddr&gt;, bound_vars: [] }, (&amp;&#39;{erased} bool,)]) 
+_2:  @ mm::VirtAddr 
+_3:  @ usize 
+_4:  @ usize 
+_5:  @ &amp;&#39;{erased} mm::VirtAddr 
+_6:  @ usize 
+_7:  @ bool 
+_8:  @ usize 
+_9:  @ bool 
+_10:  @ bool 
+_11:  @ usize 
+_12:  @ mm::VirtAddr 
+_13:  @ usize 
+_14:  @ bool 
+_15:  @ usize 
+_16:  @ mm::VirtAddr 
+_17:  @ usize 
+_18:  @ &amp;&#39;{erased} bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;_2)) @ _5=&amp;_2 @ Ref
+    _4 = mm::VirtAddr::data(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 25246
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    Assign((_6, Not(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_OFFSET_MASK))) @ _6=Not(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_OFFSET_MASK) @ UnaryOp
+    Assign((_3, BitAnd(move _4, move _6))) @ _3=BitAnd(move _4, move _6) @ BinaryOp
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, copy _3)) @ _8=copy _3 @ Use
+    Assign((_7, Ne(move _8, const 0_usize))) @ _7=Ne(move _8, const 0_usize) @ BinaryOp
+    switchInt(move _7) -&gt; [0: bb8, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    Assign((_18, deref_copy ((*_1).0: &amp;bool))) @ _18=deref_copy ((*_1).0: &amp;bool) @ CopyForDeref
+    Assign((_9, copy (*_18))) @ _9=copy (*_18) @ Use
+    switchInt(move _9) -&gt; [0: bb9, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, copy _3)) @ _11=copy _3 @ Use
+    Assign((_10, Lt(move _11, const mm::ucontext::DEFAULT_MMAP_MIN_ADDR))) @ _10=Lt(move _11, const mm::ucontext::DEFAULT_MMAP_MIN_ADDR) @ BinaryOp
+    switchInt(move _10) -&gt; [0: bb7, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    _13 = libs::align::page_align_up(const mm::ucontext::DEFAULT_MMAP_MIN_ADDR) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 4060
+}
+bb 5 {
+CleanUp: false
+    _12 = mm::VirtAddr::new(move _13) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 25245
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    Assign((_0, core::option::Option::&lt;mm::VirtAddr&gt;::Some(move _12))) @ _0=core::option::Option::&lt;mm::VirtAddr&gt;::Some(move _12) @ Aggregate
+    StorageDead(_12) @ StorageDead
+    goto -&gt; bb14 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    goto -&gt; bb9 @ Goto
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    goto -&gt; bb9 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, copy _3)) @ _15=copy _3 @ Use
+    Assign((_14, Eq(move _15, const 0_usize))) @ _14=Eq(move _15, const 0_usize) @ BinaryOp
+    switchInt(move _14) -&gt; [0: bb11, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    Assign((_0, core::option::Option::&lt;mm::VirtAddr&gt;::None)) @ _0=core::option::Option::&lt;mm::VirtAddr&gt;::None @ Aggregate
+    goto -&gt; bb13 @ Goto
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, copy _3)) @ _17=copy _3 @ Use
+    _16 = mm::VirtAddr::new(move _17) -&gt; [return: bb12, unwind continue] @ Call: FnDid: 25245
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_0, core::option::Option::&lt;mm::VirtAddr&gt;::Some(move _16))) @ _0=core::option::Option::&lt;mm::VirtAddr&gt;::Some(move _16) @ Aggregate
+    StorageDead(_16) @ StorageDead
+    goto -&gt; bb13 @ Goto
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb14 @ Goto
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+bb0 at src/mm/ucontext.rs:499:20: 499:36
+bb1 at src/mm/ucontext.rs:501:25: 501:29
+bb2 at src/mm/ucontext.rs:507:36: 507:37
+bb3 at src/mm/ucontext.rs:509:21: 509:22
+bb4 at src/mm/ucontext.rs:511:24: 518:23
+bb5 at src/mm/ucontext.rs:512:59: 512:60
+bb6 at src/mm/ucontext.rs:512:73: 512:74
+bb7 at src/mm/ucontext.rs:512:62: 512:94
+bb8 at src/mm/ucontext.rs:512:94: 512:95
+bb9 at src/mm/ucontext.rs:515:36: 515:37
+bb10 at src/mm/ucontext.rs:518:21: 518:22
+bb11 at src/mm/ucontext.rs:518:22: 518:23
+bb12 at src/mm/ucontext.rs:519:17: 519:18
+fn mm::ucontext::InnerAddressSpace::file_mapping::{closure#1}
+_0:  @ core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_1:  @ Closure(DefId(0:25079 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((mm::allocator::page_frame::VirtPageFrame, mm::allocator::page_frame::PageFrameCount, mm::VmFlags, mm::page::EntryFlags&lt;arch::x86_64::mm::X86_64MMArch&gt;, &amp;&#39;^0 mut mm::page::PageMapper&lt;arch::x86_64::mm::X86_64MMArch, arch::x86_64::mm::LockedFrameAllocator&gt;, &amp;&#39;^1 mut dyn [Binder { value: Trait(mm::page::Flusher&lt;arch::x86_64::mm::X86_64MMArch&gt;), bound_vars: [] }] + &#39;^1)) -&gt; core::result::Result&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt;, system_error::SystemError&gt;, bound_vars: [Region(BrAnon), Region(BrAnon)] }, (&amp;&#39;{erased} bool, &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt;, &amp;&#39;{erased} usize)]) 
+_2:  @ mm::allocator::page_frame::VirtPageFrame 
+_3:  @ mm::allocator::page_frame::PageFrameCount 
+_4:  @ mm::VmFlags 
+_5:  @ mm::page::EntryFlags&lt;arch::x86_64::mm::X86_64MMArch&gt; 
+_6:  @ &amp;&#39;{erased} mut mm::page::PageMapper&lt;arch::x86_64::mm::X86_64MMArch, arch::x86_64::mm::LockedFrameAllocator&gt; 
+_7:  @ &amp;&#39;{erased} mut dyn [Binder { value: Trait(mm::page::Flusher&lt;arch::x86_64::mm::X86_64MMArch&gt;), bound_vars: [] }] + &#39;{erased} 
+_8:  @ bool 
+_9:  @ mm::allocator::page_frame::VirtPageFrame 
+_10:  @ mm::allocator::page_frame::PageFrameCount 
+_11:  @ mm::VmFlags 
+_12:  @ mm::page::EntryFlags&lt;arch::x86_64::mm::X86_64MMArch&gt; 
+_13:  @ &amp;&#39;{erased} mut mm::page::PageMapper&lt;arch::x86_64::mm::X86_64MMArch, arch::x86_64::mm::LockedFrameAllocator&gt; 
+_14:  @ &amp;&#39;{erased} mut dyn [Binder { value: Trait(mm::page::Flusher&lt;arch::x86_64::mm::X86_64MMArch&gt;), bound_vars: [] }] + &#39;{erased} 
+_15:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_16:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_17:  @ core::option::Option&lt;usize&gt; 
+_18:  @ usize 
+_19:  @ alloc::sync::Arc&lt;mm::ucontext::LockedVMA, alloc::alloc::Global&gt; 
+_20:  @ mm::ucontext::VMA 
+_21:  @ mm::VirtRegion 
+_22:  @ mm::VirtAddr 
+_23:  @ &amp;&#39;{erased} mm::allocator::page_frame::VirtPageFrame 
+_24:  @ usize 
+_25:  @ usize 
+_26:  @ &amp;&#39;{erased} mm::allocator::page_frame::PageFrameCount 
+_27:  @ (usize, bool) 
+_28:  @ mm::VmFlags 
+_29:  @ mm::page::EntryFlags&lt;arch::x86_64::mm::X86_64MMArch&gt; 
+_30:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_31:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_32:  @ core::option::Option&lt;usize&gt; 
+_33:  @ usize 
+_34:  @ &amp;&#39;{erased} bool 
+_35:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_36:  @ &amp;&#39;{erased} usize 
+_37:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_38:  @ &amp;&#39;{erased} usize 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    Assign((_34, deref_copy (_1.0: &amp;bool))) @ _34=deref_copy (_1.0: &amp;bool) @ CopyForDeref
+    Assign((_8, copy (*_34))) @ _8=copy (*_34) @ Use
+    switchInt(move _8) -&gt; [0: bb4, otherwise: bb1] @ SwitchInt
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _2)) @ _9=copy _2 @ Use
+    StorageLive(_10) @ StorageLive
+    Assign((_10, copy _3)) @ _10=copy _3 @ Use
+    StorageLive(_11) @ StorageLive
+    Assign((_11, copy _4)) @ _11=copy _4 @ Use
+    StorageLive(_12) @ StorageLive
+    Assign((_12, copy _5)) @ _12=copy _5 @ Use
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;mut (*_6))) @ _13=&amp;mut (*_6) @ Ref
+    StorageLive(_14) @ StorageLive
+    Assign((_14, move _7)) @ _14=move _7 @ Use
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_35, deref_copy (_1.1: &amp;core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;))) @ _35=deref_copy (_1.1: &amp;core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;) @ CopyForDeref
+    Assign((_16, &amp;(*_35))) @ _16=&amp;(*_35) @ Ref
+    _15 = &lt;core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt; as core::clone::Clone&gt;::clone(move _16) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 3116
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_36, deref_copy (_1.2: &amp;usize))) @ _36=deref_copy (_1.2: &amp;usize) @ CopyForDeref
+    Assign((_18, copy (*_36))) @ _18=copy (*_36) @ Use
+    Assign((_17, core::option::Option::&lt;usize&gt;::Some(move _18))) @ _17=core::option::Option::&lt;usize&gt;::Some(move _18) @ Aggregate
+    StorageDead(_18) @ StorageDead
+    _0 = mm::ucontext::VMA::zeroed::&lt;&amp;mut dyn mm::page::Flusher&lt;arch::x86_64::mm::X86_64MMArch&gt;&gt;(move _9, move _10, move _11, move _12, move _13, move _14, move _15, move _17) -&gt; [return: bb3, unwind: bb13] @ Call: FnDid: 25180
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    goto -&gt; bb12 @ Goto
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &amp;_2)) @ _23=&amp;_2 @ Ref
+    _22 = mm::allocator::page_frame::VirtPageFrame::virt_address(move _23) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 23740
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &amp;_3)) @ _26=&amp;_3 @ Ref
+    _25 = mm::allocator::page_frame::PageFrameCount::data(move _26) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 23753
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    Assign((_27, MulWithOverflow(copy _25, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE))) @ _27=MulWithOverflow(copy _25, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE) @ BinaryOp
+    assert(!move (_27.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _25, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SIZE) -&gt; [success: bb7, unwind continue] @ Assert
+}
+bb 7 {
+CleanUp: false
+    Assign((_24, move (_27.0: usize))) @ _24=move (_27.0: usize) @ Use
+    StorageDead(_25) @ StorageDead
+    _21 = mm::VirtRegion::new(move _22, move _24) -&gt; [return: bb8, unwind continue] @ Call: FnDid: 25368
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    Assign((_28, copy _4)) @ _28=copy _4 @ Use
+    StorageLive(_29) @ StorageLive
+    Assign((_29, copy _5)) @ _29=copy _5 @ Use
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_37, deref_copy (_1.1: &amp;core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;))) @ _37=deref_copy (_1.1: &amp;core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;) @ CopyForDeref
+    Assign((_31, &amp;(*_37))) @ _31=&amp;(*_37) @ Ref
+    _30 = &lt;core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt; as core::clone::Clone&gt;::clone(move _31) -&gt; [return: bb9, unwind continue] @ Call: FnDid: 3116
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_38, deref_copy (_1.2: &amp;usize))) @ _38=deref_copy (_1.2: &amp;usize) @ CopyForDeref
+    Assign((_33, copy (*_38))) @ _33=copy (*_38) @ Use
+    Assign((_32, core::option::Option::&lt;usize&gt;::Some(move _33))) @ _32=core::option::Option::&lt;usize&gt;::Some(move _33) @ Aggregate
+    StorageDead(_33) @ StorageDead
+    _20 = mm::ucontext::VMA::new(move _21, move _28, move _29, move _30, move _32, const false) -&gt; [return: bb10, unwind: bb13] @ Call: FnDid: 25160
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    _19 = mm::ucontext::LockedVMA::new(move _20) -&gt; [return: bb11, unwind: bb13] @ Call: FnDid: 25127
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    Assign((_0, core::result::Result::&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt;, system_error::SystemError&gt;::Ok(move _19))) @ _0=core::result::Result::&lt;alloc::sync::Arc&lt;mm::ucontext::LockedVMA&gt;, system_error::SystemError&gt;::Ok(move _19) @ Aggregate
+    StorageDead(_19) @ StorageDead
+    goto -&gt; bb12 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    return @ Return
+}
+bb 13 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

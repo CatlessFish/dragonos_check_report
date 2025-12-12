@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #6: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #6
+            
+                 <span class="func-name">arch::x86_64::driver::hpet::{impl#0}::start_counter</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:47|RAP|WARN|: Dangling pointer detected in function &#34;start_counter&#34;
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;start_counter&#34;
+warning: Dangling pointer detected.
+   --&gt; src/arch/x86_64/driver/hpet.rs:332:1
+    |
+332 | / fn start_counter(&amp;self) {
+333 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+334 | |         let mut cfg = regs.general_config();
+335 | |         cfg |= HPET_CFG_ENABLE;
+336 | |         unsafe { regs.write_general_config(cfg) };
+337 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 332.
+    | MIR detail: Value _3(_, src/arch/x86_64/driver/hpet.rs:333) and _1(self, src/arch/x86_64/driver/hpet.rs:332) are alias.
+    | MIR detail: _3(_, src/arch/x86_64/driver/hpet.rs:333) is dropped at BB1(src/arch/x86_64/driver/hpet.rs:333); _1(self, src/arch/x86_64/driver/hpet.rs:332) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/arch/x86_64/driver/hpet.rs:332:1
+    |
+332 | / fn start_counter(&amp;self) {
+333 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+334 | |         let mut cfg = regs.general_config();
+335 | |         cfg |= HPET_CFG_ENABLE;
+336 | |         unsafe { regs.write_general_config(cfg) };
+337 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 332.
+    | MIR detail: Value _3(_, src/arch/x86_64/driver/hpet.rs:333) and _1(self, src/arch/x86_64/driver/hpet.rs:332) are alias.
+    | MIR detail: _3(_, src/arch/x86_64/driver/hpet.rs:333) is dropped at BB1(src/arch/x86_64/driver/hpet.rs:333); _1(self, src/arch/x86_64/driver/hpet.rs:332) became dangling.
+    |
+render dot for DefId(0:616 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::start_counter)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/arch/x86_64/driver/hpet.rs:333:25: 333:56
+bb1 at src/arch/x86_64/driver/hpet.rs:333:53: 333:54
+bb2 at src/arch/x86_64/driver/hpet.rs:333:56: 333:57
+bb3 at src/arch/x86_64/driver/hpet.rs:334:43: 334:44
+bb4 at src/arch/x86_64/driver/hpet.rs:336:47: 336:48
+fn arch::x86_64::driver::hpet::Hpet::start_counter
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ &amp;&#39;{erased} mut driver::timers::hpet::HpetRegisters 
+_3:  @ (libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt;, &amp;&#39;{erased} mut driver::timers::hpet::HpetRegisters) 
+_4:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_5:  @ u64 
+_6:  @ &amp;&#39;{erased} driver::timers::hpet::HpetRegisters 
+_7:  @ () 
+_8:  @ &amp;&#39;{erased} mut driver::timers::hpet::HpetRegisters 
+_9:  @ u64 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;(*_1))) @ _4=&amp;(*_1) @ Ref
+    _3 = arch::x86_64::driver::hpet::Hpet::hpet_regs_mut(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 608
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_2) @ StorageLive
+    Assign((_2, move (_3.1: &amp;mut driver::timers::hpet::HpetRegisters))) @ _2=move (_3.1: &amp;mut driver::timers::hpet::HpetRegisters) @ Use
+    drop(_3) -&gt; [return: bb2, unwind: bb5] @ Drop
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _5 = driver::timers::hpet::HpetRegisters::general_config(move _6) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 13449
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_5, BitOr(copy _5, const arch::x86_64::driver::hpet::HPET_CFG_ENABLE))) @ _5=BitOr(copy _5, const arch::x86_64::driver::hpet::HPET_CFG_ENABLE) @ BinaryOp
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;mut (*_2))) @ _8=&amp;mut (*_2) @ Ref
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _5)) @ _9=copy _5 @ Use
+    _7 = driver::timers::hpet::HpetRegisters::write_general_config(move _8, move _9) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 13450
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

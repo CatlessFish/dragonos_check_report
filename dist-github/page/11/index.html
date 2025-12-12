@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #11: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #11
+            
+                 <span class="func-name">libs::notifier::{impl#0}::unregister</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:53|RAP|WARN|: Dangling pointer detected in function &#34;unregister&#34;
+warning: Dangling pointer detected.
+  --&gt; src/libs/notifier.rs:65:1
+   |
+65 | / pub fn unregister(&amp;mut self, block: Arc&lt;dyn NotifierBlock&lt;V, T&gt;&gt;) -&gt; Result&lt;(), SystemError&gt; {
+66 | |         let remove = self.0.extract_if(.., |b| Arc::ptr_eq(&amp;block, b));
+67 | |         match remove.count() {
+68 | |             0 =&gt; return Err(SystemError::ENOENT),
+69 | |             _ =&gt; return Ok(()),
+70 | |         }
+71 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/libs/notifier.rs line 65.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in unregister and _1(self, src/libs/notifier.rs:65) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in unregister is dropped at BB18446744073709551615(src/libs/notifier.rs:65); _1(self, src/libs/notifier.rs:65) became dangling.
+   |
+22:07:53|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;unregister&#34;
+warning: Dangling pointer detected during unwinding.
+  --&gt; src/libs/notifier.rs:65:1
+   |
+65 | / pub fn unregister(&amp;mut self, block: Arc&lt;dyn NotifierBlock&lt;V, T&gt;&gt;) -&gt; Result&lt;(), SystemError&gt; {
+66 | |         let remove = self.0.extract_if(.., |b| Arc::ptr_eq(&amp;block, b));
+67 | |         match remove.count() {
+68 | |             0 =&gt; return Err(SystemError::ENOENT),
+69 | |             _ =&gt; return Ok(()),
+70 | |         }
+71 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/libs/notifier.rs line 65.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in unregister and _1(self, src/libs/notifier.rs:65) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in unregister is dropped at BB18446744073709551615(src/libs/notifier.rs:65); _1(self, src/libs/notifier.rs:65) became dangling.
+   |
+render dot for DefId(0:4681 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/libs/notifier.rs:66:13: 66:19
+bb1 at src/libs/notifier.rs:66:70: 66:71
+bb2 at src/libs/notifier.rs:67:28: 67:29
+bb3 at src/libs/notifier.rs:69:28: 69:30
+bb4 at src/libs/notifier.rs:68:29: 68:48
+bb5 at src/libs/notifier.rs:71:5: 71:6
+fn libs::notifier::NotifierChain::&lt;V, T&gt;::unregister
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} mut libs::notifier::NotifierChain&lt;V/#0, T/#1&gt; 
+_2:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ alloc::vec::ExtractIf&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]), alloc::alloc::Global&gt; 
+_4:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_5:  @ core::ops::RangeFull 
+_6:  @ Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]) 
+_7:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_8:  @ usize 
+_9:  @ alloc::vec::ExtractIf&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]), alloc::alloc::Global&gt; 
+_10:  @ ! 
+_11:  @ system_error::SystemError 
+_12:  @ ! 
+_13:  @ () 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;mut ((*_1).0: alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;&gt;))) @ _4=&amp;mut ((*_1).0: alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;&gt;) @ Ref
+    StorageLive(_5) @ StorageLive
+    Assign((_5, core::ops::RangeFull)) @ _5=core::ops::RangeFull @ Aggregate
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;_2)) @ _7=&amp;_2 @ Ref
+    Assign((_6, {closure@src/libs/notifier.rs:66:44: 66:47} { block: move _7 })) @ _6={closure@src/libs/notifier.rs:66:44: 66:47} { block: move _7 } @ Aggregate
+    StorageDead(_7) @ StorageDead
+    _3 = alloc::vec::Vec::&lt;alloc::sync::Arc&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;&gt;::extract_if::&lt;{closure@src/libs/notifier.rs:66:44: 66:47}, core::ops::RangeFull&gt;(move _4, move _5, move _6) -&gt; [return: bb1, unwind: bb7] @ Call: FnDid: 8323
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, move _3)) @ _9=move _3 @ Use
+    _8 = &lt;alloc::vec::ExtractIf&lt;&#39;_, alloc::sync::Arc&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;, {closure@src/libs/notifier.rs:66:44: 66:47}&gt; as core::iter::Iterator&gt;::count(move _9) -&gt; [return: bb2, unwind: bb7] @ Call: FnDid: 9361
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    switchInt(copy _8) -&gt; [0: bb4, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_13) @ StorageLive
+    Assign((_13, ())) @ _13=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _13))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _13) @ Aggregate
+    StorageDead(_13) @ StorageDead
+    goto -&gt; bb5 @ Goto
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::ENOENT)) @ _11=system_error::SystemError::ENOENT @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _11))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    goto -&gt; bb5 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    drop(_2) -&gt; [return: bb6, unwind: bb8] @ Drop
+}
+bb 6 {
+CleanUp: false
+    return @ Return
+}
+bb 7 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb8, unwind terminate(cleanup)] @ Drop
+}
+bb 8 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/libs/notifier.rs:66:60: 66:66
+bb1 at src/libs/notifier.rs:66:69: 66:70
+fn libs::notifier::NotifierChain::&lt;V, T&gt;::unregister::{closure#0}
+_0:  @ bool 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]) 
+_2:  @ &amp;&#39;{erased} mut alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_4:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_5:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(libs::notifier::NotifierBlock&lt;V, T&gt;), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_6, deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;))) @ _6=deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;) @ CopyForDeref
+    Assign((_4, &amp;(*_6))) @ _4=&amp;(*_6) @ Ref
+    Assign((_3, &amp;(*_4))) @ _3=&amp;(*_4) @ Ref
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;(*_2))) @ _5=&amp;(*_2) @ Ref
+    _0 = alloc::sync::Arc::&lt;dyn libs::notifier::NotifierBlock&lt;V, T&gt;&gt;::ptr_eq(move _3, move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 6953
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #26: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #26
+            
+                 <span class="func-name">driver::base::kset::{impl#3}::leave</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:57|RAP|WARN|: Dangling pointer detected in function &#34;leave&#34;
+warning: Dangling pointer detected.
+   --&gt; src/driver/base/kset.rs:109:1
+    |
+109 | / pub fn leave(&amp;self, kobj: &amp;Arc&lt;dyn KObject&gt;) {
+110 | |         let mut kobjects = self.kobjects.write();
+111 | |         kobjects.retain(|x| x.upgrade().is_some());
+112 | |         let index = kobjects.iter().position(|x| {
+113 | |             if let Some(x) = x.upgrade() {
+114 | |                 return Arc::ptr_eq(&amp;x, kobj);
+115 | |             }
+116 | |             return false;
+117 | |         });
+118 | |         if let Some(index) = index {
+119 | |             let x = kobjects.remove(index);
+120 | |             let x = x.upgrade().unwrap();
+121 | |             drop(kobjects);
+122 | |             x.set_kset(None);
+123 | |         }
+124 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/base/kset.rs line 109.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in leave and _1(self, src/driver/base/kset.rs:109) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in leave is dropped at BB18446744073709551615(src/driver/base/kset.rs:109); _1(self, src/driver/base/kset.rs:109) became dangling.
+    |
+22:07:57|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;leave&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/driver/base/kset.rs:109:1
+    |
+109 | / pub fn leave(&amp;self, kobj: &amp;Arc&lt;dyn KObject&gt;) {
+110 | |         let mut kobjects = self.kobjects.write();
+111 | |         kobjects.retain(|x| x.upgrade().is_some());
+112 | |         let index = kobjects.iter().position(|x| {
+113 | |             if let Some(x) = x.upgrade() {
+114 | |                 return Arc::ptr_eq(&amp;x, kobj);
+115 | |             }
+116 | |             return false;
+117 | |         });
+118 | |         if let Some(index) = index {
+119 | |             let x = kobjects.remove(index);
+120 | |             let x = x.upgrade().unwrap();
+121 | |             drop(kobjects);
+122 | |             x.set_kset(None);
+123 | |         }
+124 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/base/kset.rs line 109.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in leave and _1(self, src/driver/base/kset.rs:109) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in leave is dropped at BB18446744073709551615(src/driver/base/kset.rs:109); _1(self, src/driver/base/kset.rs:109) became dangling.
+    |
+render dot for DefId(0:8427 ~ dragonos_kernel[9e38]::driver::base::kset::{impl#3}::leave)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/base/kset.rs:110:13: 110:25
+bb1 at src/driver/base/kset.rs:110:48: 110:49
+bb2 at src/driver/base/kset.rs:111:9: 111:17
+bb3 at src/driver/base/kset.rs:111:50: 111:51
+bb4 at src/driver/base/kset.rs:112:21: 112:29
+bb5 at src/driver/base/kset.rs:112:21: 112:29
+bb6 at src/driver/base/kset.rs:112:21: 112:36
+bb7 at src/driver/base/kset.rs:117:10: 117:11
+bb8 at src/driver/base/kset.rs:118:21: 118:26
+bb9 at src/driver/base/kset.rs:119:21: 119:29
+bb10 at src/driver/base/kset.rs:119:42: 119:43
+bb11 at src/driver/base/kset.rs:120:31: 120:32
+bb12 at src/driver/base/kset.rs:120:40: 120:41
+bb13 at src/driver/base/kset.rs:121:26: 121:27
+bb14 at src/driver/base/kset.rs:122:13: 122:14
+bb15 at src/driver/base/kset.rs:122:28: 122:29
+bb16 at src/driver/base/kset.rs:123:9: 123:10
+bb17 at src/driver/base/kset.rs:123:9: 123:10
+bb18 at src/driver/base/kset.rs:123:10: 123:10
+bb19 at src/driver/base/kset.rs:124:5: 124:6
+bb20 at src/driver/base/kset.rs:124:5: 124:6
+fn driver::base::kset::KSet::leave
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} driver::base::kset::KSet 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_4:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_5:  @ () 
+_6:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_7:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_8:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_9:  @ Closure(DefId(0:8428 ~ dragonos_kernel[9e38]::driver::base::kset::{impl#3}::leave::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, ()]) 
+_10:  @ core::option::Option&lt;usize&gt; 
+_11:  @ &amp;&#39;{erased} mut core::slice::Iter&lt;&#39;{erased}, alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_12:  @ core::slice::Iter&lt;&#39;{erased}, alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_13:  @ &amp;&#39;{erased} [alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;] 
+_14:  @ &amp;&#39;{erased} [alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;] 
+_15:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_16:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_17:  @ &amp;&#39;{erased} libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_18:  @ Closure(DefId(0:8429 ~ dragonos_kernel[9e38]::driver::base::kset::{impl#3}::leave::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]) 
+_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_20:  @ isize 
+_21:  @ usize 
+_22:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_23:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_24:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_25:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_26:  @ usize 
+_27:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_28:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_29:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_30:  @ () 
+_31:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_32:  @ () 
+_33:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
+_34:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
+_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_36:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::base::kset::KSet, alloc::alloc::Global&gt;&gt; 
+_37:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_37, const false)) @ _37=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;((*_1).0: libs::rwlock::RwLock&lt;alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt;))) @ _4=&amp;((*_1).0: libs::rwlock::RwLock&lt;alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt;) @ Ref
+    Assign((_37, const true)) @ _37=const true @ Use
+    _3 = libs::rwlock::RwLock::&lt;alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt;::write(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5165
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;mut _3)) @ _8=&amp;mut _3 @ Ref
+    _7 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _8) -&gt; [return: bb2, unwind: bb26] @ Call: FnDid: 3915
+}
+bb 2 {
+CleanUp: false
+    Assign((_6, &amp;mut (*_7))) @ _6=&amp;mut (*_7) @ Ref
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    Assign((_9, {closure@src/driver/base/kset.rs:111:25: 111:28})) @ _9={closure@src/driver/base/kset.rs:111:25: 111:28} @ Aggregate
+    _5 = alloc::vec::Vec::&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;::retain::&lt;{closure@src/driver/base/kset.rs:111:25: 111:28}&gt;(move _6, move _9) -&gt; [return: bb3, unwind: bb26] @ Call: FnDid: 8138
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;_3)) @ _17=&amp;_3 @ Ref
+    _16 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt; as lazy_static::__Deref&gt;::deref(move _17) -&gt; [return: bb4, unwind: bb26] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
+    _14 = &lt;alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb5, unwind: bb26] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    _12 = core::slice::&lt;impl [alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;]&gt;::iter(move _13) -&gt; [return: bb6, unwind: bb26] @ Call: FnDid: 14037
+}
+bb 6 {
+CleanUp: false
+    Assign((_11, &amp;mut _12)) @ _11=&amp;mut _12 @ Ref
+    StorageDead(_13) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &amp;(*_2))) @ _19=&amp;(*_2) @ Ref
+    Assign((_18, {closure@src/driver/base/kset.rs:112:46: 112:49} { kobj: move _19 })) @ _18={closure@src/driver/base/kset.rs:112:46: 112:49} { kobj: move _19 } @ Aggregate
+    StorageDead(_19) @ StorageDead
+    _10 = &lt;core::slice::Iter&lt;&#39;_, alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt; as core::iter::Iterator&gt;::position::&lt;{closure@src/driver/base/kset.rs:112:46: 112:49}&gt;(move _11, move _18) -&gt; [return: bb7, unwind: bb26] @ Call: FnDid: 9523
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    Assign((_20, discriminant(_10))) @ _20=discriminant(_10) @ Discriminant
+    switchInt(move _20) -&gt; [1: bb8, otherwise: bb18] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    StorageLive(_21) @ StorageLive
+    Assign((_21, copy ((_10 as Some).0: usize))) @ _21=copy ((_10 as Some).0: usize) @ Use
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;mut _3)) @ _25=&amp;mut _3 @ Ref
+    _24 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _25) -&gt; [return: bb9, unwind: bb26] @ Call: FnDid: 3915
+}
+bb 9 {
+CleanUp: false
+    Assign((_23, &amp;mut (*_24))) @ _23=&amp;mut (*_24) @ Ref
+    StorageDead(_25) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    Assign((_26, copy _21)) @ _26=copy _21 @ Use
+    _22 = alloc::vec::Vec::&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;::remove(move _23, move _26) -&gt; [return: bb10, unwind: bb26] @ Call: FnDid: 8136
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;_22)) @ _29=&amp;_22 @ Ref
+    _28 = alloc::sync::Weak::&lt;dyn driver::base::kobject::KObject&gt;::upgrade(move _29) -&gt; [return: bb11, unwind: bb22] @ Call: FnDid: 7077
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    _27 = core::option::Option::&lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;&gt;::unwrap(move _28) -&gt; [return: bb12, unwind: bb22] @ Call: FnDid: 10157
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_37, const false)) @ _37=const false @ Use
+    Assign((_31, move _3)) @ _31=move _3 @ Use
+    _30 = core::mem::drop::&lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::vec::Vec&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;&gt;&gt;(move _31) -&gt; [return: bb13, unwind: bb21] @ Call: FnDid: 2323
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_27)) @ _35=&amp;_27 @ Ref
+    _34 = &lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb14, unwind: bb21] @ Call: FnDid: 3903
+}
+bb 14 {
+CleanUp: false
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    StorageDead(_35) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    Assign((_36, core::option::Option::&lt;alloc::sync::Arc&lt;driver::base::kset::KSet&gt;&gt;::None)) @ _36=core::option::Option::&lt;alloc::sync::Arc&lt;driver::base::kset::KSet&gt;&gt;::None @ Aggregate
+    _32 = &lt;dyn driver::base::kobject::KObject as driver::base::kobject::KObject&gt;::set_kset(move _33, move _36) -&gt; [return: bb15, unwind: bb21] @ Call: FnDid: 8335
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_27) -&gt; [return: bb16, unwind: bb22] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    drop(_22) -&gt; [return: bb17, unwind: bb26] @ Drop
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    goto -&gt; bb19 @ Goto
+}
+bb 18 {
+CleanUp: false
+    Assign((_0, const ())) @ _0=const () @ Use
+    goto -&gt; bb19 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    switchInt(copy _37) -&gt; [0: bb20, otherwise: bb24] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    Assign((_37, const false)) @ _37=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 21 {
+CleanUp: true
+    drop(_27) -&gt; [return: bb22, unwind terminate(cleanup)] @ Drop
+}
+bb 22 {
+CleanUp: true
+    drop(_22) -&gt; [return: bb26, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 24 {
+CleanUp: false
+    drop(_3) -&gt; [return: bb20, unwind: bb23] @ Drop
+}
+bb 25 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 26 {
+CleanUp: true
+    switchInt(copy _37) -&gt; [0: bb23, otherwise: bb25] @ SwitchInt
+}
+
+bb0 at src/driver/base/kset.rs:111:29: 111:40
+bb1 at src/driver/base/kset.rs:111:29: 111:40
+bb3 at src/driver/base/kset.rs:111:49: 111:50
+fn driver::base::kset::KSet::leave::{closure#0}
+_0:  @ bool 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:8428 ~ dragonos_kernel[9e38]::driver::base::kset::{impl#3}::leave::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, ()]) 
+_2:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_4:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_5:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;(*_2))) @ _5=&amp;(*_2) @ Ref
+    _4 = alloc::sync::Weak::&lt;dyn driver::base::kobject::KObject&gt;::upgrade(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 7077
+}
+bb 1 {
+CleanUp: false
+    Assign((_3, &amp;_4)) @ _3=&amp;_4 @ Ref
+    StorageDead(_5) @ StorageDead
+    _0 = core::option::Option::&lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;&gt;::is_some(move _3) -&gt; [return: bb2, unwind: bb4] @ Call: FnDid: 10143
+}
+bb 2 {
+CleanUp: false
+    drop(_4) -&gt; [return: bb3, unwind: bb5] @ Drop
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 4 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb5, unwind terminate(cleanup)] @ Drop
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/driver/base/kset.rs:113:13: 115:14
+bb1 at src/driver/base/kset.rs:113:40: 113:41
+bb2 at src/driver/base/kset.rs:113:25: 113:26
+bb3 at src/driver/base/kset.rs:114:44: 114:45
+bb4 at src/driver/base/kset.rs:115:14: 115:14
+bb5 at src/driver/base/kset.rs:115:13: 115:14
+bb8 at src/driver/base/kset.rs:115:13: 115:14
+fn driver::base::kset::KSet::leave::{closure#1}
+_0:  @ bool 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:8429 ~ dragonos_kernel[9e38]::driver::base::kset::{impl#3}::leave::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]) 
+_2:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ ! 
+_4:  @ () 
+_5:  @ core::option::Option&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_6:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_7:  @ isize 
+_8:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_9:  @ ! 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_13:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_14:  @ isize 
+_15:  @ isize 
+_16:  @ isize 
+_17:  @ isize 
+_18:  @ isize 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _5 = alloc::sync::Weak::&lt;dyn driver::base::kobject::KObject&gt;::upgrade(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 7077
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_7, discriminant(_5))) @ _7=discriminant(_5) @ Discriminant
+    switchInt(move _7) -&gt; [1: bb2, otherwise: bb4] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    Assign((_8, move ((_5 as Some).0: alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;))) @ _8=move ((_5 as Some).0: alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;) @ Use
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &amp;_8)) @ _11=&amp;_8 @ Ref
+    Assign((_10, &amp;(*_11))) @ _10=&amp;(*_11) @ Ref
+    StorageLive(_12) @ StorageLive
+    Assign((_13, deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;))) @ _13=deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt;) @ CopyForDeref
+    Assign((_12, &amp;(*_13))) @ _12=&amp;(*_13) @ Ref
+    _0 = alloc::sync::Arc::&lt;dyn driver::base::kobject::KObject&gt;::ptr_eq(move _10, move _12) -&gt; [return: bb3, unwind: bb7] @ Call: FnDid: 6953
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    drop(_8) -&gt; [return: bb5, unwind: bb8] @ Drop
+}
+bb 4 {
+CleanUp: false
+    Assign((_4, const ())) @ _4=const () @ Use
+    Assign((_14, discriminant(_5))) @ _14=discriminant(_5) @ Discriminant
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    Assign((_0, const false)) @ _0=const false @ Use
+    goto -&gt; bb6 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_16, discriminant(_5))) @ _16=discriminant(_5) @ Discriminant
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb6 @ Goto
+}
+bb 6 {
+CleanUp: false
+    return @ Return
+}
+bb 7 {
+CleanUp: true
+    drop(_8) -&gt; [return: bb8, unwind terminate(cleanup)] @ Drop
+}
+bb 8 {
+CleanUp: true
+    Assign((_18, discriminant(_5))) @ _18=discriminant(_5) @ Discriminant
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

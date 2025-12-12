@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #19: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #19
+            
+                 <span class="func-name">libs::wait_queue::{impl#3}::sleep_without_schedule</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:54|RAP|WARN|: Dangling pointer detected in function &#34;sleep_without_schedule&#34;
+warning: Dangling pointer detected.
+   --&gt; src/libs/wait_queue.rs:394:1
+    |
+394 | / pub unsafe fn sleep_without_schedule(&amp;self, events: u64) {
+395 | |         before_sleep_check(1);
+396 | |         let mut guard = self.wait_list.lock_irqsave();
+397 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+398 | |             panic!(&#34;sleep error: {:?}&#34;, e);
+399 | |         });
+400 | |         guard.push((events, ProcessManager::current_pcb()));
+401 | |         drop(guard);
+402 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 394.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep_without_schedule and _1(self, src/libs/wait_queue.rs:394) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep_without_schedule is dropped at BB18446744073709551615(src/libs/wait_queue.rs:394); _1(self, src/libs/wait_queue.rs:394) became dangling.
+    |
+22:07:54|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;sleep_without_schedule&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/libs/wait_queue.rs:394:1
+    |
+394 | / pub unsafe fn sleep_without_schedule(&amp;self, events: u64) {
+395 | |         before_sleep_check(1);
+396 | |         let mut guard = self.wait_list.lock_irqsave();
+397 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+398 | |             panic!(&#34;sleep error: {:?}&#34;, e);
+399 | |         });
+400 | |         guard.push((events, ProcessManager::current_pcb()));
+401 | |         drop(guard);
+402 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 394.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep_without_schedule and _1(self, src/libs/wait_queue.rs:394) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep_without_schedule is dropped at BB18446744073709551615(src/libs/wait_queue.rs:394); _1(self, src/libs/wait_queue.rs:394) became dangling.
+    |
+render dot for DefId(0:5664 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_without_schedule)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/libs/wait_queue.rs:395:9: 395:30
+bb1 at src/libs/wait_queue.rs:395:30: 395:31
+bb2 at src/libs/wait_queue.rs:396:53: 396:54
+bb3 at src/libs/wait_queue.rs:397:57: 399:10
+bb4 at src/libs/wait_queue.rs:399:10: 399:11
+bb5 at src/libs/wait_queue.rs:400:9: 400:14
+bb6 at src/libs/wait_queue.rs:400:20: 400:59
+bb7 at src/libs/wait_queue.rs:400:59: 400:60
+bb8 at src/libs/wait_queue.rs:401:19: 401:20
+fn libs::wait_queue::EventWaitQueue::sleep_without_schedule
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} libs::wait_queue::EventWaitQueue 
+_2:  @ u64 
+_3:  @ () 
+_4:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;), alloc::alloc::Global&gt;&gt; 
+_5:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;), alloc::alloc::Global&gt;&gt; 
+_6:  @ () 
+_7:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_8:  @ Closure(DefId(0:5665 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_without_schedule::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)), bound_vars: [] }, ()]) 
+_9:  @ () 
+_10:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;), alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;), alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;), alloc::alloc::Global&gt;&gt; 
+_13:  @ (u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;) 
+_14:  @ u64 
+_15:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_16:  @ () 
+_17:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;), alloc::alloc::Global&gt;&gt; 
+_18:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_18, const false)) @ _18=const false @ Use
+    StorageLive(_3) @ StorageLive
+    _3 = libs::wait_queue::before_sleep_check(const 1_usize) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5657
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;((*_1).0: libs::spinlock::SpinLock&lt;alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock&gt;)&gt;&gt;))) @ _5=&amp;((*_1).0: libs::spinlock::SpinLock&lt;alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock&gt;)&gt;&gt;) @ Ref
+    Assign((_18, const true)) @ _18=const true @ Use
+    _4 = libs::spinlock::SpinLock::&lt;alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock&gt;)&gt;&gt;::lock_irqsave(move _5) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 5263
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    _7 = process::ProcessManager::mark_sleep(const true) -&gt; [return: bb3, unwind: bb11] @ Call: FnDid: 29874
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    Assign((_8, {closure@src/libs/wait_queue.rs:397:57: 397:60})) @ _8={closure@src/libs/wait_queue.rs:397:57: 397:60} @ Aggregate
+    _6 = core::result::Result::&lt;(), system_error::SystemError&gt;::unwrap_or_else::&lt;{closure@src/libs/wait_queue.rs:397:57: 397:60}&gt;(move _7, move _8) -&gt; [return: bb4, unwind: bb11] @ Call: FnDid: 11041
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;mut _4)) @ _12=&amp;mut _4 @ Ref
+    _11 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock&gt;)&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _12) -&gt; [return: bb5, unwind: bb11] @ Call: FnDid: 3915
+}
+bb 5 {
+CleanUp: false
+    Assign((_10, &amp;mut (*_11))) @ _10=&amp;mut (*_11) @ Ref
+    StorageDead(_12) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, copy _2)) @ _14=copy _2 @ Use
+    StorageLive(_15) @ StorageLive
+    _15 = process::ProcessManager::current_pcb() -&gt; [return: bb6, unwind: bb11] @ Call: FnDid: 29866
+}
+bb 6 {
+CleanUp: false
+    Assign((_13, (move _14, move _15))) @ _13=(move _14, move _15) @ Aggregate
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    _9 = alloc::vec::Vec::&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock&gt;)&gt;::push(move _10, move _13) -&gt; [return: bb7, unwind: bb11] @ Call: FnDid: 8180
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_18, const false)) @ _18=const false @ Use
+    Assign((_17, move _4)) @ _17=move _4 @ Use
+    _16 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, alloc::vec::Vec&lt;(u64, alloc::sync::Arc&lt;process::ProcessControlBlock&gt;)&gt;&gt;&gt;(move _17) -&gt; [return: bb8, unwind: bb11] @ Call: FnDid: 2323
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    Assign((_18, const false)) @ _18=const false @ Use
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 9 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 10 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb9, unwind terminate(cleanup)] @ Drop
+}
+bb 11 {
+CleanUp: true
+    switchInt(copy _18) -&gt; [0: bb9, otherwise: bb10] @ SwitchInt
+}
+
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:9: 107:73
+bb1 at src/libs/wait_queue.rs:398:37: 398:38
+bb2 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+fn libs::wait_queue::EventWaitQueue::sleep_without_schedule::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:5665 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_without_schedule::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)), bound_vars: [] }, ()]) 
+_2:  @ system_error::SystemError 
+_3:  @ ! 
+_4:  @ ! 
+_5:  @ ! 
+_6:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_7:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_8:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_9:  @ &amp;&#39;{erased} system_error::SystemError 
+_10:  @ &amp;&#39;{erased} system_error::SystemError 
+_11:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_12:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_13:  @ [&amp;&#39;{erased} str; 1_usize] 
+_14:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_15:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_16:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_2)) @ _10=&amp;_2 @ Ref
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    _8 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;system_error::SystemError&gt;(move _9) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 11809
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, [move _8])) @ _7=[move _8] @ Aggregate
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_16, const libs::wait_queue::EventWaitQueue::sleep_without_schedule::{closure#0}::promoted[0])) @ _16=const libs::wait_queue::EventWaitQueue::sleep_without_schedule::{closure#0}::promoted[0] @ Use
+    Assign((_12, &amp;(*_16))) @ _12=&amp;(*_16) @ Ref
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;_7)) @ _15=&amp;_7 @ Ref
+    Assign((_14, &amp;(*_15))) @ _14=&amp;(*_15) @ Ref
+    _6 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _11, move _14) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 11836
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    _5 = core::panicking::panic_fmt(move _6) -&gt; unwind continue @ Call: FnDid: 10541
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

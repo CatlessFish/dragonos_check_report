@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #81: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../../index.html" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #81
+            
+                 <span class="func-name">filesystem::vfs::syscall::sys_getdents::do_getdents</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:07|RAP|WARN|: Double free detected in function &#34;do_getdents&#34;
+warning: Double free detected.
+  --&gt; src/filesystem/vfs/syscall/sys_getdents.rs:27:1
+   |
+27 | / fn do_getdents(
+28 | |     args: &amp;[usize],
+29 | |     frame: &amp;mut TrapFrame,
+30 | |     format: DirentFormat,
+31 | | ) -&gt; Result&lt;usize, SystemError&gt; {
+32 | |     let fd = args[0] as i32;
+33 | |     let buf_vaddr = args[1];
+34 | |     let len = args[2];
+35 | |
+36 | |     if buf_vaddr == 0 {
+37 | |         return Err(SystemError::EFAULT);
+38 | |     }
+39 | |
+40 | |     if len == 0 {
+41 | |         return Err(SystemError::EINVAL);
+42 | |     }
+43 | |
+44 | |     if len &gt; MAX_GETDENTS_COUNT {
+45 | |         return Err(SystemError::EINVAL);
+46 | |     }
+47 | |
+48 | |     if fd &lt; 0 {
+49 | |         return Err(SystemError::EBADF);
+50 | |     }
+51 | |
+52 | |     // 使用 UserBufferWriter 和 buffer_protected 创建受保护的用户缓冲区
+53 | |     let from_user = frame.is_from_user();
+54 | |     let mut writer = UserBufferWriter::new(buf_vaddr as *mut u8, len, from_user)?;
+55 | |     let user_buf = writer.buffer_protected(0)?;
+56 | |
+57 | |     // 获取fd
+58 | |     let binding = ProcessManager::current_pcb().fd_table();
+59 | |     let fd_table_guard = binding.read();
+60 | |     let file = fd_table_guard
+61 | |         .get_file_by_fd(fd)
+62 | |         .ok_or(SystemError::EBADF)?;
+63 | |
+64 | |     // drop guard 以避免无法调度的问题
+65 | |     drop(fd_table_guard);
+66 | |
+67 | |     let mut ctx = FilldirContext::new(user_buf, format);
+68 | |     match file.read_dir(&amp;mut ctx) {
+69 | |         Ok(_) =&gt; {
+70 | |             if ctx.error.is_some() {
+71 | |                 if ctx.error == Some(SystemError::EINVAL) {
+72 | |                     return Ok(ctx.current_pos);
+73 | |                 } else {
+74 | |                     return Err(ctx.error.unwrap());
+75 | |                 }
+76 | |             }
+77 | |             return Ok(ctx.current_pos);
+78 | |         }
+79 | |         Err(e) =&gt; {
+80 | |             return Err(e);
+81 | |         }
+82 | |     }
+83 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_getdents.rs line 27.
+    | MIR detail: Value _84(_, src/filesystem/vfs/syscall/sys_getdents.rs:65) and _60(binding, src/filesystem/vfs/syscall/sys_getdents.rs:58) are alias.
+    | MIR detail: _84(_, src/filesystem/vfs/syscall/sys_getdents.rs:65) is dropped at BB34(src/filesystem/vfs/syscall/sys_getdents.rs:65); _60(binding, src/filesystem/vfs/syscall/sys_getdents.rs:58) is dropped at BB52(src/filesystem/vfs/syscall/sys_getdents.rs:83).
+   |
+22:08:07|RAP|WARN|: Double free detected in function &#34;do_getdents&#34;
+warning: Double free detected during unwinding.
+  --&gt; src/filesystem/vfs/syscall/sys_getdents.rs:27:1
+   |
+27 | / fn do_getdents(
+28 | |     args: &amp;[usize],
+29 | |     frame: &amp;mut TrapFrame,
+30 | |     format: DirentFormat,
+31 | | ) -&gt; Result&lt;usize, SystemError&gt; {
+32 | |     let fd = args[0] as i32;
+33 | |     let buf_vaddr = args[1];
+34 | |     let len = args[2];
+35 | |
+36 | |     if buf_vaddr == 0 {
+37 | |         return Err(SystemError::EFAULT);
+38 | |     }
+39 | |
+40 | |     if len == 0 {
+41 | |         return Err(SystemError::EINVAL);
+42 | |     }
+43 | |
+44 | |     if len &gt; MAX_GETDENTS_COUNT {
+45 | |         return Err(SystemError::EINVAL);
+46 | |     }
+47 | |
+48 | |     if fd &lt; 0 {
+49 | |         return Err(SystemError::EBADF);
+50 | |     }
+51 | |
+52 | |     // 使用 UserBufferWriter 和 buffer_protected 创建受保护的用户缓冲区
+53 | |     let from_user = frame.is_from_user();
+54 | |     let mut writer = UserBufferWriter::new(buf_vaddr as *mut u8, len, from_user)?;
+55 | |     let user_buf = writer.buffer_protected(0)?;
+56 | |
+57 | |     // 获取fd
+58 | |     let binding = ProcessManager::current_pcb().fd_table();
+59 | |     let fd_table_guard = binding.read();
+60 | |     let file = fd_table_guard
+61 | |         .get_file_by_fd(fd)
+62 | |         .ok_or(SystemError::EBADF)?;
+63 | |
+64 | |     // drop guard 以避免无法调度的问题
+65 | |     drop(fd_table_guard);
+66 | |
+67 | |     let mut ctx = FilldirContext::new(user_buf, format);
+68 | |     match file.read_dir(&amp;mut ctx) {
+69 | |         Ok(_) =&gt; {
+70 | |             if ctx.error.is_some() {
+71 | |                 if ctx.error == Some(SystemError::EINVAL) {
+72 | |                     return Ok(ctx.current_pos);
+73 | |                 } else {
+74 | |                     return Err(ctx.error.unwrap());
+75 | |                 }
+76 | |             }
+77 | |             return Ok(ctx.current_pos);
+78 | |         }
+79 | |         Err(e) =&gt; {
+80 | |             return Err(e);
+81 | |         }
+82 | |     }
+83 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_getdents.rs line 27.
+    | MIR detail: Value _84(_, src/filesystem/vfs/syscall/sys_getdents.rs:65) and _60(binding, src/filesystem/vfs/syscall/sys_getdents.rs:58) are alias.
+    | MIR detail: _84(_, src/filesystem/vfs/syscall/sys_getdents.rs:65) is dropped at BB34(src/filesystem/vfs/syscall/sys_getdents.rs:65); _60(binding, src/filesystem/vfs/syscall/sys_getdents.rs:58) is dropped at BB61(src/filesystem/vfs/syscall/sys_getdents.rs:83).
+   |
+render dot for DefId(0:20008 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_getdents::do_getdents)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/vfs/syscall/sys_getdents.rs:32:9: 32:11
+bb1 at src/filesystem/vfs/syscall/sys_getdents.rs:32:14: 32:21
+bb2 at src/filesystem/vfs/syscall/sys_getdents.rs:33:21: 33:28
+bb3 at src/filesystem/vfs/syscall/sys_getdents.rs:34:15: 34:22
+bb4 at src/filesystem/vfs/syscall/sys_getdents.rs:36:21: 36:22
+bb5 at src/filesystem/vfs/syscall/sys_getdents.rs:36:21: 36:22
+bb6 at src/filesystem/vfs/syscall/sys_getdents.rs:40:15: 40:16
+bb7 at src/filesystem/vfs/syscall/sys_getdents.rs:40:15: 40:16
+bb8 at src/filesystem/vfs/syscall/sys_getdents.rs:44:31: 44:32
+bb9 at src/filesystem/vfs/syscall/sys_getdents.rs:44:31: 44:32
+bb10 at src/filesystem/vfs/syscall/sys_getdents.rs:48:13: 48:14
+bb11 at src/filesystem/vfs/syscall/sys_getdents.rs:48:13: 48:14
+bb12 at src/filesystem/vfs/syscall/sys_getdents.rs:53:40: 53:41
+bb13 at src/filesystem/vfs/syscall/sys_getdents.rs:54:80: 54:81
+bb14 at src/filesystem/vfs/syscall/sys_getdents.rs:54:81: 54:82
+bb16 at src/filesystem/vfs/syscall/sys_getdents.rs:54:22: 54:82
+bb17 at src/filesystem/vfs/syscall/sys_getdents.rs:54:81: 54:82
+bb18 at src/filesystem/vfs/syscall/sys_getdents.rs:54:81: 54:82
+bb19 at src/filesystem/vfs/syscall/sys_getdents.rs:55:45: 55:46
+bb20 at src/filesystem/vfs/syscall/sys_getdents.rs:55:46: 55:47
+bb21 at src/filesystem/vfs/syscall/sys_getdents.rs:55:20: 55:47
+bb22 at src/filesystem/vfs/syscall/sys_getdents.rs:55:46: 55:47
+bb23 at src/filesystem/vfs/syscall/sys_getdents.rs:55:46: 55:47
+bb24 at src/filesystem/vfs/syscall/sys_getdents.rs:58:19: 58:48
+bb25 at src/filesystem/vfs/syscall/sys_getdents.rs:58:19: 58:48
+bb26 at src/filesystem/vfs/syscall/sys_getdents.rs:58:58: 58:59
+bb27 at src/filesystem/vfs/syscall/sys_getdents.rs:58:59: 58:60
+bb28 at src/filesystem/vfs/syscall/sys_getdents.rs:59:26: 59:33
+bb29 at src/filesystem/vfs/syscall/sys_getdents.rs:59:39: 59:40
+bb30 at src/filesystem/vfs/syscall/sys_getdents.rs:60:16: 60:30
+bb31 at src/filesystem/vfs/syscall/sys_getdents.rs:61:27: 61:28
+bb32 at src/filesystem/vfs/syscall/sys_getdents.rs:62:34: 62:35
+bb33 at src/filesystem/vfs/syscall/sys_getdents.rs:62:35: 62:36
+bb34 at src/filesystem/vfs/syscall/sys_getdents.rs:60:16: 62:36
+bb35 at src/filesystem/vfs/syscall/sys_getdents.rs:62:35: 62:36
+bb36 at src/filesystem/vfs/syscall/sys_getdents.rs:62:35: 62:36
+bb37 at src/filesystem/vfs/syscall/sys_getdents.rs:65:24: 65:25
+bb38 at src/filesystem/vfs/syscall/sys_getdents.rs:67:55: 67:56
+bb39 at src/filesystem/vfs/syscall/sys_getdents.rs:68:11: 68:15
+bb40 at src/filesystem/vfs/syscall/sys_getdents.rs:68:33: 68:34
+bb41 at src/filesystem/vfs/syscall/sys_getdents.rs:79:13: 79:14
+bb42 at src/filesystem/vfs/syscall/sys_getdents.rs:70:13: 76:14
+bb44 at src/filesystem/vfs/syscall/sys_getdents.rs:70:34: 70:35
+bb46 at src/filesystem/vfs/syscall/sys_getdents.rs:71:57: 71:58
+bb47 at src/filesystem/vfs/syscall/sys_getdents.rs:71:57: 71:58
+bb48 at src/filesystem/vfs/syscall/sys_getdents.rs:74:49: 74:50
+bb49 at src/filesystem/vfs/syscall/sys_getdents.rs:70:34: 70:35
+bb50 at src/filesystem/vfs/syscall/sys_getdents.rs:75:17: 75:18
+bb51 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb52 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb53 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb54 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb55 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb56 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb57 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb58 at src/filesystem/vfs/syscall/sys_getdents.rs:83:1: 83:2
+bb64 at src/filesystem/vfs/syscall/sys_getdents.rs:62:36: 62:37
+fn filesystem::vfs::syscall::sys_getdents::do_getdents
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} [usize] 
+_2:  @ &amp;&#39;{erased} mut arch::x86_64::interrupt::TrapFrame 
+_3:  @ filesystem::vfs::DirentFormat 
+_4:  @ i32 
+_5:  @ usize 
+_6:  @ usize 
+_7:  @ usize 
+_8:  @ bool 
+_9:  @ usize 
+_10:  @ usize 
+_11:  @ usize 
+_12:  @ bool 
+_13:  @ usize 
+_14:  @ usize 
+_15:  @ usize 
+_16:  @ bool 
+_17:  @ () 
+_18:  @ bool 
+_19:  @ usize 
+_20:  @ ! 
+_21:  @ system_error::SystemError 
+_22:  @ () 
+_23:  @ bool 
+_24:  @ usize 
+_25:  @ ! 
+_26:  @ system_error::SystemError 
+_27:  @ () 
+_28:  @ bool 
+_29:  @ usize 
+_30:  @ ! 
+_31:  @ system_error::SystemError 
+_32:  @ () 
+_33:  @ bool 
+_34:  @ i32 
+_35:  @ ! 
+_36:  @ system_error::SystemError 
+_37:  @ bool 
+_38:  @ &amp;&#39;{erased} arch::x86_64::interrupt::TrapFrame 
+_39:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_40:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;&gt; 
+_41:  @ core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;, system_error::SystemError&gt; 
+_42:  @ *mut u8 
+_43:  @ usize 
+_44:  @ usize 
+_45:  @ bool 
+_46:  @ isize 
+_47:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_48:  @ ! 
+_49:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_50:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_51:  @ syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt; 
+_52:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt;&gt; 
+_53:  @ core::result::Result&lt;syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt;, system_error::SystemError&gt; 
+_54:  @ &amp;&#39;{erased} mut syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_55:  @ isize 
+_56:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_57:  @ ! 
+_58:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_59:  @ syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt; 
+_60:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_61:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_62:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_63:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_64:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_65:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_66:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_67:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_68:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_69:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_70:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_71:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_72:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_73:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_74:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_75:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_76:  @ i32 
+_77:  @ system_error::SystemError 
+_78:  @ isize 
+_79:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_80:  @ ! 
+_81:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_82:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_83:  @ () 
+_84:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_85:  @ filesystem::vfs::FilldirContext&lt;&#39;{erased}&gt; 
+_86:  @ syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt; 
+_87:  @ filesystem::vfs::DirentFormat 
+_88:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_89:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_90:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_91:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_92:  @ &amp;&#39;{erased} mut filesystem::vfs::FilldirContext&lt;&#39;{erased}&gt; 
+_93:  @ &amp;&#39;{erased} mut filesystem::vfs::FilldirContext&lt;&#39;{erased}&gt; 
+_94:  @ isize 
+_95:  @ ! 
+_96:  @ () 
+_97:  @ bool 
+_98:  @ &amp;&#39;{erased} core::option::Option&lt;system_error::SystemError&gt; 
+_99:  @ bool 
+_100:  @ &amp;&#39;{erased} core::option::Option&lt;system_error::SystemError&gt; 
+_101:  @ &amp;&#39;{erased} core::option::Option&lt;system_error::SystemError&gt; 
+_102:  @ core::option::Option&lt;system_error::SystemError&gt; 
+_103:  @ system_error::SystemError 
+_104:  @ ! 
+_105:  @ usize 
+_106:  @ ! 
+_107:  @ system_error::SystemError 
+_108:  @ core::option::Option&lt;system_error::SystemError&gt; 
+_109:  @ usize 
+_110:  @ system_error::SystemError 
+_111:  @ ! 
+_112:  @ system_error::SystemError 
+_113:  @ &amp;&#39;{erased} core::option::Option&lt;system_error::SystemError&gt; 
+_114:  @ bool 
+_115:  @ isize 
+_116:  @ isize 
+_117:  @ isize 
+_118:  @ isize 
+_119:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_114, const false)) @ _114=const false @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, const 0_usize)) @ _6=const 0_usize @ Use
+    Assign((_7, PtrMetadata(copy _1))) @ _7=PtrMetadata(copy _1) @ UnaryOp
+    Assign((_8, Lt(copy _6, copy _7))) @ _8=Lt(copy _6, copy _7) @ BinaryOp
+    assert(move _8, &#34;index out of bounds: the length is {} but the index is {}&#34;, move _7, copy _6) -&gt; [success: bb1, unwind continue] @ Assert
+}
+bb 1 {
+CleanUp: false
+    Assign((_5, copy (*_1)[_6])) @ _5=copy (*_1)[_6] @ Use
+    Assign((_4, move _5 as i32 (IntToInt))) @ _4=move _5 as i32 (IntToInt) @ Cast
+    StorageDead(_5) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, const 1_usize)) @ _10=const 1_usize @ Use
+    Assign((_11, PtrMetadata(copy _1))) @ _11=PtrMetadata(copy _1) @ UnaryOp
+    Assign((_12, Lt(copy _10, copy _11))) @ _12=Lt(copy _10, copy _11) @ BinaryOp
+    assert(move _12, &#34;index out of bounds: the length is {} but the index is {}&#34;, move _11, copy _10) -&gt; [success: bb2, unwind continue] @ Assert
+}
+bb 2 {
+CleanUp: false
+    Assign((_9, copy (*_1)[_10])) @ _9=copy (*_1)[_10] @ Use
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, const 2_usize)) @ _14=const 2_usize @ Use
+    Assign((_15, PtrMetadata(copy _1))) @ _15=PtrMetadata(copy _1) @ UnaryOp
+    Assign((_16, Lt(copy _14, copy _15))) @ _16=Lt(copy _14, copy _15) @ BinaryOp
+    assert(move _16, &#34;index out of bounds: the length is {} but the index is {}&#34;, move _15, copy _14) -&gt; [success: bb3, unwind continue] @ Assert
+}
+bb 3 {
+CleanUp: false
+    Assign((_13, copy (*_1)[_14])) @ _13=copy (*_1)[_14] @ Use
+    StorageDead(_14) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, copy _9)) @ _19=copy _9 @ Use
+    Assign((_18, Eq(move _19, const 0_usize))) @ _18=Eq(move _19, const 0_usize) @ BinaryOp
+    switchInt(move _18) -&gt; [0: bb5, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    Assign((_21, system_error::SystemError::EFAULT)) @ _21=system_error::SystemError::EFAULT @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _21))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _21) @ Aggregate
+    StorageDead(_21) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_17, const ())) @ _17=const () @ Use
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, copy _13)) @ _24=copy _13 @ Use
+    Assign((_23, Eq(move _24, const 0_usize))) @ _23=Eq(move _24, const 0_usize) @ BinaryOp
+    switchInt(move _23) -&gt; [0: bb7, otherwise: bb6] @ SwitchInt
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    Assign((_26, system_error::SystemError::EINVAL)) @ _26=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _26))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _26) @ Aggregate
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_22, const ())) @ _22=const () @ Use
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, copy _13)) @ _29=copy _13 @ Use
+    Assign((_28, Gt(move _29, const filesystem::vfs::syscall::sys_getdents::MAX_GETDENTS_COUNT))) @ _28=Gt(move _29, const filesystem::vfs::syscall::sys_getdents::MAX_GETDENTS_COUNT) @ BinaryOp
+    switchInt(move _28) -&gt; [0: bb9, otherwise: bb8] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, system_error::SystemError::EINVAL)) @ _31=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _31))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _31) @ Aggregate
+    StorageDead(_31) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    Assign((_27, const ())) @ _27=const () @ Use
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, copy _4)) @ _34=copy _4 @ Use
+    Assign((_33, Lt(move _34, const 0_i32))) @ _33=Lt(move _34, const 0_i32) @ BinaryOp
+    switchInt(move _33) -&gt; [0: bb11, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    Assign((_36, system_error::SystemError::EBADF)) @ _36=system_error::SystemError::EBADF @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _36))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _36) @ Aggregate
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_32, const ())) @ _32=const () @ Use
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;(*_2))) @ _38=&amp;(*_2) @ Ref
+    _37 = arch::x86_64::interrupt::TrapFrame::is_from_user(move _38) -&gt; [return: bb12, unwind continue] @ Call: FnDid: 1378
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _9)) @ _43=copy _9 @ Use
+    Assign((_42, move _43 as *mut u8 (PointerWithExposedProvenance))) @ _42=move _43 as *mut u8 (PointerWithExposedProvenance) @ Cast
+    StorageDead(_43) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    Assign((_44, copy _13)) @ _44=copy _13 @ Use
+    StorageLive(_45) @ StorageLive
+    Assign((_45, copy _37)) @ _45=copy _37 @ Use
+    _41 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::new::&lt;u8&gt;(move _42, move _44, move _45) -&gt; [return: bb13, unwind continue] @ Call: FnDid: 30897
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    _40 = &lt;core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;_&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _41) -&gt; [return: bb14, unwind continue] @ Call: FnDid: 4199
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_46, discriminant(_40))) @ _46=discriminant(_40) @ Discriminant
+    switchInt(move _46) -&gt; [0: bb16, 1: bb17, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_50) @ StorageLive
+    Assign((_50, move ((_40 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;))) @ _50=move ((_40 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;) @ Use
+    Assign((_39, move _50)) @ _39=move _50 @ Use
+    StorageDead(_50) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;mut _39)) @ _54=&amp;mut _39 @ Ref
+    _53 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::buffer_protected(move _54, const 0_usize) -&gt; [return: bb19, unwind continue] @ Call: FnDid: 30913
+}
+bb 17 {
+CleanUp: false
+    StorageLive(_47) @ StorageLive
+    Assign((_47, move ((_40 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _47=move ((_40 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_49) @ StorageLive
+    Assign((_49, move _47)) @ _49=move _47 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _49) -&gt; [return: bb18, unwind continue] @ Call: FnDid: 4202
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    goto -&gt; bb57 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    _52 = &lt;core::result::Result&lt;syscall::user_buffer::UserBuffer&lt;&#39;_&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _53) -&gt; [return: bb20, unwind continue] @ Call: FnDid: 4199
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    Assign((_55, discriminant(_52))) @ _55=discriminant(_52) @ Discriminant
+    switchInt(move _55) -&gt; [0: bb21, 1: bb22, otherwise: bb15] @ SwitchInt
+}
+bb 21 {
+CleanUp: false
+    StorageLive(_59) @ StorageLive
+    Assign((_59, move ((_52 as Continue).0: syscall::user_buffer::UserBuffer&lt;&#39;_&gt;))) @ _59=move ((_52 as Continue).0: syscall::user_buffer::UserBuffer&lt;&#39;_&gt;) @ Use
+    Assign((_51, move _59)) @ _51=move _59 @ Use
+    StorageDead(_59) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    _64 = process::ProcessManager::current_pcb() -&gt; [return: bb24, unwind continue] @ Call: FnDid: 29866
+}
+bb 22 {
+CleanUp: false
+    StorageLive(_56) @ StorageLive
+    Assign((_56, move ((_52 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _56=move ((_52 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_58) @ StorageLive
+    Assign((_58, move _56)) @ _58=move _56 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _58) -&gt; [return: bb23, unwind continue] @ Call: FnDid: 4202
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 24 {
+CleanUp: false
+    Assign((_63, &amp;_64)) @ _63=&amp;_64 @ Ref
+    _62 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _63) -&gt; [return: bb25, unwind: bb62] @ Call: FnDid: 3903
+}
+bb 25 {
+CleanUp: false
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    StorageDead(_63) @ StorageDead
+    _60 = process::ProcessControlBlock::fd_table(move _61) -&gt; [return: bb26, unwind: bb62] @ Call: FnDid: 29947
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    drop(_64) -&gt; [return: bb27, unwind: bb61] @ Drop
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    Assign((_68, &amp;_60)) @ _68=&amp;_60 @ Ref
+    _67 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _68) -&gt; [return: bb28, unwind: bb61] @ Call: FnDid: 3903
+}
+bb 28 {
+CleanUp: false
+    Assign((_66, &amp;(*_67))) @ _66=&amp;(*_67) @ Ref
+    StorageDead(_68) @ StorageDead
+    _65 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _66) -&gt; [return: bb29, unwind: bb61] @ Call: FnDid: 5156
+}
+bb 29 {
+CleanUp: false
+    Assign((_114, const true)) @ _114=const true @ Use
+    StorageDead(_66) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, &amp;_65)) @ _75=&amp;_65 @ Ref
+    _74 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _75) -&gt; [return: bb30, unwind: bb66] @ Call: FnDid: 3903
+}
+bb 30 {
+CleanUp: false
+    Assign((_73, &amp;(*_74))) @ _73=&amp;(*_74) @ Ref
+    StorageDead(_75) @ StorageDead
+    StorageLive(_76) @ StorageLive
+    Assign((_76, copy _4)) @ _76=copy _4 @ Use
+    _72 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _73, move _76) -&gt; [return: bb31, unwind: bb66] @ Call: FnDid: 19231
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    Assign((_77, system_error::SystemError::EBADF)) @ _77=system_error::SystemError::EBADF @ Aggregate
+    _71 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _72, move _77) -&gt; [return: bb32, unwind: bb66] @ Call: FnDid: 10178
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    _70 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _71) -&gt; [return: bb33, unwind: bb66] @ Call: FnDid: 4199
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    Assign((_78, discriminant(_70))) @ _78=discriminant(_70) @ Discriminant
+    switchInt(move _78) -&gt; [0: bb34, 1: bb35, otherwise: bb15] @ SwitchInt
+}
+bb 34 {
+CleanUp: false
+    StorageLive(_82) @ StorageLive
+    Assign((_82, move ((_70 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _82=move ((_70 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
+    Assign((_69, move _82)) @ _69=move _82 @ Use
+    StorageDead(_82) @ StorageDead
+    Assign((_117, discriminant(_70))) @ _117=discriminant(_70) @ Discriminant
+    StorageDead(_74) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    Assign((_114, const false)) @ _114=const false @ Use
+    Assign((_84, move _65)) @ _84=move _65 @ Use
+    _83 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _84) -&gt; [return: bb37, unwind: bb60] @ Call: FnDid: 2323
+}
+bb 35 {
+CleanUp: false
+    StorageLive(_79) @ StorageLive
+    Assign((_79, move ((_70 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _79=move ((_70 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_81) @ StorageLive
+    Assign((_81, move _79)) @ _81=move _79 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _81) -&gt; [return: bb36, unwind: bb64] @ Call: FnDid: 4202
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    Assign((_115, discriminant(_70))) @ _115=discriminant(_70) @ Discriminant
+    StorageDead(_74) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    drop(_65) -&gt; [return: bb54, unwind: bb61] @ Drop
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    Assign((_86, move _51)) @ _86=move _51 @ Use
+    StorageLive(_87) @ StorageLive
+    Assign((_87, copy _3)) @ _87=copy _3 @ Use
+    _85 = filesystem::vfs::FilldirContext::&lt;&#39;_&gt;::new(move _86, move _87) -&gt; [return: bb38, unwind: bb60] @ Call: FnDid: 21851
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    Assign((_91, &amp;_69)) @ _91=&amp;_69 @ Ref
+    _90 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _91) -&gt; [return: bb39, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 39 {
+CleanUp: false
+    Assign((_89, &amp;(*_90))) @ _89=&amp;(*_90) @ Ref
+    StorageDead(_91) @ StorageDead
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &amp;mut _85)) @ _93=&amp;mut _85 @ Ref
+    Assign((_92, &amp;mut (*_93))) @ _92=&amp;mut (*_93) @ Ref
+    _88 = filesystem::vfs::file::File::read_dir(move _89, move _92) -&gt; [return: bb40, unwind: bb60] @ Call: FnDid: 19196
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_92) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    Assign((_94, discriminant(_88))) @ _94=discriminant(_88) @ Discriminant
+    switchInt(move _94) -&gt; [0: bb42, 1: bb41, otherwise: bb15] @ SwitchInt
+}
+bb 41 {
+CleanUp: false
+    StorageLive(_110) @ StorageLive
+    Assign((_110, move ((_88 as Err).0: system_error::SystemError))) @ _110=move ((_88 as Err).0: system_error::SystemError) @ Use
+    StorageLive(_112) @ StorageLive
+    Assign((_112, move _110)) @ _112=move _110 @ Use
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _112))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _112) @ Aggregate
+    StorageDead(_112) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    goto -&gt; bb51 @ Goto
+}
+bb 42 {
+CleanUp: false
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_98, &amp;(_85.3: core::option::Option&lt;system_error::SystemError&gt;))) @ _98=&amp;(_85.3: core::option::Option&lt;system_error::SystemError&gt;) @ Ref
+    _97 = core::option::Option::&lt;system_error::SystemError&gt;::is_some(move _98) -&gt; [return: bb43, unwind: bb60] @ Call: FnDid: 10143
+}
+bb 43 {
+CleanUp: false
+    switchInt(move _97) -&gt; [0: bb49, otherwise: bb44] @ SwitchInt
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    Assign((_100, &amp;(_85.3: core::option::Option&lt;system_error::SystemError&gt;))) @ _100=&amp;(_85.3: core::option::Option&lt;system_error::SystemError&gt;) @ Ref
+    StorageLive(_101) @ StorageLive
+    Assign((_113, const filesystem::vfs::syscall::sys_getdents::do_getdents::promoted[0])) @ _113=const filesystem::vfs::syscall::sys_getdents::do_getdents::promoted[0] @ Use
+    Assign((_101, &amp;(*_113))) @ _101=&amp;(*_113) @ Ref
+    _99 = &lt;core::option::Option&lt;system_error::SystemError&gt; as core::cmp::PartialEq&gt;::eq(move _100, move _101) -&gt; [return: bb45, unwind: bb60] @ Call: FnDid: 3170
+}
+bb 45 {
+CleanUp: false
+    switchInt(move _99) -&gt; [0: bb47, otherwise: bb46] @ SwitchInt
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageLive(_105) @ StorageLive
+    Assign((_105, copy (_85.1: usize))) @ _105=copy (_85.1: usize) @ Use
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(move _105))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(move _105) @ Aggregate
+    StorageDead(_105) @ StorageDead
+    goto -&gt; bb50 @ Goto
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    Assign((_108, move (_85.3: core::option::Option&lt;system_error::SystemError&gt;))) @ _108=move (_85.3: core::option::Option&lt;system_error::SystemError&gt;) @ Use
+    _107 = core::option::Option::&lt;system_error::SystemError&gt;::unwrap(move _108) -&gt; [return: bb48, unwind: bb60] @ Call: FnDid: 10157
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_108) @ StorageDead
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _107))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _107) @ Aggregate
+    StorageDead(_107) @ StorageDead
+    goto -&gt; bb50 @ Goto
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    Assign((_96, const ())) @ _96=const () @ Use
+    StorageDead(_97) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageLive(_109) @ StorageLive
+    Assign((_109, copy (_85.1: usize))) @ _109=copy (_85.1: usize) @ Use
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(move _109))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(move _109) @ Aggregate
+    StorageDead(_109) @ StorageDead
+    goto -&gt; bb51 @ Goto
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    goto -&gt; bb51 @ Goto
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    drop(_69) -&gt; [return: bb52, unwind: bb66] @ Drop
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    Assign((_114, const false)) @ _114=const false @ Use
+    StorageDead(_65) @ StorageDead
+    drop(_60) -&gt; [return: bb53, unwind: bb63] @ Drop
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    goto -&gt; bb59 @ Goto
+}
+bb 54 {
+CleanUp: false
+    Assign((_114, const false)) @ _114=const false @ Use
+    StorageDead(_65) @ StorageDead
+    drop(_60) -&gt; [return: bb55, unwind: bb63] @ Drop
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    goto -&gt; bb57 @ Goto
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb59 @ Goto
+}
+bb 59 {
+CleanUp: false
+    return @ Return
+}
+bb 60 {
+CleanUp: true
+    drop(_69) -&gt; [return: bb66, unwind terminate(cleanup)] @ Drop
+}
+bb 61 {
+CleanUp: true
+    drop(_60) -&gt; [return: bb63, unwind terminate(cleanup)] @ Drop
+}
+bb 62 {
+CleanUp: true
+    drop(_64) -&gt; [return: bb63, unwind terminate(cleanup)] @ Drop
+}
+bb 63 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 64 {
+CleanUp: true
+    Assign((_119, discriminant(_70))) @ _119=discriminant(_70) @ Discriminant
+    goto -&gt; bb66 @ Goto
+}
+bb 65 {
+CleanUp: true
+    drop(_65) -&gt; [return: bb61, unwind terminate(cleanup)] @ Drop
+}
+bb 66 {
+CleanUp: true
+    switchInt(copy _114) -&gt; [0: bb61, otherwise: bb65] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>
