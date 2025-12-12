@@ -1,0 +1,101 @@
+22:07:59|RAP|WARN|: Double free detected in function "probe"
+warning: Double free detected.
+   --> src/driver/net/virtio_net.rs:943:1
+    |
+943 | / fn probe(&self, device: &Arc<dyn VirtIODevice>) -> Result<(), SystemError> {
+944 | |         log::debug!("VirtIONetDriver::probe()");
+945 | |         let virtio_net_device = device
+946 | |             .clone()
+947 | |             .arc_any()
+948 | |             .downcast::<VirtIONetDevice>()
+949 | |             .map_err(|_| {
+950 | |                 error!(
+951 | |                     "VirtIONetDriver::probe() failed: device is not a VirtIODevice. Device: '{:?}'",
+952 | |                     device.name()
+953 | |                 );
+954 | |                 SystemError::EINVAL
+955 | |             })?;
+956 | |
+957 | |         let iface: Arc<VirtioInterface> =
+958 | |             VirtioInterface::new(virtio_net_device.inner().device_inner.clone());
+959 | |         // 标识网络设备已经启动
+960 | |         iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+961 | |         // 设置iface的父设备为virtio_net_device
+962 | |         iface.set_dev_parent(Some(Arc::downgrade(&virtio_net_device) as Weak<dyn Device>));
+963 | |         // 在sysfs中注册iface
+964 | |         register_netdevice(iface.clone() as Arc<dyn Iface>)?;
+965 | |
+966 | |         // 将virtio_net_device和iface关联起来
+967 | |         virtio_net_device.set_iface(&iface);
+968 | |
+969 | |         // 将网卡的接口信息注册到全局的网卡接口信息表中
+970 | |         // NET_DEVICES
+971 | |         //     .write_irqsave()
+972 | |         //     .insert(iface.nic_id(), iface.clone());
+973 | |         INIT_NET_NAMESPACE.add_device(iface.clone());
+974 | |         iface
+975 | |             .iface_common
+976 | |             .set_net_namespace(INIT_NET_NAMESPACE.clone());
+977 | |         INIT_NET_NAMESPACE.set_default_iface(iface.clone());
+978 | |
+979 | |         virtio_irq_manager()
+980 | |             .register_device(device.clone())
+981 | |             .expect("Register virtio net irq failed");
+982 | |
+983 | |         return Ok(());
+984 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 943.
+    | MIR detail: Value _43(iface, src/driver/net/virtio_net.rs:957) and _43(iface, src/driver/net/virtio_net.rs:957) are alias.
+    | MIR detail: _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB57(src/driver/net/virtio_net.rs:984); _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB57(src/driver/net/virtio_net.rs:984).
+    |
+22:07:59|RAP|WARN|: Double free detected in function "probe"
+warning: Double free detected during unwinding.
+   --> src/driver/net/virtio_net.rs:943:1
+    |
+943 | / fn probe(&self, device: &Arc<dyn VirtIODevice>) -> Result<(), SystemError> {
+944 | |         log::debug!("VirtIONetDriver::probe()");
+945 | |         let virtio_net_device = device
+946 | |             .clone()
+947 | |             .arc_any()
+948 | |             .downcast::<VirtIONetDevice>()
+949 | |             .map_err(|_| {
+950 | |                 error!(
+951 | |                     "VirtIONetDriver::probe() failed: device is not a VirtIODevice. Device: '{:?}'",
+952 | |                     device.name()
+953 | |                 );
+954 | |                 SystemError::EINVAL
+955 | |             })?;
+956 | |
+957 | |         let iface: Arc<VirtioInterface> =
+958 | |             VirtioInterface::new(virtio_net_device.inner().device_inner.clone());
+959 | |         // 标识网络设备已经启动
+960 | |         iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+961 | |         // 设置iface的父设备为virtio_net_device
+962 | |         iface.set_dev_parent(Some(Arc::downgrade(&virtio_net_device) as Weak<dyn Device>));
+963 | |         // 在sysfs中注册iface
+964 | |         register_netdevice(iface.clone() as Arc<dyn Iface>)?;
+965 | |
+966 | |         // 将virtio_net_device和iface关联起来
+967 | |         virtio_net_device.set_iface(&iface);
+968 | |
+969 | |         // 将网卡的接口信息注册到全局的网卡接口信息表中
+970 | |         // NET_DEVICES
+971 | |         //     .write_irqsave()
+972 | |         //     .insert(iface.nic_id(), iface.clone());
+973 | |         INIT_NET_NAMESPACE.add_device(iface.clone());
+974 | |         iface
+975 | |             .iface_common
+976 | |             .set_net_namespace(INIT_NET_NAMESPACE.clone());
+977 | |         INIT_NET_NAMESPACE.set_default_iface(iface.clone());
+978 | |
+979 | |         virtio_irq_manager()
+980 | |             .register_device(device.clone())
+981 | |             .expect("Register virtio net irq failed");
+982 | |
+983 | |         return Ok(());
+984 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 943.
+    | MIR detail: Value _43(iface, src/driver/net/virtio_net.rs:957) and _43(iface, src/driver/net/virtio_net.rs:957) are alias.
+    | MIR detail: _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB60(src/driver/net/virtio_net.rs:984); _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB60(src/driver/net/virtio_net.rs:984).
+    |
+render dot for DefId(0:11748 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{impl#31}::probe)

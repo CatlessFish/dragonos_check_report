@@ -1,0 +1,63 @@
+22:08:04|RAP|WARN|: Double free detected in function "epoll_ctl_with_epfd"
+warning: Double free detected.
+   --> src/filesystem/epoll/event_poll.rs:251:1
+    |
+251 | / pub fn epoll_ctl_with_epfd(
+252 | |         epfd: i32,
+253 | |         op: EPollCtlOption,
+254 | |         dstfd: i32,
+255 | |         epds: EPollEvent,
+256 | |         nonblock: bool,
+257 | |     ) -> Result<usize, SystemError> {
+258 | |         let current_pcb = ProcessManager::current_pcb();
+259 | |         let fd_table = current_pcb.fd_table();
+260 | |         let fd_table_guard = fd_table.read();
+261 | |
+262 | |         // 获取epoll和对应fd指向的文件
+263 | |         let ep_file = fd_table_guard
+264 | |             .get_file_by_fd(epfd)
+265 | |             .ok_or(SystemError::EBADF)?;
+266 | |         let dst_file = fd_table_guard
+267 | |             .get_file_by_fd(dstfd)
+268 | |             .ok_or(SystemError::EBADF)?;
+269 | |
+270 | |         drop(fd_table_guard);
+271 | |
+272 | |         Self::do_epoll_ctl(ep_file, op, dstfd, dst_file, epds, nonblock)
+273 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 251.
+    | MIR detail: Value _44(_, src/filesystem/epoll/event_poll.rs:270) and _7(fd_table, src/filesystem/epoll/event_poll.rs:259) are alias.
+    | MIR detail: _44(_, src/filesystem/epoll/event_poll.rs:270) is dropped at BB18(src/filesystem/epoll/event_poll.rs:270); _7(fd_table, src/filesystem/epoll/event_poll.rs:259) is dropped at BB22(src/filesystem/epoll/event_poll.rs:273).
+    |
+22:08:04|RAP|WARN|: Double free detected in function "epoll_ctl_with_epfd"
+warning: Double free detected during unwinding.
+   --> src/filesystem/epoll/event_poll.rs:251:1
+    |
+251 | / pub fn epoll_ctl_with_epfd(
+252 | |         epfd: i32,
+253 | |         op: EPollCtlOption,
+254 | |         dstfd: i32,
+255 | |         epds: EPollEvent,
+256 | |         nonblock: bool,
+257 | |     ) -> Result<usize, SystemError> {
+258 | |         let current_pcb = ProcessManager::current_pcb();
+259 | |         let fd_table = current_pcb.fd_table();
+260 | |         let fd_table_guard = fd_table.read();
+261 | |
+262 | |         // 获取epoll和对应fd指向的文件
+263 | |         let ep_file = fd_table_guard
+264 | |             .get_file_by_fd(epfd)
+265 | |             .ok_or(SystemError::EBADF)?;
+266 | |         let dst_file = fd_table_guard
+267 | |             .get_file_by_fd(dstfd)
+268 | |             .ok_or(SystemError::EBADF)?;
+269 | |
+270 | |         drop(fd_table_guard);
+271 | |
+272 | |         Self::do_epoll_ctl(ep_file, op, dstfd, dst_file, epds, nonblock)
+273 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 251.
+    | MIR detail: Value _44(_, src/filesystem/epoll/event_poll.rs:270) and _7(fd_table, src/filesystem/epoll/event_poll.rs:259) are alias.
+    | MIR detail: _44(_, src/filesystem/epoll/event_poll.rs:270) is dropped at BB18(src/filesystem/epoll/event_poll.rs:270); _7(fd_table, src/filesystem/epoll/event_poll.rs:259) is dropped at BB30(src/filesystem/epoll/event_poll.rs:273).
+    |
+render dot for DefId(0:17298 ~ dragonos_kernel[9e38]::filesystem::epoll::event_poll::{impl#0}::epoll_ctl_with_epfd)

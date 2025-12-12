@@ -1,0 +1,402 @@
+bb0 at src/filesystem/epoll/event_poll.rs:258:13: 258:24
+bb1 at src/filesystem/epoll/event_poll.rs:259:13: 259:21
+bb2 at src/filesystem/epoll/event_poll.rs:259:24: 259:35
+bb3 at src/filesystem/epoll/event_poll.rs:259:45: 259:46
+bb4 at src/filesystem/epoll/event_poll.rs:260:30: 260:38
+bb5 at src/filesystem/epoll/event_poll.rs:260:44: 260:45
+bb6 at src/filesystem/epoll/event_poll.rs:263:23: 263:37
+bb7 at src/filesystem/epoll/event_poll.rs:264:33: 264:34
+bb8 at src/filesystem/epoll/event_poll.rs:265:38: 265:39
+bb9 at src/filesystem/epoll/event_poll.rs:265:39: 265:40
+bb11 at src/filesystem/epoll/event_poll.rs:263:23: 265:40
+bb12 at src/filesystem/epoll/event_poll.rs:265:39: 265:40
+bb13 at src/filesystem/epoll/event_poll.rs:265:39: 265:40
+bb14 at src/filesystem/epoll/event_poll.rs:266:24: 266:38
+bb15 at src/filesystem/epoll/event_poll.rs:267:34: 267:35
+bb16 at src/filesystem/epoll/event_poll.rs:268:38: 268:39
+bb17 at src/filesystem/epoll/event_poll.rs:268:39: 268:40
+bb18 at src/filesystem/epoll/event_poll.rs:266:24: 268:40
+bb19 at src/filesystem/epoll/event_poll.rs:268:39: 268:40
+bb20 at src/filesystem/epoll/event_poll.rs:268:39: 268:40
+bb21 at src/filesystem/epoll/event_poll.rs:270:28: 270:29
+bb22 at src/filesystem/epoll/event_poll.rs:272:72: 272:73
+bb23 at src/filesystem/epoll/event_poll.rs:273:5: 273:6
+bb24 at src/filesystem/epoll/event_poll.rs:273:5: 273:6
+bb25 at src/filesystem/epoll/event_poll.rs:273:5: 273:6
+bb26 at src/filesystem/epoll/event_poll.rs:273:5: 273:6
+bb27 at src/filesystem/epoll/event_poll.rs:273:5: 273:6
+bb28 at src/filesystem/epoll/event_poll.rs:273:5: 273:6
+bb35 at src/filesystem/epoll/event_poll.rs:268:40: 268:41
+bb38 at src/filesystem/epoll/event_poll.rs:265:40: 265:41
+fn filesystem::epoll::event_poll::EventPoll::epoll_ctl_with_epfd
+_0:  @ core::result::Result<usize, system_error::SystemError> 
+_1:  @ i32 
+_2:  @ filesystem::epoll::EPollCtlOption 
+_3:  @ i32 
+_4:  @ filesystem::epoll::EPollEvent 
+_5:  @ bool 
+_6:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_7:  @ alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>, alloc::alloc::Global> 
+_8:  @ &'{erased} process::ProcessControlBlock 
+_9:  @ &'{erased} process::ProcessControlBlock 
+_10:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_11:  @ libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_12:  @ &'{erased} libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec> 
+_13:  @ &'{erased} libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec> 
+_14:  @ &'{erased} alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>, alloc::alloc::Global> 
+_15:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_16:  @ core::ops::ControlFlow<core::result::Result<core::convert::Infallible, system_error::SystemError>, alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>> 
+_17:  @ core::result::Result<alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>, system_error::SystemError> 
+_18:  @ core::option::Option<alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>> 
+_19:  @ &'{erased} filesystem::vfs::file::FileDescriptorVec 
+_20:  @ &'{erased} filesystem::vfs::file::FileDescriptorVec 
+_21:  @ &'{erased} libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_22:  @ i32 
+_23:  @ system_error::SystemError 
+_24:  @ isize 
+_25:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_26:  @ ! 
+_27:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_28:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_29:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_30:  @ core::ops::ControlFlow<core::result::Result<core::convert::Infallible, system_error::SystemError>, alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>> 
+_31:  @ core::result::Result<alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>, system_error::SystemError> 
+_32:  @ core::option::Option<alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>> 
+_33:  @ &'{erased} filesystem::vfs::file::FileDescriptorVec 
+_34:  @ &'{erased} filesystem::vfs::file::FileDescriptorVec 
+_35:  @ &'{erased} libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_36:  @ i32 
+_37:  @ system_error::SystemError 
+_38:  @ isize 
+_39:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_40:  @ ! 
+_41:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_42:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_43:  @ () 
+_44:  @ libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_45:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_46:  @ filesystem::epoll::EPollCtlOption 
+_47:  @ i32 
+_48:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_49:  @ filesystem::epoll::EPollEvent 
+_50:  @ bool 
+_51:  @ bool 
+_52:  @ bool 
+_53:  @ bool 
+_54:  @ isize 
+_55:  @ isize 
+_56:  @ isize 
+_57:  @ isize 
+_58:  @ isize 
+_59:  @ isize 
+_60:  @ isize 
+_61:  @ isize 
+_62:  @ isize 
+_63:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_53, const false)) @ _53=const false @ Use
+    Assign((_52, const false)) @ _52=const false @ Use
+    Assign((_51, const false)) @ _51=const false @ Use
+    StorageLive(_6) @ StorageLive
+    _6 = process::ProcessManager::current_pcb() -> [return: bb1, unwind continue] @ Call: FnDid: 29866
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &_6)) @ _10=&_6 @ Ref
+    _9 = <alloc::sync::Arc<process::ProcessControlBlock> as lazy_static::__Deref>::deref(move _10) -> [return: bb2, unwind: bb31] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_8, &(*_9))) @ _8=&(*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = process::ProcessControlBlock::fd_table(move _8) -> [return: bb3, unwind: bb31] @ Call: FnDid: 29947
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &_7)) @ _14=&_7 @ Ref
+    _13 = <alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>> as lazy_static::__Deref>::deref(move _14) -> [return: bb4, unwind: bb30] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_12, &(*_13))) @ _12=&(*_13) @ Ref
+    StorageDead(_14) @ StorageDead
+    _11 = libs::rwlock::RwLock::<filesystem::vfs::file::FileDescriptorVec>::read(move _12) -> [return: bb5, unwind: bb30] @ Call: FnDid: 5156
+}
+bb 5 {
+CleanUp: false
+    Assign((_53, const true)) @ _53=const true @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &_11)) @ _21=&_11 @ Ref
+    _20 = <libs::rwlock::RwLockReadGuard<'_, filesystem::vfs::file::FileDescriptorVec> as lazy_static::__Deref>::deref(move _21) -> [return: bb6, unwind: bb40] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_19, &(*_20))) @ _19=&(*_20) @ Ref
+    StorageDead(_21) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    Assign((_22, copy _1)) @ _22=copy _1 @ Use
+    _18 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _19, move _22) -> [return: bb7, unwind: bb40] @ Call: FnDid: 19231
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, system_error::SystemError::EBADF)) @ _23=system_error::SystemError::EBADF @ Aggregate
+    _17 = core::option::Option::<alloc::sync::Arc<filesystem::vfs::file::File>>::ok_or::<system_error::SystemError>(move _18, move _23) -> [return: bb8, unwind: bb40] @ Call: FnDid: 10178
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    _16 = <core::result::Result<alloc::sync::Arc<filesystem::vfs::file::File>, system_error::SystemError> as core::ops::Try>::branch(move _17) -> [return: bb9, unwind: bb40] @ Call: FnDid: 4199
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_24, discriminant(_16))) @ _24=discriminant(_16) @ Discriminant
+    switchInt(move _24) -> [0: bb11, 1: bb12, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 11 {
+CleanUp: false
+    StorageLive(_28) @ StorageLive
+    Assign((_28, move ((_16 as Continue).0: alloc::sync::Arc<filesystem::vfs::file::File>))) @ _28=move ((_16 as Continue).0: alloc::sync::Arc<filesystem::vfs::file::File>) @ Use
+    Assign((_52, const true)) @ _52=const true @ Use
+    Assign((_15, move _28)) @ _15=move _28 @ Use
+    StorageDead(_28) @ StorageDead
+    Assign((_56, discriminant(_16))) @ _56=discriminant(_16) @ Discriminant
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &_11)) @ _35=&_11 @ Ref
+    _34 = <libs::rwlock::RwLockReadGuard<'_, filesystem::vfs::file::FileDescriptorVec> as lazy_static::__Deref>::deref(move _35) -> [return: bb14, unwind: bb37] @ Call: FnDid: 3903
+}
+bb 12 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move ((_16 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>))) @ _25=move ((_16 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>) @ Use
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move _25)) @ _27=move _25 @ Use
+    _0 = <core::result::Result<usize, system_error::SystemError> as core::ops::FromResidual<core::result::Result<core::convert::Infallible, system_error::SystemError>>>::from_residual(move _27) -> [return: bb13, unwind: bb38] @ Call: FnDid: 4202
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    Assign((_54, discriminant(_16))) @ _54=discriminant(_16) @ Discriminant
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    goto -> bb25 @ Goto
+}
+bb 14 {
+CleanUp: false
+    Assign((_33, &(*_34))) @ _33=&(*_34) @ Ref
+    StorageDead(_35) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    Assign((_36, copy _3)) @ _36=copy _3 @ Use
+    _32 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _33, move _36) -> [return: bb15, unwind: bb37] @ Call: FnDid: 19231
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    Assign((_37, system_error::SystemError::EBADF)) @ _37=system_error::SystemError::EBADF @ Aggregate
+    _31 = core::option::Option::<alloc::sync::Arc<filesystem::vfs::file::File>>::ok_or::<system_error::SystemError>(move _32, move _37) -> [return: bb16, unwind: bb37] @ Call: FnDid: 10178
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    _30 = <core::result::Result<alloc::sync::Arc<filesystem::vfs::file::File>, system_error::SystemError> as core::ops::Try>::branch(move _31) -> [return: bb17, unwind: bb37] @ Call: FnDid: 4199
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    Assign((_38, discriminant(_30))) @ _38=discriminant(_30) @ Discriminant
+    switchInt(move _38) -> [0: bb18, 1: bb19, otherwise: bb10] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    StorageLive(_42) @ StorageLive
+    Assign((_42, move ((_30 as Continue).0: alloc::sync::Arc<filesystem::vfs::file::File>))) @ _42=move ((_30 as Continue).0: alloc::sync::Arc<filesystem::vfs::file::File>) @ Use
+    Assign((_51, const true)) @ _51=const true @ Use
+    Assign((_29, move _42)) @ _29=move _42 @ Use
+    StorageDead(_42) @ StorageDead
+    Assign((_60, discriminant(_30))) @ _60=discriminant(_30) @ Discriminant
+    StorageDead(_34) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_53, const false)) @ _53=const false @ Use
+    Assign((_44, move _11)) @ _44=move _11 @ Use
+    _43 = core::mem::drop::<libs::rwlock::RwLockReadGuard<'_, filesystem::vfs::file::FileDescriptorVec>>(move _44) -> [return: bb21, unwind: bb34] @ Call: FnDid: 2323
+}
+bb 19 {
+CleanUp: false
+    StorageLive(_39) @ StorageLive
+    Assign((_39, move ((_30 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>))) @ _39=move ((_30 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>) @ Use
+    StorageLive(_41) @ StorageLive
+    Assign((_41, move _39)) @ _41=move _39 @ Use
+    _0 = <core::result::Result<usize, system_error::SystemError> as core::ops::FromResidual<core::result::Result<core::convert::Infallible, system_error::SystemError>>>::from_residual(move _41) -> [return: bb20, unwind: bb35] @ Call: FnDid: 4202
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    Assign((_58, discriminant(_30))) @ _58=discriminant(_30) @ Discriminant
+    StorageDead(_34) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    Assign((_51, const false)) @ _51=const false @ Use
+    StorageDead(_29) @ StorageDead
+    drop(_15) -> [return: bb25, unwind: bb40] @ Drop
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    Assign((_52, const false)) @ _52=const false @ Use
+    Assign((_45, move _15)) @ _45=move _15 @ Use
+    StorageLive(_46) @ StorageLive
+    Assign((_46, move _2)) @ _46=move _2 @ Use
+    StorageLive(_47) @ StorageLive
+    Assign((_47, copy _3)) @ _47=copy _3 @ Use
+    StorageLive(_48) @ StorageLive
+    Assign((_51, const false)) @ _51=const false @ Use
+    Assign((_48, move _29)) @ _48=move _29 @ Use
+    StorageLive(_49) @ StorageLive
+    Assign((_49, copy _4)) @ _49=copy _4 @ Use
+    StorageLive(_50) @ StorageLive
+    Assign((_50, copy _5)) @ _50=copy _5 @ Use
+    _0 = filesystem::epoll::event_poll::EventPoll::do_epoll_ctl(move _45, move _46, move _47, move _48, move _49, move _50) -> [return: bb22, unwind: bb34] @ Call: FnDid: 17297
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    Assign((_51, const false)) @ _51=const false @ Use
+    StorageDead(_29) @ StorageDead
+    Assign((_52, const false)) @ _52=const false @ Use
+    StorageDead(_15) @ StorageDead
+    Assign((_53, const false)) @ _53=const false @ Use
+    StorageDead(_11) @ StorageDead
+    drop(_7) -> [return: bb23, unwind: bb31] @ Drop
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    drop(_6) -> [return: bb24, unwind: bb32] @ Drop
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    goto -> bb29 @ Goto
+}
+bb 25 {
+CleanUp: false
+    Assign((_52, const false)) @ _52=const false @ Use
+    StorageDead(_15) @ StorageDead
+    drop(_11) -> [return: bb26, unwind: bb30] @ Drop
+}
+bb 26 {
+CleanUp: false
+    Assign((_53, const false)) @ _53=const false @ Use
+    StorageDead(_11) @ StorageDead
+    drop(_7) -> [return: bb27, unwind: bb31] @ Drop
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    drop(_6) -> [return: bb28, unwind: bb32] @ Drop
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    goto -> bb29 @ Goto
+}
+bb 29 {
+CleanUp: false
+    return @ Return
+}
+bb 30 {
+CleanUp: true
+    drop(_7) -> [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 31 {
+CleanUp: true
+    drop(_6) -> [return: bb32, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 33 {
+CleanUp: true
+    drop(_29) -> [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 34 {
+CleanUp: true
+    switchInt(copy _51) -> [0: bb37, otherwise: bb33] @ SwitchInt
+}
+bb 35 {
+CleanUp: true
+    Assign((_62, discriminant(_30))) @ _62=discriminant(_30) @ Discriminant
+    goto -> bb37 @ Goto
+}
+bb 36 {
+CleanUp: true
+    drop(_15) -> [return: bb40, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    switchInt(copy _52) -> [0: bb40, otherwise: bb36] @ SwitchInt
+}
+bb 38 {
+CleanUp: true
+    Assign((_63, discriminant(_16))) @ _63=discriminant(_16) @ Discriminant
+    goto -> bb40 @ Goto
+}
+bb 39 {
+CleanUp: true
+    drop(_11) -> [return: bb30, unwind terminate(cleanup)] @ Drop
+}
+bb 40 {
+CleanUp: true
+    switchInt(copy _53) -> [0: bb30, otherwise: bb39] @ SwitchInt
+}
+

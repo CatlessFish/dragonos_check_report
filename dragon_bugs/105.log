@@ -1,0 +1,50 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_renameat2.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("oldfd", format!("{:#x}", Self::oldfd(args))),
+31 | |             FormattedSyscallParam::new("oldname", format!("{:#x}", Self::oldname(args) as usize)),
+32 | |             FormattedSyscallParam::new("newfd", format!("{:#x}", Self::newfd(args))),
+33 | |             FormattedSyscallParam::new("newname", format!("{:#x}", Self::newname(args) as usize)),
+34 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+35 | |         ]
+36 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_renameat2.rs line 28.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_renameat2.rs:31) and _9(_, src/filesystem/vfs/syscall/sys_renameat2.rs:30) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_renameat2.rs:31) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_renameat2.rs:30) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_renameat2.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("oldfd", format!("{:#x}", Self::oldfd(args))),
+31 | |             FormattedSyscallParam::new("oldname", format!("{:#x}", Self::oldname(args) as usize)),
+32 | |             FormattedSyscallParam::new("newfd", format!("{:#x}", Self::newfd(args))),
+33 | |             FormattedSyscallParam::new("newname", format!("{:#x}", Self::newname(args) as usize)),
+34 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+35 | |         ]
+36 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_renameat2.rs line 28.
+    | MIR detail: Value _58(_, src/filesystem/vfs/syscall/sys_renameat2.rs:32) and _33(_, src/filesystem/vfs/syscall/sys_renameat2.rs:31) are alias.
+    | MIR detail: _58(_, src/filesystem/vfs/syscall/sys_renameat2.rs:32) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/filesystem/vfs/syscall/sys_renameat2.rs:31) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_renameat2.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("oldfd", format!("{:#x}", Self::oldfd(args))),
+31 | |             FormattedSyscallParam::new("oldname", format!("{:#x}", Self::oldname(args) as usize)),
+32 | |             FormattedSyscallParam::new("newfd", format!("{:#x}", Self::newfd(args))),
+33 | |             FormattedSyscallParam::new("newname", format!("{:#x}", Self::newname(args) as usize)),
+34 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+35 | |         ]
+36 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_renameat2.rs line 28.
+    | MIR detail: Value _82(_, src/filesystem/vfs/syscall/sys_renameat2.rs:33) and _58(_, src/filesystem/vfs/syscall/sys_renameat2.rs:32) are alias.
+    | MIR detail: _82(_, src/filesystem/vfs/syscall/sys_renameat2.rs:33) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _58(_, src/filesystem/vfs/syscall/sys_renameat2.rs:32) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20377 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_renameat2::{impl#0}::entry_format)

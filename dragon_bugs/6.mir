@@ -1,0 +1,65 @@
+bb0 at src/arch/x86_64/driver/hpet.rs:333:25: 333:56
+bb1 at src/arch/x86_64/driver/hpet.rs:333:53: 333:54
+bb2 at src/arch/x86_64/driver/hpet.rs:333:56: 333:57
+bb3 at src/arch/x86_64/driver/hpet.rs:334:43: 334:44
+bb4 at src/arch/x86_64/driver/hpet.rs:336:47: 336:48
+fn arch::x86_64::driver::hpet::Hpet::start_counter
+_0:  @ () 
+_1:  @ &'{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ &'{erased} mut driver::timers::hpet::HpetRegisters 
+_3:  @ (libs::rwlock::RwLockWriteGuard<'{erased}, arch::x86_64::driver::hpet::InnerHpet>, &'{erased} mut driver::timers::hpet::HpetRegisters) 
+_4:  @ &'{erased} arch::x86_64::driver::hpet::Hpet 
+_5:  @ u64 
+_6:  @ &'{erased} driver::timers::hpet::HpetRegisters 
+_7:  @ () 
+_8:  @ &'{erased} mut driver::timers::hpet::HpetRegisters 
+_9:  @ u64 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &(*_1))) @ _4=&(*_1) @ Ref
+    _3 = arch::x86_64::driver::hpet::Hpet::hpet_regs_mut(move _4) -> [return: bb1, unwind continue] @ Call: FnDid: 608
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_2) @ StorageLive
+    Assign((_2, move (_3.1: &mut driver::timers::hpet::HpetRegisters))) @ _2=move (_3.1: &mut driver::timers::hpet::HpetRegisters) @ Use
+    drop(_3) -> [return: bb2, unwind: bb5] @ Drop
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &(*_2))) @ _6=&(*_2) @ Ref
+    _5 = driver::timers::hpet::HpetRegisters::general_config(move _6) -> [return: bb3, unwind continue] @ Call: FnDid: 13449
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_5, BitOr(copy _5, const arch::x86_64::driver::hpet::HPET_CFG_ENABLE))) @ _5=BitOr(copy _5, const arch::x86_64::driver::hpet::HPET_CFG_ENABLE) @ BinaryOp
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &mut (*_2))) @ _8=&mut (*_2) @ Ref
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _5)) @ _9=copy _5 @ Use
+    _7 = driver::timers::hpet::HpetRegisters::write_general_config(move _8, move _9) -> [return: bb4, unwind continue] @ Call: FnDid: 13450
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+

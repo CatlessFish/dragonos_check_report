@@ -1,0 +1,67 @@
+22:08:04|RAP|WARN|: Dangling pointer detected in function "__tmp_log"
+warning: Dangling pointer detected.
+   --> src/exception/manage.rs:328:1
+    |
+328 | / fn __tmp_log(name: &str, irq: &IrqNumber, desc: &Arc<IrqDesc>, e: &SystemError) {
+329 | |                     error!(
+330 | |                         "Failed to request resources for {} (irq {}) on irqchip {}, error {:?}",
+331 | |                         name,
+332 | |                         irq.data(),
+333 | |                         desc.irq_data().chip_info_read_irqsave().chip().name(),
+334 | |                         e
+335 | |                     );
+336 | |                 }
+    | |_________________- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 328.
+    | MIR detail: Value _28(_, src/exception/manage.rs:333) and _4(e, src/exception/manage.rs:328) are alias.
+    | MIR detail: _28(_, src/exception/manage.rs:333) is dropped at BB21(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _4(e, src/exception/manage.rs:328) became dangling.
+    |
+22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function "__tmp_log"
+warning: Dangling pointer detected.
+   --> src/exception/manage.rs:328:1
+    |
+328 | / fn __tmp_log(name: &str, irq: &IrqNumber, desc: &Arc<IrqDesc>, e: &SystemError) {
+329 | |                     error!(
+330 | |                         "Failed to request resources for {} (irq {}) on irqchip {}, error {:?}",
+331 | |                         name,
+332 | |                         irq.data(),
+333 | |                         desc.irq_data().chip_info_read_irqsave().chip().name(),
+334 | |                         e
+335 | |                     );
+336 | |                 }
+    | |_________________- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 328.
+    | MIR detail: Value _28(_, src/exception/manage.rs:333) and _1(name, src/exception/manage.rs:328) are alias.
+    | MIR detail: _28(_, src/exception/manage.rs:333) is dropped at BB21(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _1(name, src/exception/manage.rs:328) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/exception/manage.rs:328:1
+    |
+328 | / fn __tmp_log(name: &str, irq: &IrqNumber, desc: &Arc<IrqDesc>, e: &SystemError) {
+329 | |                     error!(
+330 | |                         "Failed to request resources for {} (irq {}) on irqchip {}, error {:?}",
+331 | |                         name,
+332 | |                         irq.data(),
+333 | |                         desc.irq_data().chip_info_read_irqsave().chip().name(),
+334 | |                         e
+335 | |                     );
+336 | |                 }
+    | |_________________- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 328.
+    | MIR detail: Value _28(_, src/exception/manage.rs:333) and _4(e, src/exception/manage.rs:328) are alias.
+    | MIR detail: _28(_, src/exception/manage.rs:333) is dropped at BB29(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _4(e, src/exception/manage.rs:328) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/exception/manage.rs:328:1
+    |
+328 | / fn __tmp_log(name: &str, irq: &IrqNumber, desc: &Arc<IrqDesc>, e: &SystemError) {
+329 | |                     error!(
+330 | |                         "Failed to request resources for {} (irq {}) on irqchip {}, error {:?}",
+331 | |                         name,
+332 | |                         irq.data(),
+333 | |                         desc.irq_data().chip_info_read_irqsave().chip().name(),
+334 | |                         e
+335 | |                     );
+336 | |                 }
+    | |_________________- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 328.
+    | MIR detail: Value _28(_, src/exception/manage.rs:333) and _1(name, src/exception/manage.rs:328) are alias.
+    | MIR detail: _28(_, src/exception/manage.rs:333) is dropped at BB29(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _1(name, src/exception/manage.rs:328) became dangling.
+    |
+render dot for DefId(0:16708 ~ dragonos_kernel[9e38]::exception::manage::{impl#0}::setup_irq_resources::__tmp_log)

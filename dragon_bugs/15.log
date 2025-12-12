@@ -1,0 +1,253 @@
+22:07:54|RAP|WARN|: Double free detected in function "get_futex_key"
+warning: Double free detected.
+   --> src/libs/futex/futex.rs:553:1
+    |
+553 | / pub(super) fn get_futex_key(
+554 | |         uaddr: VirtAddr,
+555 | |         fshared: bool,
+556 | |         _access: FutexAccess,
+557 | |     ) -> Result<FutexKey, SystemError> {
+558 | |         let mut address = uaddr.data();
+559 | |
+560 | |         // 计算相对页的偏移量
+561 | |         let offset = address & (MMArch::PAGE_SIZE - 1);
+562 | |         // 判断内存对齐
+563 | |         if uaddr.data() & (core::mem::size_of::<u32>() - 1) != 0 {
+564 | |             return Err(SystemError::EINVAL);
+565 | |         }
+566 | |
+567 | |         // 目前address指向所在页面的起始地址
+568 | |         address -= offset;
+569 | |
+570 | |         // 非共享：使用地址空间+页首虚拟地址作为私有键
+571 | |         if !fshared {
+572 | |             let address_space = AddressSpace::current()?;
+573 | |             let key = FutexKey {
+574 | |                 ptr: 0,
+575 | |                 word: 0,
+576 | |                 offset: offset as u32,
+577 | |                 key: InnerFutexKey::Private(PrivateKey {
+578 | |                     address: address as u64,
+579 | |                     address_space: Some(Arc::downgrade(&address_space)),
+580 | |                 }),
+581 | |             };
+582 | |             return Ok(key);
+583 | |         }
+584 | |
+585 | |         // 共享：需要生成能跨进程匹配的键
+586 | |         // 按照 Linux 语义，共享 futex 基于物理页帧号（PFN）或文件身份
+587 | |         let address_space = AddressSpace::current()?;
+588 | |         let as_guard = address_space.read();
+589 | |         let vma = as_guard
+590 | |             .mappings
+591 | |             .contains(uaddr)
+592 | |             .ok_or(SystemError::EINVAL)?;
+593 | |         let vma_guard = vma.lock_irqsave();
+594 | |
+595 | |         // 页内索引（相对VMA起始地址）
+596 | |         let page_index =
+597 | |             ((uaddr.data() - vma_guard.region().start().data()) >> MMArch::PAGE_SHIFT) as u64;
+598 | |
+599 | |         if let Some(file) = vma_guard.vm_file() {
+600 | |             // 共享文件映射：使用 inode 唯一标识 + 文件页偏移
+601 | |             let md = file.metadata()?;
+602 | |             let dev = md.dev_id as u64;
+603 | |             let ino = md.inode_id.into() as u64;
+604 | |             let base_pgoff = vma_guard.file_page_offset().unwrap_or(0) as u64;
+605 | |             let shared = SharedKey {
+606 | |                 kind: SharedKeyKind::File { dev, ino },
+607 | |                 page_offset: base_pgoff + page_index,
+608 | |             };
+609 | |             let key = FutexKey {
+610 | |                 ptr: 0,
+611 | |                 word: 0,
+612 | |                 offset: offset as u32,
+613 | |                 key: InnerFutexKey::Shared(shared),
+614 | |             };
+615 | |             return Ok(key);
+616 | |         } else {
+617 | |             // 匿名映射（包括栈、堆、匿名mmap等）
+618 | |             if let Some(shared_anon) = &vma_guard.shared_anon {
+619 | |                 // 显式共享的匿名映射（MAP_SHARED | MAP_ANONYMOUS）
+620 | |                 let shared = SharedKey {
+621 | |                     kind: SharedKeyKind::SharedAnon { id: shared_anon.id },
+622 | |                     page_offset: page_index,
+623 | |                 };
+624 | |                 let key = FutexKey {
+625 | |                     ptr: 0,
+626 | |                     word: 0,
+627 | |                     offset: offset as u32,
+628 | |                     key: InnerFutexKey::Shared(shared),
+629 | |                 };
+630 | |                 return Ok(key);
+631 | |             } else {
+632 | |                 // 私有匿名映射（栈、堆等）+ FUTEX_SHARED 标志
+633 | |                 //
+634 | |                 // 按照 Linux 内核的实际实现（kernel/futex/core.c: get_futex_key）：
+635 | |                 // 对于匿名页的 FUTEX_SHARED，Linux 仍然使用 mm + 虚拟地址作为 key
+636 | |                 // （只是添加了一个 FUT_OFF_MMSHARED 标记）
+637 | |                 //
+638 | |                 // 这种设计的原因：
+639 | |                 // 1. 栈/堆这种私有匿名映射本质上不能跨进程共享
+640 | |                 // 2. 只能在同一进程的线程间同步（它们共享地址空间）
+641 | |                 // 3. 使用虚拟地址而非物理地址，与 swap 机制兼容
+642 | |                 //
+643 | |                 // DragonOS 的实现：
+644 | |                 // 使用 AddressSpace 的全局唯一 ID + 虚拟页号作为 shared key
+645 | |                 // - 同一进程的线程共享 AddressSpace，因此会生成相同的 key
+646 | |                 // - 不同进程的 AddressSpace 有不同的 ID，即使虚拟地址相同也不会冲突
+647 | |                 // - AddressSpace ID 是递增分配的，永不重复，避免了地址重用问题
+648 | |
+649 | |                 let address_space = AddressSpace::current()?;
+650 | |                 let as_id = address_space.id();
+651 | |
+652 | |                 drop(vma_guard);
+653 | |                 drop(as_guard);
+654 | |
+655 | |                 let shared = SharedKey {
+656 | |                     kind: SharedKeyKind::PrivateAnonShared { as_id },
+657 | |                     // 使用虚拟页号（不是物理页号！）
+658 | |                     page_offset: (address >> MMArch::PAGE_SHIFT) as u64,
+659 | |                 };
+660 | |
+661 | |                 let key = FutexKey {
+662 | |                     ptr: 0,
+663 | |                     word: 0,
+664 | |                     offset: offset as u32,
+665 | |                     key: InnerFutexKey::Shared(shared),
+666 | |                 };
+667 | |                 return Ok(key);
+668 | |             }
+669 | |         }
+670 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/futex.rs line 553.
+    | MIR detail: Value _169(_, src/libs/futex/futex.rs:653) and _45(address_space, src/libs/futex/futex.rs:587) are alias.
+    | MIR detail: _169(_, src/libs/futex/futex.rs:653) is dropped at BB68(src/libs/futex/futex.rs:653); _45(address_space, src/libs/futex/futex.rs:587) is dropped at BB78(src/libs/futex/futex.rs:670).
+    |
+22:07:54|RAP|WARN|: Double free detected in function "get_futex_key"
+warning: Double free detected during unwinding.
+   --> src/libs/futex/futex.rs:553:1
+    |
+553 | / pub(super) fn get_futex_key(
+554 | |         uaddr: VirtAddr,
+555 | |         fshared: bool,
+556 | |         _access: FutexAccess,
+557 | |     ) -> Result<FutexKey, SystemError> {
+558 | |         let mut address = uaddr.data();
+559 | |
+560 | |         // 计算相对页的偏移量
+561 | |         let offset = address & (MMArch::PAGE_SIZE - 1);
+562 | |         // 判断内存对齐
+563 | |         if uaddr.data() & (core::mem::size_of::<u32>() - 1) != 0 {
+564 | |             return Err(SystemError::EINVAL);
+565 | |         }
+566 | |
+567 | |         // 目前address指向所在页面的起始地址
+568 | |         address -= offset;
+569 | |
+570 | |         // 非共享：使用地址空间+页首虚拟地址作为私有键
+571 | |         if !fshared {
+572 | |             let address_space = AddressSpace::current()?;
+573 | |             let key = FutexKey {
+574 | |                 ptr: 0,
+575 | |                 word: 0,
+576 | |                 offset: offset as u32,
+577 | |                 key: InnerFutexKey::Private(PrivateKey {
+578 | |                     address: address as u64,
+579 | |                     address_space: Some(Arc::downgrade(&address_space)),
+580 | |                 }),
+581 | |             };
+582 | |             return Ok(key);
+583 | |         }
+584 | |
+585 | |         // 共享：需要生成能跨进程匹配的键
+586 | |         // 按照 Linux 语义，共享 futex 基于物理页帧号（PFN）或文件身份
+587 | |         let address_space = AddressSpace::current()?;
+588 | |         let as_guard = address_space.read();
+589 | |         let vma = as_guard
+590 | |             .mappings
+591 | |             .contains(uaddr)
+592 | |             .ok_or(SystemError::EINVAL)?;
+593 | |         let vma_guard = vma.lock_irqsave();
+594 | |
+595 | |         // 页内索引（相对VMA起始地址）
+596 | |         let page_index =
+597 | |             ((uaddr.data() - vma_guard.region().start().data()) >> MMArch::PAGE_SHIFT) as u64;
+598 | |
+599 | |         if let Some(file) = vma_guard.vm_file() {
+600 | |             // 共享文件映射：使用 inode 唯一标识 + 文件页偏移
+601 | |             let md = file.metadata()?;
+602 | |             let dev = md.dev_id as u64;
+603 | |             let ino = md.inode_id.into() as u64;
+604 | |             let base_pgoff = vma_guard.file_page_offset().unwrap_or(0) as u64;
+605 | |             let shared = SharedKey {
+606 | |                 kind: SharedKeyKind::File { dev, ino },
+607 | |                 page_offset: base_pgoff + page_index,
+608 | |             };
+609 | |             let key = FutexKey {
+610 | |                 ptr: 0,
+611 | |                 word: 0,
+612 | |                 offset: offset as u32,
+613 | |                 key: InnerFutexKey::Shared(shared),
+614 | |             };
+615 | |             return Ok(key);
+616 | |         } else {
+617 | |             // 匿名映射（包括栈、堆、匿名mmap等）
+618 | |             if let Some(shared_anon) = &vma_guard.shared_anon {
+619 | |                 // 显式共享的匿名映射（MAP_SHARED | MAP_ANONYMOUS）
+620 | |                 let shared = SharedKey {
+621 | |                     kind: SharedKeyKind::SharedAnon { id: shared_anon.id },
+622 | |                     page_offset: page_index,
+623 | |                 };
+624 | |                 let key = FutexKey {
+625 | |                     ptr: 0,
+626 | |                     word: 0,
+627 | |                     offset: offset as u32,
+628 | |                     key: InnerFutexKey::Shared(shared),
+629 | |                 };
+630 | |                 return Ok(key);
+631 | |             } else {
+632 | |                 // 私有匿名映射（栈、堆等）+ FUTEX_SHARED 标志
+633 | |                 //
+634 | |                 // 按照 Linux 内核的实际实现（kernel/futex/core.c: get_futex_key）：
+635 | |                 // 对于匿名页的 FUTEX_SHARED，Linux 仍然使用 mm + 虚拟地址作为 key
+636 | |                 // （只是添加了一个 FUT_OFF_MMSHARED 标记）
+637 | |                 //
+638 | |                 // 这种设计的原因：
+639 | |                 // 1. 栈/堆这种私有匿名映射本质上不能跨进程共享
+640 | |                 // 2. 只能在同一进程的线程间同步（它们共享地址空间）
+641 | |                 // 3. 使用虚拟地址而非物理地址，与 swap 机制兼容
+642 | |                 //
+643 | |                 // DragonOS 的实现：
+644 | |                 // 使用 AddressSpace 的全局唯一 ID + 虚拟页号作为 shared key
+645 | |                 // - 同一进程的线程共享 AddressSpace，因此会生成相同的 key
+646 | |                 // - 不同进程的 AddressSpace 有不同的 ID，即使虚拟地址相同也不会冲突
+647 | |                 // - AddressSpace ID 是递增分配的，永不重复，避免了地址重用问题
+648 | |
+649 | |                 let address_space = AddressSpace::current()?;
+650 | |                 let as_id = address_space.id();
+651 | |
+652 | |                 drop(vma_guard);
+653 | |                 drop(as_guard);
+654 | |
+655 | |                 let shared = SharedKey {
+656 | |                     kind: SharedKeyKind::PrivateAnonShared { as_id },
+657 | |                     // 使用虚拟页号（不是物理页号！）
+658 | |                     page_offset: (address >> MMArch::PAGE_SHIFT) as u64,
+659 | |                 };
+660 | |
+661 | |                 let key = FutexKey {
+662 | |                     ptr: 0,
+663 | |                     word: 0,
+664 | |                     offset: offset as u32,
+665 | |                     key: InnerFutexKey::Shared(shared),
+666 | |                 };
+667 | |                 return Ok(key);
+668 | |             }
+669 | |         }
+670 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/futex.rs line 553.
+    | MIR detail: Value _169(_, src/libs/futex/futex.rs:653) and _45(address_space, src/libs/futex/futex.rs:587) are alias.
+    | MIR detail: _169(_, src/libs/futex/futex.rs:653) is dropped at BB68(src/libs/futex/futex.rs:653); _45(address_space, src/libs/futex/futex.rs:587) is dropped at BB88(src/libs/futex/futex.rs:670).
+    |
+render dot for DefId(0:5435 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#5}::get_futex_key)

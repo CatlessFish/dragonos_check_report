@@ -1,0 +1,50 @@
+22:08:17|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_waitid.rs:119:1
+    |
+119 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+120 | |         vec![
+121 | |             FormattedSyscallParam::new("which", format!("{:#x}", Self::which(args))),
+122 | |             FormattedSyscallParam::new("upid", format!("{:#x}", Self::upid(args))),
+123 | |             FormattedSyscallParam::new("infop", format!("{:#x}", Self::infop(args) as usize)),
+124 | |             FormattedSyscallParam::new("options", format!("{:#x}", Self::options(args))),
+125 | |             FormattedSyscallParam::new("rusage", format!("{:#x}", Self::rusage(args) as usize)),
+126 | |         ]
+127 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_waitid.rs line 119.
+    | MIR detail: Value _33(_, src/process/syscall/sys_waitid.rs:122) and _9(_, src/process/syscall/sys_waitid.rs:121) are alias.
+    | MIR detail: _33(_, src/process/syscall/sys_waitid.rs:122) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/process/syscall/sys_waitid.rs:121) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_waitid.rs:119:1
+    |
+119 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+120 | |         vec![
+121 | |             FormattedSyscallParam::new("which", format!("{:#x}", Self::which(args))),
+122 | |             FormattedSyscallParam::new("upid", format!("{:#x}", Self::upid(args))),
+123 | |             FormattedSyscallParam::new("infop", format!("{:#x}", Self::infop(args) as usize)),
+124 | |             FormattedSyscallParam::new("options", format!("{:#x}", Self::options(args))),
+125 | |             FormattedSyscallParam::new("rusage", format!("{:#x}", Self::rusage(args) as usize)),
+126 | |         ]
+127 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_waitid.rs line 119.
+    | MIR detail: Value _57(_, src/process/syscall/sys_waitid.rs:123) and _33(_, src/process/syscall/sys_waitid.rs:122) are alias.
+    | MIR detail: _57(_, src/process/syscall/sys_waitid.rs:123) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/process/syscall/sys_waitid.rs:122) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_waitid.rs:119:1
+    |
+119 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+120 | |         vec![
+121 | |             FormattedSyscallParam::new("which", format!("{:#x}", Self::which(args))),
+122 | |             FormattedSyscallParam::new("upid", format!("{:#x}", Self::upid(args))),
+123 | |             FormattedSyscallParam::new("infop", format!("{:#x}", Self::infop(args) as usize)),
+124 | |             FormattedSyscallParam::new("options", format!("{:#x}", Self::options(args))),
+125 | |             FormattedSyscallParam::new("rusage", format!("{:#x}", Self::rusage(args) as usize)),
+126 | |         ]
+127 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_waitid.rs line 119.
+    | MIR detail: Value _82(_, src/process/syscall/sys_waitid.rs:124) and _57(_, src/process/syscall/sys_waitid.rs:123) are alias.
+    | MIR detail: _82(_, src/process/syscall/sys_waitid.rs:124) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _57(_, src/process/syscall/sys_waitid.rs:123) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:29725 ~ dragonos_kernel[9e38]::process::syscall::sys_waitid::{impl#1}::entry_format)

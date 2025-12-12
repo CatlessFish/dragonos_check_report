@@ -1,0 +1,49 @@
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_fsync.rs:20:1
+   |
+20 | / fn handle(
+21 | |         &self,
+22 | |         args: &[usize],
+23 | |         _frame: &mut TrapFrame,
+24 | |     ) -> Result<usize, system_error::SystemError> {
+25 | |         let fd = args[0] as i32;
+26 | |         let binding = crate::process::ProcessManager::current_pcb().fd_table();
+27 | |         let fd_table_guard = binding.read();
+28 | |         let file = fd_table_guard
+29 | |             .get_file_by_fd(fd)
+30 | |             .ok_or(system_error::SystemError::EBADF)?;
+31 | |         drop(fd_table_guard);
+32 | |         let inode = file.inode();
+33 | |         inode.sync()?;
+34 | |         Ok(0)
+35 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fsync.rs line 20.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_fsync.rs:31) and _9(binding, src/filesystem/vfs/syscall/sys_fsync.rs:26) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_fsync.rs:31) is dropped at BB13(src/filesystem/vfs/syscall/sys_fsync.rs:31); _9(binding, src/filesystem/vfs/syscall/sys_fsync.rs:26) is dropped at BB26(src/filesystem/vfs/syscall/sys_fsync.rs:35).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fsync.rs:20:1
+   |
+20 | / fn handle(
+21 | |         &self,
+22 | |         args: &[usize],
+23 | |         _frame: &mut TrapFrame,
+24 | |     ) -> Result<usize, system_error::SystemError> {
+25 | |         let fd = args[0] as i32;
+26 | |         let binding = crate::process::ProcessManager::current_pcb().fd_table();
+27 | |         let fd_table_guard = binding.read();
+28 | |         let file = fd_table_guard
+29 | |             .get_file_by_fd(fd)
+30 | |             .ok_or(system_error::SystemError::EBADF)?;
+31 | |         drop(fd_table_guard);
+32 | |         let inode = file.inode();
+33 | |         inode.sync()?;
+34 | |         Ok(0)
+35 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fsync.rs line 20.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_fsync.rs:31) and _9(binding, src/filesystem/vfs/syscall/sys_fsync.rs:26) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_fsync.rs:31) is dropped at BB13(src/filesystem/vfs/syscall/sys_fsync.rs:31); _9(binding, src/filesystem/vfs/syscall/sys_fsync.rs:26) is dropped at BB35(src/filesystem/vfs/syscall/sys_fsync.rs:35).
+   |
+render dot for DefId(0:20761 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_fsync::{impl#0}::handle)

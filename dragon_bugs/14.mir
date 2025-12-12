@@ -1,0 +1,82 @@
+bb0 at src/libs/futex/futex.rs:142:9: 144:28
+bb1 at src/libs/futex/futex.rs:143:51: 143:52
+bb2 at src/libs/futex/futex.rs:144:27: 144:28
+fn libs::futex::futex::FutexHashBucket::remove
+_0:  @ () 
+_1:  @ &'{erased} mut libs::futex::futex::FutexHashBucket 
+_2:  @ alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+_3:  @ () 
+_4:  @ alloc::collections::linked_list::ExtractIf<'{erased}, alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>, Closure(DefId(0:5416 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove::{closure#0}), [i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>,)]), alloc::alloc::Global> 
+_5:  @ &'{erased} mut alloc::collections::LinkedList<alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>, alloc::alloc::Global> 
+_6:  @ Closure(DefId(0:5416 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove::{closure#0}), [i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>,)]) 
+_7:  @ &'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &mut ((*_1).0: alloc::collections::LinkedList<alloc::sync::Arc<libs::futex::futex::FutexObj>>))) @ _5=&mut ((*_1).0: alloc::collections::LinkedList<alloc::sync::Arc<libs::futex::futex::FutexObj>>) @ Ref
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &_2)) @ _7=&_2 @ Ref
+    Assign((_6, {closure@src/libs/futex/futex.rs:143:25: 143:28} { futex: move _7 })) @ _6={closure@src/libs/futex/futex.rs:143:25: 143:28} { futex: move _7 } @ Aggregate
+    StorageDead(_7) @ StorageDead
+    _4 = alloc::collections::LinkedList::<alloc::sync::Arc<libs::futex::futex::FutexObj>>::extract_if::<{closure@src/libs/futex/futex.rs:143:25: 143:28}>(move _5, move _6) -> [return: bb1, unwind: bb4] @ Call: FnDid: 4249
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    _3 = <alloc::collections::linked_list::ExtractIf<'_, alloc::sync::Arc<libs::futex::futex::FutexObj>, {closure@src/libs/futex/futex.rs:143:25: 143:28}> as core::iter::Iterator>::for_each::<fn(alloc::sync::Arc<libs::futex::futex::FutexObj>) {core::mem::drop::<alloc::sync::Arc<libs::futex::futex::FutexObj>>}>(move _4, core::mem::drop::<alloc::sync::Arc<libs::futex::futex::FutexObj>>) -> [return: bb2, unwind: bb4] @ Call: FnDid: 9388
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_2) -> [return: bb3, unwind: bb5] @ Drop
+}
+bb 3 {
+CleanUp: false
+    return @ Return
+}
+bb 4 {
+CleanUp: true
+    drop(_2) -> [return: bb5, unwind terminate(cleanup)] @ Drop
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/libs/futex/futex.rs:143:41: 143:42
+bb1 at src/libs/futex/futex.rs:143:50: 143:51
+fn libs::futex::futex::FutexHashBucket::remove::{closure#0}
+_0:  @ bool 
+_1:  @ &'{erased} mut Closure(DefId(0:5416 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove::{closure#0}), [i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global>,)]) 
+_2:  @ &'{erased} mut alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+_3:  @ &'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+_4:  @ &'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+_5:  @ &'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+_6:  @ &'{erased} alloc::sync::Arc<libs::futex::futex::FutexObj, alloc::alloc::Global> 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &(*_2))) @ _3=&(*_2) @ Ref
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_6, deref_copy ((*_1).0: &alloc::sync::Arc<libs::futex::futex::FutexObj>))) @ _6=deref_copy ((*_1).0: &alloc::sync::Arc<libs::futex::futex::FutexObj>) @ CopyForDeref
+    Assign((_5, &(*_6))) @ _5=&(*_6) @ Ref
+    Assign((_4, &(*_5))) @ _4=&(*_5) @ Ref
+    _0 = alloc::sync::Arc::<libs::futex::futex::FutexObj>::ptr_eq(move _3, move _4) -> [return: bb1, unwind continue] @ Call: FnDid: 6953
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+

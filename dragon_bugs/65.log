@@ -1,0 +1,45 @@
+22:08:06|RAP|WARN|: Dangling pointer detected in function "remove_file"
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function "remove_file"
+warning: Dangling pointer detected.
+   --> src/filesystem/sysfs/file.rs:181:1
+    |
+181 | / pub fn remove_file(&self, kobj: &Arc<dyn KObject>, attr: &'static dyn Attribute) {
+182 | |         let parent = kobj.inode();
+183 | |
+184 | |         if let Some(parent) = parent {
+185 | |             let r = parent.remove(attr.name());
+186 | |             if unlikely(r.is_err()) {
+187 | |                 warn!(
+188 | |                     "failed to remove file '{}' from '{}'",
+189 | |                     attr.name(),
+190 | |                     kobj.name()
+191 | |                 );
+192 | |             }
+193 | |         }
+194 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/file.rs line 181.
+    | MIR detail: Value _38(_, src/filesystem/sysfs/file.rs:190) and _3(attr, src/filesystem/sysfs/file.rs:181) are alias.
+    | MIR detail: _38(_, src/filesystem/sysfs/file.rs:190) is dropped at BB22(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _3(attr, src/filesystem/sysfs/file.rs:181) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/sysfs/file.rs:181:1
+    |
+181 | / pub fn remove_file(&self, kobj: &Arc<dyn KObject>, attr: &'static dyn Attribute) {
+182 | |         let parent = kobj.inode();
+183 | |
+184 | |         if let Some(parent) = parent {
+185 | |             let r = parent.remove(attr.name());
+186 | |             if unlikely(r.is_err()) {
+187 | |                 warn!(
+188 | |                     "failed to remove file '{}' from '{}'",
+189 | |                     attr.name(),
+190 | |                     kobj.name()
+191 | |                 );
+192 | |             }
+193 | |         }
+194 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/file.rs line 181.
+    | MIR detail: Value _38(_, src/filesystem/sysfs/file.rs:190) and _3(attr, src/filesystem/sysfs/file.rs:181) are alias.
+    | MIR detail: _38(_, src/filesystem/sysfs/file.rs:190) is dropped at BB32(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _3(attr, src/filesystem/sysfs/file.rs:181) became dangling.
+    |
+render dot for DefId(0:18951 ~ dragonos_kernel[9e38]::filesystem::sysfs::file::{impl#1}::remove_file)

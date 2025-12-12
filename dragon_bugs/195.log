@@ -1,0 +1,42 @@
+22:08:19|RAP|WARN|: Use-after-free detected in function "run"
+warning: Use-after-free detected.
+   --> src/time/timer.rs:181:17
+    |
+176 | fn run(&self) {
+177 |         let mut timer = self.inner();
+178 |         timer.triggered = true;
+179 |         let func = timer.timer_func.take();
+180 |         drop(timer);
+181 |         let r = func.map(|mut f| f.run()).unwrap_or(Ok(()));
+    |                 ---- Use-after-free (confidence 99%): Location in file src/time/timer.rs line 181.
+    | MIR detail: Value _11(_, src/time/timer.rs:180) and _6(func, src/time/timer.rs:179) are alias.
+    | MIR detail: _11(_, src/time/timer.rs:180) is dropped at BB4(src/time/timer.rs:180); _6(func, src/time/timer.rs:179) is used at BB5(src/time/timer.rs:181).
+182 |         if unlikely(r.is_err()) {
+183 |             error!(
+184 |                 "Failed to run timer function: {self:?} {:?}",
+185 |                 r.as_ref().err().unwrap()
+186 |             );
+187 |         }
+188 |     }
+    |
+warning: Use-after-free detected.
+   --> src/time/timer.rs:181:17
+    |
+176 | fn run(&self) {
+177 |         let mut timer = self.inner();
+178 |         timer.triggered = true;
+179 |         let func = timer.timer_func.take();
+180 |         drop(timer);
+181 |         let r = func.map(|mut f| f.run()).unwrap_or(Ok(()));
+    |                 ------------------------- Use-after-free (confidence 99%): Location in file src/time/timer.rs line 181.
+    | MIR detail: Value _11(_, src/time/timer.rs:180) and _14(_, src/time/timer.rs:181) are alias.
+    | MIR detail: _11(_, src/time/timer.rs:180) is dropped at BB4(src/time/timer.rs:180); _14(_, src/time/timer.rs:181) is used at BB5(src/time/timer.rs:181).
+182 |         if unlikely(r.is_err()) {
+183 |             error!(
+184 |                 "Failed to run timer function: {self:?} {:?}",
+185 |                 r.as_ref().err().unwrap()
+186 |             );
+187 |         }
+188 |     }
+    |
+render dot for DefId(0:31560 ~ dragonos_kernel[9e38]::time::timer::{impl#5}::run)

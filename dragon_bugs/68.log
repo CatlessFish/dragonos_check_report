@@ -1,0 +1,25 @@
+22:08:06|RAP|WARN|: Dangling pointer detected in function "warn_duplicate"
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function "warn_duplicate"
+warning: Dangling pointer detected.
+   --> src/filesystem/sysfs/mod.rs:229:1
+    |
+229 | / pub(self) fn warn_duplicate(&self, parent: &Arc<KernFSInode>, name: &str) {
+230 | |         let path = self.kernfs_path(parent);
+231 | |         warn!("duplicate sysfs entry: {path}/{name}");
+232 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/mod.rs line 229.
+    | MIR detail: Value _4(path, src/filesystem/sysfs/mod.rs:230) and _3(name, src/filesystem/sysfs/mod.rs:229) are alias.
+    | MIR detail: _4(path, src/filesystem/sysfs/mod.rs:230) is dropped at BB15(src/filesystem/sysfs/mod.rs:232); _3(name, src/filesystem/sysfs/mod.rs:229) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/sysfs/mod.rs:229:1
+    |
+229 | / pub(self) fn warn_duplicate(&self, parent: &Arc<KernFSInode>, name: &str) {
+230 | |         let path = self.kernfs_path(parent);
+231 | |         warn!("duplicate sysfs entry: {path}/{name}");
+232 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/mod.rs line 229.
+    | MIR detail: Value _4(path, src/filesystem/sysfs/mod.rs:230) and _3(name, src/filesystem/sysfs/mod.rs:229) are alias.
+    | MIR detail: _4(path, src/filesystem/sysfs/mod.rs:230) is dropped at BB17(src/filesystem/sysfs/mod.rs:232); _3(name, src/filesystem/sysfs/mod.rs:229) became dangling.
+    |
+render dot for DefId(0:19066 ~ dragonos_kernel[9e38]::filesystem::sysfs::{impl#1}::warn_duplicate)

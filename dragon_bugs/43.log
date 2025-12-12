@@ -1,0 +1,284 @@
+22:08:04|RAP|WARN|: Use-after-free detected in function "new"
+warning: Use-after-free detected.
+   --> src/filesystem/devfs/mod.rs:97:44
+    |
+ 68 | pub fn new() -> Arc<Self> {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc<LockedDevFSInode> = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!("devfs root inode id: {:?}", root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc<DevFS> = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard<DevFSInode> = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &Arc<LockedDevFSInode> = &devfs.root_inode;
+    |                                            ----------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 97.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _18(_, src/filesystem/devfs/mod.rs:89) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _18(_, src/filesystem/devfs/mod.rs:89) is used at BB25(src/filesystem/devfs/mod.rs:98).
+ 98 |         root.add_dir("char")
+ 99 |             .expect("DevFS: Failed to create /dev/char");
+100 |
+101 |         root.add_dir("block")
+102 |             .expect("DevFS: Failed to create /dev/block");
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!("ls /dev: {:?}", root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/devfs/mod.rs:98:9
+    |
+ 68 | pub fn new() -> Arc<Self> {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc<LockedDevFSInode> = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!("devfs root inode id: {:?}", root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc<DevFS> = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard<DevFSInode> = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &Arc<LockedDevFSInode> = &devfs.root_inode;
+ 98 |         root.add_dir("char")
+    |         -------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 98.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _47(_, src/filesystem/devfs/mod.rs:98) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _47(_, src/filesystem/devfs/mod.rs:98) is used at BB26(src/filesystem/devfs/mod.rs:98).
+ 99 |             .expect("DevFS: Failed to create /dev/char");
+100 |
+101 |         root.add_dir("block")
+102 |             .expect("DevFS: Failed to create /dev/block");
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!("ls /dev: {:?}", root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/devfs/mod.rs:98:9
+    |
+ 68 | pub fn new() -> Arc<Self> {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc<LockedDevFSInode> = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!("devfs root inode id: {:?}", root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc<DevFS> = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard<DevFSInode> = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &Arc<LockedDevFSInode> = &devfs.root_inode;
+ 98 |         root.add_dir("char")
+    |         -------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 98.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _49(_, src/filesystem/devfs/mod.rs:98) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _49(_, src/filesystem/devfs/mod.rs:98) is used at BB25(src/filesystem/devfs/mod.rs:98).
+ 99 |             .expect("DevFS: Failed to create /dev/char");
+100 |
+101 |         root.add_dir("block")
+102 |             .expect("DevFS: Failed to create /dev/block");
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!("ls /dev: {:?}", root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/devfs/mod.rs:101:9
+    |
+ 68 | pub fn new() -> Arc<Self> {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc<LockedDevFSInode> = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!("devfs root inode id: {:?}", root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc<DevFS> = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard<DevFSInode> = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &Arc<LockedDevFSInode> = &devfs.root_inode;
+ 98 |         root.add_dir("char")
+ 99 |             .expect("DevFS: Failed to create /dev/char");
+100 |
+101 |         root.add_dir("block")
+    |         ---- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 101.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _14(root_guard, src/filesystem/devfs/mod.rs:89) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _14(root_guard, src/filesystem/devfs/mod.rs:89) is used at BB28(src/filesystem/devfs/mod.rs:101).
+102 |             .expect("DevFS: Failed to create /dev/block");
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!("ls /dev: {:?}", root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/devfs/mod.rs:101:9
+    |
+ 68 | pub fn new() -> Arc<Self> {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc<LockedDevFSInode> = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!("devfs root inode id: {:?}", root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc<DevFS> = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard<DevFSInode> = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &Arc<LockedDevFSInode> = &devfs.root_inode;
+ 98 |         root.add_dir("char")
+ 99 |             .expect("DevFS: Failed to create /dev/char");
+100 |
+101 |         root.add_dir("block")
+    |         --------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 101.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _58(_, src/filesystem/devfs/mod.rs:101) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _58(_, src/filesystem/devfs/mod.rs:101) is used at BB28(src/filesystem/devfs/mod.rs:101).
+102 |             .expect("DevFS: Failed to create /dev/block");
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!("ls /dev: {:?}", root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/devfs/mod.rs:101:9
+    |
+ 68 | pub fn new() -> Arc<Self> {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc<LockedDevFSInode> = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!("devfs root inode id: {:?}", root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc<DevFS> = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard<DevFSInode> = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &Arc<LockedDevFSInode> = &devfs.root_inode;
+ 98 |         root.add_dir("char")
+ 99 |             .expect("DevFS: Failed to create /dev/char");
+100 |
+101 |         root.add_dir("block")
+    |         --------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 101.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _56(_, src/filesystem/devfs/mod.rs:101) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _56(_, src/filesystem/devfs/mod.rs:101) is used at BB29(src/filesystem/devfs/mod.rs:101).
+102 |             .expect("DevFS: Failed to create /dev/block");
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!("ls /dev: {:?}", root.list());
+106 |         return devfs;
+107 |     }
+    |
+render dot for DefId(0:17111 ~ dragonos_kernel[9e38]::filesystem::devfs::{impl#1}::new)

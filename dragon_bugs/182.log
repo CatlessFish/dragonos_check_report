@@ -1,0 +1,71 @@
+22:08:17|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_prctl.rs:96:1
+    |
+ 96 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 97 | |         let option_val = args.first().copied().unwrap_or(0);
+ 98 | |         let option_str = if let Ok(option) = PrctlOption::try_from(option_val) {
+ 99 | |             format!("{:#x} ({:?})", option_val, option)
+100 | |         } else {
+101 | |             format!("{:#x}", option_val)
+102 | |         };
+103 | |
+104 | |         vec![
+105 | |             FormattedSyscallParam::new("option", option_str),
+106 | |             FormattedSyscallParam::new("arg2", format!("{:#x}", args.get(1).copied().unwrap_or(0))),
+107 | |             FormattedSyscallParam::new("arg3", format!("{:#x}", args.get(2).copied().unwrap_or(0))),
+108 | |             FormattedSyscallParam::new("arg4", format!("{:#x}", args.get(3).copied().unwrap_or(0))),
+109 | |             FormattedSyscallParam::new("arg5", format!("{:#x}", args.get(4).copied().unwrap_or(0))),
+110 | |         ]
+111 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prctl.rs line 96.
+    | MIR detail: Value _119(_, src/process/syscall/sys_prctl.rs:108) and _93(_, src/process/syscall/sys_prctl.rs:107) are alias.
+    | MIR detail: _119(_, src/process/syscall/sys_prctl.rs:108) is dropped at BB52(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _93(_, src/process/syscall/sys_prctl.rs:107) is dropped at BB53(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_prctl.rs:96:1
+    |
+ 96 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 97 | |         let option_val = args.first().copied().unwrap_or(0);
+ 98 | |         let option_str = if let Ok(option) = PrctlOption::try_from(option_val) {
+ 99 | |             format!("{:#x} ({:?})", option_val, option)
+100 | |         } else {
+101 | |             format!("{:#x}", option_val)
+102 | |         };
+103 | |
+104 | |         vec![
+105 | |             FormattedSyscallParam::new("option", option_str),
+106 | |             FormattedSyscallParam::new("arg2", format!("{:#x}", args.get(1).copied().unwrap_or(0))),
+107 | |             FormattedSyscallParam::new("arg3", format!("{:#x}", args.get(2).copied().unwrap_or(0))),
+108 | |             FormattedSyscallParam::new("arg4", format!("{:#x}", args.get(3).copied().unwrap_or(0))),
+109 | |             FormattedSyscallParam::new("arg5", format!("{:#x}", args.get(4).copied().unwrap_or(0))),
+110 | |         ]
+111 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prctl.rs line 96.
+    | MIR detail: Value _67(_, src/process/syscall/sys_prctl.rs:106) and _65(_, src/process/syscall/sys_prctl.rs:105) are alias.
+    | MIR detail: _67(_, src/process/syscall/sys_prctl.rs:106) is dropped at BB54(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _65(_, src/process/syscall/sys_prctl.rs:105) is dropped at BB55(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_prctl.rs:96:1
+    |
+ 96 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 97 | |         let option_val = args.first().copied().unwrap_or(0);
+ 98 | |         let option_str = if let Ok(option) = PrctlOption::try_from(option_val) {
+ 99 | |             format!("{:#x} ({:?})", option_val, option)
+100 | |         } else {
+101 | |             format!("{:#x}", option_val)
+102 | |         };
+103 | |
+104 | |         vec![
+105 | |             FormattedSyscallParam::new("option", option_str),
+106 | |             FormattedSyscallParam::new("arg2", format!("{:#x}", args.get(1).copied().unwrap_or(0))),
+107 | |             FormattedSyscallParam::new("arg3", format!("{:#x}", args.get(2).copied().unwrap_or(0))),
+108 | |             FormattedSyscallParam::new("arg4", format!("{:#x}", args.get(3).copied().unwrap_or(0))),
+109 | |             FormattedSyscallParam::new("arg5", format!("{:#x}", args.get(4).copied().unwrap_or(0))),
+110 | |         ]
+111 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prctl.rs line 96.
+    | MIR detail: Value _93(_, src/process/syscall/sys_prctl.rs:107) and _67(_, src/process/syscall/sys_prctl.rs:106) are alias.
+    | MIR detail: _93(_, src/process/syscall/sys_prctl.rs:107) is dropped at BB53(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _67(_, src/process/syscall/sys_prctl.rs:106) is dropped at BB54(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:29351 ~ dragonos_kernel[9e38]::process::syscall::sys_prctl::{impl#1}::entry_format)

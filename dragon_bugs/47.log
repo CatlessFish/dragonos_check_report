@@ -1,0 +1,53 @@
+22:08:04|RAP|WARN|: Double free detected in function "epoll_wait"
+warning: Double free detected.
+   --> src/filesystem/epoll/event_poll.rs:294:1
+    |
+294 | / pub fn epoll_wait(
+295 | |         epfd: i32,
+296 | |         epoll_event: &mut [EPollEvent],
+297 | |         max_events: i32,
+298 | |         timespec: Option<PosixTimeSpec>,
+299 | |     ) -> Result<usize, SystemError> {
+300 | |         let current_pcb = ProcessManager::current_pcb();
+301 | |         let fd_table = current_pcb.fd_table();
+302 | |         let fd_table_guard = fd_table.read();
+303 | |
+304 | |         // 获取epoll文件
+305 | |         let ep_file = fd_table_guard
+306 | |             .get_file_by_fd(epfd)
+307 | |             .ok_or(SystemError::EBADF)?;
+308 | |
+309 | |         drop(fd_table_guard);
+310 | |         Self::epoll_wait_with_file(ep_file, epoll_event, max_events, timespec)
+311 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 294.
+    | MIR detail: Value _29(_, src/filesystem/epoll/event_poll.rs:309) and _6(fd_table, src/filesystem/epoll/event_poll.rs:301) are alias.
+    | MIR detail: _29(_, src/filesystem/epoll/event_poll.rs:309) is dropped at BB11(src/filesystem/epoll/event_poll.rs:309); _6(fd_table, src/filesystem/epoll/event_poll.rs:301) is dropped at BB15(src/filesystem/epoll/event_poll.rs:311).
+    |
+22:08:04|RAP|WARN|: Double free detected in function "epoll_wait"
+warning: Double free detected during unwinding.
+   --> src/filesystem/epoll/event_poll.rs:294:1
+    |
+294 | / pub fn epoll_wait(
+295 | |         epfd: i32,
+296 | |         epoll_event: &mut [EPollEvent],
+297 | |         max_events: i32,
+298 | |         timespec: Option<PosixTimeSpec>,
+299 | |     ) -> Result<usize, SystemError> {
+300 | |         let current_pcb = ProcessManager::current_pcb();
+301 | |         let fd_table = current_pcb.fd_table();
+302 | |         let fd_table_guard = fd_table.read();
+303 | |
+304 | |         // 获取epoll文件
+305 | |         let ep_file = fd_table_guard
+306 | |             .get_file_by_fd(epfd)
+307 | |             .ok_or(SystemError::EBADF)?;
+308 | |
+309 | |         drop(fd_table_guard);
+310 | |         Self::epoll_wait_with_file(ep_file, epoll_event, max_events, timespec)
+311 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 294.
+    | MIR detail: Value _29(_, src/filesystem/epoll/event_poll.rs:309) and _6(fd_table, src/filesystem/epoll/event_poll.rs:301) are alias.
+    | MIR detail: _29(_, src/filesystem/epoll/event_poll.rs:309) is dropped at BB11(src/filesystem/epoll/event_poll.rs:309); _6(fd_table, src/filesystem/epoll/event_poll.rs:301) is dropped at BB22(src/filesystem/epoll/event_poll.rs:311).
+    |
+render dot for DefId(0:17300 ~ dragonos_kernel[9e38]::filesystem::epoll::event_poll::{impl#0}::epoll_wait)

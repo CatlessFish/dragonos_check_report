@@ -1,0 +1,16 @@
+22:08:12|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/mm/syscall/sys_madvise.rs:81:1
+   |
+81 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+82 | |         vec![
+83 | |             FormattedSyscallParam::new("start_vaddr", format!("{:#x}", Self::start_vaddr(args))),
+84 | |             FormattedSyscallParam::new("len", format!("{:#x}", Self::len(args))),
+85 | |             FormattedSyscallParam::new("madv_flags", format!("{:#x}", Self::madv_flags(args))),
+86 | |         ]
+87 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_madvise.rs line 81.
+    | MIR detail: Value _33(_, src/mm/syscall/sys_madvise.rs:84) and _9(_, src/mm/syscall/sys_madvise.rs:83) are alias.
+    | MIR detail: _33(_, src/mm/syscall/sys_madvise.rs:84) is dropped at BB21(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/mm/syscall/sys_madvise.rs:83) is dropped at BB22(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:24680 ~ dragonos_kernel[9e38]::mm::syscall::sys_madvise::{impl#0}::entry_format)

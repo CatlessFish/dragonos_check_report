@@ -1,0 +1,91 @@
+22:08:11|RAP|WARN|: Double free detected in function "do_kernel_pipe2"
+warning: Double free detected.
+  --> src/ipc/syscall/sys_pipe2.rs:19:1
+   |
+19 | / pub(super) fn do_kernel_pipe2(fd: *mut i32, flags: FileFlags) -> Result<usize, SystemError> {
+20 | |     if !flags
+21 | |         .difference(FileFlags::O_CLOEXEC | FileFlags::O_NONBLOCK | FileFlags::O_DIRECT)
+22 | |         .is_empty()
+23 | |     {
+24 | |         return Err(SystemError::EINVAL);
+25 | |     }
+26 | |
+27 | |     let mut user_buffer = UserBufferWriter::new(fd, core::mem::size_of::<[c_int; 2]>(), true)?;
+28 | |     let fd = user_buffer.buffer::<i32>(0)?;
+29 | |     let pipe_ptr = LockedPipeInode::new();
+30 | |
+31 | |     let read_file = File::new(
+32 | |         pipe_ptr.clone(),
+33 | |         FileFlags::O_RDONLY | (flags & FileFlags::O_NONBLOCK),
+34 | |     )?;
+35 | |
+36 | |     let write_file = File::new(
+37 | |         pipe_ptr.clone(),
+38 | |         FileFlags::O_WRONLY | (flags & (FileFlags::O_NONBLOCK | FileFlags::O_DIRECT)),
+39 | |     )?;
+40 | |
+41 | |     if flags.contains(FileFlags::O_CLOEXEC) {
+42 | |         read_file.set_close_on_exec(true);
+43 | |         write_file.set_close_on_exec(true);
+44 | |     }
+45 | |     let fd_table_ptr = ProcessManager::current_pcb().fd_table();
+46 | |     let mut fd_table_guard = fd_table_ptr.write();
+47 | |     let read_fd = fd_table_guard.alloc_fd(read_file, None)?;
+48 | |     let write_fd = fd_table_guard.alloc_fd(write_file, None)?;
+49 | |
+50 | |     drop(fd_table_guard);
+51 | |
+52 | |     fd[0] = read_fd;
+53 | |     fd[1] = write_fd;
+54 | |     Ok(0)
+55 | | }
+   | |_- Double free (confidence 99%): Location in file src/ipc/syscall/sys_pipe2.rs line 19.
+    | MIR detail: Value _104(_, src/ipc/syscall/sys_pipe2.rs:50) and _68(fd_table_ptr, src/ipc/syscall/sys_pipe2.rs:45) are alias.
+    | MIR detail: _104(_, src/ipc/syscall/sys_pipe2.rs:50) is dropped at BB58(src/ipc/syscall/sys_pipe2.rs:50); _68(fd_table_ptr, src/ipc/syscall/sys_pipe2.rs:45) is dropped at BB63(src/ipc/syscall/sys_pipe2.rs:55).
+   |
+22:08:11|RAP|WARN|: Double free detected in function "do_kernel_pipe2"
+warning: Double free detected during unwinding.
+  --> src/ipc/syscall/sys_pipe2.rs:19:1
+   |
+19 | / pub(super) fn do_kernel_pipe2(fd: *mut i32, flags: FileFlags) -> Result<usize, SystemError> {
+20 | |     if !flags
+21 | |         .difference(FileFlags::O_CLOEXEC | FileFlags::O_NONBLOCK | FileFlags::O_DIRECT)
+22 | |         .is_empty()
+23 | |     {
+24 | |         return Err(SystemError::EINVAL);
+25 | |     }
+26 | |
+27 | |     let mut user_buffer = UserBufferWriter::new(fd, core::mem::size_of::<[c_int; 2]>(), true)?;
+28 | |     let fd = user_buffer.buffer::<i32>(0)?;
+29 | |     let pipe_ptr = LockedPipeInode::new();
+30 | |
+31 | |     let read_file = File::new(
+32 | |         pipe_ptr.clone(),
+33 | |         FileFlags::O_RDONLY | (flags & FileFlags::O_NONBLOCK),
+34 | |     )?;
+35 | |
+36 | |     let write_file = File::new(
+37 | |         pipe_ptr.clone(),
+38 | |         FileFlags::O_WRONLY | (flags & (FileFlags::O_NONBLOCK | FileFlags::O_DIRECT)),
+39 | |     )?;
+40 | |
+41 | |     if flags.contains(FileFlags::O_CLOEXEC) {
+42 | |         read_file.set_close_on_exec(true);
+43 | |         write_file.set_close_on_exec(true);
+44 | |     }
+45 | |     let fd_table_ptr = ProcessManager::current_pcb().fd_table();
+46 | |     let mut fd_table_guard = fd_table_ptr.write();
+47 | |     let read_fd = fd_table_guard.alloc_fd(read_file, None)?;
+48 | |     let write_fd = fd_table_guard.alloc_fd(write_file, None)?;
+49 | |
+50 | |     drop(fd_table_guard);
+51 | |
+52 | |     fd[0] = read_fd;
+53 | |     fd[1] = write_fd;
+54 | |     Ok(0)
+55 | | }
+   | |_- Double free (confidence 99%): Location in file src/ipc/syscall/sys_pipe2.rs line 19.
+    | MIR detail: Value _104(_, src/ipc/syscall/sys_pipe2.rs:50) and _68(fd_table_ptr, src/ipc/syscall/sys_pipe2.rs:45) are alias.
+    | MIR detail: _104(_, src/ipc/syscall/sys_pipe2.rs:50) is dropped at BB58(src/ipc/syscall/sys_pipe2.rs:50); _68(fd_table_ptr, src/ipc/syscall/sys_pipe2.rs:45) is dropped at BB75(src/ipc/syscall/sys_pipe2.rs:55).
+   |
+render dot for DefId(0:22870 ~ dragonos_kernel[9e38]::ipc::syscall::sys_pipe2::do_kernel_pipe2)

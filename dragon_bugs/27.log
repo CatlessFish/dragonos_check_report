@@ -1,0 +1,262 @@
+22:07:57|RAP|WARN|: Double free detected in function "install"
+warning: Double free detected during unwinding.
+   --> src/driver/char/virtio_console.rs:504:1
+    |
+504 | / fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 | |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 | |             return Err(SystemError::ENODEV);
+507 | |         }
+508 | |
+509 | |         let dev = self.devices.read()[tty.core().index()]
+510 | |             .clone()
+511 | |             .ok_or(SystemError::ENODEV)?;
+512 | |         let info = dev.inner().device_inner.info();
+513 | |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 | |
+515 | |         *tty.core().window_size_write() = winsize;
+516 | |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 | |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 | |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 | |         vc_data_guard.init(
+520 | |             Some(tty.core().window_size().row.into()),
+521 | |             Some(tty.core().window_size().col.into()),
+522 | |             true,
+523 | |         );
+524 | |         drop(vc_data_guard);
+525 | |
+526 | |         let vc = VirtConsole::new(Some(vc_data));
+527 | |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 | |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 | |             vc_manager().free(vc_index);
+530 | |         })?;
+531 | |
+532 | |         Ok(())
+533 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 504.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _56(vc_data, src/driver/char/virtio_console.rs:516) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _56(vc_data, src/driver/char/virtio_console.rs:516) is dropped at BB99(src/driver/char/virtio_console.rs:533).
+    |
+22:07:57|RAP|WARN|: Use-after-free detected in function "install"
+warning: Use-after-free detected.
+   --> src/driver/char/virtio_console.rs:526:18
+    |
+504 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+    |                  ------------------------------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 526.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _103(_, src/driver/char/virtio_console.rs:526) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _103(_, src/driver/char/virtio_console.rs:526) is used at BB55(src/driver/char/virtio_console.rs:526).
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/char/virtio_console.rs:527:43
+    |
+504 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+    |                                           ---------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 527.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _112(_, src/driver/char/virtio_console.rs:527) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _112(_, src/driver/char/virtio_console.rs:527) is used at BB57(src/driver/char/virtio_console.rs:527).
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/char/virtio_console.rs:528:38
+    |
+504 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+    |                                      ---------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 528.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _127(_, src/driver/char/virtio_console.rs:528) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _127(_, src/driver/char/virtio_console.rs:528) is used at BB62(src/driver/char/virtio_console.rs:528).
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/char/virtio_console.rs:526:40
+    |
+504 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+    |                                        ------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 526.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _56(vc_data, src/driver/char/virtio_console.rs:516) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _56(vc_data, src/driver/char/virtio_console.rs:516) is used at BB55(src/driver/char/virtio_console.rs:526).
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/char/virtio_console.rs:526:35
+    |
+504 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+    |                                   ------------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 526.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _104(_, src/driver/char/virtio_console.rs:526) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _104(_, src/driver/char/virtio_console.rs:526) is used at BB55(src/driver/char/virtio_console.rs:526).
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/char/virtio_console.rs:527:43
+    |
+504 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+505 |         if tty.core().index() >= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+    |                                           -- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 527.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _102(vc, src/driver/char/virtio_console.rs:526) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _102(vc, src/driver/char/virtio_console.rs:526) is used at BB57(src/driver/char/virtio_console.rs:527).
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+render dot for DefId(0:9327 ~ dragonos_kernel[9e38]::driver::char::virtio_console::{impl#10}::install)

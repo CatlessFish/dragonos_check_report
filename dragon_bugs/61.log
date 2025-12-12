@@ -1,0 +1,69 @@
+22:08:06|RAP|WARN|: Double free detected in function "dynamical_find_fdinfo"
+warning: Double free detected.
+   --> src/filesystem/procfs/mod.rs:779:1
+    |
+779 | / fn dynamical_find_fdinfo(&self, fd: &str) -> Result<Arc<dyn IndexNode>, SystemError> {
+780 | |         let fd_num = fd.parse::<i32>().map_err(|_| SystemError::EINVAL)?;
+781 | |         let pcb = ProcessManager::current_pcb();
+782 | |         let fd_table = pcb.fd_table();
+783 | |         let fd_table = fd_table.read();
+784 | |         let file = fd_table.get_file_by_fd(fd_num);
+785 | |         if file.is_some() {
+786 | |             drop(fd_table);
+787 | |
+788 | |             let _ = self.unlink(&fd_num.to_string());
+789 | |             // fdinfo 文件是普通文件，不是符号链接
+790 | |             let fdinfo_file =
+791 | |                 self.create(&fd_num.to_string(), FileType::File, InodeMode::S_IRUGO)?;
+792 | |             let fdinfo_file_proc = fdinfo_file
+793 | |                 .as_any_ref()
+794 | |                 .downcast_ref::<LockedProcFSInode>()
+795 | |                 .unwrap();
+796 | |             let mut guard = fdinfo_file_proc.0.lock();
+797 | |             guard.fdata.fd = fd_num;
+798 | |             guard.fdata.ftype = ProcFileType::ProcFdInfoFile;
+799 | |             drop(guard);
+800 | |             return Ok(fdinfo_file);
+801 | |         } else {
+802 | |             return Err(SystemError::ENOENT);
+803 | |         }
+804 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/procfs/mod.rs line 779.
+    | MIR detail: Value _32(_, src/filesystem/procfs/mod.rs:786) and _15(fd_table, src/filesystem/procfs/mod.rs:782) are alias.
+    | MIR detail: _32(_, src/filesystem/procfs/mod.rs:786) is dropped at BB16(src/filesystem/procfs/mod.rs:786); _15(fd_table, src/filesystem/procfs/mod.rs:782) is dropped at BB43(src/filesystem/procfs/mod.rs:804).
+    |
+22:08:06|RAP|WARN|: Double free detected in function "dynamical_find_fdinfo"
+warning: Double free detected during unwinding.
+   --> src/filesystem/procfs/mod.rs:779:1
+    |
+779 | / fn dynamical_find_fdinfo(&self, fd: &str) -> Result<Arc<dyn IndexNode>, SystemError> {
+780 | |         let fd_num = fd.parse::<i32>().map_err(|_| SystemError::EINVAL)?;
+781 | |         let pcb = ProcessManager::current_pcb();
+782 | |         let fd_table = pcb.fd_table();
+783 | |         let fd_table = fd_table.read();
+784 | |         let file = fd_table.get_file_by_fd(fd_num);
+785 | |         if file.is_some() {
+786 | |             drop(fd_table);
+787 | |
+788 | |             let _ = self.unlink(&fd_num.to_string());
+789 | |             // fdinfo 文件是普通文件，不是符号链接
+790 | |             let fdinfo_file =
+791 | |                 self.create(&fd_num.to_string(), FileType::File, InodeMode::S_IRUGO)?;
+792 | |             let fdinfo_file_proc = fdinfo_file
+793 | |                 .as_any_ref()
+794 | |                 .downcast_ref::<LockedProcFSInode>()
+795 | |                 .unwrap();
+796 | |             let mut guard = fdinfo_file_proc.0.lock();
+797 | |             guard.fdata.fd = fd_num;
+798 | |             guard.fdata.ftype = ProcFileType::ProcFdInfoFile;
+799 | |             drop(guard);
+800 | |             return Ok(fdinfo_file);
+801 | |         } else {
+802 | |             return Err(SystemError::ENOENT);
+803 | |         }
+804 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/procfs/mod.rs line 779.
+    | MIR detail: Value _32(_, src/filesystem/procfs/mod.rs:786) and _15(fd_table, src/filesystem/procfs/mod.rs:782) are alias.
+    | MIR detail: _32(_, src/filesystem/procfs/mod.rs:786) is dropped at BB16(src/filesystem/procfs/mod.rs:786); _15(fd_table, src/filesystem/procfs/mod.rs:782) is dropped at BB51(src/filesystem/procfs/mod.rs:804).
+    |
+render dot for DefId(0:18738 ~ dragonos_kernel[9e38]::filesystem::procfs::{impl#8}::dynamical_find_fdinfo)

@@ -1,0 +1,50 @@
+22:08:12|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/mm/syscall/sys_get_mempolicy.rs:91:1
+   |
+91 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+92 | |         vec![
+93 | |             FormattedSyscallParam::new("policy", format!("{:#x}", Self::policy(args))),
+94 | |             FormattedSyscallParam::new("nmask", format!("{:#x}", Self::nmask(args))),
+95 | |             FormattedSyscallParam::new("maxnode", format!("{}", Self::maxnode(args))),
+96 | |             FormattedSyscallParam::new("addr", format!("{:#x}", Self::addr(args))),
+97 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+98 | |         ]
+99 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_get_mempolicy.rs line 91.
+    | MIR detail: Value _33(_, src/mm/syscall/sys_get_mempolicy.rs:94) and _9(_, src/mm/syscall/sys_get_mempolicy.rs:93) are alias.
+    | MIR detail: _33(_, src/mm/syscall/sys_get_mempolicy.rs:94) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/mm/syscall/sys_get_mempolicy.rs:93) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/mm/syscall/sys_get_mempolicy.rs:91:1
+   |
+91 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+92 | |         vec![
+93 | |             FormattedSyscallParam::new("policy", format!("{:#x}", Self::policy(args))),
+94 | |             FormattedSyscallParam::new("nmask", format!("{:#x}", Self::nmask(args))),
+95 | |             FormattedSyscallParam::new("maxnode", format!("{}", Self::maxnode(args))),
+96 | |             FormattedSyscallParam::new("addr", format!("{:#x}", Self::addr(args))),
+97 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+98 | |         ]
+99 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_get_mempolicy.rs line 91.
+    | MIR detail: Value _57(_, src/mm/syscall/sys_get_mempolicy.rs:95) and _33(_, src/mm/syscall/sys_get_mempolicy.rs:94) are alias.
+    | MIR detail: _57(_, src/mm/syscall/sys_get_mempolicy.rs:95) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/mm/syscall/sys_get_mempolicy.rs:94) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/mm/syscall/sys_get_mempolicy.rs:91:1
+   |
+91 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+92 | |         vec![
+93 | |             FormattedSyscallParam::new("policy", format!("{:#x}", Self::policy(args))),
+94 | |             FormattedSyscallParam::new("nmask", format!("{:#x}", Self::nmask(args))),
+95 | |             FormattedSyscallParam::new("maxnode", format!("{}", Self::maxnode(args))),
+96 | |             FormattedSyscallParam::new("addr", format!("{:#x}", Self::addr(args))),
+97 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+98 | |         ]
+99 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_get_mempolicy.rs line 91.
+    | MIR detail: Value _72(_, src/mm/syscall/sys_get_mempolicy.rs:96) and _57(_, src/mm/syscall/sys_get_mempolicy.rs:95) are alias.
+    | MIR detail: _72(_, src/mm/syscall/sys_get_mempolicy.rs:96) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _57(_, src/mm/syscall/sys_get_mempolicy.rs:95) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:24641 ~ dragonos_kernel[9e38]::mm::syscall::sys_get_mempolicy::{impl#0}::entry_format)

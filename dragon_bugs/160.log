@@ -1,0 +1,448 @@
+22:08:12|RAP|WARN|: Double free detected in function "try_clone"
+warning: Double free detected during unwinding.
+   --> src/mm/ucontext.rs:181:1
+    |
+181 | / pub fn try_clone(&mut self) -> Result<Arc<AddressSpace>, SystemError> {
+182 | |         let irq_guard = unsafe { CurrentIrqArch::save_and_disable_irq() };
+183 | |         let new_addr_space = AddressSpace::new(false)?;
+184 | |         let mut new_guard = new_addr_space.write();
+185 | |
+186 | |         // 仅拷贝用户栈的结构体信息（元数据），实际的用户栈页面内容会在下面的 VMA 循环中处理
+187 | |         unsafe {
+188 | |             new_guard.user_stack = Some(self.user_stack.as_ref().unwrap().clone_info_only());
+189 | |         }
+190 | |
+191 | |         // 拷贝空洞
+192 | |         new_guard.mappings.vm_holes = self.mappings.vm_holes.clone();
+193 | |
+194 | |         // 拷贝其他地址空间属性
+195 | |         new_guard.brk = self.brk;
+196 | |         new_guard.brk_start = self.brk_start;
+197 | |         new_guard.mmap_min = self.mmap_min;
+198 | |         new_guard.elf_brk = self.elf_brk;
+199 | |         new_guard.elf_brk_start = self.elf_brk_start;
+200 | |         new_guard.start_code = self.start_code;
+201 | |         new_guard.end_code = self.end_code;
+202 | |         new_guard.start_data = self.start_data;
+203 | |         new_guard.end_data = self.end_data;
+204 | |
+205 | |         // 遍历父进程的每个VMA，根据VMA属性进行适当的复制
+206 | |         // 参考 Linux: https://code.dragonos.org.cn/xref/linux-6.6.21/mm/memory.c#copy_page_range
+207 | |         for vma in self.mappings.vmas.iter() {
+208 | |             let vma_guard = vma.lock_irqsave();
+209 | |
+210 | |             // VM_DONTCOPY: 跳过不复制的VMA (例如 MADV_DONTFORK 标记的)
+211 | |             if vma_guard.vm_flags().contains(VmFlags::VM_DONTCOPY) {
+212 | |                 drop(vma_guard);
+213 | |                 continue;
+214 | |             }
+215 | |
+216 | |             let vm_flags = vma_guard.vm_flags();
+217 | |             let is_shared = vm_flags.contains(VmFlags::VM_SHARED);
+218 | |             let region = *vma_guard.region();
+219 | |             let page_flags = vma_guard.flags();
+220 | |
+221 | |             // 创建新的VMA
+222 | |             let new_vma = LockedVMA::new(vma_guard.clone_info_only());
+223 | |             new_guard.mappings.vmas.insert(new_vma.clone());
+224 | |
+225 | |             // 根据VMA类型进行不同的页面复制策略
+226 | |             let start_page = region.start();
+227 | |             let end_page = region.end();
+228 | |             let mut current_page = start_page;
+229 | |
+230 | |             let old_mapper = &mut self.user_mapper.utable;
+231 | |             let new_mapper = &mut new_guard.user_mapper.utable;
+232 | |             let mut page_manager_guard = page_manager_lock_irqsave();
+233 | |
+234 | |             while current_page < end_page {
+235 | |                 if let Some((phys_addr, old_flags)) = old_mapper.translate(current_page) {
+236 | |                     unsafe {
+237 | |                         if is_shared {
+238 | |                             // 共享映射：直接映射到相同的物理页，不使用COW
+239 | |                             // 保持原有的flags
+240 | |                             if new_mapper
+241 | |                                 .map_phys(current_page, phys_addr, page_flags)
+242 | |                                 .is_none()
+243 | |                             {
+244 | |                                 warn!("Failed to map shared page at {:?} to phys {:?} in child process (current_pid: {:?})",
+245 | |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+246 | |                             }
+247 | |                         } else {
+248 | |                             // 私有映射：使用COW机制
+249 | |                             // 将父进程和子进程的页表项都设置为只读
+250 | |                             let cow_flags = page_flags.set_write(false);
+251 | |
+252 | |                             // 更新父进程的页表项为只读
+253 | |                             if old_flags.has_write() {
+254 | |                                 if let Some(flush) = old_mapper.remap(current_page, cow_flags) {
+255 | |                                     flush.flush();
+256 | |                                 }
+257 | |                             }
+258 | |
+259 | |                             // 子进程也映射为只读
+260 | |                             if new_mapper
+261 | |                                 .map_phys(current_page, phys_addr, cow_flags)
+262 | |                                 .is_none()
+263 | |                             {
+264 | |                                 warn!("Failed to map COW page at {:?} to phys {:?} in child process (current_pid: {:?})",
+265 | |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+266 | |                             }
+267 | |                         }
+268 | |                         // 为新进程的VMA添加反向映射
+269 | |                         if let Some(page) = page_manager_guard.get(&phys_addr) {
+270 | |                             page.write_irqsave().insert_vma(new_vma.clone());
+271 | |                         }
+272 | |                     }
+273 | |                 }
+274 | |                 current_page = VirtAddr::new(current_page.data() + MMArch::PAGE_SIZE);
+275 | |             }
+276 | |             drop(page_manager_guard);
+277 | |
+278 | |             drop(vma_guard);
+279 | |         }
+280 | |
+281 | |         drop(new_guard);
+282 | |         drop(irq_guard);
+283 | |         return Ok(new_addr_space);
+284 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/ucontext.rs line 181.
+    | MIR detail: Value _278(_, src/mm/ucontext.rs:281) and _4(new_addr_space, src/mm/ucontext.rs:183) are alias.
+    | MIR detail: _278(_, src/mm/ucontext.rs:281) is dropped at BB33(src/mm/ucontext.rs:281); _4(new_addr_space, src/mm/ucontext.rs:183) is dropped at BB159(src/mm/ucontext.rs:284).
+    |
+22:08:12|RAP|WARN|: Use-after-free detected in function "try_clone"
+warning: Use-after-free detected.
+   --> src/mm/ucontext.rs:283:16
+    |
+181 | pub fn try_clone(&mut self) -> Result<Arc<AddressSpace>, SystemError> {
+182 |         let irq_guard = unsafe { CurrentIrqArch::save_and_disable_irq() };
+183 |         let new_addr_space = AddressSpace::new(false)?;
+184 |         let mut new_guard = new_addr_space.write();
+185 |
+186 |         // 仅拷贝用户栈的结构体信息（元数据），实际的用户栈页面内容会在下面的 VMA 循环中处理
+187 |         unsafe {
+188 |             new_guard.user_stack = Some(self.user_stack.as_ref().unwrap().clone_info_only());
+189 |         }
+190 |
+191 |         // 拷贝空洞
+192 |         new_guard.mappings.vm_holes = self.mappings.vm_holes.clone();
+193 |
+194 |         // 拷贝其他地址空间属性
+195 |         new_guard.brk = self.brk;
+196 |         new_guard.brk_start = self.brk_start;
+197 |         new_guard.mmap_min = self.mmap_min;
+198 |         new_guard.elf_brk = self.elf_brk;
+199 |         new_guard.elf_brk_start = self.elf_brk_start;
+200 |         new_guard.start_code = self.start_code;
+201 |         new_guard.end_code = self.end_code;
+202 |         new_guard.start_data = self.start_data;
+203 |         new_guard.end_data = self.end_data;
+204 |
+205 |         // 遍历父进程的每个VMA，根据VMA属性进行适当的复制
+206 |         // 参考 Linux: https://code.dragonos.org.cn/xref/linux-6.6.21/mm/memory.c#copy_page_range
+207 |         for vma in self.mappings.vmas.iter() {
+208 |             let vma_guard = vma.lock_irqsave();
+209 |
+210 |             // VM_DONTCOPY: 跳过不复制的VMA (例如 MADV_DONTFORK 标记的)
+211 |             if vma_guard.vm_flags().contains(VmFlags::VM_DONTCOPY) {
+212 |                 drop(vma_guard);
+213 |                 continue;
+214 |             }
+215 |
+216 |             let vm_flags = vma_guard.vm_flags();
+217 |             let is_shared = vm_flags.contains(VmFlags::VM_SHARED);
+218 |             let region = *vma_guard.region();
+219 |             let page_flags = vma_guard.flags();
+220 |
+221 |             // 创建新的VMA
+222 |             let new_vma = LockedVMA::new(vma_guard.clone_info_only());
+223 |             new_guard.mappings.vmas.insert(new_vma.clone());
+224 |
+225 |             // 根据VMA类型进行不同的页面复制策略
+226 |             let start_page = region.start();
+227 |             let end_page = region.end();
+228 |             let mut current_page = start_page;
+229 |
+230 |             let old_mapper = &mut self.user_mapper.utable;
+231 |             let new_mapper = &mut new_guard.user_mapper.utable;
+232 |             let mut page_manager_guard = page_manager_lock_irqsave();
+233 |
+234 |             while current_page < end_page {
+235 |                 if let Some((phys_addr, old_flags)) = old_mapper.translate(current_page) {
+236 |                     unsafe {
+237 |                         if is_shared {
+238 |                             // 共享映射：直接映射到相同的物理页，不使用COW
+239 |                             // 保持原有的flags
+240 |                             if new_mapper
+241 |                                 .map_phys(current_page, phys_addr, page_flags)
+242 |                                 .is_none()
+243 |                             {
+244 |                                 warn!("Failed to map shared page at {:?} to phys {:?} in child process (current_pid: {:?})",
+245 |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+246 |                             }
+247 |                         } else {
+248 |                             // 私有映射：使用COW机制
+249 |                             // 将父进程和子进程的页表项都设置为只读
+250 |                             let cow_flags = page_flags.set_write(false);
+251 |
+252 |                             // 更新父进程的页表项为只读
+253 |                             if old_flags.has_write() {
+254 |                                 if let Some(flush) = old_mapper.remap(current_page, cow_flags) {
+255 |                                     flush.flush();
+256 |                                 }
+257 |                             }
+258 |
+259 |                             // 子进程也映射为只读
+260 |                             if new_mapper
+261 |                                 .map_phys(current_page, phys_addr, cow_flags)
+262 |                                 .is_none()
+263 |                             {
+264 |                                 warn!("Failed to map COW page at {:?} to phys {:?} in child process (current_pid: {:?})",
+265 |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+266 |                             }
+267 |                         }
+268 |                         // 为新进程的VMA添加反向映射
+269 |                         if let Some(page) = page_manager_guard.get(&phys_addr) {
+270 |                             page.write_irqsave().insert_vma(new_vma.clone());
+271 |                         }
+272 |                     }
+273 |                 }
+274 |                 current_page = VirtAddr::new(current_page.data() + MMArch::PAGE_SIZE);
+275 |             }
+276 |             drop(page_manager_guard);
+277 |
+278 |             drop(vma_guard);
+279 |         }
+280 |
+281 |         drop(new_guard);
+282 |         drop(irq_guard);
+283 |         return Ok(new_addr_space);
+    |                ------------------ Use-after-free (confidence 99%): Location in file src/mm/ucontext.rs line 283.
+    | MIR detail: Value _278(_, src/mm/ucontext.rs:281) and _281(_, src/mm/ucontext.rs:283) are alias.
+    | MIR detail: _278(_, src/mm/ucontext.rs:281) is dropped at BB33(src/mm/ucontext.rs:281); _281(_, src/mm/ucontext.rs:283) is used at BB149(src/mm/ucontext.rs:284).
+284 |     }
+    |
+22:08:12|RAP|WARN|: Dangling pointer detected in function "try_clone"
+warning: Use-after-free detected.
+   --> src/mm/ucontext.rs:283:19
+    |
+181 | pub fn try_clone(&mut self) -> Result<Arc<AddressSpace>, SystemError> {
+182 |         let irq_guard = unsafe { CurrentIrqArch::save_and_disable_irq() };
+183 |         let new_addr_space = AddressSpace::new(false)?;
+184 |         let mut new_guard = new_addr_space.write();
+185 |
+186 |         // 仅拷贝用户栈的结构体信息（元数据），实际的用户栈页面内容会在下面的 VMA 循环中处理
+187 |         unsafe {
+188 |             new_guard.user_stack = Some(self.user_stack.as_ref().unwrap().clone_info_only());
+189 |         }
+190 |
+191 |         // 拷贝空洞
+192 |         new_guard.mappings.vm_holes = self.mappings.vm_holes.clone();
+193 |
+194 |         // 拷贝其他地址空间属性
+195 |         new_guard.brk = self.brk;
+196 |         new_guard.brk_start = self.brk_start;
+197 |         new_guard.mmap_min = self.mmap_min;
+198 |         new_guard.elf_brk = self.elf_brk;
+199 |         new_guard.elf_brk_start = self.elf_brk_start;
+200 |         new_guard.start_code = self.start_code;
+201 |         new_guard.end_code = self.end_code;
+202 |         new_guard.start_data = self.start_data;
+203 |         new_guard.end_data = self.end_data;
+204 |
+205 |         // 遍历父进程的每个VMA，根据VMA属性进行适当的复制
+206 |         // 参考 Linux: https://code.dragonos.org.cn/xref/linux-6.6.21/mm/memory.c#copy_page_range
+207 |         for vma in self.mappings.vmas.iter() {
+208 |             let vma_guard = vma.lock_irqsave();
+209 |
+210 |             // VM_DONTCOPY: 跳过不复制的VMA (例如 MADV_DONTFORK 标记的)
+211 |             if vma_guard.vm_flags().contains(VmFlags::VM_DONTCOPY) {
+212 |                 drop(vma_guard);
+213 |                 continue;
+214 |             }
+215 |
+216 |             let vm_flags = vma_guard.vm_flags();
+217 |             let is_shared = vm_flags.contains(VmFlags::VM_SHARED);
+218 |             let region = *vma_guard.region();
+219 |             let page_flags = vma_guard.flags();
+220 |
+221 |             // 创建新的VMA
+222 |             let new_vma = LockedVMA::new(vma_guard.clone_info_only());
+223 |             new_guard.mappings.vmas.insert(new_vma.clone());
+224 |
+225 |             // 根据VMA类型进行不同的页面复制策略
+226 |             let start_page = region.start();
+227 |             let end_page = region.end();
+228 |             let mut current_page = start_page;
+229 |
+230 |             let old_mapper = &mut self.user_mapper.utable;
+231 |             let new_mapper = &mut new_guard.user_mapper.utable;
+232 |             let mut page_manager_guard = page_manager_lock_irqsave();
+233 |
+234 |             while current_page < end_page {
+235 |                 if let Some((phys_addr, old_flags)) = old_mapper.translate(current_page) {
+236 |                     unsafe {
+237 |                         if is_shared {
+238 |                             // 共享映射：直接映射到相同的物理页，不使用COW
+239 |                             // 保持原有的flags
+240 |                             if new_mapper
+241 |                                 .map_phys(current_page, phys_addr, page_flags)
+242 |                                 .is_none()
+243 |                             {
+244 |                                 warn!("Failed to map shared page at {:?} to phys {:?} in child process (current_pid: {:?})",
+245 |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+246 |                             }
+247 |                         } else {
+248 |                             // 私有映射：使用COW机制
+249 |                             // 将父进程和子进程的页表项都设置为只读
+250 |                             let cow_flags = page_flags.set_write(false);
+251 |
+252 |                             // 更新父进程的页表项为只读
+253 |                             if old_flags.has_write() {
+254 |                                 if let Some(flush) = old_mapper.remap(current_page, cow_flags) {
+255 |                                     flush.flush();
+256 |                                 }
+257 |                             }
+258 |
+259 |                             // 子进程也映射为只读
+260 |                             if new_mapper
+261 |                                 .map_phys(current_page, phys_addr, cow_flags)
+262 |                                 .is_none()
+263 |                             {
+264 |                                 warn!("Failed to map COW page at {:?} to phys {:?} in child process (current_pid: {:?})",
+265 |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+266 |                             }
+267 |                         }
+268 |                         // 为新进程的VMA添加反向映射
+269 |                         if let Some(page) = page_manager_guard.get(&phys_addr) {
+270 |                             page.write_irqsave().insert_vma(new_vma.clone());
+271 |                         }
+272 |                     }
+273 |                 }
+274 |                 current_page = VirtAddr::new(current_page.data() + MMArch::PAGE_SIZE);
+275 |             }
+276 |             drop(page_manager_guard);
+277 |
+278 |             drop(vma_guard);
+279 |         }
+280 |
+281 |         drop(new_guard);
+282 |         drop(irq_guard);
+283 |         return Ok(new_addr_space);
+    |                   -------------- Use-after-free (confidence 99%): Location in file src/mm/ucontext.rs line 283.
+    | MIR detail: Value _278(_, src/mm/ucontext.rs:281) and _4(new_addr_space, src/mm/ucontext.rs:183) are alias.
+    | MIR detail: _278(_, src/mm/ucontext.rs:281) is dropped at BB33(src/mm/ucontext.rs:281); _4(new_addr_space, src/mm/ucontext.rs:183) is used at BB149(src/mm/ucontext.rs:284).
+284 |     }
+    |
+warning: Dangling pointer detected.
+   --> src/mm/ucontext.rs:181:1
+    |
+181 | / pub fn try_clone(&mut self) -> Result<Arc<AddressSpace>, SystemError> {
+182 | |         let irq_guard = unsafe { CurrentIrqArch::save_and_disable_irq() };
+183 | |         let new_addr_space = AddressSpace::new(false)?;
+184 | |         let mut new_guard = new_addr_space.write();
+185 | |
+186 | |         // 仅拷贝用户栈的结构体信息（元数据），实际的用户栈页面内容会在下面的 VMA 循环中处理
+187 | |         unsafe {
+188 | |             new_guard.user_stack = Some(self.user_stack.as_ref().unwrap().clone_info_only());
+189 | |         }
+190 | |
+191 | |         // 拷贝空洞
+192 | |         new_guard.mappings.vm_holes = self.mappings.vm_holes.clone();
+193 | |
+194 | |         // 拷贝其他地址空间属性
+195 | |         new_guard.brk = self.brk;
+196 | |         new_guard.brk_start = self.brk_start;
+197 | |         new_guard.mmap_min = self.mmap_min;
+198 | |         new_guard.elf_brk = self.elf_brk;
+199 | |         new_guard.elf_brk_start = self.elf_brk_start;
+200 | |         new_guard.start_code = self.start_code;
+201 | |         new_guard.end_code = self.end_code;
+202 | |         new_guard.start_data = self.start_data;
+203 | |         new_guard.end_data = self.end_data;
+204 | |
+205 | |         // 遍历父进程的每个VMA，根据VMA属性进行适当的复制
+206 | |         // 参考 Linux: https://code.dragonos.org.cn/xref/linux-6.6.21/mm/memory.c#copy_page_range
+207 | |         for vma in self.mappings.vmas.iter() {
+208 | |             let vma_guard = vma.lock_irqsave();
+209 | |
+210 | |             // VM_DONTCOPY: 跳过不复制的VMA (例如 MADV_DONTFORK 标记的)
+211 | |             if vma_guard.vm_flags().contains(VmFlags::VM_DONTCOPY) {
+212 | |                 drop(vma_guard);
+213 | |                 continue;
+214 | |             }
+215 | |
+216 | |             let vm_flags = vma_guard.vm_flags();
+217 | |             let is_shared = vm_flags.contains(VmFlags::VM_SHARED);
+218 | |             let region = *vma_guard.region();
+219 | |             let page_flags = vma_guard.flags();
+220 | |
+221 | |             // 创建新的VMA
+222 | |             let new_vma = LockedVMA::new(vma_guard.clone_info_only());
+223 | |             new_guard.mappings.vmas.insert(new_vma.clone());
+224 | |
+225 | |             // 根据VMA类型进行不同的页面复制策略
+226 | |             let start_page = region.start();
+227 | |             let end_page = region.end();
+228 | |             let mut current_page = start_page;
+229 | |
+230 | |             let old_mapper = &mut self.user_mapper.utable;
+231 | |             let new_mapper = &mut new_guard.user_mapper.utable;
+232 | |             let mut page_manager_guard = page_manager_lock_irqsave();
+233 | |
+234 | |             while current_page < end_page {
+235 | |                 if let Some((phys_addr, old_flags)) = old_mapper.translate(current_page) {
+236 | |                     unsafe {
+237 | |                         if is_shared {
+238 | |                             // 共享映射：直接映射到相同的物理页，不使用COW
+239 | |                             // 保持原有的flags
+240 | |                             if new_mapper
+241 | |                                 .map_phys(current_page, phys_addr, page_flags)
+242 | |                                 .is_none()
+243 | |                             {
+244 | |                                 warn!("Failed to map shared page at {:?} to phys {:?} in child process (current_pid: {:?})",
+245 | |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+246 | |                             }
+247 | |                         } else {
+248 | |                             // 私有映射：使用COW机制
+249 | |                             // 将父进程和子进程的页表项都设置为只读
+250 | |                             let cow_flags = page_flags.set_write(false);
+251 | |
+252 | |                             // 更新父进程的页表项为只读
+253 | |                             if old_flags.has_write() {
+254 | |                                 if let Some(flush) = old_mapper.remap(current_page, cow_flags) {
+255 | |                                     flush.flush();
+256 | |                                 }
+257 | |                             }
+258 | |
+259 | |                             // 子进程也映射为只读
+260 | |                             if new_mapper
+261 | |                                 .map_phys(current_page, phys_addr, cow_flags)
+262 | |                                 .is_none()
+263 | |                             {
+264 | |                                 warn!("Failed to map COW page at {:?} to phys {:?} in child process (current_pid: {:?})",
+265 | |                                       current_page, phys_addr, ProcessManager::current_pcb().raw_pid());
+266 | |                             }
+267 | |                         }
+268 | |                         // 为新进程的VMA添加反向映射
+269 | |                         if let Some(page) = page_manager_guard.get(&phys_addr) {
+270 | |                             page.write_irqsave().insert_vma(new_vma.clone());
+271 | |                         }
+272 | |                     }
+273 | |                 }
+274 | |                 current_page = VirtAddr::new(current_page.data() + MMArch::PAGE_SIZE);
+275 | |             }
+276 | |             drop(page_manager_guard);
+277 | |
+278 | |             drop(vma_guard);
+279 | |         }
+280 | |
+281 | |         drop(new_guard);
+282 | |         drop(irq_guard);
+283 | |         return Ok(new_addr_space);
+284 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/mm/ucontext.rs line 181.
+    | MIR detail: Value _278(_, src/mm/ucontext.rs:281) and _0(_, src/mm/ucontext.rs:181) are alias.
+    | MIR detail: _278(_, src/mm/ucontext.rs:281) is dropped at BB33(src/mm/ucontext.rs:281); _0(_, src/mm/ucontext.rs:181) became dangling.
+    |
+render dot for DefId(0:25070 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::try_clone)

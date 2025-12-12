@@ -1,0 +1,32 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_epoll_wait.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("epfd", format!("{:#x}", Self::epfd(args) as usize)),
+31 | |             FormattedSyscallParam::new("events", format!("{:#x}", Self::events(args).data())),
+32 | |             FormattedSyscallParam::new("max_events", format!("{:#x}", Self::max_events(args))),
+33 | |             FormattedSyscallParam::new("timeout", format!("{:#x}", Self::timeout(args))),
+34 | |         ]
+35 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_epoll_wait.rs line 28.
+    | MIR detail: Value _60(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:32) and _34(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:31) are alias.
+    | MIR detail: _60(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:32) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _34(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:31) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_epoll_wait.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("epfd", format!("{:#x}", Self::epfd(args) as usize)),
+31 | |             FormattedSyscallParam::new("events", format!("{:#x}", Self::events(args).data())),
+32 | |             FormattedSyscallParam::new("max_events", format!("{:#x}", Self::max_events(args))),
+33 | |             FormattedSyscallParam::new("timeout", format!("{:#x}", Self::timeout(args))),
+34 | |         ]
+35 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_epoll_wait.rs line 28.
+    | MIR detail: Value _60(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:32) and _9(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:30) are alias.
+    | MIR detail: _60(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:32) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_epoll_wait.rs:30) is dropped at BB30(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:21022 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_epoll_wait::{impl#0}::entry_format)

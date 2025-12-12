@@ -1,0 +1,85 @@
+22:08:06|RAP|WARN|: Double free detected in function "create_with_data"
+warning: Double free detected during unwinding.
+    --> src/filesystem/procfs/mod.rs:1061:1
+     |
+1061 | / fn create_with_data(
+1062 | |         &self,
+1063 | |         name: &str,
+1064 | |         file_type: FileType,
+1065 | |         mode: InodeMode,
+1066 | |         data: usize,
+1067 | |     ) -> Result<Arc<dyn IndexNode>, SystemError> {
+1068 | |         // 获取当前inode
+1069 | |         let mut inode = self.0.lock();
+1070 | |         // 如果当前inode不是文件夹，则返回
+1071 | |         if inode.metadata.file_type != FileType::Dir {
+1072 | |             return Err(SystemError::ENOTDIR);
+1073 | |         }
+1074 | |         let dname = DName::from(name);
+1075 | |         // 如果有重名的，则返回
+1076 | |         if inode.children.contains_key(&dname) {
+1077 | |             return Err(SystemError::EEXIST);
+1078 | |         }
+1079 | |
+1080 | |         // 创建inode
+1081 | |         let result: Arc<LockedProcFSInode> =
+1082 | |             Arc::new(LockedProcFSInode(SpinLock::new(ProcFSInode {
+1083 | |                 parent: inode.self_ref.clone(),
+1084 | |                 self_ref: Weak::default(),
+1085 | |                 children: BTreeMap::new(),
+1086 | |                 data: Vec::new(),
+1087 | |                 metadata: Metadata {
+1088 | |                     dev_id: 0,
+1089 | |                     inode_id: generate_inode_id(),
+1090 | |                     size: 0,
+1091 | |                     blk_size: 0,
+1092 | |                     blocks: 0,
+1093 | |                     atime: PosixTimeSpec::default(),
+1094 | |                     mtime: PosixTimeSpec::default(),
+1095 | |                     ctime: PosixTimeSpec::default(),
+1096 | |                     btime: PosixTimeSpec::default(),
+1097 | |                     file_type,
+1098 | |                     mode,
+1099 | |                     flags: InodeFlags::empty(),
+1100 | |                     nlinks: 1,
+1101 | |                     uid: 0,
+1102 | |                     gid: 0,
+1103 | |                     raw_dev: DeviceNumber::from(data as u32),
+1104 | |                 },
+1105 | |                 fs: inode.fs.clone(),
+1106 | |                 fdata: InodeInfo {
+1107 | |                     pid: None,
+1108 | |                     ftype: ProcFileType::Default,
+1109 | |                     fd: -1,
+1110 | |                     target_inode: None,
+1111 | |                 },
+1112 | |                 dname: dname.clone(),
+1113 | |             })));
+1114 | |
+1115 | |         {
+1116 | |             // 初始化子 inode 自引用 weak 指针，并在必要时为
+1117 | |             // /proc/thread-self/ns/* 节点预先设置正确的 ftype，避免并发下
+1118 | |             // 其他线程在 children.map 可见但 ftype 仍为 Default 的中间态。
+1119 | |             let mut child_guard = result.0.lock();
+1120 | |             child_guard.self_ref = Arc::downgrade(&result);
+1121 | |
+1122 | |             // Special case: creating entries under /proc/thread-self/ns
+1123 | |             if let ProcFileType::ProcThreadSelfNsRoot = inode.fdata.ftype {
+1124 | |                 if let FileType::File = file_type {
+1125 | |                     // 名称必须是合法的 namespace 名称，否则直接返回错误并“回滚”创建。
+1126 | |                     let ns_type = ThreadSelfNsFileType::try_from(name)?;
+1127 | |                     child_guard.fdata.ftype = ProcFileType::ProcThreadSelfNsChild(ns_type);
+1128 | |                 }
+1129 | |             }
+1130 | |         }
+1131 | |
+1132 | |         // 将子inode插入父inode的B树中
+1133 | |         inode.children.insert(dname, result.clone());
+1134 | |
+1135 | |         return Ok(result);
+1136 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/procfs/mod.rs line 1061.
+    | MIR detail: Value _67(_, src/filesystem/procfs/mod.rs:1120) and _65(_, src/filesystem/procfs/mod.rs:1119) are alias.
+    | MIR detail: _67(_, src/filesystem/procfs/mod.rs:1120) is dropped at BB73(src/filesystem/procfs/mod.rs:1120); _65(_, src/filesystem/procfs/mod.rs:1119) is dropped at BB58(src/filesystem/procfs/mod.rs:1136).
+     |
+render dot for DefId(0:18755 ~ dragonos_kernel[9e38]::filesystem::procfs::{impl#9}::create_with_data)

@@ -1,0 +1,53 @@
+22:07:58|RAP|WARN|: Double free detected in function "e1000e_driver_init"
+22:07:58|RAP|WARN|: Double free detected in function "e1000e_driver_init"
+warning: Double free detected.
+   --> src/driver/net/e1000e/e1000e_driver.rs:417:1
+    |
+417 | / pub fn e1000e_driver_init(device: E1000EDevice) {
+418 | |     let mac = smoltcp::wire::EthernetAddress::from_bytes(&device.mac_address());
+419 | |     let driver = E1000EDriver::new(device);
+420 | |     let iface = E1000EInterface::new(driver);
+421 | |     // 标识网络设备已经启动
+422 | |     iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+423 | |
+424 | |     // 将网卡的接口信息注册到全局的网卡接口信息表中
+425 | |     // NET_DEVICES
+426 | |     //     .write_irqsave()
+427 | |     //     .insert(iface.nic_id(), iface.clone());
+428 | |     INIT_NET_NAMESPACE.add_device(iface.clone());
+429 | |     iface.common.set_net_namespace(INIT_NET_NAMESPACE.clone());
+430 | |
+431 | |     info!("e1000e driver init successfully!\tMAC: [{}]", mac);
+432 | |
+433 | |     register_netdevice(iface.clone()).expect("register lo device failed");
+434 | | }
+    | |_- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 417.
+    | MIR detail: Value _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) and _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) are alias.
+    | MIR detail: _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB30(src/driver/net/e1000e/e1000e_driver.rs:434); _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB30(src/driver/net/e1000e/e1000e_driver.rs:434).
+    |
+warning: Double free detected during unwinding.
+   --> src/driver/net/e1000e/e1000e_driver.rs:417:1
+    |
+417 | / pub fn e1000e_driver_init(device: E1000EDevice) {
+418 | |     let mac = smoltcp::wire::EthernetAddress::from_bytes(&device.mac_address());
+419 | |     let driver = E1000EDriver::new(device);
+420 | |     let iface = E1000EInterface::new(driver);
+421 | |     // 标识网络设备已经启动
+422 | |     iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+423 | |
+424 | |     // 将网卡的接口信息注册到全局的网卡接口信息表中
+425 | |     // NET_DEVICES
+426 | |     //     .write_irqsave()
+427 | |     //     .insert(iface.nic_id(), iface.clone());
+428 | |     INIT_NET_NAMESPACE.add_device(iface.clone());
+429 | |     iface.common.set_net_namespace(INIT_NET_NAMESPACE.clone());
+430 | |
+431 | |     info!("e1000e driver init successfully!\tMAC: [{}]", mac);
+432 | |
+433 | |     register_netdevice(iface.clone()).expect("register lo device failed");
+434 | | }
+    | |_- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 417.
+    | MIR detail: Value _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) and _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) are alias.
+    | MIR detail: _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB32(src/driver/net/e1000e/e1000e_driver.rs:434); _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB32(src/driver/net/e1000e/e1000e_driver.rs:434).
+    |
+render dot for DefId(0:10934 ~ dragonos_kernel[9e38]::driver::net::e1000e::e1000e_driver::e1000e_driver_init)

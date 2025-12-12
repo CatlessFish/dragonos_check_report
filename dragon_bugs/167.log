@@ -1,0 +1,55 @@
+22:08:14|RAP|WARN|: Dangling pointer detected in function "bind"
+warning: Dangling pointer detected.
+   --> src/net/socket/unix/datagram/mod.rs:303:1
+    |
+303 | / fn bind(&self, endpoint: Endpoint) -> Result<(), SystemError> {
+304 | |         let unix_endpoint = UnixEndpoint::try_from(endpoint)?;
+305 | |
+306 | |         // 先绑定地址
+307 | |         let mut inner = self.inner.lock();
+308 | |         inner.bind(unix_endpoint)?;
+309 | |
+310 | |         // 注册到绑定表
+311 | |         if let Some(ref _addr) = inner.local_addr {
+312 | |             // 需要获取 Arc<Self>，但这里我们没有直接的方式
+313 | |             // 这是一个设计问题，需要在外部调用时处理
+314 | |             // 暂时不注册，后续改进
+315 | |             drop(inner);
+316 | |             // 注意：这里有一个设计缺陷，bind 时无法获取 Arc<Self>
+317 | |             // 真正的解决方案是在创建 socket 后立即保存一个 Weak 引用
+318 | |         }
+319 | |
+320 | |         Ok(())
+321 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/datagram/mod.rs line 303.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in bind and _1(self, src/net/socket/unix/datagram/mod.rs:303) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in bind is dropped at BB18446744073709551615(src/net/socket/unix/datagram/mod.rs:303); _1(self, src/net/socket/unix/datagram/mod.rs:303) became dangling.
+    |
+22:08:14|RAP|WARN|: Dangling pointer detected during unwinding in function "bind"
+warning: Dangling pointer detected during unwinding.
+   --> src/net/socket/unix/datagram/mod.rs:303:1
+    |
+303 | / fn bind(&self, endpoint: Endpoint) -> Result<(), SystemError> {
+304 | |         let unix_endpoint = UnixEndpoint::try_from(endpoint)?;
+305 | |
+306 | |         // 先绑定地址
+307 | |         let mut inner = self.inner.lock();
+308 | |         inner.bind(unix_endpoint)?;
+309 | |
+310 | |         // 注册到绑定表
+311 | |         if let Some(ref _addr) = inner.local_addr {
+312 | |             // 需要获取 Arc<Self>，但这里我们没有直接的方式
+313 | |             // 这是一个设计问题，需要在外部调用时处理
+314 | |             // 暂时不注册，后续改进
+315 | |             drop(inner);
+316 | |             // 注意：这里有一个设计缺陷，bind 时无法获取 Arc<Self>
+317 | |             // 真正的解决方案是在创建 socket 后立即保存一个 Weak 引用
+318 | |         }
+319 | |
+320 | |         Ok(())
+321 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/datagram/mod.rs line 303.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in bind and _1(self, src/net/socket/unix/datagram/mod.rs:303) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in bind is dropped at BB18446744073709551615(src/net/socket/unix/datagram/mod.rs:303); _1(self, src/net/socket/unix/datagram/mod.rs:303) became dangling.
+    |
+render dot for DefId(0:26878 ~ dragonos_kernel[9e38]::net::socket::unix::datagram::{impl#4}::bind)

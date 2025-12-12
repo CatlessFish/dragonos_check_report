@@ -1,0 +1,135 @@
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+   --> src/filesystem/vfs/syscall/sys_ioctl.rs:49:1
+    |
+ 49 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+ 50 | |         let fd = Self::fd(args);
+ 51 | |         let cmd = Self::cmd(args);
+ 52 | |         let data = Self::data(args);
+ 53 | |
+ 54 | |         let binding = ProcessManager::current_pcb().fd_table();
+ 55 | |         let fd_table_guard = binding.read();
+ 56 | |
+ 57 | |         let file = fd_table_guard
+ 58 | |             .get_file_by_fd(fd as i32)
+ 59 | |             .ok_or(SystemError::EBADF)?;
+ 60 | |
+ 61 | |         // drop guard 以避免无法调度的问题
+ 62 | |         drop(fd_table_guard);
+ 63 | |
+ 64 | |         // 检查文件是否以 O_PATH 打开，如果是则返回 EBADF
+ 65 | |         if file.flags().contains(FileFlags::O_PATH) {
+ 66 | |             return Err(SystemError::EBADF);
+ 67 | |         }
+ 68 | |
+ 69 | |         // 处理通用文件描述符ioctl命令
+ 70 | |         match cmd {
+ 71 | |             FIONBIO => {
+ 72 | |                 return Self::handle_fionbio(&file, data);
+ 73 | |             }
+ 74 | |             FIONCLEX => {
+ 75 | |                 file.set_close_on_exec(false);
+ 76 | |                 return Ok(0);
+ 77 | |             }
+ 78 | |             FIOCLEX => {
+ 79 | |                 file.set_close_on_exec(true);
+ 80 | |                 return Ok(0);
+ 81 | |             }
+ 82 | |             FIOASYNC => {
+ 83 | |                 return Self::handle_fioasync(&file, data);
+ 84 | |             }
+ 85 | |             FIOSETOWN | SIOCSPGRP => {
+ 86 | |                 return Self::handle_fiosetown(&file, data);
+ 87 | |             }
+ 88 | |             FIOGETOWN | SIOCGPGRP => {
+ 89 | |                 return Self::handle_ownership_get(&file, data, cmd);
+ 90 | |             }
+ 91 | |             _ => {
+ 92 | |                 // 其他命令转发给inode处理
+ 93 | |                 let r = file
+ 94 | |                     .inode()
+ 95 | |                     .ioctl(cmd, data, &file.private_data.lock())
+ 96 | |                     .map_err(|e| {
+ 97 | |                         // 将内部错误码 ENOIOCTLCMD 转换为用户空间错误码 ENOTTY
+ 98 | |                         if e == SystemError::ENOIOCTLCMD {
+ 99 | |                             SystemError::ENOTTY
+100 | |                         } else {
+101 | |                             e
+102 | |                         }
+103 | |                     });
+104 | |                 return r;
+105 | |             }
+106 | |         }
+107 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ioctl.rs line 49.
+    | MIR detail: Value _35(_, src/filesystem/vfs/syscall/sys_ioctl.rs:62) and _10(binding, src/filesystem/vfs/syscall/sys_ioctl.rs:54) are alias.
+    | MIR detail: _35(_, src/filesystem/vfs/syscall/sys_ioctl.rs:62) is dropped at BB15(src/filesystem/vfs/syscall/sys_ioctl.rs:62); _10(binding, src/filesystem/vfs/syscall/sys_ioctl.rs:54) is dropped at BB54(src/filesystem/vfs/syscall/sys_ioctl.rs:107).
+    |
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/syscall/sys_ioctl.rs:49:1
+    |
+ 49 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+ 50 | |         let fd = Self::fd(args);
+ 51 | |         let cmd = Self::cmd(args);
+ 52 | |         let data = Self::data(args);
+ 53 | |
+ 54 | |         let binding = ProcessManager::current_pcb().fd_table();
+ 55 | |         let fd_table_guard = binding.read();
+ 56 | |
+ 57 | |         let file = fd_table_guard
+ 58 | |             .get_file_by_fd(fd as i32)
+ 59 | |             .ok_or(SystemError::EBADF)?;
+ 60 | |
+ 61 | |         // drop guard 以避免无法调度的问题
+ 62 | |         drop(fd_table_guard);
+ 63 | |
+ 64 | |         // 检查文件是否以 O_PATH 打开，如果是则返回 EBADF
+ 65 | |         if file.flags().contains(FileFlags::O_PATH) {
+ 66 | |             return Err(SystemError::EBADF);
+ 67 | |         }
+ 68 | |
+ 69 | |         // 处理通用文件描述符ioctl命令
+ 70 | |         match cmd {
+ 71 | |             FIONBIO => {
+ 72 | |                 return Self::handle_fionbio(&file, data);
+ 73 | |             }
+ 74 | |             FIONCLEX => {
+ 75 | |                 file.set_close_on_exec(false);
+ 76 | |                 return Ok(0);
+ 77 | |             }
+ 78 | |             FIOCLEX => {
+ 79 | |                 file.set_close_on_exec(true);
+ 80 | |                 return Ok(0);
+ 81 | |             }
+ 82 | |             FIOASYNC => {
+ 83 | |                 return Self::handle_fioasync(&file, data);
+ 84 | |             }
+ 85 | |             FIOSETOWN | SIOCSPGRP => {
+ 86 | |                 return Self::handle_fiosetown(&file, data);
+ 87 | |             }
+ 88 | |             FIOGETOWN | SIOCGPGRP => {
+ 89 | |                 return Self::handle_ownership_get(&file, data, cmd);
+ 90 | |             }
+ 91 | |             _ => {
+ 92 | |                 // 其他命令转发给inode处理
+ 93 | |                 let r = file
+ 94 | |                     .inode()
+ 95 | |                     .ioctl(cmd, data, &file.private_data.lock())
+ 96 | |                     .map_err(|e| {
+ 97 | |                         // 将内部错误码 ENOIOCTLCMD 转换为用户空间错误码 ENOTTY
+ 98 | |                         if e == SystemError::ENOIOCTLCMD {
+ 99 | |                             SystemError::ENOTTY
+100 | |                         } else {
+101 | |                             e
+102 | |                         }
+103 | |                     });
+104 | |                 return r;
+105 | |             }
+106 | |         }
+107 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ioctl.rs line 49.
+    | MIR detail: Value _35(_, src/filesystem/vfs/syscall/sys_ioctl.rs:62) and _10(binding, src/filesystem/vfs/syscall/sys_ioctl.rs:54) are alias.
+    | MIR detail: _35(_, src/filesystem/vfs/syscall/sys_ioctl.rs:62) is dropped at BB15(src/filesystem/vfs/syscall/sys_ioctl.rs:62); _10(binding, src/filesystem/vfs/syscall/sys_ioctl.rs:54) is dropped at BB59(src/filesystem/vfs/syscall/sys_ioctl.rs:107).
+    |
+render dot for DefId(0:20047 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_ioctl::{impl#0}::handle)

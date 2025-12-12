@@ -1,0 +1,55 @@
+22:08:16|RAP|WARN|: Double free detected in function "no symbol available"
+22:08:16|RAP|WARN|: Double free detected in function "no symbol available"
+warning: Double free detected.
+   --> src/process/kthread.rs:308:1
+    |
+308 | / || {
+309 | |             info!("Initializing kernel thread mechanism stage2...");
+310 | |             // 初始化kthreadd
+311 | |             let closure = KernelThreadClosure::EmptyClosure((Box::new(Self::kthread_daemon), ()));
+312 | |             let info = KernelThreadCreateInfo::new(closure, "kthreadd".to_string());
+313 | |             info.set_to_mark_sleep(false)
+314 | |                 .expect("kthreadadd should be run first");
+315 | |             let kthreadd_pid: RawPid = Self::__inner_create(
+316 | |                 &info,
+317 | |                 CloneFlags::CLONE_VM | CloneFlags::CLONE_FS | CloneFlags::CLONE_FILES,
+318 | |             )
+319 | |             .expect("Failed to create kthread daemon");
+320 | |             let pcb = ProcessManager::find_task_by_vpid(kthreadd_pid).unwrap();
+321 | |             ProcessManager::wakeup(&pcb).expect("Failed to wakeup kthread daemon");
+322 | |             unsafe {
+323 | |                 KTHREAD_DAEMON_PCB.replace(pcb);
+324 | |             }
+325 | |             info!("Initialize kernel thread mechanism stage2 complete");
+326 | |         }
+    | |_________- Double free (confidence 99%): Location in file src/process/kthread.rs line 308.
+    | MIR detail: Value _32(info, src/process/kthread.rs:312) and _32(info, src/process/kthread.rs:312) are alias.
+    | MIR detail: _32(info, src/process/kthread.rs:312) is dropped at BB40(src/process/kthread.rs:326); _32(info, src/process/kthread.rs:312) is dropped at BB40(src/process/kthread.rs:326).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/kthread.rs:308:1
+    |
+308 | / || {
+309 | |             info!("Initializing kernel thread mechanism stage2...");
+310 | |             // 初始化kthreadd
+311 | |             let closure = KernelThreadClosure::EmptyClosure((Box::new(Self::kthread_daemon), ()));
+312 | |             let info = KernelThreadCreateInfo::new(closure, "kthreadd".to_string());
+313 | |             info.set_to_mark_sleep(false)
+314 | |                 .expect("kthreadadd should be run first");
+315 | |             let kthreadd_pid: RawPid = Self::__inner_create(
+316 | |                 &info,
+317 | |                 CloneFlags::CLONE_VM | CloneFlags::CLONE_FS | CloneFlags::CLONE_FILES,
+318 | |             )
+319 | |             .expect("Failed to create kthread daemon");
+320 | |             let pcb = ProcessManager::find_task_by_vpid(kthreadd_pid).unwrap();
+321 | |             ProcessManager::wakeup(&pcb).expect("Failed to wakeup kthread daemon");
+322 | |             unsafe {
+323 | |                 KTHREAD_DAEMON_PCB.replace(pcb);
+324 | |             }
+325 | |             info!("Initialize kernel thread mechanism stage2 complete");
+326 | |         }
+    | |_________- Double free (confidence 99%): Location in file src/process/kthread.rs line 308.
+    | MIR detail: Value _32(info, src/process/kthread.rs:312) and _32(info, src/process/kthread.rs:312) are alias.
+    | MIR detail: _32(info, src/process/kthread.rs:312) is dropped at BB42(src/process/kthread.rs:326); _32(info, src/process/kthread.rs:312) is dropped at BB42(src/process/kthread.rs:326).
+    |
+render dot for DefId(0:28147 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::init_stage2::{closure#0})

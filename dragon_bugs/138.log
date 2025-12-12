@@ -1,0 +1,1590 @@
+22:08:10|RAP|WARN|: Use-after-free detected in function "open"
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:512:25
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+    |                         ------------ Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 512.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _85(_, src/ipc/pipe.rs:512) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _85(_, src/ipc/pipe.rs:512) is used at BB46(src/ipc/pipe.rs:512).
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:556:21
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+    |                     ----------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 556.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _169(_, src/ipc/pipe.rs:556) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _169(_, src/ipc/pipe.rs:556) is used at BB104(src/ipc/pipe.rs:556).
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:516:25
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+    |                         ----------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 516.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _95(_, src/ipc/pipe.rs:516) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _95(_, src/ipc/pipe.rs:516) is used at BB53(src/ipc/pipe.rs:516).
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:513:28
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+    |                            ------------ Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 513.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _91(_, src/ipc/pipe.rs:513) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _91(_, src/ipc/pipe.rs:513) is used at BB48(src/ipc/pipe.rs:513).
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:511:41
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+    |                                         ----------------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 511.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _83(_, src/ipc/pipe.rs:511) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _83(_, src/ipc/pipe.rs:511) is used at BB45(src/ipc/pipe.rs:511).
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:554:37
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+    |                                     ----------------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 554.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _164(_, src/ipc/pipe.rs:554) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _164(_, src/ipc/pipe.rs:554) is used at BB101(src/ipc/pipe.rs:554).
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:554:37
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+    |                                     ---------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 554.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _1(self, src/ipc/pipe.rs:469) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _1(self, src/ipc/pipe.rs:469) is used at BB101(src/ipc/pipe.rs:554).
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:555:21
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+    |                     ----- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 555.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _163(guard, src/ipc/pipe.rs:554) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _163(guard, src/ipc/pipe.rs:554) is used at BB102(src/ipc/pipe.rs:555).
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:512:25
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+    |                         ----- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 512.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _82(guard, src/ipc/pipe.rs:511) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _82(guard, src/ipc/pipe.rs:511) is used at BB46(src/ipc/pipe.rs:512).
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+22:08:10|RAP|WARN|: Dangling pointer detected in function "open"
+22:08:10|RAP|WARN|: Dangling pointer detected during unwinding in function "open"
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:514:29
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+    |                             ---------------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 514.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _93(_, src/ipc/pipe.rs:514) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _93(_, src/ipc/pipe.rs:514) is used at BB50(src/ipc/pipe.rs:514).
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --> src/ipc/pipe.rs:555:21
+    |
+468 | fn open(
+469 |         &self,
+470 |         mut data: SpinLockGuard<FilePrivateData>,
+471 |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 |     ) -> Result<(), SystemError> {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer > 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader > 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+    |                     ------------ Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 555.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _166(_, src/ipc/pipe.rs:555) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _166(_, src/ipc/pipe.rs:555) is used at BB102(src/ipc/pipe.rs:555).
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Dangling pointer detected.
+   --> src/ipc/pipe.rs:468:1
+    |
+468 | / fn open(
+469 | |         &self,
+470 | |         mut data: SpinLockGuard<FilePrivateData>,
+471 | |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 | |     ) -> Result<(), SystemError> {
+473 | |         let accflags = flags.access_flags();
+474 | |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 | |         let flags_copy = *flags;
+476 | |
+477 | |         // 先设置 private_data（在可能的睡眠之前）
+478 | |         // 这样即使睡眠，数据也已经设置好了
+479 | |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 | |
+481 | |         // 检查是否为命名管道（FIFO）
+482 | |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 | |         let is_fifo = self.inner.lock().is_fifo;
+484 | |
+485 | |         if accflags == FileFlags::O_RDONLY {
+486 | |             // 读端打开
+487 | |             let mut guard = self.inner.lock();
+488 | |             guard.reader += 1;
+489 | |             guard.had_reader = true;
+490 | |             let has_writer = guard.writer > 0;
+491 | |             drop(guard);
+492 | |
+493 | |             // 只有 FIFO 才需要处理阻塞等待
+494 | |             if is_fifo {
+495 | |                 // 唤醒可能在等待读端的写者
+496 | |                 self.open_wait_queue.wakeup_all(None);
+497 | |
+498 | |                 // 如果是非阻塞模式，立即返回
+499 | |                 if is_nonblock {
+500 | |                     return Ok(());
+501 | |                 }
+502 | |
+503 | |                 // 阻塞模式：等待写端打开
+504 | |                 if !has_writer {
+505 | |                     // 在睡眠前必须释放 data 锁
+506 | |                     drop(data);
+507 | |                     let r =
+508 | |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 | |                     if r.is_err() {
+510 | |                         // 被信号中断，需要回滚 reader 计数
+511 | |                         let mut guard = self.inner.lock();
+512 | |                         guard.reader -= 1;
+513 | |                         if guard.reader == 0 {
+514 | |                             guard.had_reader = false;
+515 | |                         }
+516 | |                         drop(guard);
+517 | |                         return Err(SystemError::EINTR);
+518 | |                     }
+519 | |                 }
+520 | |             }
+521 | |         } else if accflags == FileFlags::O_WRONLY {
+522 | |             // 写端打开
+523 | |             if is_fifo {
+524 | |                 // FIFO 语义
+525 | |                 if is_nonblock {
+526 | |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 | |                     let mut guard = self.inner.lock();
+528 | |                     if guard.reader == 0 {
+529 | |                         return Err(SystemError::ENXIO);
+530 | |                     }
+531 | |                     guard.writer += 1;
+532 | |                     drop(guard);
+533 | |                 } else {
+534 | |                     // 阻塞模式：等待读端
+535 | |                     let guard = self.inner.lock();
+536 | |                     let has_reader = guard.reader > 0;
+537 | |                     drop(guard);
+538 | |
+539 | |                     if !has_reader {
+540 | |                         // 在睡眠前必须释放 data 锁
+541 | |                         drop(data);
+542 | |                         // 等待读端打开
+543 | |                         let r = wq_wait_event_interruptible!(
+544 | |                             self.open_wait_queue,
+545 | |                             self.has_reader(),
+546 | |                             {}
+547 | |                         );
+548 | |                         if r.is_err() {
+549 | |                             return Err(SystemError::EINTR);
+550 | |                         }
+551 | |                     }
+552 | |
+553 | |                     // 现在有读端了，增加写端计数
+554 | |                     let mut guard = self.inner.lock();
+555 | |                     guard.writer += 1;
+556 | |                     drop(guard);
+557 | |                 }
+558 | |
+559 | |                 // 唤醒可能在等待写端的读者
+560 | |                 self.open_wait_queue.wakeup_all(None);
+561 | |             } else {
+562 | |                 // 匿名管道：直接增加写端计数
+563 | |                 let mut guard = self.inner.lock();
+564 | |                 guard.writer += 1;
+565 | |                 drop(guard);
+566 | |             }
+567 | |         } else if accflags == FileFlags::O_RDWR {
+568 | |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 | |             let mut guard = self.inner.lock();
+570 | |             guard.reader += 1;
+571 | |             guard.writer += 1;
+572 | |             guard.had_reader = true;
+573 | |             drop(guard);
+574 | |
+575 | |             // 只有 FIFO 才需要唤醒等待的进程
+576 | |             if is_fifo {
+577 | |                 self.open_wait_queue.wakeup_all(None);
+578 | |             }
+579 | |         }
+580 | |
+581 | |         return Ok(());
+582 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 468.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in open and _1(self, src/ipc/pipe.rs:469) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in open is dropped at BB18446744073709551615(src/ipc/pipe.rs:468); _1(self, src/ipc/pipe.rs:469) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/ipc/pipe.rs:468:1
+    |
+468 | / fn open(
+469 | |         &self,
+470 | |         mut data: SpinLockGuard<FilePrivateData>,
+471 | |         flags: &crate::filesystem::vfs::file::FileFlags,
+472 | |     ) -> Result<(), SystemError> {
+473 | |         let accflags = flags.access_flags();
+474 | |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 | |         let flags_copy = *flags;
+476 | |
+477 | |         // 先设置 private_data（在可能的睡眠之前）
+478 | |         // 这样即使睡眠，数据也已经设置好了
+479 | |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 | |
+481 | |         // 检查是否为命名管道（FIFO）
+482 | |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 | |         let is_fifo = self.inner.lock().is_fifo;
+484 | |
+485 | |         if accflags == FileFlags::O_RDONLY {
+486 | |             // 读端打开
+487 | |             let mut guard = self.inner.lock();
+488 | |             guard.reader += 1;
+489 | |             guard.had_reader = true;
+490 | |             let has_writer = guard.writer > 0;
+491 | |             drop(guard);
+492 | |
+493 | |             // 只有 FIFO 才需要处理阻塞等待
+494 | |             if is_fifo {
+495 | |                 // 唤醒可能在等待读端的写者
+496 | |                 self.open_wait_queue.wakeup_all(None);
+497 | |
+498 | |                 // 如果是非阻塞模式，立即返回
+499 | |                 if is_nonblock {
+500 | |                     return Ok(());
+501 | |                 }
+502 | |
+503 | |                 // 阻塞模式：等待写端打开
+504 | |                 if !has_writer {
+505 | |                     // 在睡眠前必须释放 data 锁
+506 | |                     drop(data);
+507 | |                     let r =
+508 | |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 | |                     if r.is_err() {
+510 | |                         // 被信号中断，需要回滚 reader 计数
+511 | |                         let mut guard = self.inner.lock();
+512 | |                         guard.reader -= 1;
+513 | |                         if guard.reader == 0 {
+514 | |                             guard.had_reader = false;
+515 | |                         }
+516 | |                         drop(guard);
+517 | |                         return Err(SystemError::EINTR);
+518 | |                     }
+519 | |                 }
+520 | |             }
+521 | |         } else if accflags == FileFlags::O_WRONLY {
+522 | |             // 写端打开
+523 | |             if is_fifo {
+524 | |                 // FIFO 语义
+525 | |                 if is_nonblock {
+526 | |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 | |                     let mut guard = self.inner.lock();
+528 | |                     if guard.reader == 0 {
+529 | |                         return Err(SystemError::ENXIO);
+530 | |                     }
+531 | |                     guard.writer += 1;
+532 | |                     drop(guard);
+533 | |                 } else {
+534 | |                     // 阻塞模式：等待读端
+535 | |                     let guard = self.inner.lock();
+536 | |                     let has_reader = guard.reader > 0;
+537 | |                     drop(guard);
+538 | |
+539 | |                     if !has_reader {
+540 | |                         // 在睡眠前必须释放 data 锁
+541 | |                         drop(data);
+542 | |                         // 等待读端打开
+543 | |                         let r = wq_wait_event_interruptible!(
+544 | |                             self.open_wait_queue,
+545 | |                             self.has_reader(),
+546 | |                             {}
+547 | |                         );
+548 | |                         if r.is_err() {
+549 | |                             return Err(SystemError::EINTR);
+550 | |                         }
+551 | |                     }
+552 | |
+553 | |                     // 现在有读端了，增加写端计数
+554 | |                     let mut guard = self.inner.lock();
+555 | |                     guard.writer += 1;
+556 | |                     drop(guard);
+557 | |                 }
+558 | |
+559 | |                 // 唤醒可能在等待写端的读者
+560 | |                 self.open_wait_queue.wakeup_all(None);
+561 | |             } else {
+562 | |                 // 匿名管道：直接增加写端计数
+563 | |                 let mut guard = self.inner.lock();
+564 | |                 guard.writer += 1;
+565 | |                 drop(guard);
+566 | |             }
+567 | |         } else if accflags == FileFlags::O_RDWR {
+568 | |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 | |             let mut guard = self.inner.lock();
+570 | |             guard.reader += 1;
+571 | |             guard.writer += 1;
+572 | |             guard.had_reader = true;
+573 | |             drop(guard);
+574 | |
+575 | |             // 只有 FIFO 才需要唤醒等待的进程
+576 | |             if is_fifo {
+577 | |                 self.open_wait_queue.wakeup_all(None);
+578 | |             }
+579 | |         }
+580 | |
+581 | |         return Ok(());
+582 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 468.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in open and _1(self, src/ipc/pipe.rs:469) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in open is dropped at BB18446744073709551615(src/ipc/pipe.rs:468); _1(self, src/ipc/pipe.rs:469) became dangling.
+    |
+render dot for DefId(0:22427 ~ dragonos_kernel[9e38]::ipc::pipe::{impl#6}::open)

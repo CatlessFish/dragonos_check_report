@@ -1,0 +1,43 @@
+22:07:54|RAP|WARN|: Dangling pointer detected in function "sleep_unlock_spinlock"
+warning: Dangling pointer detected.
+   --> src/libs/wait_queue.rs:404:1
+    |
+404 | / pub fn sleep_unlock_spinlock<T>(&self, events: u64, to_unlock: SpinLockGuard<T>) {
+405 | |         before_sleep_check(1);
+406 | |         let mut guard = self.wait_list.lock_irqsave();
+407 | |         let irq_guard = unsafe { CurrentIrqArch::save_and_disable_irq() };
+408 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+409 | |             panic!("sleep error: {:?}", e);
+410 | |         });
+411 | |         drop(irq_guard);
+412 | |         guard.push((events, ProcessManager::current_pcb()));
+413 | |         drop(to_unlock);
+414 | |         drop(guard);
+415 | |         schedule(SchedMode::SM_NONE);
+416 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 404.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep_unlock_spinlock and _1(self, src/libs/wait_queue.rs:404) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep_unlock_spinlock is dropped at BB18446744073709551615(src/libs/wait_queue.rs:404); _1(self, src/libs/wait_queue.rs:404) became dangling.
+    |
+22:07:54|RAP|WARN|: Dangling pointer detected during unwinding in function "sleep_unlock_spinlock"
+warning: Dangling pointer detected during unwinding.
+   --> src/libs/wait_queue.rs:404:1
+    |
+404 | / pub fn sleep_unlock_spinlock<T>(&self, events: u64, to_unlock: SpinLockGuard<T>) {
+405 | |         before_sleep_check(1);
+406 | |         let mut guard = self.wait_list.lock_irqsave();
+407 | |         let irq_guard = unsafe { CurrentIrqArch::save_and_disable_irq() };
+408 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+409 | |             panic!("sleep error: {:?}", e);
+410 | |         });
+411 | |         drop(irq_guard);
+412 | |         guard.push((events, ProcessManager::current_pcb()));
+413 | |         drop(to_unlock);
+414 | |         drop(guard);
+415 | |         schedule(SchedMode::SM_NONE);
+416 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 404.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep_unlock_spinlock and _1(self, src/libs/wait_queue.rs:404) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep_unlock_spinlock is dropped at BB18446744073709551615(src/libs/wait_queue.rs:404); _1(self, src/libs/wait_queue.rs:404) became dangling.
+    |
+render dot for DefId(0:5666 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_unlock_spinlock)

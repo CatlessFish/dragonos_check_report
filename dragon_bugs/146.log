@@ -1,0 +1,32 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:58:1
+   |
+58 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+59 | |         vec![
+60 | |             FormattedSyscallParam::new("tgid", Self::tgid(args).to_string()),
+61 | |             FormattedSyscallParam::new("tid", Self::tid(args).to_string()),
+62 | |             FormattedSyscallParam::new("sig", Self::sig(args).to_string()),
+63 | |             FormattedSyscallParam::new("uinfo", format!("{:#x}", Self::_uinfo(args))),
+64 | |         ]
+65 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_tgsigqueueinfo.rs line 58.
+    | MIR detail: Value _19(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:62) and _9(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:60) are alias.
+    | MIR detail: _19(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:62) is dropped at BB18(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:60) is dropped at BB20(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:58:1
+   |
+58 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+59 | |         vec![
+60 | |             FormattedSyscallParam::new("tgid", Self::tgid(args).to_string()),
+61 | |             FormattedSyscallParam::new("tid", Self::tid(args).to_string()),
+62 | |             FormattedSyscallParam::new("sig", Self::sig(args).to_string()),
+63 | |             FormattedSyscallParam::new("uinfo", format!("{:#x}", Self::_uinfo(args))),
+64 | |         ]
+65 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_tgsigqueueinfo.rs line 58.
+    | MIR detail: Value _19(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:62) and _14(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:61) are alias.
+    | MIR detail: _19(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:62) is dropped at BB18(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/ipc/syscall/sys_rt_tgsigqueueinfo.rs:61) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:23055 ~ dragonos_kernel[9e38]::ipc::syscall::sys_rt_tgsigqueueinfo::{impl#1}::entry_format)

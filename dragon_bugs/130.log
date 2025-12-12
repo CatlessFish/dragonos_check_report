@@ -1,0 +1,50 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fsetxattr.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("fd", Self::fd(args).to_string()),
+31 | |             FormattedSyscallParam::new("name", format!("{:#x}", Self::name(args) as usize)),
+32 | |             FormattedSyscallParam::new("value", format!("{:#x}", Self::value(args) as usize)),
+33 | |             FormattedSyscallParam::new("size", Self::size(args).to_string()),
+34 | |             FormattedSyscallParam::new("flags", Self::flags(args).to_string()),
+35 | |         ]
+36 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fsetxattr.rs line 28.
+    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:31) and _9(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:30) are alias.
+    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:31) is dropped at BB26(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:30) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fsetxattr.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("fd", Self::fd(args).to_string()),
+31 | |             FormattedSyscallParam::new("name", format!("{:#x}", Self::name(args) as usize)),
+32 | |             FormattedSyscallParam::new("value", format!("{:#x}", Self::value(args) as usize)),
+33 | |             FormattedSyscallParam::new("size", Self::size(args).to_string()),
+34 | |             FormattedSyscallParam::new("flags", Self::flags(args).to_string()),
+35 | |         ]
+36 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fsetxattr.rs line 28.
+    | MIR detail: Value _64(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:33) and _39(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:32) are alias.
+    | MIR detail: _64(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:33) is dropped at BB24(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _39(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:32) is dropped at BB25(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fsetxattr.rs:28:1
+   |
+28 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+29 | |         vec![
+30 | |             FormattedSyscallParam::new("fd", Self::fd(args).to_string()),
+31 | |             FormattedSyscallParam::new("name", format!("{:#x}", Self::name(args) as usize)),
+32 | |             FormattedSyscallParam::new("value", format!("{:#x}", Self::value(args) as usize)),
+33 | |             FormattedSyscallParam::new("size", Self::size(args).to_string()),
+34 | |             FormattedSyscallParam::new("flags", Self::flags(args).to_string()),
+35 | |         ]
+36 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fsetxattr.rs line 28.
+    | MIR detail: Value _64(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:33) and _14(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:31) are alias.
+    | MIR detail: _64(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:33) is dropped at BB24(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/filesystem/vfs/syscall/sys_fsetxattr.rs:31) is dropped at BB26(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:21432 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_fsetxattr::{impl#0}::entry_format)

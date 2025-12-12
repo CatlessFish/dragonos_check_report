@@ -1,0 +1,85 @@
+22:08:05|RAP|WARN|: Double free detected in function "unlink"
+22:08:05|RAP|WARN|: Double free detected in function "unlink"
+warning: Double free detected.
+    --> src/filesystem/fat/fs.rs:1861:1
+     |
+1861 | / fn unlink(&self, name: &str) -> Result<(), SystemError> {
+1862 | |         let mut guard: SpinLockGuard<FATInode> = self.0.lock();
+1863 | |         let target: Arc<LockedFATInode> = guard.find(name)?;
+1864 | |         // 对目标inode上锁，以防更改
+1865 | |         let target_guard: SpinLockGuard<FATInode> = target.0.lock();
+1866 | |         // 先从缓存删除
+1867 | |         let nod = guard.children.remove(&to_search_name(name));
+1868 | |
+1869 | |         // 若删除缓存中为管道的文件，则不需要再到磁盘删除
+1870 | |         if nod.is_some() {
+1871 | |             let file_type = target_guard.metadata.file_type;
+1872 | |             if file_type == FileType::Pipe {
+1873 | |                 return Ok(());
+1874 | |             }
+1875 | |         }
+1876 | |
+1877 | |         let dir = match &guard.inode_type {
+1878 | |             FATDirEntry::File(_) | FATDirEntry::VolId(_) => {
+1879 | |                 return Err(SystemError::ENOTDIR);
+1880 | |             }
+1881 | |             FATDirEntry::Dir(d) => d,
+1882 | |             FATDirEntry::UnInit => {
+1883 | |                 error!("FATFS: param: Inode_type uninitialized.");
+1884 | |                 return Err(SystemError::EROFS);
+1885 | |             }
+1886 | |         };
+1887 | |         // 检查文件是否存在
+1888 | |         dir.check_existence(name, Some(false), guard.fs.upgrade().unwrap())?;
+1889 | |
+1890 | |         // 再从磁盘删除
+1891 | |         let r = dir.remove(guard.fs.upgrade().unwrap().clone(), name, true);
+1892 | |         drop(target_guard);
+1893 | |         return r;
+1894 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1861.
+    | MIR detail: Value _104(_, src/filesystem/fat/fs.rs:1892) and _20(_, src/filesystem/fat/fs.rs:1865) are alias.
+    | MIR detail: _104(_, src/filesystem/fat/fs.rs:1892) is dropped at BB53(src/filesystem/fat/fs.rs:1892); _20(_, src/filesystem/fat/fs.rs:1865) is dropped at BB59(src/filesystem/fat/fs.rs:1894).
+     |
+warning: Double free detected during unwinding.
+    --> src/filesystem/fat/fs.rs:1861:1
+     |
+1861 | / fn unlink(&self, name: &str) -> Result<(), SystemError> {
+1862 | |         let mut guard: SpinLockGuard<FATInode> = self.0.lock();
+1863 | |         let target: Arc<LockedFATInode> = guard.find(name)?;
+1864 | |         // 对目标inode上锁，以防更改
+1865 | |         let target_guard: SpinLockGuard<FATInode> = target.0.lock();
+1866 | |         // 先从缓存删除
+1867 | |         let nod = guard.children.remove(&to_search_name(name));
+1868 | |
+1869 | |         // 若删除缓存中为管道的文件，则不需要再到磁盘删除
+1870 | |         if nod.is_some() {
+1871 | |             let file_type = target_guard.metadata.file_type;
+1872 | |             if file_type == FileType::Pipe {
+1873 | |                 return Ok(());
+1874 | |             }
+1875 | |         }
+1876 | |
+1877 | |         let dir = match &guard.inode_type {
+1878 | |             FATDirEntry::File(_) | FATDirEntry::VolId(_) => {
+1879 | |                 return Err(SystemError::ENOTDIR);
+1880 | |             }
+1881 | |             FATDirEntry::Dir(d) => d,
+1882 | |             FATDirEntry::UnInit => {
+1883 | |                 error!("FATFS: param: Inode_type uninitialized.");
+1884 | |                 return Err(SystemError::EROFS);
+1885 | |             }
+1886 | |         };
+1887 | |         // 检查文件是否存在
+1888 | |         dir.check_existence(name, Some(false), guard.fs.upgrade().unwrap())?;
+1889 | |
+1890 | |         // 再从磁盘删除
+1891 | |         let r = dir.remove(guard.fs.upgrade().unwrap().clone(), name, true);
+1892 | |         drop(target_guard);
+1893 | |         return r;
+1894 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1861.
+    | MIR detail: Value _104(_, src/filesystem/fat/fs.rs:1892) and _20(_, src/filesystem/fat/fs.rs:1865) are alias.
+    | MIR detail: _104(_, src/filesystem/fat/fs.rs:1892) is dropped at BB53(src/filesystem/fat/fs.rs:1892); _20(_, src/filesystem/fat/fs.rs:1865) is dropped at BB65(src/filesystem/fat/fs.rs:1894).
+     |
+render dot for DefId(0:17962 ~ dragonos_kernel[9e38]::filesystem::fat::fs::{impl#12}::unlink)

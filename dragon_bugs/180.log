@@ -1,0 +1,50 @@
+22:08:17|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_execveat.rs:73:1
+   |
+73 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+74 | |         vec![
+75 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", args[0])),
+76 | |             FormattedSyscallParam::new("path", format!("{:#x}", args[1])),
+77 | |             FormattedSyscallParam::new("argv", format!("{:#x}", args[2])),
+78 | |             FormattedSyscallParam::new("envp", format!("{:#x}", args[3])),
+79 | |             FormattedSyscallParam::new("flags", format!("{:#x}", args[4])),
+80 | |         ]
+81 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_execveat.rs line 73.
+    | MIR detail: Value _34(_, src/process/syscall/sys_execveat.rs:76) and _9(_, src/process/syscall/sys_execveat.rs:75) are alias.
+    | MIR detail: _34(_, src/process/syscall/sys_execveat.rs:76) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/process/syscall/sys_execveat.rs:75) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_execveat.rs:73:1
+   |
+73 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+74 | |         vec![
+75 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", args[0])),
+76 | |             FormattedSyscallParam::new("path", format!("{:#x}", args[1])),
+77 | |             FormattedSyscallParam::new("argv", format!("{:#x}", args[2])),
+78 | |             FormattedSyscallParam::new("envp", format!("{:#x}", args[3])),
+79 | |             FormattedSyscallParam::new("flags", format!("{:#x}", args[4])),
+80 | |         ]
+81 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_execveat.rs line 73.
+    | MIR detail: Value _59(_, src/process/syscall/sys_execveat.rs:77) and _34(_, src/process/syscall/sys_execveat.rs:76) are alias.
+    | MIR detail: _59(_, src/process/syscall/sys_execveat.rs:77) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _34(_, src/process/syscall/sys_execveat.rs:76) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_execveat.rs:73:1
+   |
+73 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+74 | |         vec![
+75 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", args[0])),
+76 | |             FormattedSyscallParam::new("path", format!("{:#x}", args[1])),
+77 | |             FormattedSyscallParam::new("argv", format!("{:#x}", args[2])),
+78 | |             FormattedSyscallParam::new("envp", format!("{:#x}", args[3])),
+79 | |             FormattedSyscallParam::new("flags", format!("{:#x}", args[4])),
+80 | |         ]
+81 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_execveat.rs line 73.
+    | MIR detail: Value _84(_, src/process/syscall/sys_execveat.rs:78) and _59(_, src/process/syscall/sys_execveat.rs:77) are alias.
+    | MIR detail: _84(_, src/process/syscall/sys_execveat.rs:78) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _59(_, src/process/syscall/sys_execveat.rs:77) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:29056 ~ dragonos_kernel[9e38]::process::syscall::sys_execveat::{impl#0}::entry_format)

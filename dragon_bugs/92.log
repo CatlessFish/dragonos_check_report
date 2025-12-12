@@ -1,0 +1,93 @@
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_pread64.rs:33:1
+   |
+33 | / fn handle(&self, args: &[usize], frame: &mut TrapFrame) -> Result<usize, SystemError> {
+34 | |         let fd = Self::fd(args);
+35 | |         let buf_vaddr = Self::buf(args);
+36 | |         let len = Self::len(args);
+37 | |         let offset = Self::offset(args);
+38 | |
+39 | |         // 检查offset + len是否溢出 同时检查offset是否为负数
+40 | |
+41 | |         let end_pos = offset.checked_add(len).ok_or(SystemError::EINVAL)?;
+42 | |         if offset > i64::MAX as usize || end_pos > i64::MAX as usize {
+43 | |             return Err(SystemError::EINVAL);
+44 | |         }
+45 | |
+46 | |         let mut user_buffer_writer =
+47 | |             UserBufferWriter::new_checked(buf_vaddr, len, frame.is_from_user())?;
+48 | |         let user_buf = user_buffer_writer.buffer(0)?;
+49 | |
+50 | |         let binding = ProcessManager::current_pcb().fd_table();
+51 | |         let fd_table_guard = binding.read();
+52 | |
+53 | |         let file = fd_table_guard
+54 | |             .get_file_by_fd(fd)
+55 | |             .ok_or(SystemError::EBADF)?;
+56 | |
+57 | |         // Drop guard to avoid scheduling issues
+58 | |         drop(fd_table_guard);
+59 | |
+60 | |         // 检查是否是管道/Socket (ESPIPE)
+61 | |         let md = file.metadata()?;
+62 | |         if md.file_type == FileType::Pipe
+63 | |             || md.file_type == FileType::Socket
+64 | |             || md.file_type == FileType::CharDevice
+65 | |         {
+66 | |             return Err(SystemError::ESPIPE);
+67 | |         }
+68 | |
+69 | |         return file.pread(offset, len, user_buf);
+70 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 33.
+    | MIR detail: Value _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) and _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) are alias.
+    | MIR detail: _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) is dropped at BB38(src/filesystem/vfs/syscall/sys_pread64.rs:58); _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) is dropped at BB62(src/filesystem/vfs/syscall/sys_pread64.rs:70).
+   |
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pread64.rs:33:1
+   |
+33 | / fn handle(&self, args: &[usize], frame: &mut TrapFrame) -> Result<usize, SystemError> {
+34 | |         let fd = Self::fd(args);
+35 | |         let buf_vaddr = Self::buf(args);
+36 | |         let len = Self::len(args);
+37 | |         let offset = Self::offset(args);
+38 | |
+39 | |         // 检查offset + len是否溢出 同时检查offset是否为负数
+40 | |
+41 | |         let end_pos = offset.checked_add(len).ok_or(SystemError::EINVAL)?;
+42 | |         if offset > i64::MAX as usize || end_pos > i64::MAX as usize {
+43 | |             return Err(SystemError::EINVAL);
+44 | |         }
+45 | |
+46 | |         let mut user_buffer_writer =
+47 | |             UserBufferWriter::new_checked(buf_vaddr, len, frame.is_from_user())?;
+48 | |         let user_buf = user_buffer_writer.buffer(0)?;
+49 | |
+50 | |         let binding = ProcessManager::current_pcb().fd_table();
+51 | |         let fd_table_guard = binding.read();
+52 | |
+53 | |         let file = fd_table_guard
+54 | |             .get_file_by_fd(fd)
+55 | |             .ok_or(SystemError::EBADF)?;
+56 | |
+57 | |         // Drop guard to avoid scheduling issues
+58 | |         drop(fd_table_guard);
+59 | |
+60 | |         // 检查是否是管道/Socket (ESPIPE)
+61 | |         let md = file.metadata()?;
+62 | |         if md.file_type == FileType::Pipe
+63 | |             || md.file_type == FileType::Socket
+64 | |             || md.file_type == FileType::CharDevice
+65 | |         {
+66 | |             return Err(SystemError::ESPIPE);
+67 | |         }
+68 | |
+69 | |         return file.pread(offset, len, user_buf);
+70 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 33.
+    | MIR detail: Value _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) and _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) are alias.
+    | MIR detail: _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) is dropped at BB38(src/filesystem/vfs/syscall/sys_pread64.rs:58); _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) is dropped at BB68(src/filesystem/vfs/syscall/sys_pread64.rs:70).
+   |
+render dot for DefId(0:20201 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pread64::{impl#0}::handle)

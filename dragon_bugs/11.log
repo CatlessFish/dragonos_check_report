@@ -1,0 +1,31 @@
+22:07:53|RAP|WARN|: Dangling pointer detected in function "unregister"
+warning: Dangling pointer detected.
+  --> src/libs/notifier.rs:65:1
+   |
+65 | / pub fn unregister(&mut self, block: Arc<dyn NotifierBlock<V, T>>) -> Result<(), SystemError> {
+66 | |         let remove = self.0.extract_if(.., |b| Arc::ptr_eq(&block, b));
+67 | |         match remove.count() {
+68 | |             0 => return Err(SystemError::ENOENT),
+69 | |             _ => return Ok(()),
+70 | |         }
+71 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/libs/notifier.rs line 65.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in unregister and _1(self, src/libs/notifier.rs:65) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in unregister is dropped at BB18446744073709551615(src/libs/notifier.rs:65); _1(self, src/libs/notifier.rs:65) became dangling.
+   |
+22:07:53|RAP|WARN|: Dangling pointer detected during unwinding in function "unregister"
+warning: Dangling pointer detected during unwinding.
+  --> src/libs/notifier.rs:65:1
+   |
+65 | / pub fn unregister(&mut self, block: Arc<dyn NotifierBlock<V, T>>) -> Result<(), SystemError> {
+66 | |         let remove = self.0.extract_if(.., |b| Arc::ptr_eq(&block, b));
+67 | |         match remove.count() {
+68 | |             0 => return Err(SystemError::ENOENT),
+69 | |             _ => return Ok(()),
+70 | |         }
+71 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/libs/notifier.rs line 65.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in unregister and _1(self, src/libs/notifier.rs:65) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in unregister is dropped at BB18446744073709551615(src/libs/notifier.rs:65); _1(self, src/libs/notifier.rs:65) became dangling.
+   |
+render dot for DefId(0:4681 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister)

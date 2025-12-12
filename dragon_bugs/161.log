@@ -1,0 +1,199 @@
+22:08:12|RAP|WARN|: Double free detected in function "file_mapping"
+warning: Double free detected.
+   --> src/mm/ucontext.rs:440:1
+    |
+440 | / pub fn file_mapping(
+441 | |         &mut self,
+442 | |         start_vaddr: VirtAddr,
+443 | |         len: usize,
+444 | |         prot_flags: ProtFlags,
+445 | |         map_flags: MapFlags,
+446 | |         fd: i32,
+447 | |         offset: usize,
+448 | |         round_to_min: bool,
+449 | |         allocate_at_once: bool,
+450 | |     ) -> Result<VirtPageFrame, SystemError> {
+451 | |         let allocate_at_once = if MMArch::PAGE_FAULT_ENABLED {
+452 | |             allocate_at_once
+453 | |         } else {
+454 | |             true
+455 | |         };
+456 | |         // 用于对齐hint的函数
+457 | |         let round_hint_to_min = |hint: VirtAddr| {
+458 | |             // 先把hint向下对齐到页边界
+459 | |             let addr = hint.data() & (!MMArch::PAGE_OFFSET_MASK);
+460 | |             // debug!("map_anonymous: hint = {:?}, addr = {addr:#x}", hint);
+461 | |             // 如果hint不是0，且hint小于DEFAULT_MMAP_MIN_ADDR，则对齐到DEFAULT_MMAP_MIN_ADDR
+462 | |             if (addr != 0) && round_to_min && (addr < DEFAULT_MMAP_MIN_ADDR) {
+463 | |                 Some(VirtAddr::new(page_align_up(DEFAULT_MMAP_MIN_ADDR)))
+464 | |             } else if addr == 0 {
+465 | |                 None
+466 | |             } else {
+467 | |                 Some(VirtAddr::new(addr))
+468 | |             }
+469 | |         };
+470 | |         // debug!("map_anonymous: start_vaddr = {:?}", start_vaddr);
+471 | |         // debug!("map_anonymous: len(no align) = {}", len);
+472 | |
+473 | |         let len = page_align_up(len);
+474 | |
+475 | |         // debug!("map_anonymous: len = {}", len);
+476 | |
+477 | |         let binding = ProcessManager::current_pcb().fd_table();
+478 | |         let fd_table_guard = binding.read();
+479 | |
+480 | |         let file = fd_table_guard.get_file_by_fd(fd);
+481 | |         if file.is_none() {
+482 | |             return Err(SystemError::EBADF);
+483 | |         }
+484 | |         // drop guard 以避免无法调度的问题
+485 | |         drop(fd_table_guard);
+486 | |
+487 | |         // offset需要4K对齐
+488 | |         if (offset & (MMArch::PAGE_SIZE - 1)) != 0 {
+489 | |             return Err(SystemError::EINVAL);
+490 | |         }
+491 | |         let pgoff = offset >> MMArch::PAGE_SHIFT;
+492 | |
+493 | |         let start_page: VirtPageFrame = self.mmap(
+494 | |             round_hint_to_min(start_vaddr),
+495 | |             PageFrameCount::from_bytes(len).unwrap(),
+496 | |             prot_flags,
+497 | |             map_flags,
+498 | |             |page, count, vm_flags, flags, mapper, flusher| {
+499 | |                 if allocate_at_once {
+500 | |                     VMA::zeroed(
+501 | |                         page,
+502 | |                         count,
+503 | |                         vm_flags,
+504 | |                         flags,
+505 | |                         mapper,
+506 | |                         flusher,
+507 | |                         file.clone(),
+508 | |                         Some(pgoff),
+509 | |                     )
+510 | |                 } else {
+511 | |                     Ok(LockedVMA::new(VMA::new(
+512 | |                         VirtRegion::new(page.virt_address(), count.data() * MMArch::PAGE_SIZE),
+513 | |                         vm_flags,
+514 | |                         flags,
+515 | |                         file.clone(),
+516 | |                         Some(pgoff),
+517 | |                         false,
+518 | |                     )))
+519 | |                 }
+520 | |             },
+521 | |         )?;
+522 | |         // todo!(impl mmap for other file)
+523 | |         // https://github.com/DragonOS-Community/DragonOS/pull/912#discussion_r1765334272
+524 | |         let file = file.unwrap();
+525 | |         // 传入实际映射后的起始虚拟地址，而非用户传入的 hint
+526 | |         let _ = file
+527 | |             .inode()
+528 | |             .mmap(start_page.virt_address().data(), len, offset);
+529 | |         return Ok(start_page);
+530 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/ucontext.rs line 440.
+    | MIR detail: Value _37(_, src/mm/ucontext.rs:485) and _17(binding, src/mm/ucontext.rs:477) are alias.
+    | MIR detail: _37(_, src/mm/ucontext.rs:485) is dropped at BB15(src/mm/ucontext.rs:485); _17(binding, src/mm/ucontext.rs:477) is dropped at BB41(src/mm/ucontext.rs:530).
+    |
+22:08:12|RAP|WARN|: Double free detected in function "file_mapping"
+warning: Double free detected during unwinding.
+   --> src/mm/ucontext.rs:440:1
+    |
+440 | / pub fn file_mapping(
+441 | |         &mut self,
+442 | |         start_vaddr: VirtAddr,
+443 | |         len: usize,
+444 | |         prot_flags: ProtFlags,
+445 | |         map_flags: MapFlags,
+446 | |         fd: i32,
+447 | |         offset: usize,
+448 | |         round_to_min: bool,
+449 | |         allocate_at_once: bool,
+450 | |     ) -> Result<VirtPageFrame, SystemError> {
+451 | |         let allocate_at_once = if MMArch::PAGE_FAULT_ENABLED {
+452 | |             allocate_at_once
+453 | |         } else {
+454 | |             true
+455 | |         };
+456 | |         // 用于对齐hint的函数
+457 | |         let round_hint_to_min = |hint: VirtAddr| {
+458 | |             // 先把hint向下对齐到页边界
+459 | |             let addr = hint.data() & (!MMArch::PAGE_OFFSET_MASK);
+460 | |             // debug!("map_anonymous: hint = {:?}, addr = {addr:#x}", hint);
+461 | |             // 如果hint不是0，且hint小于DEFAULT_MMAP_MIN_ADDR，则对齐到DEFAULT_MMAP_MIN_ADDR
+462 | |             if (addr != 0) && round_to_min && (addr < DEFAULT_MMAP_MIN_ADDR) {
+463 | |                 Some(VirtAddr::new(page_align_up(DEFAULT_MMAP_MIN_ADDR)))
+464 | |             } else if addr == 0 {
+465 | |                 None
+466 | |             } else {
+467 | |                 Some(VirtAddr::new(addr))
+468 | |             }
+469 | |         };
+470 | |         // debug!("map_anonymous: start_vaddr = {:?}", start_vaddr);
+471 | |         // debug!("map_anonymous: len(no align) = {}", len);
+472 | |
+473 | |         let len = page_align_up(len);
+474 | |
+475 | |         // debug!("map_anonymous: len = {}", len);
+476 | |
+477 | |         let binding = ProcessManager::current_pcb().fd_table();
+478 | |         let fd_table_guard = binding.read();
+479 | |
+480 | |         let file = fd_table_guard.get_file_by_fd(fd);
+481 | |         if file.is_none() {
+482 | |             return Err(SystemError::EBADF);
+483 | |         }
+484 | |         // drop guard 以避免无法调度的问题
+485 | |         drop(fd_table_guard);
+486 | |
+487 | |         // offset需要4K对齐
+488 | |         if (offset & (MMArch::PAGE_SIZE - 1)) != 0 {
+489 | |             return Err(SystemError::EINVAL);
+490 | |         }
+491 | |         let pgoff = offset >> MMArch::PAGE_SHIFT;
+492 | |
+493 | |         let start_page: VirtPageFrame = self.mmap(
+494 | |             round_hint_to_min(start_vaddr),
+495 | |             PageFrameCount::from_bytes(len).unwrap(),
+496 | |             prot_flags,
+497 | |             map_flags,
+498 | |             |page, count, vm_flags, flags, mapper, flusher| {
+499 | |                 if allocate_at_once {
+500 | |                     VMA::zeroed(
+501 | |                         page,
+502 | |                         count,
+503 | |                         vm_flags,
+504 | |                         flags,
+505 | |                         mapper,
+506 | |                         flusher,
+507 | |                         file.clone(),
+508 | |                         Some(pgoff),
+509 | |                     )
+510 | |                 } else {
+511 | |                     Ok(LockedVMA::new(VMA::new(
+512 | |                         VirtRegion::new(page.virt_address(), count.data() * MMArch::PAGE_SIZE),
+513 | |                         vm_flags,
+514 | |                         flags,
+515 | |                         file.clone(),
+516 | |                         Some(pgoff),
+517 | |                         false,
+518 | |                     )))
+519 | |                 }
+520 | |             },
+521 | |         )?;
+522 | |         // todo!(impl mmap for other file)
+523 | |         // https://github.com/DragonOS-Community/DragonOS/pull/912#discussion_r1765334272
+524 | |         let file = file.unwrap();
+525 | |         // 传入实际映射后的起始虚拟地址，而非用户传入的 hint
+526 | |         let _ = file
+527 | |             .inode()
+528 | |             .mmap(start_page.virt_address().data(), len, offset);
+529 | |         return Ok(start_page);
+530 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/ucontext.rs line 440.
+    | MIR detail: Value _37(_, src/mm/ucontext.rs:485) and _17(binding, src/mm/ucontext.rs:477) are alias.
+    | MIR detail: _37(_, src/mm/ucontext.rs:485) is dropped at BB15(src/mm/ucontext.rs:485); _17(binding, src/mm/ucontext.rs:477) is dropped at BB45(src/mm/ucontext.rs:530).
+    |
+render dot for DefId(0:25077 ~ dragonos_kernel[9e38]::mm::ucontext::{impl#3}::file_mapping)

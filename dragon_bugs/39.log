@@ -1,0 +1,65 @@
+22:08:02|RAP|WARN|: Double free detected in function "devfs_setup"
+warning: Double free detected.
+   --> src/driver/tty/virtual_terminal/mod.rs:102:1
+    |
+102 | / pub fn devfs_setup(&self) -> Result<(), SystemError> {
+103 | |         let tty_core = self
+104 | |             .port
+105 | |             .port_data()
+106 | |             .internal_tty()
+107 | |             .ok_or(SystemError::ENODEV)?;
+108 | |         let tty_core_data = tty_core.core();
+109 | |         let devnum = *tty_core_data.device_number();
+110 | |         let vcname = format!("vc{}", self.index.get());
+111 | |
+112 | |         // 注册虚拟终端设备并将虚拟终端设备加入到文件系统
+113 | |         let vcdev = TtyDevice::new(
+114 | |             vcname.clone(),
+115 | |             IdTable::new(vcname, Some(devnum)),
+116 | |             TtyType::Tty,
+117 | |         );
+118 | |
+119 | |         device_register(vcdev.clone())?;
+120 | |         devfs_register(vcdev.name_ref(), vcdev.clone())?;
+121 | |         tty_core_data.set_vc_index(*self.index.get());
+122 | |         self.inner.lock().vcdev = Some(vcdev);
+123 | |
+124 | |         Ok(())
+125 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/tty/virtual_terminal/mod.rs line 102.
+    | MIR detail: Value _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) and _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) are alias.
+    | MIR detail: _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB45(src/driver/tty/virtual_terminal/mod.rs:125); _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB45(src/driver/tty/virtual_terminal/mod.rs:125).
+    |
+22:08:02|RAP|WARN|: Double free detected in function "devfs_setup"
+warning: Double free detected during unwinding.
+   --> src/driver/tty/virtual_terminal/mod.rs:102:1
+    |
+102 | / pub fn devfs_setup(&self) -> Result<(), SystemError> {
+103 | |         let tty_core = self
+104 | |             .port
+105 | |             .port_data()
+106 | |             .internal_tty()
+107 | |             .ok_or(SystemError::ENODEV)?;
+108 | |         let tty_core_data = tty_core.core();
+109 | |         let devnum = *tty_core_data.device_number();
+110 | |         let vcname = format!("vc{}", self.index.get());
+111 | |
+112 | |         // 注册虚拟终端设备并将虚拟终端设备加入到文件系统
+113 | |         let vcdev = TtyDevice::new(
+114 | |             vcname.clone(),
+115 | |             IdTable::new(vcname, Some(devnum)),
+116 | |             TtyType::Tty,
+117 | |         );
+118 | |
+119 | |         device_register(vcdev.clone())?;
+120 | |         devfs_register(vcdev.name_ref(), vcdev.clone())?;
+121 | |         tty_core_data.set_vc_index(*self.index.get());
+122 | |         self.inner.lock().vcdev = Some(vcdev);
+123 | |
+124 | |         Ok(())
+125 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/tty/virtual_terminal/mod.rs line 102.
+    | MIR detail: Value _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) and _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) are alias.
+    | MIR detail: _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB57(src/driver/tty/virtual_terminal/mod.rs:125); _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB57(src/driver/tty/virtual_terminal/mod.rs:125).
+    |
+render dot for DefId(0:14565 ~ dragonos_kernel[9e38]::driver::tty::virtual_terminal::{impl#0}::devfs_setup)

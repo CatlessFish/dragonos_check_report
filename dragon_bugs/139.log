@@ -1,0 +1,133 @@
+22:08:10|RAP|WARN|: Dangling pointer detected in function "close"
+warning: Dangling pointer detected.
+   --> src/ipc/pipe.rs:589:1
+    |
+589 | / fn close(&self, data: SpinLockGuard<FilePrivateData>) -> Result<(), SystemError> {
+590 | |         let flags: FileFlags;
+591 | |         if let FilePrivateData::Pipefs(pipe_data) = &*data {
+592 | |             flags = pipe_data.flags;
+593 | |         } else {
+594 | |             return Err(SystemError::EBADF);
+595 | |         }
+596 | |         let accflags = flags.access_flags();
+597 | |         let mut guard = self.inner.lock();
+598 | |
+599 | |         // 写端关闭
+600 | |         if accflags == FileFlags::O_WRONLY {
+601 | |             assert!(guard.writer > 0);
+602 | |             guard.writer -= 1;
+603 | |             // 如果已经没有写端了，则唤醒读端
+604 | |             if guard.writer == 0 {
+605 | |                 drop(guard); // 先释放 inner 锁，避免潜在的死锁
+606 | |                              // 唤醒所有等待的读端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+607 | |                 self.read_wait_queue.wakeup_all(None);
+608 | |                 return Ok(());
+609 | |             }
+610 | |         }
+611 | |
+612 | |         // 读端关闭
+613 | |         if accflags == FileFlags::O_RDONLY {
+614 | |             assert!(guard.reader > 0);
+615 | |             guard.reader -= 1;
+616 | |             // 如果已经没有读端了，则唤醒写端
+617 | |             if guard.reader == 0 {
+618 | |                 drop(guard); // 先释放 inner 锁，避免死锁
+619 | |                              // 唤醒所有等待的写端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+620 | |                 self.write_wait_queue.wakeup_all(None);
+621 | |                 return Ok(());
+622 | |             }
+623 | |         }
+624 | |
+625 | |         // O_RDWR 模式关闭：同时减少读写计数
+626 | |         if accflags == FileFlags::O_RDWR {
+627 | |             assert!(guard.reader > 0);
+628 | |             assert!(guard.writer > 0);
+629 | |             guard.reader -= 1;
+630 | |             guard.writer -= 1;
+631 | |             let wake_reader = guard.writer == 0;
+632 | |             let wake_writer = guard.reader == 0;
+633 | |             drop(guard); // 先释放 inner 锁
+634 | |
+635 | |             // 如果已经没有写端了，则唤醒读端
+636 | |             if wake_reader {
+637 | |                 self.read_wait_queue.wakeup_all(None);
+638 | |             }
+639 | |             // 如果已经没有读端了，则唤醒写端
+640 | |             if wake_writer {
+641 | |                 self.write_wait_queue.wakeup_all(None);
+642 | |             }
+643 | |         }
+644 | |
+645 | |         return Ok(());
+646 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 589.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in close and _1(self, src/ipc/pipe.rs:589) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in close is dropped at BB18446744073709551615(src/ipc/pipe.rs:589); _1(self, src/ipc/pipe.rs:589) became dangling.
+    |
+22:08:10|RAP|WARN|: Dangling pointer detected during unwinding in function "close"
+warning: Dangling pointer detected during unwinding.
+   --> src/ipc/pipe.rs:589:1
+    |
+589 | / fn close(&self, data: SpinLockGuard<FilePrivateData>) -> Result<(), SystemError> {
+590 | |         let flags: FileFlags;
+591 | |         if let FilePrivateData::Pipefs(pipe_data) = &*data {
+592 | |             flags = pipe_data.flags;
+593 | |         } else {
+594 | |             return Err(SystemError::EBADF);
+595 | |         }
+596 | |         let accflags = flags.access_flags();
+597 | |         let mut guard = self.inner.lock();
+598 | |
+599 | |         // 写端关闭
+600 | |         if accflags == FileFlags::O_WRONLY {
+601 | |             assert!(guard.writer > 0);
+602 | |             guard.writer -= 1;
+603 | |             // 如果已经没有写端了，则唤醒读端
+604 | |             if guard.writer == 0 {
+605 | |                 drop(guard); // 先释放 inner 锁，避免潜在的死锁
+606 | |                              // 唤醒所有等待的读端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+607 | |                 self.read_wait_queue.wakeup_all(None);
+608 | |                 return Ok(());
+609 | |             }
+610 | |         }
+611 | |
+612 | |         // 读端关闭
+613 | |         if accflags == FileFlags::O_RDONLY {
+614 | |             assert!(guard.reader > 0);
+615 | |             guard.reader -= 1;
+616 | |             // 如果已经没有读端了，则唤醒写端
+617 | |             if guard.reader == 0 {
+618 | |                 drop(guard); // 先释放 inner 锁，避免死锁
+619 | |                              // 唤醒所有等待的写端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+620 | |                 self.write_wait_queue.wakeup_all(None);
+621 | |                 return Ok(());
+622 | |             }
+623 | |         }
+624 | |
+625 | |         // O_RDWR 模式关闭：同时减少读写计数
+626 | |         if accflags == FileFlags::O_RDWR {
+627 | |             assert!(guard.reader > 0);
+628 | |             assert!(guard.writer > 0);
+629 | |             guard.reader -= 1;
+630 | |             guard.writer -= 1;
+631 | |             let wake_reader = guard.writer == 0;
+632 | |             let wake_writer = guard.reader == 0;
+633 | |             drop(guard); // 先释放 inner 锁
+634 | |
+635 | |             // 如果已经没有写端了，则唤醒读端
+636 | |             if wake_reader {
+637 | |                 self.read_wait_queue.wakeup_all(None);
+638 | |             }
+639 | |             // 如果已经没有读端了，则唤醒写端
+640 | |             if wake_writer {
+641 | |                 self.write_wait_queue.wakeup_all(None);
+642 | |             }
+643 | |         }
+644 | |
+645 | |         return Ok(());
+646 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 589.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in close and _1(self, src/ipc/pipe.rs:589) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in close is dropped at BB18446744073709551615(src/ipc/pipe.rs:589); _1(self, src/ipc/pipe.rs:589) became dangling.
+    |
+render dot for DefId(0:22429 ~ dragonos_kernel[9e38]::ipc::pipe::{impl#6}::close)

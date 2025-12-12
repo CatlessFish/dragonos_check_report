@@ -1,0 +1,44 @@
+22:08:17|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_prlimit64.rs:49:1
+   |
+49 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+50 | |         vec![
+51 | |             FormattedSyscallParam::new("pid", format!("{:#x}", Self::pid(args).data())),
+52 | |             FormattedSyscallParam::new("resource", format!("{:#x}", Self::resource(args))),
+53 | |             FormattedSyscallParam::new(
+54 | |                 "new_limit",
+55 | |                 format!("{:#x}", Self::new_limit(args) as usize),
+56 | |             ),
+57 | |             FormattedSyscallParam::new(
+58 | |                 "old_limit",
+59 | |                 format!("{:#x}", Self::old_limit(args) as usize),
+60 | |             ),
+61 | |         ]
+62 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prlimit64.rs line 49.
+    | MIR detail: Value _59(_, src/process/syscall/sys_prlimit64.rs:53) and _35(_, src/process/syscall/sys_prlimit64.rs:52) are alias.
+    | MIR detail: _59(_, src/process/syscall/sys_prlimit64.rs:53) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _35(_, src/process/syscall/sys_prlimit64.rs:52) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_prlimit64.rs:49:1
+   |
+49 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+50 | |         vec![
+51 | |             FormattedSyscallParam::new("pid", format!("{:#x}", Self::pid(args).data())),
+52 | |             FormattedSyscallParam::new("resource", format!("{:#x}", Self::resource(args))),
+53 | |             FormattedSyscallParam::new(
+54 | |                 "new_limit",
+55 | |                 format!("{:#x}", Self::new_limit(args) as usize),
+56 | |             ),
+57 | |             FormattedSyscallParam::new(
+58 | |                 "old_limit",
+59 | |                 format!("{:#x}", Self::old_limit(args) as usize),
+60 | |             ),
+61 | |         ]
+62 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_prlimit64.rs line 49.
+    | MIR detail: Value _59(_, src/process/syscall/sys_prlimit64.rs:53) and _9(_, src/process/syscall/sys_prlimit64.rs:51) are alias.
+    | MIR detail: _59(_, src/process/syscall/sys_prlimit64.rs:53) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/process/syscall/sys_prlimit64.rs:51) is dropped at BB30(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:29388 ~ dragonos_kernel[9e38]::process::syscall::sys_prlimit64::{impl#1}::entry_format)

@@ -1,0 +1,85 @@
+22:08:19|RAP|WARN|: Double free detected in function "parse"
+22:08:19|RAP|WARN|: Double free detected in function "parse"
+warning: Double free detected.
+   --> src/tracepoint/trace_pipe.rs:217:1
+    |
+217 | / pub fn parse(
+218 | |         tracepoint_map: &TracePointMap,
+219 | |         cmdline_cache: &TraceCmdLineCache,
+220 | |         entry: &[u8],
+221 | |     ) -> String {
+222 | |         let trace_entry = unsafe { &*(entry.as_ptr() as *const TraceEntry) };
+223 | |         let id = trace_entry.type_ as u32;
+224 | |         let tracepoint = tracepoint_map.get(&id).expect("TracePoint not found");
+225 | |         let fmt_func = tracepoint.fmt_func();
+226 | |         let offset = core::mem::size_of::<TraceEntry>();
+227 | |         let str = fmt_func(&entry[offset..]);
+228 | |
+229 | |         let time = crate::time::Instant::now().total_micros() * 1000; // Convert to nanoseconds
+230 | |         let cpu_id = crate::arch::cpu::current_cpu_id().data();
+231 | |
+232 | |         // Copy the packed field to a local variable to avoid unaligned reference
+233 | |         let pid = trace_entry.pid;
+234 | |         let pname = cmdline_cache.get(pid as u32).unwrap_or("<...>");
+235 | |
+236 | |         let secs = time / 1_000_000_000;
+237 | |         let usec_rem = time % 1_000_000_000 / 1000;
+238 | |
+239 | |         format!(
+240 | |             "{:>16}-{:<7} [{:03}] {} {:5}.{:06}: {}({})\n",
+241 | |             pname,
+242 | |             pid,
+243 | |             cpu_id,
+244 | |             trace_entry.trace_print_lat_fmt(),
+245 | |             secs,
+246 | |             usec_rem,
+247 | |             tracepoint.name(),
+248 | |             str
+249 | |         )
+250 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/tracepoint/trace_pipe.rs line 217.
+    | MIR detail: Value _70(_, src/tracepoint/trace_pipe.rs:244) and _22(str, src/tracepoint/trace_pipe.rs:227) are alias.
+    | MIR detail: _70(_, src/tracepoint/trace_pipe.rs:244) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108); _22(str, src/tracepoint/trace_pipe.rs:227) is dropped at BB35(src/tracepoint/trace_pipe.rs:250).
+    |
+warning: Double free detected during unwinding.
+   --> src/tracepoint/trace_pipe.rs:217:1
+    |
+217 | / pub fn parse(
+218 | |         tracepoint_map: &TracePointMap,
+219 | |         cmdline_cache: &TraceCmdLineCache,
+220 | |         entry: &[u8],
+221 | |     ) -> String {
+222 | |         let trace_entry = unsafe { &*(entry.as_ptr() as *const TraceEntry) };
+223 | |         let id = trace_entry.type_ as u32;
+224 | |         let tracepoint = tracepoint_map.get(&id).expect("TracePoint not found");
+225 | |         let fmt_func = tracepoint.fmt_func();
+226 | |         let offset = core::mem::size_of::<TraceEntry>();
+227 | |         let str = fmt_func(&entry[offset..]);
+228 | |
+229 | |         let time = crate::time::Instant::now().total_micros() * 1000; // Convert to nanoseconds
+230 | |         let cpu_id = crate::arch::cpu::current_cpu_id().data();
+231 | |
+232 | |         // Copy the packed field to a local variable to avoid unaligned reference
+233 | |         let pid = trace_entry.pid;
+234 | |         let pname = cmdline_cache.get(pid as u32).unwrap_or("<...>");
+235 | |
+236 | |         let secs = time / 1_000_000_000;
+237 | |         let usec_rem = time % 1_000_000_000 / 1000;
+238 | |
+239 | |         format!(
+240 | |             "{:>16}-{:<7} [{:03}] {} {:5}.{:06}: {}({})\n",
+241 | |             pname,
+242 | |             pid,
+243 | |             cpu_id,
+244 | |             trace_entry.trace_print_lat_fmt(),
+245 | |             secs,
+246 | |             usec_rem,
+247 | |             tracepoint.name(),
+248 | |             str
+249 | |         )
+250 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/tracepoint/trace_pipe.rs line 217.
+    | MIR detail: Value _70(_, src/tracepoint/trace_pipe.rs:244) and _22(str, src/tracepoint/trace_pipe.rs:227) are alias.
+    | MIR detail: _70(_, src/tracepoint/trace_pipe.rs:244) is dropped at BB37(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108); _22(str, src/tracepoint/trace_pipe.rs:227) is dropped at BB38(src/tracepoint/trace_pipe.rs:250).
+    |
+render dot for DefId(0:31800 ~ dragonos_kernel[9e38]::tracepoint::trace_pipe::{impl#6}::parse)

@@ -1,0 +1,42 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/ipc/syscall/sys_rt_sigprocmask.rs:117:1
+    |
+117 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+118 | |         let how = Self::how(args);
+119 | |         let nset_ptr = Self::nset(args);
+120 | |         let oset_ptr = Self::oset(args);
+121 | |         let sigsetsize = Self::sigsetsize(args);
+122 | |
+123 | |         vec![
+124 | |             FormattedSyscallParam::new("how", format!("{:#x}", how)),
+125 | |             FormattedSyscallParam::new("nset", format!("{:#x}", nset_ptr)),
+126 | |             FormattedSyscallParam::new("oset", format!("{:#x}", oset_ptr)),
+127 | |             FormattedSyscallParam::new("sigsetsize", format!("{}", sigsetsize)),
+128 | |         ]
+129 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_sigprocmask.rs line 117.
+    | MIR detail: Value _61(_, src/ipc/syscall/sys_rt_sigprocmask.rs:126) and _39(_, src/ipc/syscall/sys_rt_sigprocmask.rs:125) are alias.
+    | MIR detail: _61(_, src/ipc/syscall/sys_rt_sigprocmask.rs:126) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _39(_, src/ipc/syscall/sys_rt_sigprocmask.rs:125) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/ipc/syscall/sys_rt_sigprocmask.rs:117:1
+    |
+117 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+118 | |         let how = Self::how(args);
+119 | |         let nset_ptr = Self::nset(args);
+120 | |         let oset_ptr = Self::oset(args);
+121 | |         let sigsetsize = Self::sigsetsize(args);
+122 | |
+123 | |         vec![
+124 | |             FormattedSyscallParam::new("how", format!("{:#x}", how)),
+125 | |             FormattedSyscallParam::new("nset", format!("{:#x}", nset_ptr)),
+126 | |             FormattedSyscallParam::new("oset", format!("{:#x}", oset_ptr)),
+127 | |             FormattedSyscallParam::new("sigsetsize", format!("{}", sigsetsize)),
+128 | |         ]
+129 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_sigprocmask.rs line 117.
+    | MIR detail: Value _61(_, src/ipc/syscall/sys_rt_sigprocmask.rs:126) and _17(_, src/ipc/syscall/sys_rt_sigprocmask.rs:124) are alias.
+    | MIR detail: _61(_, src/ipc/syscall/sys_rt_sigprocmask.rs:126) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _17(_, src/ipc/syscall/sys_rt_sigprocmask.rs:124) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:22937 ~ dragonos_kernel[9e38]::ipc::syscall::sys_rt_sigprocmask::{impl#1}::entry_format)

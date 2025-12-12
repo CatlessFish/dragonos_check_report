@@ -1,0 +1,57 @@
+22:08:18|RAP|WARN|: Double free detected in function "clocksource_enqueue"
+warning: Double free detected.
+   --> src/time/clocksource.rs:406:1
+    |
+406 | / pub fn clocksource_enqueue(&self) {
+407 | |         // 根据rating由大到小排序
+408 | |         let cs_data = self.clocksource_data();
+409 | |         let mut list_guard = CLOCKSOURCE_LIST.lock();
+410 | |         let mut spilt_pos: usize = list_guard.len();
+411 | |         for (pos, ele) in list_guard.iter().enumerate() {
+412 | |             if ele.clocksource_data().rating < cs_data.rating {
+413 | |                 spilt_pos = pos;
+414 | |                 break;
+415 | |             }
+416 | |         }
+417 | |         let mut temp_list = list_guard.split_off(spilt_pos);
+418 | |         let cs = self.clocksource();
+419 | |         list_guard.push_back(cs);
+420 | |         list_guard.append(&mut temp_list);
+421 | |         // debug!(
+422 | |         //     "CLOCKSOURCE_LIST len = {:?},clocksource_enqueue sccessfully",
+423 | |         //     list_guard.len()
+424 | |         // );
+425 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/clocksource.rs line 406.
+    | MIR detail: Value _39(temp_list, src/time/clocksource.rs:417) and _39(temp_list, src/time/clocksource.rs:417) are alias.
+    | MIR detail: _39(temp_list, src/time/clocksource.rs:417) is dropped at BB28(src/time/clocksource.rs:425); _39(temp_list, src/time/clocksource.rs:417) is dropped at BB28(src/time/clocksource.rs:425).
+    |
+22:08:18|RAP|WARN|: Double free detected in function "clocksource_enqueue"
+warning: Double free detected during unwinding.
+   --> src/time/clocksource.rs:406:1
+    |
+406 | / pub fn clocksource_enqueue(&self) {
+407 | |         // 根据rating由大到小排序
+408 | |         let cs_data = self.clocksource_data();
+409 | |         let mut list_guard = CLOCKSOURCE_LIST.lock();
+410 | |         let mut spilt_pos: usize = list_guard.len();
+411 | |         for (pos, ele) in list_guard.iter().enumerate() {
+412 | |             if ele.clocksource_data().rating < cs_data.rating {
+413 | |                 spilt_pos = pos;
+414 | |                 break;
+415 | |             }
+416 | |         }
+417 | |         let mut temp_list = list_guard.split_off(spilt_pos);
+418 | |         let cs = self.clocksource();
+419 | |         list_guard.push_back(cs);
+420 | |         list_guard.append(&mut temp_list);
+421 | |         // debug!(
+422 | |         //     "CLOCKSOURCE_LIST len = {:?},clocksource_enqueue sccessfully",
+423 | |         //     list_guard.len()
+424 | |         // );
+425 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/clocksource.rs line 406.
+    | MIR detail: Value _39(temp_list, src/time/clocksource.rs:417) and _39(temp_list, src/time/clocksource.rs:417) are alias.
+    | MIR detail: _39(temp_list, src/time/clocksource.rs:417) is dropped at BB32(src/time/clocksource.rs:425); _39(temp_list, src/time/clocksource.rs:417) is dropped at BB32(src/time/clocksource.rs:425).
+    |
+render dot for DefId(0:31071 ~ dragonos_kernel[9e38]::time::clocksource::{impl#6}::clocksource_enqueue)

@@ -1,0 +1,69 @@
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_lseek.rs:35:1
+   |
+35 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+36 | |         let fd = Self::fd(args);
+37 | |         let offset = Self::offset(args);
+38 | |         let whence = Self::whence(args);
+39 | |
+40 | |         // Convert seek type to SeekFrom enum
+41 | |         let seek = match whence {
+42 | |             SEEK_SET => Ok(SeekFrom::SeekSet(offset)),
+43 | |             SEEK_CUR => Ok(SeekFrom::SeekCurrent(offset)),
+44 | |             SEEK_END => Ok(SeekFrom::SeekEnd(offset)),
+45 | |             SEEK_MAX => Ok(SeekFrom::SeekEnd(0)),
+46 | |             _ => Err(SystemError::EINVAL),
+47 | |         }?;
+48 | |
+49 | |         // Get file from file descriptor table
+50 | |         let binding = ProcessManager::current_pcb().fd_table();
+51 | |         let fd_table_guard = binding.read();
+52 | |         let file = fd_table_guard
+53 | |             .get_file_by_fd(fd)
+54 | |             .ok_or(SystemError::EBADF)?;
+55 | |
+56 | |         // Drop guard to avoid scheduling issues
+57 | |         drop(fd_table_guard);
+58 | |         // Perform the seek operation
+59 | |         return file.lseek(seek);
+60 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_lseek.rs line 35.
+    | MIR detail: Value _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) and _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) are alias.
+    | MIR detail: _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) is dropped at BB25(src/filesystem/vfs/syscall/sys_lseek.rs:57); _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) is dropped at BB32(src/filesystem/vfs/syscall/sys_lseek.rs:60).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_lseek.rs:35:1
+   |
+35 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+36 | |         let fd = Self::fd(args);
+37 | |         let offset = Self::offset(args);
+38 | |         let whence = Self::whence(args);
+39 | |
+40 | |         // Convert seek type to SeekFrom enum
+41 | |         let seek = match whence {
+42 | |             SEEK_SET => Ok(SeekFrom::SeekSet(offset)),
+43 | |             SEEK_CUR => Ok(SeekFrom::SeekCurrent(offset)),
+44 | |             SEEK_END => Ok(SeekFrom::SeekEnd(offset)),
+45 | |             SEEK_MAX => Ok(SeekFrom::SeekEnd(0)),
+46 | |             _ => Err(SystemError::EINVAL),
+47 | |         }?;
+48 | |
+49 | |         // Get file from file descriptor table
+50 | |         let binding = ProcessManager::current_pcb().fd_table();
+51 | |         let fd_table_guard = binding.read();
+52 | |         let file = fd_table_guard
+53 | |             .get_file_by_fd(fd)
+54 | |             .ok_or(SystemError::EBADF)?;
+55 | |
+56 | |         // Drop guard to avoid scheduling issues
+57 | |         drop(fd_table_guard);
+58 | |         // Perform the seek operation
+59 | |         return file.lseek(seek);
+60 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_lseek.rs line 35.
+    | MIR detail: Value _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) and _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) are alias.
+    | MIR detail: _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) is dropped at BB25(src/filesystem/vfs/syscall/sys_lseek.rs:57); _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) is dropped at BB36(src/filesystem/vfs/syscall/sys_lseek.rs:60).
+   |
+render dot for DefId(0:20104 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_lseek::{impl#0}::handle)

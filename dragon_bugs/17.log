@@ -1,0 +1,16 @@
+22:07:54|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/libs/futex/syscall/sys_robust_futex.rs:109:1
+    |
+109 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+110 | |         vec![
+111 | |             FormattedSyscallParam::new("pid", Self::pid(args).to_string()),
+112 | |             FormattedSyscallParam::new("head", format!("{:#x}", Self::head(args).data())),
+113 | |             FormattedSyscallParam::new("len_ptr", format!("{:#x}", Self::len_ptr(args).data())),
+114 | |         ]
+115 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_robust_futex.rs line 109.
+    | MIR detail: Value _14(_, src/libs/futex/syscall/sys_robust_futex.rs:112) and _9(_, src/libs/futex/syscall/sys_robust_futex.rs:111) are alias.
+    | MIR detail: _14(_, src/libs/futex/syscall/sys_robust_futex.rs:112) is dropped at BB20(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/libs/futex/syscall/sys_robust_futex.rs:111) is dropped at BB21(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:5579 ~ dragonos_kernel[9e38]::libs::futex::syscall::sys_robust_futex::{impl#2}::entry_format)

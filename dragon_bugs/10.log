@@ -1,0 +1,49 @@
+22:07:53|RAP|WARN|: Dangling pointer detected in function "unlock"
+warning: Dangling pointer detected.
+   --> src/libs/mutex.rs:116:1
+    |
+116 | / fn unlock(&self) {
+117 | |         let mut inner: SpinLockGuard<MutexInner> = self.inner.lock();
+118 | |         // 当前mutex一定是已经加锁的状态
+119 | |         assert!(inner.is_locked);
+120 | |         // 标记mutex已经解锁
+121 | |         inner.is_locked = false;
+122 | |         if inner.wait_list.is_empty() {
+123 | |             return;
+124 | |         }
+125 | |
+126 | |         // wait_list不为空，则获取下一个要被唤醒的进程的pcb
+127 | |         let to_wakeup: Arc<ProcessControlBlock> = inner.wait_list.pop_front().unwrap();
+128 | |         drop(inner);
+129 | |
+130 | |         ProcessManager::wakeup(&to_wakeup).ok();
+131 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/mutex.rs line 116.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in unlock and _1(self, src/libs/mutex.rs:116) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in unlock is dropped at BB18446744073709551615(src/libs/mutex.rs:116); _1(self, src/libs/mutex.rs:116) became dangling.
+    |
+22:07:53|RAP|WARN|: Dangling pointer detected during unwinding in function "unlock"
+warning: Dangling pointer detected during unwinding.
+   --> src/libs/mutex.rs:116:1
+    |
+116 | / fn unlock(&self) {
+117 | |         let mut inner: SpinLockGuard<MutexInner> = self.inner.lock();
+118 | |         // 当前mutex一定是已经加锁的状态
+119 | |         assert!(inner.is_locked);
+120 | |         // 标记mutex已经解锁
+121 | |         inner.is_locked = false;
+122 | |         if inner.wait_list.is_empty() {
+123 | |             return;
+124 | |         }
+125 | |
+126 | |         // wait_list不为空，则获取下一个要被唤醒的进程的pcb
+127 | |         let to_wakeup: Arc<ProcessControlBlock> = inner.wait_list.pop_front().unwrap();
+128 | |         drop(inner);
+129 | |
+130 | |         ProcessManager::wakeup(&to_wakeup).ok();
+131 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/mutex.rs line 116.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in unlock and _1(self, src/libs/mutex.rs:116) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in unlock is dropped at BB18446744073709551615(src/libs/mutex.rs:116); _1(self, src/libs/mutex.rs:116) became dangling.
+    |
+render dot for DefId(0:4649 ~ dragonos_kernel[9e38]::libs::mutex::{impl#1}::unlock)

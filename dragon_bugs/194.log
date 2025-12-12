@@ -1,0 +1,20 @@
+22:08:19|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/time/syscall/sys_setitimer.rs:236:1
+    |
+236 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+237 | |         let which_str = match ItimerType::try_from(args[0] as i32) {
+238 | |             Ok(which) => format!("{:?}", which),
+239 | |             Err(_) => format!("Invalid({})", args[0]),
+240 | |         };
+241 | |         vec![
+242 | |             FormattedSyscallParam::new("which", which_str),
+243 | |             FormattedSyscallParam::new("new_value", format!("{:#x}", args[1])),
+244 | |             FormattedSyscallParam::new("old_value", format!("{:#x}", args[2])),
+245 | |         ]
+246 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/syscall/sys_setitimer.rs line 236.
+    | MIR detail: Value _45(_, src/time/syscall/sys_setitimer.rs:243) and _43(_, src/time/syscall/sys_setitimer.rs:242) are alias.
+    | MIR detail: _45(_, src/time/syscall/sys_setitimer.rs:243) is dropped at BB31(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _43(_, src/time/syscall/sys_setitimer.rs:242) is dropped at BB32(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:31388 ~ dragonos_kernel[9e38]::time::syscall::sys_setitimer::{impl#4}::entry_format)

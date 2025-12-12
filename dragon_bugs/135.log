@@ -1,0 +1,97 @@
+22:08:09|RAP|WARN|: Double free detected in function "user_path_at"
+warning: Double free detected.
+  --> src/filesystem/vfs/utils.rs:40:1
+   |
+40 | / pub fn user_path_at(
+41 | |     pcb: &Arc<ProcessControlBlock>,
+42 | |     dirfd: i32,
+43 | |     path: &str,
+44 | | ) -> Result<(Arc<dyn IndexNode>, String), SystemError> {
+45 | |     let current_mntns = ProcessManager::current_mntns();
+46 | |     let mut inode = current_mntns.root_inode().clone();
+47 | |     let ret_path;
+48 | |     // 如果path不是绝对路径，则需要拼接
+49 | |     if path.is_empty() || path.as_bytes()[0] != b'/' {
+50 | |         // 如果dirfd不是AT_FDCWD，则需要检查dirfd是否是目录
+51 | |         if dirfd != AtFlags::AT_FDCWD.bits() {
+52 | |             let binding = pcb.fd_table();
+53 | |             let fd_table_guard = binding.read();
+54 | |             let file = fd_table_guard
+55 | |                 .get_file_by_fd(dirfd)
+56 | |                 .ok_or(SystemError::EBADF)?;
+57 | |
+58 | |             // drop guard 以避免无法调度的问题
+59 | |             drop(fd_table_guard);
+60 | |
+61 | |             // 如果dirfd不是目录，则返回错误码ENOTDIR
+62 | |             if file.file_type() != FileType::Dir {
+63 | |                 return Err(SystemError::ENOTDIR);
+64 | |             }
+65 | |
+66 | |             inode = file.inode();
+67 | |             ret_path = String::from(path);
+68 | |         } else {
+69 | |             let mut cwd = pcb.basic().cwd();
+70 | |             cwd.push('/');
+71 | |             cwd.push_str(path);
+72 | |             ret_path = cwd;
+73 | |         }
+74 | |     } else {
+75 | |         ret_path = String::from(path);
+76 | |     }
+77 | |
+78 | |     return Ok((inode, ret_path));
+79 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/utils.rs line 40.
+    | MIR detail: Value _51(_, src/filesystem/vfs/utils.rs:59) and _28(binding, src/filesystem/vfs/utils.rs:52) are alias.
+    | MIR detail: _51(_, src/filesystem/vfs/utils.rs:59) is dropped at BB24(src/filesystem/vfs/utils.rs:59); _28(binding, src/filesystem/vfs/utils.rs:52) is dropped at BB38(src/filesystem/vfs/utils.rs:68).
+   |
+22:08:09|RAP|WARN|: Double free detected in function "user_path_at"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/utils.rs:40:1
+   |
+40 | / pub fn user_path_at(
+41 | |     pcb: &Arc<ProcessControlBlock>,
+42 | |     dirfd: i32,
+43 | |     path: &str,
+44 | | ) -> Result<(Arc<dyn IndexNode>, String), SystemError> {
+45 | |     let current_mntns = ProcessManager::current_mntns();
+46 | |     let mut inode = current_mntns.root_inode().clone();
+47 | |     let ret_path;
+48 | |     // 如果path不是绝对路径，则需要拼接
+49 | |     if path.is_empty() || path.as_bytes()[0] != b'/' {
+50 | |         // 如果dirfd不是AT_FDCWD，则需要检查dirfd是否是目录
+51 | |         if dirfd != AtFlags::AT_FDCWD.bits() {
+52 | |             let binding = pcb.fd_table();
+53 | |             let fd_table_guard = binding.read();
+54 | |             let file = fd_table_guard
+55 | |                 .get_file_by_fd(dirfd)
+56 | |                 .ok_or(SystemError::EBADF)?;
+57 | |
+58 | |             // drop guard 以避免无法调度的问题
+59 | |             drop(fd_table_guard);
+60 | |
+61 | |             // 如果dirfd不是目录，则返回错误码ENOTDIR
+62 | |             if file.file_type() != FileType::Dir {
+63 | |                 return Err(SystemError::ENOTDIR);
+64 | |             }
+65 | |
+66 | |             inode = file.inode();
+67 | |             ret_path = String::from(path);
+68 | |         } else {
+69 | |             let mut cwd = pcb.basic().cwd();
+70 | |             cwd.push('/');
+71 | |             cwd.push_str(path);
+72 | |             ret_path = cwd;
+73 | |         }
+74 | |     } else {
+75 | |         ret_path = String::from(path);
+76 | |     }
+77 | |
+78 | |     return Ok((inode, ret_path));
+79 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/utils.rs line 40.
+    | MIR detail: Value _51(_, src/filesystem/vfs/utils.rs:59) and _28(binding, src/filesystem/vfs/utils.rs:52) are alias.
+    | MIR detail: _51(_, src/filesystem/vfs/utils.rs:59) is dropped at BB24(src/filesystem/vfs/utils.rs:59); _28(binding, src/filesystem/vfs/utils.rs:52) is dropped at BB61(src/filesystem/vfs/utils.rs:68).
+   |
+render dot for DefId(0:21605 ~ dragonos_kernel[9e38]::filesystem::vfs::utils::user_path_at)

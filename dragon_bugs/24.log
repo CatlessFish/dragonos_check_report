@@ -1,0 +1,165 @@
+22:07:57|RAP|WARN|: Double free detected in function "driver_sysfs_add"
+warning: Double free detected.
+   --> src/driver/base/device/driver.rs:235:1
+    |
+235 | / pub fn driver_sysfs_add(&self, dev: &Arc<dyn Device>) -> Result<(), SystemError> {
+236 | |         if let Some(bus) = dev.bus().and_then(|bus| bus.upgrade()) {
+237 | |             bus.subsystem()
+238 | |                 .bus_notifier()
+239 | |                 .call_chain(BusNotifyEvent::BindDriver, Some(dev), None);
+240 | |         }
+241 | |         let driver_kobj = dev.driver().unwrap() as Arc<dyn KObject>;
+242 | |         let device_kobj = dev.clone() as Arc<dyn KObject>;
+243 | |
+244 | |         let err_remove_device = |e| {
+245 | |             sysfs_instance().remove_link(&driver_kobj, dev.name());
+246 | |             Err(e)
+247 | |         };
+248 | |
+249 | |         let err_remove_driver = |e| {
+250 | |             sysfs_instance().remove_link(&device_kobj, "driver".to_string());
+251 | |             err_remove_device(e)
+252 | |         };
+253 | |
+254 | |         sysfs_instance().create_link(Some(&driver_kobj), &device_kobj, device_kobj.name())?;
+255 | |
+256 | |         if let Err(e) =
+257 | |             sysfs_instance().create_link(Some(&device_kobj), &driver_kobj, "driver".to_string())
+258 | |         {
+259 | |             return err_remove_device(e);
+260 | |         }
+261 | |
+262 | |         if let Err(e) = device_manager().create_file(dev, &DeviceAttrCoredump) {
+263 | |             return err_remove_driver(e);
+264 | |         }
+265 | |
+266 | |         return Ok(());
+267 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/driver.rs line 235.
+    | MIR detail: Value _32(device_kobj, src/driver/base/device/driver.rs:242) and _25(driver_kobj, src/driver/base/device/driver.rs:241) are alias.
+    | MIR detail: _32(device_kobj, src/driver/base/device/driver.rs:242) is dropped at BB35(src/driver/base/device/driver.rs:267); _25(driver_kobj, src/driver/base/device/driver.rs:241) is dropped at BB36(src/driver/base/device/driver.rs:267).
+    |
+22:07:57|RAP|WARN|: Double free detected in function "driver_sysfs_add"
+warning: Double free detected during unwinding.
+   --> src/driver/base/device/driver.rs:235:1
+    |
+235 | / pub fn driver_sysfs_add(&self, dev: &Arc<dyn Device>) -> Result<(), SystemError> {
+236 | |         if let Some(bus) = dev.bus().and_then(|bus| bus.upgrade()) {
+237 | |             bus.subsystem()
+238 | |                 .bus_notifier()
+239 | |                 .call_chain(BusNotifyEvent::BindDriver, Some(dev), None);
+240 | |         }
+241 | |         let driver_kobj = dev.driver().unwrap() as Arc<dyn KObject>;
+242 | |         let device_kobj = dev.clone() as Arc<dyn KObject>;
+243 | |
+244 | |         let err_remove_device = |e| {
+245 | |             sysfs_instance().remove_link(&driver_kobj, dev.name());
+246 | |             Err(e)
+247 | |         };
+248 | |
+249 | |         let err_remove_driver = |e| {
+250 | |             sysfs_instance().remove_link(&device_kobj, "driver".to_string());
+251 | |             err_remove_device(e)
+252 | |         };
+253 | |
+254 | |         sysfs_instance().create_link(Some(&driver_kobj), &device_kobj, device_kobj.name())?;
+255 | |
+256 | |         if let Err(e) =
+257 | |             sysfs_instance().create_link(Some(&device_kobj), &driver_kobj, "driver".to_string())
+258 | |         {
+259 | |             return err_remove_device(e);
+260 | |         }
+261 | |
+262 | |         if let Err(e) = device_manager().create_file(dev, &DeviceAttrCoredump) {
+263 | |             return err_remove_driver(e);
+264 | |         }
+265 | |
+266 | |         return Ok(());
+267 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/driver.rs line 235.
+    | MIR detail: Value _32(device_kobj, src/driver/base/device/driver.rs:242) and _25(driver_kobj, src/driver/base/device/driver.rs:241) are alias.
+    | MIR detail: _32(device_kobj, src/driver/base/device/driver.rs:242) is dropped at BB38(src/driver/base/device/driver.rs:267); _25(driver_kobj, src/driver/base/device/driver.rs:241) is dropped at BB39(src/driver/base/device/driver.rs:267).
+    |
+22:07:57|RAP|WARN|: Dangling pointer detected in function "driver_sysfs_add"
+warning: Dangling pointer detected.
+   --> src/driver/base/device/driver.rs:235:1
+    |
+235 | / pub fn driver_sysfs_add(&self, dev: &Arc<dyn Device>) -> Result<(), SystemError> {
+236 | |         if let Some(bus) = dev.bus().and_then(|bus| bus.upgrade()) {
+237 | |             bus.subsystem()
+238 | |                 .bus_notifier()
+239 | |                 .call_chain(BusNotifyEvent::BindDriver, Some(dev), None);
+240 | |         }
+241 | |         let driver_kobj = dev.driver().unwrap() as Arc<dyn KObject>;
+242 | |         let device_kobj = dev.clone() as Arc<dyn KObject>;
+243 | |
+244 | |         let err_remove_device = |e| {
+245 | |             sysfs_instance().remove_link(&driver_kobj, dev.name());
+246 | |             Err(e)
+247 | |         };
+248 | |
+249 | |         let err_remove_driver = |e| {
+250 | |             sysfs_instance().remove_link(&device_kobj, "driver".to_string());
+251 | |             err_remove_device(e)
+252 | |         };
+253 | |
+254 | |         sysfs_instance().create_link(Some(&driver_kobj), &device_kobj, device_kobj.name())?;
+255 | |
+256 | |         if let Err(e) =
+257 | |             sysfs_instance().create_link(Some(&device_kobj), &driver_kobj, "driver".to_string())
+258 | |         {
+259 | |             return err_remove_device(e);
+260 | |         }
+261 | |
+262 | |         if let Err(e) = device_manager().create_file(dev, &DeviceAttrCoredump) {
+263 | |             return err_remove_driver(e);
+264 | |         }
+265 | |
+266 | |         return Ok(());
+267 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/base/device/driver.rs line 235.
+    | MIR detail: Value _32(device_kobj, src/driver/base/device/driver.rs:242) and _2(dev, src/driver/base/device/driver.rs:235) are alias.
+    | MIR detail: _32(device_kobj, src/driver/base/device/driver.rs:242) is dropped at BB35(src/driver/base/device/driver.rs:267); _2(dev, src/driver/base/device/driver.rs:235) became dangling.
+    |
+22:07:57|RAP|WARN|: Dangling pointer detected during unwinding in function "driver_sysfs_add"
+warning: Dangling pointer detected during unwinding.
+   --> src/driver/base/device/driver.rs:235:1
+    |
+235 | / pub fn driver_sysfs_add(&self, dev: &Arc<dyn Device>) -> Result<(), SystemError> {
+236 | |         if let Some(bus) = dev.bus().and_then(|bus| bus.upgrade()) {
+237 | |             bus.subsystem()
+238 | |                 .bus_notifier()
+239 | |                 .call_chain(BusNotifyEvent::BindDriver, Some(dev), None);
+240 | |         }
+241 | |         let driver_kobj = dev.driver().unwrap() as Arc<dyn KObject>;
+242 | |         let device_kobj = dev.clone() as Arc<dyn KObject>;
+243 | |
+244 | |         let err_remove_device = |e| {
+245 | |             sysfs_instance().remove_link(&driver_kobj, dev.name());
+246 | |             Err(e)
+247 | |         };
+248 | |
+249 | |         let err_remove_driver = |e| {
+250 | |             sysfs_instance().remove_link(&device_kobj, "driver".to_string());
+251 | |             err_remove_device(e)
+252 | |         };
+253 | |
+254 | |         sysfs_instance().create_link(Some(&driver_kobj), &device_kobj, device_kobj.name())?;
+255 | |
+256 | |         if let Err(e) =
+257 | |             sysfs_instance().create_link(Some(&device_kobj), &driver_kobj, "driver".to_string())
+258 | |         {
+259 | |             return err_remove_device(e);
+260 | |         }
+261 | |
+262 | |         if let Err(e) = device_manager().create_file(dev, &DeviceAttrCoredump) {
+263 | |             return err_remove_driver(e);
+264 | |         }
+265 | |
+266 | |         return Ok(());
+267 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/base/device/driver.rs line 235.
+    | MIR detail: Value _32(device_kobj, src/driver/base/device/driver.rs:242) and _2(dev, src/driver/base/device/driver.rs:235) are alias.
+    | MIR detail: _32(device_kobj, src/driver/base/device/driver.rs:242) is dropped at BB38(src/driver/base/device/driver.rs:267); _2(dev, src/driver/base/device/driver.rs:235) became dangling.
+    |
+render dot for DefId(0:8055 ~ dragonos_kernel[9e38]::driver::base::device::driver::{impl#3}::driver_sysfs_add)

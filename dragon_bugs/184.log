@@ -1,0 +1,16 @@
+22:08:17|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/process/syscall/sys_setresuid.rs:110:1
+    |
+110 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+111 | |         vec![
+112 | |             FormattedSyscallParam::new("ruid", format!("{:#x}", Self::ruid(args))),
+113 | |             FormattedSyscallParam::new("euid", format!("{:#x}", Self::euid(args))),
+114 | |             FormattedSyscallParam::new("suid", format!("{:#x}", Self::suid(args))),
+115 | |         ]
+116 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_setresuid.rs line 110.
+    | MIR detail: Value _33(_, src/process/syscall/sys_setresuid.rs:113) and _9(_, src/process/syscall/sys_setresuid.rs:112) are alias.
+    | MIR detail: _33(_, src/process/syscall/sys_setresuid.rs:113) is dropped at BB21(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/process/syscall/sys_setresuid.rs:112) is dropped at BB22(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:29584 ~ dragonos_kernel[9e38]::process::syscall::sys_setresuid::{impl#1}::entry_format)

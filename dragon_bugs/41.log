@@ -1,0 +1,49 @@
+22:08:04|RAP|WARN|: Dangling pointer detected in function "__tmp_log"
+22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function "__tmp_log"
+warning: Dangling pointer detected.
+   --> src/exception/manage.rs:363:1
+    |
+363 | / fn __tmp_log(
+364 | |                     name: &str,
+365 | |                     irq: &IrqNumber,
+366 | |                     desc_inner_guard: &SpinLockGuard<'_, InnerIrqDesc>,
+367 | |                 ) {
+368 | |                     error!(
+369 | |                         "Invalid attempt to share NMI for {} (irq {}) on irqchip {}",
+370 | |                         name,
+371 | |                         irq.data(),
+372 | |                         desc_inner_guard
+373 | |                             .irq_data()
+374 | |                             .chip_info_read_irqsave()
+375 | |                             .chip()
+376 | |                             .name()
+377 | |                     );
+378 | |                 }
+    | |_________________- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 363.
+    | MIR detail: Value _27(_, src/exception/manage.rs:372) and _1(name, src/exception/manage.rs:364) are alias.
+    | MIR detail: _27(_, src/exception/manage.rs:372) is dropped at BB20(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _1(name, src/exception/manage.rs:364) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/exception/manage.rs:363:1
+    |
+363 | / fn __tmp_log(
+364 | |                     name: &str,
+365 | |                     irq: &IrqNumber,
+366 | |                     desc_inner_guard: &SpinLockGuard<'_, InnerIrqDesc>,
+367 | |                 ) {
+368 | |                     error!(
+369 | |                         "Invalid attempt to share NMI for {} (irq {}) on irqchip {}",
+370 | |                         name,
+371 | |                         irq.data(),
+372 | |                         desc_inner_guard
+373 | |                             .irq_data()
+374 | |                             .chip_info_read_irqsave()
+375 | |                             .chip()
+376 | |                             .name()
+377 | |                     );
+378 | |                 }
+    | |_________________- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 363.
+    | MIR detail: Value _27(_, src/exception/manage.rs:372) and _1(name, src/exception/manage.rs:364) are alias.
+    | MIR detail: _27(_, src/exception/manage.rs:372) is dropped at BB27(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _1(name, src/exception/manage.rs:364) became dangling.
+    |
+render dot for DefId(0:16709 ~ dragonos_kernel[9e38]::exception::manage::{impl#0}::setup_irq_resources::__tmp_log#1)

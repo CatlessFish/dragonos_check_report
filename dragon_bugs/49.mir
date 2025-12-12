@@ -1,0 +1,698 @@
+bb0 at src/filesystem/eventfd.rs:211:9: 213:10
+bb1 at src/filesystem/eventfd.rs:211:18: 211:19
+bb2 at src/filesystem/eventfd.rs:211:18: 211:19
+bb3 at src/filesystem/eventfd.rs:214:38: 214:46
+bb4 at src/filesystem/eventfd.rs:214:56: 214:57
+bb5 at src/filesystem/eventfd.rs:214:65: 214:66
+bb6 at src/filesystem/eventfd.rs:214:66: 214:67
+bb7 at src/filesystem/eventfd.rs:215:26: 215:27
+bb8 at src/filesystem/eventfd.rs:215:26: 215:27
+bb9 at src/filesystem/eventfd.rs:219:13: 221:14
+bb10 at src/filesystem/eventfd.rs:219:16: 219:45
+bb11 at src/filesystem/eventfd.rs:219:16: 219:45
+bb14 at src/filesystem/eventfd.rs:219:65: 219:66
+bb16 at src/filesystem/eventfd.rs:219:65: 219:66
+bb17 at src/filesystem/eventfd.rs:222:45: 222:46
+bb18 at src/filesystem/eventfd.rs:223:33: 223:34
+bb19 at src/filesystem/eventfd.rs:223:16: 223:40
+bb20 at src/filesystem/eventfd.rs:223:45: 223:46
+bb21 at src/filesystem/eventfd.rs:223:45: 223:46
+bb22 at src/filesystem/eventfd.rs:229:22: 229:23
+bb24 at src/filesystem/eventfd.rs:229:65: 229:66
+bb25 at src/filesystem/eventfd.rs:229:65: 229:66
+bb26 at src/filesystem/eventfd.rs:232:25: 232:26
+bb27 at src/filesystem/eventfd.rs:233:35: 233:36
+bb28 at src/filesystem/eventfd.rs:233:40: 233:41
+bb29 at src/filesystem/eventfd.rs:234:9: 234:10
+bb30 at src/filesystem/eventfd.rs:235:45: 235:46
+bb31 at src/filesystem/eventfd.rs:236:15: 236:16
+bb32 at src/filesystem/eventfd.rs:236:9: 236:29
+bb33 at src/filesystem/eventfd.rs:237:21: 237:22
+bb34 at src/filesystem/eventfd.rs:238:40: 238:41
+bb35 at src/filesystem/eventfd.rs:240:41: 240:42
+bb36 at src/filesystem/eventfd.rs:241:72: 241:77
+bb37 at src/filesystem/eventfd.rs:241:87: 241:88
+bb38 at src/filesystem/eventfd.rs:241:88: 241:89
+bb40 at src/filesystem/eventfd.rs:241:59: 241:89
+bb41 at src/filesystem/eventfd.rs:241:88: 241:89
+bb42 at src/filesystem/eventfd.rs:241:88: 241:89
+bb43 at src/filesystem/eventfd.rs:241:96: 241:97
+bb44 at src/filesystem/eventfd.rs:242:21: 242:22
+bb45 at src/filesystem/eventfd.rs:245:56: 245:57
+bb46 at src/filesystem/eventfd.rs:245:57: 245:58
+bb47 at src/filesystem/eventfd.rs:245:9: 245:58
+bb48 at src/filesystem/eventfd.rs:245:57: 245:58
+bb49 at src/filesystem/eventfd.rs:245:57: 245:58
+bb50 at src/filesystem/eventfd.rs:247:5: 247:6
+bb51 at src/filesystem/eventfd.rs:247:5: 247:6
+bb52 at src/filesystem/eventfd.rs:234:9: 234:10
+bb53 at src/filesystem/eventfd.rs:234:9: 234:10
+bb54 at src/filesystem/eventfd.rs:247:5: 247:6
+fn <filesystem::eventfd::EventFdInode as filesystem::vfs::IndexNode>::write_at
+_0:  @ core::result::Result<usize, system_error::SystemError> 
+_1:  @ &'{erased} filesystem::eventfd::EventFdInode 
+_2:  @ usize 
+_3:  @ usize 
+_4:  @ &'{erased} [u8] 
+_5:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::vfs::file::FilePrivateData> 
+_6:  @ ! 
+_7:  @ () 
+_8:  @ bool 
+_9:  @ usize 
+_10:  @ ! 
+_11:  @ system_error::SystemError 
+_12:  @ u64 
+_13:  @ [u8; 8_usize] 
+_14:  @ core::result::Result<[u8; 8_usize], core::array::TryFromSliceError> 
+_15:  @ &'{erased} [u8] 
+_16:  @ &'{erased} [u8] 
+_17:  @ &'{erased} [u8] 
+_18:  @ core::ops::RangeTo<usize> 
+_19:  @ () 
+_20:  @ bool 
+_21:  @ u64 
+_22:  @ ! 
+_23:  @ system_error::SystemError 
+_24:  @ () 
+_25:  @ () 
+_26:  @ () 
+_27:  @ bool 
+_28:  @ &'{erased} process::ProcessControlBlock 
+_29:  @ &'{erased} process::ProcessControlBlock 
+_30:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_31:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_32:  @ ! 
+_33:  @ system_error::SystemError 
+_34:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_35:  @ &'{erased} libs::spinlock::SpinLock<filesystem::eventfd::EventFd> 
+_36:  @ () 
+_37:  @ bool 
+_38:  @ u64 
+_39:  @ u64 
+_40:  @ &'{erased} filesystem::eventfd::EventFd 
+_41:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_42:  @ (u64, bool) 
+_43:  @ u64 
+_44:  @ ! 
+_45:  @ () 
+_46:  @ bool 
+_47:  @ &'{erased} filesystem::eventfd::EventFdFlags 
+_48:  @ &'{erased} filesystem::eventfd::EventFd 
+_49:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_50:  @ ! 
+_51:  @ system_error::SystemError 
+_52:  @ () 
+_53:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_54:  @ core::option::Option<()> 
+_55:  @ core::result::Result<(), system_error::SystemError> 
+_56:  @ &'{erased} libs::wait_queue::WaitQueue 
+_57:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_58:  @ &'{erased} libs::spinlock::SpinLock<filesystem::eventfd::EventFd> 
+_59:  @ u64 
+_60:  @ &'{erased} mut filesystem::eventfd::EventFd 
+_61:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_62:  @ (u64, bool) 
+_63:  @ () 
+_64:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_65:  @ () 
+_66:  @ &'{erased} libs::wait_queue::WaitQueue 
+_67:  @ core::option::Option<process::ProcessState> 
+_68:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_69:  @ &'{erased} libs::spinlock::SpinLock<filesystem::eventfd::EventFd> 
+_70:  @ filesystem::epoll::EPollEventType 
+_71:  @ u32 
+_72:  @ usize 
+_73:  @ core::ops::ControlFlow<core::result::Result<core::convert::Infallible, system_error::SystemError>, usize> 
+_74:  @ core::result::Result<usize, system_error::SystemError> 
+_75:  @ &'{erased} filesystem::eventfd::EventFdInode 
+_76:  @ &'{erased} filesystem::vfs::file::FilePrivateData 
+_77:  @ &'{erased} filesystem::vfs::file::FilePrivateData 
+_78:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::vfs::file::FilePrivateData> 
+_79:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::vfs::file::FilePrivateData> 
+_80:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_81:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_82:  @ isize 
+_83:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_84:  @ ! 
+_85:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_86:  @ usize 
+_87:  @ () 
+_88:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::eventfd::EventFd> 
+_89:  @ () 
+_90:  @ core::ops::ControlFlow<core::result::Result<core::convert::Infallible, system_error::SystemError>, ()> 
+_91:  @ core::result::Result<(), system_error::SystemError> 
+_92:  @ &'{erased} libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<filesystem::epoll::EPollItem, alloc::alloc::Global>, alloc::alloc::Global>> 
+_93:  @ &'{erased} libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<filesystem::epoll::EPollItem, alloc::alloc::Global>, alloc::alloc::Global>> 
+_94:  @ filesystem::epoll::EPollEventType 
+_95:  @ isize 
+_96:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_97:  @ ! 
+_98:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_99:  @ () 
+_100:  @ bool 
+_101:  @ bool 
+_102:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_102, const false)) @ _102=const false @ Use
+    Assign((_101, const false)) @ _101=const false @ Use
+    Assign((_100, const false)) @ _100=const false @ Use
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _3)) @ _9=copy _3 @ Use
+    Assign((_8, Lt(move _9, const 8_usize))) @ _8=Lt(move _9, const 8_usize) @ BinaryOp
+    switchInt(move _8) -> [0: bb2, otherwise: bb1] @ SwitchInt
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::EINVAL)) @ _11=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::<usize, system_error::SystemError>::Err(move _11))) @ _0=core::result::Result::<usize, system_error::SystemError>::Err(move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -> bb55 @ Goto
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, const ())) @ _7=const () @ Use
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &(*_4))) @ _17=&(*_4) @ Ref
+    StorageLive(_18) @ StorageLive
+    Assign((_18, core::ops::RangeTo::<usize> { end: const 8_usize })) @ _18=core::ops::RangeTo::<usize> { end: const 8_usize } @ Aggregate
+    _16 = <[u8] as core::ops::Index<core::ops::RangeTo<usize>>>::index(move _17, move _18) -> [return: bb3, unwind: bb58] @ Call: FnDid: 45437
+}
+bb 3 {
+CleanUp: false
+    Assign((_15, &(*_16))) @ _15=&(*_16) @ Ref
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    _14 = <&[u8] as core::convert::TryInto<[u8; 8]>>::try_into(move _15) -> [return: bb4, unwind: bb58] @ Call: FnDid: 3394
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    _13 = core::result::Result::<[u8; 8], core::array::TryFromSliceError>::unwrap(move _14) -> [return: bb5, unwind: bb58] @ Call: FnDid: 11024
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    _12 = core::num::<impl u64>::from_ne_bytes(move _13) -> [return: bb6, unwind: bb58] @ Call: FnDid: 35421
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, copy _12)) @ _21=copy _12 @ Use
+    Assign((_20, Eq(move _21, const core::num::<impl u64>::MAX))) @ _20=Eq(move _21, const core::num::<impl u64>::MAX) @ BinaryOp
+    switchInt(move _20) -> [0: bb8, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, system_error::SystemError::EINVAL)) @ _23=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::<usize, system_error::SystemError>::Err(move _23))) @ _0=core::result::Result::<usize, system_error::SystemError>::Err(move _23) @ Aggregate
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    goto -> bb54 @ Goto
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_19, const ())) @ _19=const () @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    goto -> bb9 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    _31 = process::ProcessManager::current_pcb() -> [return: bb10, unwind: bb58] @ Call: FnDid: 29866
+}
+bb 10 {
+CleanUp: false
+    Assign((_30, &_31)) @ _30=&_31 @ Ref
+    _29 = <alloc::sync::Arc<process::ProcessControlBlock> as lazy_static::__Deref>::deref(move _30) -> [return: bb11, unwind: bb57] @ Call: FnDid: 3903
+}
+bb 11 {
+CleanUp: false
+    Assign((_28, &(*_29))) @ _28=&(*_29) @ Ref
+    StorageDead(_30) @ StorageDead
+    _27 = process::ProcessControlBlock::has_pending_signal(move _28) -> [return: bb12, unwind: bb57] @ Call: FnDid: 29965
+}
+bb 12 {
+CleanUp: false
+    switchInt(move _27) -> [0: bb15, otherwise: bb13] @ SwitchInt
+}
+bb 13 {
+CleanUp: false
+    drop(_31) -> [return: bb14, unwind: bb58] @ Drop
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    Assign((_33, system_error::SystemError::ERESTARTSYS)) @ _33=system_error::SystemError::ERESTARTSYS @ Aggregate
+    Assign((_0, core::result::Result::<usize, system_error::SystemError>::Err(move _33))) @ _0=core::result::Result::<usize, system_error::SystemError>::Err(move _33) @ Aggregate
+    StorageDead(_33) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    goto -> bb53 @ Goto
+}
+bb 15 {
+CleanUp: false
+    drop(_31) -> [return: bb16, unwind: bb58] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    Assign((_26, const ())) @ _26=const () @ Use
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &((*_1).0: libs::spinlock::SpinLock<filesystem::eventfd::EventFd>))) @ _35=&((*_1).0: libs::spinlock::SpinLock<filesystem::eventfd::EventFd>) @ Ref
+    _34 = libs::spinlock::SpinLock::<filesystem::eventfd::EventFd>::lock(move _35) -> [return: bb17, unwind: bb58] @ Call: FnDid: 5261
+}
+bb 17 {
+CleanUp: false
+    Assign((_102, const true)) @ _102=const true @ Use
+    StorageDead(_35) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &_34)) @ _41=&_34 @ Ref
+    _40 = <libs::spinlock::SpinLockGuard<'_, filesystem::eventfd::EventFd> as lazy_static::__Deref>::deref(move _41) -> [return: bb18, unwind: bb66] @ Call: FnDid: 3903
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_39, copy ((*_40).0: u64))) @ _39=copy ((*_40).0: u64) @ Use
+    Assign((_42, SubWithOverflow(const core::num::<impl u64>::MAX, copy _39))) @ _42=SubWithOverflow(const core::num::<impl u64>::MAX, copy _39) @ BinaryOp
+    assert(!move (_42.1: bool), "attempt to compute `{} - {}`, which would overflow", const core::num::<impl u64>::MAX, move _39) -> [success: bb19, unwind: bb66] @ Assert
+}
+bb 19 {
+CleanUp: false
+    Assign((_38, move (_42.0: u64))) @ _38=move (_42.0: u64) @ Use
+    StorageDead(_39) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _12)) @ _43=copy _12 @ Use
+    Assign((_37, Gt(move _38, move _43))) @ _37=Gt(move _38, move _43) @ BinaryOp
+    switchInt(move _37) -> [0: bb21, otherwise: bb20] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    Assign((_24, const ())) @ _24=const () @ Use
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_34) -> [return: bb29, unwind: bb58] @ Drop
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    Assign((_36, const ())) @ _36=const () @ Use
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &_34)) @ _49=&_34 @ Ref
+    _48 = <libs::spinlock::SpinLockGuard<'_, filesystem::eventfd::EventFd> as lazy_static::__Deref>::deref(move _49) -> [return: bb22, unwind: bb66] @ Call: FnDid: 3903
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    Assign((_47, &((*_48).1: filesystem::eventfd::EventFdFlags))) @ _47=&((*_48).1: filesystem::eventfd::EventFdFlags) @ Ref
+    _46 = filesystem::eventfd::EventFdFlags::contains(move _47, const filesystem::eventfd::EventFdFlags::EFD_NONBLOCK) -> [return: bb23, unwind: bb66] @ Call: FnDid: 52149
+}
+bb 23 {
+CleanUp: false
+    switchInt(move _46) -> [0: bb25, otherwise: bb24] @ SwitchInt
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    Assign((_51, system_error::SystemError::EAGAIN_OR_EWOULDBLOCK)) @ _51=system_error::SystemError::EAGAIN_OR_EWOULDBLOCK @ Aggregate
+    Assign((_0, core::result::Result::<usize, system_error::SystemError>::Err(move _51))) @ _0=core::result::Result::<usize, system_error::SystemError>::Err(move _51) @ Aggregate
+    StorageDead(_51) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    drop(_34) -> [return: bb52, unwind: bb58] @ Drop
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    Assign((_45, const ())) @ _45=const () @ Use
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_102, const false)) @ _102=const false @ Use
+    Assign((_53, move _34)) @ _53=move _34 @ Use
+    _52 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, filesystem::eventfd::EventFd>>(move _53) -> [return: bb26, unwind: bb66] @ Call: FnDid: 2323
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &((*_1).1: libs::wait_queue::WaitQueue))) @ _56=&((*_1).1: libs::wait_queue::WaitQueue) @ Ref
+    _55 = libs::wait_queue::WaitQueue::sleep(move _56) -> [return: bb27, unwind: bb66] @ Call: FnDid: 5626
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    _54 = core::result::Result::<(), system_error::SystemError>::ok(move _55) -> [return: bb28, unwind: bb66] @ Call: FnDid: 10993
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    Assign((_25, const ())) @ _25=const () @ Use
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_34) @ StorageDead
+    goto -> bb9 @ Goto
+}
+bb 29 {
+CleanUp: false
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_34) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &((*_1).0: libs::spinlock::SpinLock<filesystem::eventfd::EventFd>))) @ _58=&((*_1).0: libs::spinlock::SpinLock<filesystem::eventfd::EventFd>) @ Ref
+    _57 = libs::spinlock::SpinLock::<filesystem::eventfd::EventFd>::lock(move _58) -> [return: bb30, unwind: bb58] @ Call: FnDid: 5261
+}
+bb 30 {
+CleanUp: false
+    Assign((_101, const true)) @ _101=const true @ Use
+    StorageDead(_58) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    Assign((_59, copy _12)) @ _59=copy _12 @ Use
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    Assign((_61, &mut _57)) @ _61=&mut _57 @ Ref
+    _60 = <libs::spinlock::SpinLockGuard<'_, filesystem::eventfd::EventFd> as core::ops::DerefMut>::deref_mut(move _61) -> [return: bb31, unwind: bb64] @ Call: FnDid: 3915
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    Assign((_62, AddWithOverflow(copy ((*_60).0: u64), copy _59))) @ _62=AddWithOverflow(copy ((*_60).0: u64), copy _59) @ BinaryOp
+    assert(!move (_62.1: bool), "attempt to compute `{} + {}`, which would overflow", copy ((*_60).0: u64), move _59) -> [success: bb32, unwind: bb64] @ Assert
+}
+bb 32 {
+CleanUp: false
+    Assign((((*_60).0: u64), move (_62.0: u64))) @ ((*_60).0: u64)=move (_62.0: u64) @ Use
+    StorageDead(_59) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    Assign((_101, const false)) @ _101=const false @ Use
+    Assign((_64, move _57)) @ _64=move _57 @ Use
+    _63 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, filesystem::eventfd::EventFd>>(move _64) -> [return: bb33, unwind: bb64] @ Call: FnDid: 2323
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_66, &((*_1).1: libs::wait_queue::WaitQueue))) @ _66=&((*_1).1: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_67) @ StorageLive
+    Assign((_67, core::option::Option::<process::ProcessState>::None)) @ _67=core::option::Option::<process::ProcessState>::None @ Aggregate
+    _65 = libs::wait_queue::WaitQueue::wakeup_all(move _66, move _67) -> [return: bb34, unwind: bb64] @ Call: FnDid: 5651
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, &((*_1).0: libs::spinlock::SpinLock<filesystem::eventfd::EventFd>))) @ _69=&((*_1).0: libs::spinlock::SpinLock<filesystem::eventfd::EventFd>) @ Ref
+    _68 = libs::spinlock::SpinLock::<filesystem::eventfd::EventFd>::lock(move _69) -> [return: bb35, unwind: bb64] @ Call: FnDid: 5261
+}
+bb 35 {
+CleanUp: false
+    Assign((_100, const true)) @ _100=const true @ Use
+    StorageDead(_69) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, &(*_1))) @ _75=&(*_1) @ Ref
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_79, &_5)) @ _79=&_5 @ Ref
+    Assign((_78, &(*_79))) @ _78=&(*_79) @ Ref
+    _77 = <libs::spinlock::SpinLockGuard<'_, filesystem::vfs::file::FilePrivateData> as lazy_static::__Deref>::deref(move _78) -> [return: bb36, unwind: bb62] @ Call: FnDid: 3903
+}
+bb 36 {
+CleanUp: false
+    Assign((_76, &(*_77))) @ _76=&(*_77) @ Ref
+    StorageDead(_78) @ StorageDead
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &_68)) @ _81=&_68 @ Ref
+    Assign((_80, &(*_81))) @ _80=&(*_81) @ Ref
+    _74 = filesystem::eventfd::EventFdInode::do_poll(move _75, move _76, move _80) -> [return: bb37, unwind: bb62] @ Call: FnDid: 17401
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    _73 = <core::result::Result<usize, system_error::SystemError> as core::ops::Try>::branch(move _74) -> [return: bb38, unwind: bb62] @ Call: FnDid: 4199
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_74) @ StorageDead
+    Assign((_82, discriminant(_73))) @ _82=discriminant(_73) @ Discriminant
+    switchInt(move _82) -> [0: bb40, 1: bb41, otherwise: bb39] @ SwitchInt
+}
+bb 39 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 40 {
+CleanUp: false
+    StorageLive(_86) @ StorageLive
+    Assign((_86, copy ((_73 as Continue).0: usize))) @ _86=copy ((_73 as Continue).0: usize) @ Use
+    Assign((_72, copy _86)) @ _72=copy _86 @ Use
+    StorageDead(_86) @ StorageDead
+    Assign((_71, move _72 as u32 (IntToInt))) @ _71=move _72 as u32 (IntToInt) @ Cast
+    StorageDead(_72) @ StorageDead
+    _70 = filesystem::epoll::EPollEventType::from_bits_truncate(move _71) -> [return: bb43, unwind: bb62] @ Call: FnDid: 51992
+}
+bb 41 {
+CleanUp: false
+    StorageLive(_83) @ StorageLive
+    Assign((_83, move ((_73 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>))) @ _83=move ((_73 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>) @ Use
+    StorageLive(_85) @ StorageLive
+    Assign((_85, move _83)) @ _85=move _83 @ Use
+    _0 = <core::result::Result<usize, system_error::SystemError> as core::ops::FromResidual<core::result::Result<core::convert::Infallible, system_error::SystemError>>>::from_residual(move _85) -> [return: bb42, unwind: bb62] @ Call: FnDid: 4202
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    goto -> bb50 @ Goto
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_100, const false)) @ _100=const false @ Use
+    Assign((_88, move _68)) @ _88=move _68 @ Use
+    _87 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, filesystem::eventfd::EventFd>>(move _88) -> [return: bb44, unwind: bb62] @ Call: FnDid: 2323
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_88) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &((*_1).2: libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<filesystem::epoll::EPollItem>>>))) @ _93=&((*_1).2: libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<filesystem::epoll::EPollItem>>>) @ Ref
+    Assign((_92, &(*_93))) @ _92=&(*_93) @ Ref
+    StorageLive(_94) @ StorageLive
+    Assign((_94, copy _70)) @ _94=copy _70 @ Use
+    _91 = filesystem::epoll::event_poll::EventPoll::wakeup_epoll(move _92, move _94) -> [return: bb45, unwind: bb62] @ Call: FnDid: 17315
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    _90 = <core::result::Result<(), system_error::SystemError> as core::ops::Try>::branch(move _91) -> [return: bb46, unwind: bb62] @ Call: FnDid: 4199
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    Assign((_95, discriminant(_90))) @ _95=discriminant(_90) @ Discriminant
+    switchInt(move _95) -> [0: bb47, 1: bb48, otherwise: bb39] @ SwitchInt
+}
+bb 47 {
+CleanUp: false
+    StorageLive(_99) @ StorageLive
+    Assign((_99, copy ((_90 as Continue).0: ()))) @ _99=copy ((_90 as Continue).0: ()) @ Use
+    Assign((_89, copy _99)) @ _89=copy _99 @ Use
+    StorageDead(_99) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    Assign((_0, core::result::Result::<usize, system_error::SystemError>::Ok(const 8_usize))) @ _0=core::result::Result::<usize, system_error::SystemError>::Ok(const 8_usize) @ Aggregate
+    goto -> bb50 @ Goto
+}
+bb 48 {
+CleanUp: false
+    StorageLive(_96) @ StorageLive
+    Assign((_96, move ((_90 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>))) @ _96=move ((_90 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>) @ Use
+    StorageLive(_98) @ StorageLive
+    Assign((_98, move _96)) @ _98=move _96 @ Use
+    _0 = <core::result::Result<usize, system_error::SystemError> as core::ops::FromResidual<core::result::Result<core::convert::Infallible, system_error::SystemError>>>::from_residual(move _98) -> [return: bb49, unwind: bb62] @ Call: FnDid: 4202
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    goto -> bb50 @ Goto
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    switchInt(copy _100) -> [0: bb51, otherwise: bb60] @ SwitchInt
+}
+bb 51 {
+CleanUp: false
+    Assign((_100, const false)) @ _100=const false @ Use
+    StorageDead(_68) @ StorageDead
+    Assign((_101, const false)) @ _101=const false @ Use
+    StorageDead(_57) @ StorageDead
+    goto -> bb54 @ Goto
+}
+bb 52 {
+CleanUp: false
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_34) @ StorageDead
+    goto -> bb53 @ Goto
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    goto -> bb54 @ Goto
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    goto -> bb55 @ Goto
+}
+bb 55 {
+CleanUp: false
+    drop(_5) -> [return: bb56, unwind: bb59] @ Drop
+}
+bb 56 {
+CleanUp: false
+    return @ Return
+}
+bb 57 {
+CleanUp: true
+    drop(_31) -> [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 58 {
+CleanUp: true
+    drop(_5) -> [return: bb59, unwind terminate(cleanup)] @ Drop
+}
+bb 59 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 60 {
+CleanUp: false
+    drop(_68) -> [return: bb51, unwind: bb64] @ Drop
+}
+bb 61 {
+CleanUp: true
+    drop(_68) -> [return: bb64, unwind terminate(cleanup)] @ Drop
+}
+bb 62 {
+CleanUp: true
+    switchInt(copy _100) -> [0: bb64, otherwise: bb61] @ SwitchInt
+}
+bb 63 {
+CleanUp: true
+    drop(_57) -> [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 64 {
+CleanUp: true
+    switchInt(copy _101) -> [0: bb58, otherwise: bb63] @ SwitchInt
+}
+bb 65 {
+CleanUp: true
+    drop(_34) -> [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 66 {
+CleanUp: true
+    switchInt(copy _102) -> [0: bb58, otherwise: bb65] @ SwitchInt
+}
+

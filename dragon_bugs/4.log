@@ -1,0 +1,35 @@
+22:07:47|RAP|WARN|: Dangling pointer detected in function "stop_counter"
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function "stop_counter"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/driver/hpet.rs:315:1
+    |
+315 | / fn stop_counter(&self) {
+316 | |         let (inner_guard, regs) = unsafe { self.hpet_regs_mut() };
+317 | |         debug!("HPET general config: {:#x}", regs.general_config());
+318 | |         let mut cfg = regs.general_config();
+319 | |         cfg &= !HPET_CFG_ENABLE;
+320 | |         unsafe { regs.write_general_config(cfg) };
+321 | |
+322 | |         drop(inner_guard);
+323 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 315.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in stop_counter and _1(self, src/arch/x86_64/driver/hpet.rs:315) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in stop_counter is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:315); _1(self, src/arch/x86_64/driver/hpet.rs:315) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/driver/hpet.rs:315:1
+    |
+315 | / fn stop_counter(&self) {
+316 | |         let (inner_guard, regs) = unsafe { self.hpet_regs_mut() };
+317 | |         debug!("HPET general config: {:#x}", regs.general_config());
+318 | |         let mut cfg = regs.general_config();
+319 | |         cfg &= !HPET_CFG_ENABLE;
+320 | |         unsafe { regs.write_general_config(cfg) };
+321 | |
+322 | |         drop(inner_guard);
+323 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 315.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in stop_counter and _1(self, src/arch/x86_64/driver/hpet.rs:315) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in stop_counter is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:315); _1(self, src/arch/x86_64/driver/hpet.rs:315) became dangling.
+    |
+render dot for DefId(0:614 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::stop_counter)

@@ -1,0 +1,31 @@
+22:07:47|RAP|WARN|: Dangling pointer detected in function "main_counter_value"
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function "main_counter_value"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/driver/hpet.rs:256:1
+    |
+256 | / pub fn main_counter_value(&self) -> u64 {
+257 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+258 | |         let value = regs.main_counter_value();
+259 | |
+260 | |         drop(inner_guard);
+261 | |         return value;
+262 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 256.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in main_counter_value and _1(self, src/arch/x86_64/driver/hpet.rs:256) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in main_counter_value is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:256); _1(self, src/arch/x86_64/driver/hpet.rs:256) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/driver/hpet.rs:256:1
+    |
+256 | / pub fn main_counter_value(&self) -> u64 {
+257 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+258 | |         let value = regs.main_counter_value();
+259 | |
+260 | |         drop(inner_guard);
+261 | |         return value;
+262 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 256.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in main_counter_value and _1(self, src/arch/x86_64/driver/hpet.rs:256) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in main_counter_value is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:256); _1(self, src/arch/x86_64/driver/hpet.rs:256) became dangling.
+    |
+render dot for DefId(0:609 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::main_counter_value)

@@ -1,0 +1,128 @@
+bb0 at src/filesystem/fat/fs.rs:1790:13: 1790:18
+bb1 at src/filesystem/fat/fs.rs:1790:58: 1790:59
+bb2 at src/filesystem/fat/fs.rs:1791:28: 1791:29
+bb3 at src/filesystem/fat/fs.rs:1792:25: 1792:26
+bb4 at src/filesystem/fat/fs.rs:1793:23: 1793:24
+bb5 at src/filesystem/fat/fs.rs:1794:28: 1794:29
+bb6 at src/filesystem/fat/fs.rs:1792:25: 1792:26
+bb7 at src/filesystem/fat/fs.rs:1797:9: 1797:10
+bb8 at src/filesystem/fat/fs.rs:1798:5: 1798:6
+fn <filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode>::truncate
+_0:  @ core::result::Result<(), system_error::SystemError> 
+_1:  @ &'{erased} filesystem::fat::fs::LockedFATInode 
+_2:  @ usize 
+_3:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::fat::fs::FATInode> 
+_4:  @ &'{erased} libs::spinlock::SpinLock<filesystem::fat::fs::FATInode> 
+_5:  @ usize 
+_6:  @ i64 
+_7:  @ &'{erased} filesystem::fat::fs::FATInode 
+_8:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, filesystem::fat::fs::FATInode> 
+_9:  @ bool 
+_10:  @ usize 
+_11:  @ usize 
+_12:  @ () 
+_13:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::fat::fs::FATInode> 
+_14:  @ &'{erased} filesystem::fat::fs::LockedFATInode 
+_15:  @ usize 
+_16:  @ () 
+_17:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_17, const false)) @ _17=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &((*_1).0: libs::spinlock::SpinLock<filesystem::fat::fs::FATInode>))) @ _4=&((*_1).0: libs::spinlock::SpinLock<filesystem::fat::fs::FATInode>) @ Ref
+    Assign((_17, const true)) @ _17=const true @ Use
+    _3 = libs::spinlock::SpinLock::<filesystem::fat::fs::FATInode>::lock(move _4) -> [return: bb1, unwind continue] @ Call: FnDid: 5261
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &_3)) @ _8=&_3 @ Ref
+    _7 = <libs::spinlock::SpinLockGuard<'_, filesystem::fat::fs::FATInode> as lazy_static::__Deref>::deref(move _8) -> [return: bb2, unwind: bb12] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_6, copy (((*_7).3: filesystem::vfs::Metadata).2: i64))) @ _6=copy (((*_7).3: filesystem::vfs::Metadata).2: i64) @ Use
+    Assign((_5, move _6 as usize (IntToInt))) @ _5=move _6 as usize (IntToInt) @ Cast
+    StorageDead(_6) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, copy _2)) @ _10=copy _2 @ Use
+    StorageLive(_11) @ StorageLive
+    Assign((_11, copy _5)) @ _11=copy _5 @ Use
+    Assign((_9, Lt(move _10, move _11))) @ _9=Lt(move _10, move _11) @ BinaryOp
+    switchInt(move _9) -> [0: bb6, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_17, const false)) @ _17=const false @ Use
+    Assign((_13, move _3)) @ _13=move _3 @ Use
+    _12 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, filesystem::fat::fs::FATInode>>(move _13) -> [return: bb4, unwind: bb12] @ Call: FnDid: 2323
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &(*_1))) @ _14=&(*_1) @ Ref
+    StorageLive(_15) @ StorageLive
+    Assign((_15, copy _2)) @ _15=copy _2 @ Use
+    _0 = <filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode>::resize(move _14, move _15) -> [return: bb5, unwind: bb12] @ Call: FnDid: 21765
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -> bb7 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    Assign((_16, ())) @ _16=() @ Aggregate
+    Assign((_0, core::result::Result::<(), system_error::SystemError>::Ok(move _16))) @ _0=core::result::Result::<(), system_error::SystemError>::Ok(move _16) @ Aggregate
+    StorageDead(_16) @ StorageDead
+    goto -> bb7 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    switchInt(copy _17) -> [0: bb8, otherwise: bb10] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    Assign((_17, const false)) @ _17=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 9 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 10 {
+CleanUp: false
+    drop(_3) -> [return: bb8, unwind: bb9] @ Drop
+}
+bb 11 {
+CleanUp: true
+    drop(_3) -> [return: bb9, unwind terminate(cleanup)] @ Drop
+}
+bb 12 {
+CleanUp: true
+    switchInt(copy _17) -> [0: bb9, otherwise: bb11] @ SwitchInt
+}
+

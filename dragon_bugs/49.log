@@ -1,0 +1,361 @@
+22:08:04|RAP|WARN|: Use-after-free detected in function "write_at"
+warning: Use-after-free detected.
+   --> src/filesystem/eventfd.rs:241:79
+    |
+204 | fn write_at(
+205 |         &self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &[u8],
+209 |         data: SpinLockGuard<FilePrivateData>,
+210 |     ) -> Result<usize, SystemError> {
+211 |         if len < 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count > val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+    |                                                                               -------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 241.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _68(eventfd, src/filesystem/eventfd.rs:240) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _68(eventfd, src/filesystem/eventfd.rs:240) is used at BB36(src/filesystem/eventfd.rs:241).
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/eventfd.rs:241:79
+    |
+204 | fn write_at(
+205 |         &self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &[u8],
+209 |         data: SpinLockGuard<FilePrivateData>,
+210 |     ) -> Result<usize, SystemError> {
+211 |         if len < 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count > val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+    |                                                                               -------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 241.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _57(eventfd, src/filesystem/eventfd.rs:235) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _57(eventfd, src/filesystem/eventfd.rs:235) is used at BB36(src/filesystem/eventfd.rs:241).
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/eventfd.rs:242:9
+    |
+204 | fn write_at(
+205 |         &self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &[u8],
+209 |         data: SpinLockGuard<FilePrivateData>,
+210 |     ) -> Result<usize, SystemError> {
+211 |         if len < 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count > val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+242 |         drop(eventfd);
+    |         ------------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 242.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _88(_, src/filesystem/eventfd.rs:242) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _88(_, src/filesystem/eventfd.rs:242) is used at BB43(src/filesystem/eventfd.rs:242).
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+warning: Use-after-free detected.
+   --> src/filesystem/eventfd.rs:240:23
+    |
+204 | fn write_at(
+205 |         &self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &[u8],
+209 |         data: SpinLockGuard<FilePrivateData>,
+210 |     ) -> Result<usize, SystemError> {
+211 |         if len < 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count > val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+    |                       ------------------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 240.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _69(_, src/filesystem/eventfd.rs:240) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _69(_, src/filesystem/eventfd.rs:240) is used at BB34(src/filesystem/eventfd.rs:240).
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+22:08:04|RAP|WARN|: Dangling pointer detected in function "write_at"
+warning: Use-after-free detected.
+   --> src/filesystem/eventfd.rs:241:59
+    |
+204 | fn write_at(
+205 |         &self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &[u8],
+209 |         data: SpinLockGuard<FilePrivateData>,
+210 |     ) -> Result<usize, SystemError> {
+211 |         if len < 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count > val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+    |                                                           ----------------------------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 241.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _80(_, src/filesystem/eventfd.rs:241) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _80(_, src/filesystem/eventfd.rs:241) is used at BB36(src/filesystem/eventfd.rs:241).
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function "write_at"
+warning: Dangling pointer detected.
+   --> src/filesystem/eventfd.rs:204:1
+    |
+204 | / fn write_at(
+205 | |         &self,
+206 | |         _offset: usize,
+207 | |         len: usize,
+208 | |         buf: &[u8],
+209 | |         data: SpinLockGuard<FilePrivateData>,
+210 | |     ) -> Result<usize, SystemError> {
+211 | |         if len < 8 {
+212 | |             return Err(SystemError::EINVAL);
+213 | |         }
+214 | |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 | |         if val == u64::MAX {
+216 | |             return Err(SystemError::EINVAL);
+217 | |         }
+218 | |         loop {
+219 | |             if ProcessManager::current_pcb().has_pending_signal() {
+220 | |                 return Err(SystemError::ERESTARTSYS);
+221 | |             }
+222 | |             let eventfd = self.eventfd.lock();
+223 | |             if u64::MAX - eventfd.count > val {
+224 | |                 break;
+225 | |             }
+226 | |             // block until a read() is performed  on the
+227 | |             // file descriptor, or fails with the error EAGAIN if the
+228 | |             // file descriptor has been made nonblocking.
+229 | |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 | |             }
+232 | |             drop(eventfd);
+233 | |             self.wait_queue.sleep().ok();
+234 | |         }
+235 | |         let mut eventfd = self.eventfd.lock();
+236 | |         eventfd.count += val;
+237 | |         drop(eventfd);
+238 | |         self.wait_queue.wakeup_all(None);
+239 | |
+240 | |         let eventfd = self.eventfd.lock();
+241 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+242 | |         drop(eventfd);
+243 | |
+244 | |         // 唤醒epoll中等待的进程
+245 | |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 | |         return Ok(8);
+247 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 204.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in write_at and _1(self, src/filesystem/eventfd.rs:205) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in write_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:204); _1(self, src/filesystem/eventfd.rs:205) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/eventfd.rs:204:1
+    |
+204 | / fn write_at(
+205 | |         &self,
+206 | |         _offset: usize,
+207 | |         len: usize,
+208 | |         buf: &[u8],
+209 | |         data: SpinLockGuard<FilePrivateData>,
+210 | |     ) -> Result<usize, SystemError> {
+211 | |         if len < 8 {
+212 | |             return Err(SystemError::EINVAL);
+213 | |         }
+214 | |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 | |         if val == u64::MAX {
+216 | |             return Err(SystemError::EINVAL);
+217 | |         }
+218 | |         loop {
+219 | |             if ProcessManager::current_pcb().has_pending_signal() {
+220 | |                 return Err(SystemError::ERESTARTSYS);
+221 | |             }
+222 | |             let eventfd = self.eventfd.lock();
+223 | |             if u64::MAX - eventfd.count > val {
+224 | |                 break;
+225 | |             }
+226 | |             // block until a read() is performed  on the
+227 | |             // file descriptor, or fails with the error EAGAIN if the
+228 | |             // file descriptor has been made nonblocking.
+229 | |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 | |             }
+232 | |             drop(eventfd);
+233 | |             self.wait_queue.sleep().ok();
+234 | |         }
+235 | |         let mut eventfd = self.eventfd.lock();
+236 | |         eventfd.count += val;
+237 | |         drop(eventfd);
+238 | |         self.wait_queue.wakeup_all(None);
+239 | |
+240 | |         let eventfd = self.eventfd.lock();
+241 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+242 | |         drop(eventfd);
+243 | |
+244 | |         // 唤醒epoll中等待的进程
+245 | |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+246 | |         return Ok(8);
+247 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 204.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in write_at and _1(self, src/filesystem/eventfd.rs:205) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in write_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:204); _1(self, src/filesystem/eventfd.rs:205) became dangling.
+    |
+render dot for DefId(0:17411 ~ dragonos_kernel[9e38]::filesystem::eventfd::{impl#3}::write_at)

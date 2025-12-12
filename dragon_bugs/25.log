@@ -1,0 +1,73 @@
+22:07:57|RAP|WARN|: Double free detected in function "class_dir_create_and_add"
+warning: Double free detected.
+   --> src/driver/base/device/mod.rs:638:1
+    |
+638 | / fn class_dir_create_and_add(
+639 | |         &self,
+640 | |         class: Arc<dyn Class>,
+641 | |         kobject_parent: Arc<dyn KObject>,
+642 | |     ) -> Arc<dyn KObject> {
+643 | |         let mut guard = CLASS_DIR_KSET_INSTANCE.write();
+644 | |         let class_name: String = class.name().to_string();
+645 | |         let kobject_parent_name = kobject_parent.name();
+646 | |         let key = format!("{}-{}", class_name, kobject_parent_name);
+647 | |
+648 | |         // 检查设备类目录是否已经存在
+649 | |         if let Some(class_dir) = guard.get(&key) {
+650 | |             return class_dir.clone();
+651 | |         }
+652 | |
+653 | |         let class_dir: Arc<ClassDir> = ClassDir::new();
+654 | |
+655 | |         class_dir.set_name(class_name.clone());
+656 | |         class_dir.set_kobj_type(Some(&ClassKObjbectType));
+657 | |         class_dir.set_parent(Some(Arc::downgrade(&kobject_parent)));
+658 | |
+659 | |         KObjectManager::add_kobj(class_dir.clone() as Arc<dyn KObject>)
+660 | |             .expect("add class dir failed");
+661 | |
+662 | |         guard.insert(key, class_dir.clone());
+663 | |
+664 | |         return class_dir;
+665 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/mod.rs line 638.
+    | MIR detail: Value _16(kobject_parent_name, src/driver/base/device/mod.rs:645) and _10(class_name, src/driver/base/device/mod.rs:644) are alias.
+    | MIR detail: _16(kobject_parent_name, src/driver/base/device/mod.rs:645) is dropped at BB35(src/driver/base/device/mod.rs:665); _10(class_name, src/driver/base/device/mod.rs:644) is dropped at BB36(src/driver/base/device/mod.rs:665).
+    |
+22:07:57|RAP|WARN|: Double free detected in function "class_dir_create_and_add"
+warning: Double free detected during unwinding.
+   --> src/driver/base/device/mod.rs:638:1
+    |
+638 | / fn class_dir_create_and_add(
+639 | |         &self,
+640 | |         class: Arc<dyn Class>,
+641 | |         kobject_parent: Arc<dyn KObject>,
+642 | |     ) -> Arc<dyn KObject> {
+643 | |         let mut guard = CLASS_DIR_KSET_INSTANCE.write();
+644 | |         let class_name: String = class.name().to_string();
+645 | |         let kobject_parent_name = kobject_parent.name();
+646 | |         let key = format!("{}-{}", class_name, kobject_parent_name);
+647 | |
+648 | |         // 检查设备类目录是否已经存在
+649 | |         if let Some(class_dir) = guard.get(&key) {
+650 | |             return class_dir.clone();
+651 | |         }
+652 | |
+653 | |         let class_dir: Arc<ClassDir> = ClassDir::new();
+654 | |
+655 | |         class_dir.set_name(class_name.clone());
+656 | |         class_dir.set_kobj_type(Some(&ClassKObjbectType));
+657 | |         class_dir.set_parent(Some(Arc::downgrade(&kobject_parent)));
+658 | |
+659 | |         KObjectManager::add_kobj(class_dir.clone() as Arc<dyn KObject>)
+660 | |             .expect("add class dir failed");
+661 | |
+662 | |         guard.insert(key, class_dir.clone());
+663 | |
+664 | |         return class_dir;
+665 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/mod.rs line 638.
+    | MIR detail: Value _16(kobject_parent_name, src/driver/base/device/mod.rs:645) and _10(class_name, src/driver/base/device/mod.rs:644) are alias.
+    | MIR detail: _16(kobject_parent_name, src/driver/base/device/mod.rs:645) is dropped at BB42(src/driver/base/device/mod.rs:665); _10(class_name, src/driver/base/device/mod.rs:644) is dropped at BB43(src/driver/base/device/mod.rs:665).
+    |
+render dot for DefId(0:8186 ~ dragonos_kernel[9e38]::driver::base::device::{impl#19}::class_dir_create_and_add)

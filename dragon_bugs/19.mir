@@ -1,0 +1,180 @@
+bb0 at src/libs/wait_queue.rs:395:9: 395:30
+bb1 at src/libs/wait_queue.rs:395:30: 395:31
+bb2 at src/libs/wait_queue.rs:396:53: 396:54
+bb3 at src/libs/wait_queue.rs:397:57: 399:10
+bb4 at src/libs/wait_queue.rs:399:10: 399:11
+bb5 at src/libs/wait_queue.rs:400:9: 400:14
+bb6 at src/libs/wait_queue.rs:400:20: 400:59
+bb7 at src/libs/wait_queue.rs:400:59: 400:60
+bb8 at src/libs/wait_queue.rs:401:19: 401:20
+fn libs::wait_queue::EventWaitQueue::sleep_without_schedule
+_0:  @ () 
+_1:  @ &'{erased} libs::wait_queue::EventWaitQueue 
+_2:  @ u64 
+_3:  @ () 
+_4:  @ libs::spinlock::SpinLockGuard<'{erased}, alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>), alloc::alloc::Global>> 
+_5:  @ &'{erased} libs::spinlock::SpinLock<alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>), alloc::alloc::Global>> 
+_6:  @ () 
+_7:  @ core::result::Result<(), system_error::SystemError> 
+_8:  @ Closure(DefId(0:5665 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_without_schedule::{closure#0}), [i32, Binder { value: extern "RustCall" fn((system_error::SystemError,)), bound_vars: [] }, ()]) 
+_9:  @ () 
+_10:  @ &'{erased} mut alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>), alloc::alloc::Global> 
+_11:  @ &'{erased} mut alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>), alloc::alloc::Global> 
+_12:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>), alloc::alloc::Global>> 
+_13:  @ (u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>) 
+_14:  @ u64 
+_15:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_16:  @ () 
+_17:  @ libs::spinlock::SpinLockGuard<'{erased}, alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>), alloc::alloc::Global>> 
+_18:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_18, const false)) @ _18=const false @ Use
+    StorageLive(_3) @ StorageLive
+    _3 = libs::wait_queue::before_sleep_check(const 1_usize) -> [return: bb1, unwind continue] @ Call: FnDid: 5657
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &((*_1).0: libs::spinlock::SpinLock<alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock>)>>))) @ _5=&((*_1).0: libs::spinlock::SpinLock<alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock>)>>) @ Ref
+    Assign((_18, const true)) @ _18=const true @ Use
+    _4 = libs::spinlock::SpinLock::<alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock>)>>::lock_irqsave(move _5) -> [return: bb2, unwind continue] @ Call: FnDid: 5263
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    _7 = process::ProcessManager::mark_sleep(const true) -> [return: bb3, unwind: bb11] @ Call: FnDid: 29874
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    Assign((_8, {closure@src/libs/wait_queue.rs:397:57: 397:60})) @ _8={closure@src/libs/wait_queue.rs:397:57: 397:60} @ Aggregate
+    _6 = core::result::Result::<(), system_error::SystemError>::unwrap_or_else::<{closure@src/libs/wait_queue.rs:397:57: 397:60}>(move _7, move _8) -> [return: bb4, unwind: bb11] @ Call: FnDid: 11041
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &mut _4)) @ _12=&mut _4 @ Ref
+    _11 = <libs::spinlock::SpinLockGuard<'_, alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock>)>> as core::ops::DerefMut>::deref_mut(move _12) -> [return: bb5, unwind: bb11] @ Call: FnDid: 3915
+}
+bb 5 {
+CleanUp: false
+    Assign((_10, &mut (*_11))) @ _10=&mut (*_11) @ Ref
+    StorageDead(_12) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, copy _2)) @ _14=copy _2 @ Use
+    StorageLive(_15) @ StorageLive
+    _15 = process::ProcessManager::current_pcb() -> [return: bb6, unwind: bb11] @ Call: FnDid: 29866
+}
+bb 6 {
+CleanUp: false
+    Assign((_13, (move _14, move _15))) @ _13=(move _14, move _15) @ Aggregate
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    _9 = alloc::vec::Vec::<(u64, alloc::sync::Arc<process::ProcessControlBlock>)>::push(move _10, move _13) -> [return: bb7, unwind: bb11] @ Call: FnDid: 8180
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_18, const false)) @ _18=const false @ Use
+    Assign((_17, move _4)) @ _17=move _4 @ Use
+    _16 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, alloc::vec::Vec<(u64, alloc::sync::Arc<process::ProcessControlBlock>)>>>(move _17) -> [return: bb8, unwind: bb11] @ Call: FnDid: 2323
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    Assign((_18, const false)) @ _18=const false @ Use
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 9 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 10 {
+CleanUp: true
+    drop(_4) -> [return: bb9, unwind terminate(cleanup)] @ Drop
+}
+bb 11 {
+CleanUp: true
+    switchInt(copy _18) -> [0: bb9, otherwise: bb10] @ SwitchInt
+}
+
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:9: 107:73
+bb1 at src/libs/wait_queue.rs:398:37: 398:38
+bb2 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+fn libs::wait_queue::EventWaitQueue::sleep_without_schedule::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:5665 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_without_schedule::{closure#0}), [i32, Binder { value: extern "RustCall" fn((system_error::SystemError,)), bound_vars: [] }, ()]) 
+_2:  @ system_error::SystemError 
+_3:  @ ! 
+_4:  @ ! 
+_5:  @ ! 
+_6:  @ core::fmt::Arguments<'{erased}> 
+_7:  @ [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_8:  @ core::fmt::rt::Argument<'{erased}> 
+_9:  @ &'{erased} system_error::SystemError 
+_10:  @ &'{erased} system_error::SystemError 
+_11:  @ &'{erased} [&'{erased} str; 1_usize] 
+_12:  @ &'{erased} [&'{erased} str; 1_usize] 
+_13:  @ [&'{erased} str; 1_usize] 
+_14:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_15:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_16:  @ &'{erased} [&'{erased} str; 1_usize] 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &_2)) @ _10=&_2 @ Ref
+    Assign((_9, &(*_10))) @ _9=&(*_10) @ Ref
+    _8 = core::fmt::rt::Argument::<'_>::new_debug::<system_error::SystemError>(move _9) -> [return: bb1, unwind continue] @ Call: FnDid: 11809
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, [move _8])) @ _7=[move _8] @ Aggregate
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_16, const libs::wait_queue::EventWaitQueue::sleep_without_schedule::{closure#0}::promoted[0])) @ _16=const libs::wait_queue::EventWaitQueue::sleep_without_schedule::{closure#0}::promoted[0] @ Use
+    Assign((_12, &(*_16))) @ _12=&(*_16) @ Ref
+    Assign((_11, &(*_12))) @ _11=&(*_12) @ Ref
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &_7)) @ _15=&_7 @ Ref
+    Assign((_14, &(*_15))) @ _14=&(*_15) @ Ref
+    _6 = core::fmt::rt::<impl core::fmt::Arguments<'_>>::new_v1::<1, 1>(move _11, move _14) -> [return: bb2, unwind continue] @ Call: FnDid: 11836
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    _5 = core::panicking::panic_fmt(move _6) -> unwind continue @ Call: FnDid: 10541
+}
+

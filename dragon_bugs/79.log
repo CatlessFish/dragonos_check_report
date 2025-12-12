@@ -1,0 +1,45 @@
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_fstatfs.rs:18:1
+   |
+18 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+19 | |         let fd = Self::fd(args);
+20 | |         let user_statfs = Self::statfs(args);
+21 | |         let mut writer = UserBufferWriter::new(user_statfs, size_of::<PosixStatfs>(), true)?;
+22 | |         let binding = ProcessManager::current_pcb().fd_table();
+23 | |         let fd_table_guard = binding.read();
+24 | |         let file = fd_table_guard
+25 | |             .get_file_by_fd(fd)
+26 | |             .ok_or(SystemError::EBADF)?;
+27 | |         drop(fd_table_guard);
+28 | |         let statfs = PosixStatfs::from(file.inode().fs().super_block());
+29 | |         writer.copy_one_to_user(&statfs, 0)?;
+30 | |         return Ok(0);
+31 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fstatfs.rs line 18.
+    | MIR detail: Value _43(_, src/filesystem/vfs/syscall/sys_fstatfs.rs:27) and _19(binding, src/filesystem/vfs/syscall/sys_fstatfs.rs:22) are alias.
+    | MIR detail: _43(_, src/filesystem/vfs/syscall/sys_fstatfs.rs:27) is dropped at BB20(src/filesystem/vfs/syscall/sys_fstatfs.rs:27); _19(binding, src/filesystem/vfs/syscall/sys_fstatfs.rs:22) is dropped at BB40(src/filesystem/vfs/syscall/sys_fstatfs.rs:31).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fstatfs.rs:18:1
+   |
+18 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+19 | |         let fd = Self::fd(args);
+20 | |         let user_statfs = Self::statfs(args);
+21 | |         let mut writer = UserBufferWriter::new(user_statfs, size_of::<PosixStatfs>(), true)?;
+22 | |         let binding = ProcessManager::current_pcb().fd_table();
+23 | |         let fd_table_guard = binding.read();
+24 | |         let file = fd_table_guard
+25 | |             .get_file_by_fd(fd)
+26 | |             .ok_or(SystemError::EBADF)?;
+27 | |         drop(fd_table_guard);
+28 | |         let statfs = PosixStatfs::from(file.inode().fs().super_block());
+29 | |         writer.copy_one_to_user(&statfs, 0)?;
+30 | |         return Ok(0);
+31 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fstatfs.rs line 18.
+    | MIR detail: Value _43(_, src/filesystem/vfs/syscall/sys_fstatfs.rs:27) and _19(binding, src/filesystem/vfs/syscall/sys_fstatfs.rs:22) are alias.
+    | MIR detail: _43(_, src/filesystem/vfs/syscall/sys_fstatfs.rs:27) is dropped at BB20(src/filesystem/vfs/syscall/sys_fstatfs.rs:27); _19(binding, src/filesystem/vfs/syscall/sys_fstatfs.rs:22) is dropped at BB46(src/filesystem/vfs/syscall/sys_fstatfs.rs:31).
+   |
+render dot for DefId(0:19942 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_fstatfs::{impl#0}::handle)

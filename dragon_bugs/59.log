@@ -1,0 +1,45 @@
+22:08:05|RAP|WARN|: Dangling pointer detected in function "do_sys_poll"
+warning: Dangling pointer detected.
+   --> src/filesystem/poll.rs:165:1
+    |
+165 | / pub fn do_sys_poll(
+166 | |     poll_fds: &mut [PollFd],
+167 | |     timeout: Option<Instant>,
+168 | | ) -> Result<usize, SystemError> {
+169 | |     let ep_file = EventPoll::create_epoll_file(FileFlags::empty())?;
+170 | |
+171 | |     let ep_file = Arc::new(ep_file);
+172 | |
+173 | |     let mut adapter = PollAdapter::new(ep_file, poll_fds);
+174 | |     adapter.add_pollfds()?;
+175 | |     let nevents = adapter.poll_all_fds(timeout)?;
+176 | |
+177 | |     Ok(nevents)
+178 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/filesystem/poll.rs line 165.
+    | MIR detail: Value _14(adapter, src/filesystem/poll.rs:173) and _1(poll_fds, src/filesystem/poll.rs:166) are alias.
+    | MIR detail: _14(adapter, src/filesystem/poll.rs:173) is dropped at BB21(src/filesystem/poll.rs:178); _1(poll_fds, src/filesystem/poll.rs:166) became dangling.
+    |
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "do_sys_poll"
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/poll.rs:165:1
+    |
+165 | / pub fn do_sys_poll(
+166 | |     poll_fds: &mut [PollFd],
+167 | |     timeout: Option<Instant>,
+168 | | ) -> Result<usize, SystemError> {
+169 | |     let ep_file = EventPoll::create_epoll_file(FileFlags::empty())?;
+170 | |
+171 | |     let ep_file = Arc::new(ep_file);
+172 | |
+173 | |     let mut adapter = PollAdapter::new(ep_file, poll_fds);
+174 | |     adapter.add_pollfds()?;
+175 | |     let nevents = adapter.poll_all_fds(timeout)?;
+176 | |
+177 | |     Ok(nevents)
+178 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/filesystem/poll.rs line 165.
+    | MIR detail: Value _14(adapter, src/filesystem/poll.rs:173) and _1(poll_fds, src/filesystem/poll.rs:166) are alias.
+    | MIR detail: _14(adapter, src/filesystem/poll.rs:173) is dropped at BB25(src/filesystem/poll.rs:178); _1(poll_fds, src/filesystem/poll.rs:166) became dangling.
+    |
+render dot for DefId(0:18412 ~ dragonos_kernel[9e38]::filesystem::poll::do_sys_poll)

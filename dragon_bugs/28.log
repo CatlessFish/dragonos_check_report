@@ -1,0 +1,107 @@
+22:07:58|RAP|WARN|: Double free detected in function "add_device"
+warning: Double free detected during unwinding.
+   --> src/driver/net/bridge.rs:237:1
+    |
+237 | / pub fn add_device(&self, device: Arc<dyn BridgeEnableDevice>) {
+238 | |         if let Some(netns) = self.netns() {
+239 | |             if !Arc::ptr_eq(
+240 | |                 &netns,
+241 | |                 &device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 | |             ) {
+243 | |                 log::warn!("Port and bridge are in different net namespaces");
+244 | |                 return;
+245 | |             }
+246 | |         }
+247 | |         let port = BridgePort::new(
+248 | |             self.next_port_id(),
+249 | |             device.clone(),
+250 | |             &self.self_ref.upgrade().unwrap(),
+251 | |         );
+252 | |         log::info!("Adding port with id: {}", port.id);
+253 | |
+254 | |         self.inner.lock().add_port(port.id, port);
+255 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/bridge.rs line 237.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _49(port, src/driver/net/bridge.rs:247) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _49(port, src/driver/net/bridge.rs:247) is dropped at BB60(src/driver/net/bridge.rs:255).
+    |
+22:07:58|RAP|WARN|: Use-after-free detected in function "add_device"
+warning: Use-after-free detected.
+   --> src/driver/net/bridge.rs:252:42
+    |
+237 | pub fn add_device(&self, device: Arc<dyn BridgeEnableDevice>) {
+238 |         if let Some(netns) = self.netns() {
+239 |             if !Arc::ptr_eq(
+240 |                 &netns,
+241 |                 &device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 |             ) {
+243 |                 log::warn!("Port and bridge are in different net namespaces");
+244 |                 return;
+245 |             }
+246 |         }
+247 |         let port = BridgePort::new(
+248 |             self.next_port_id(),
+249 |             device.clone(),
+250 |             &self.self_ref.upgrade().unwrap(),
+251 |         );
+252 |         log::info!("Adding port with id: {}", port.id);
+    |                                          -- Use-after-free (confidence 99%): Location in file src/driver/net/bridge.rs line 252.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _75(_, src/driver/net/bridge.rs:252) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _75(_, src/driver/net/bridge.rs:252) is used at BB37(src/driver/net/bridge.rs:252).
+253 |
+254 |         self.inner.lock().add_port(port.id, port);
+255 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/net/bridge.rs:254:45
+    |
+237 | pub fn add_device(&self, device: Arc<dyn BridgeEnableDevice>) {
+238 |         if let Some(netns) = self.netns() {
+239 |             if !Arc::ptr_eq(
+240 |                 &netns,
+241 |                 &device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 |             ) {
+243 |                 log::warn!("Port and bridge are in different net namespaces");
+244 |                 return;
+245 |             }
+246 |         }
+247 |         let port = BridgePort::new(
+248 |             self.next_port_id(),
+249 |             device.clone(),
+250 |             &self.self_ref.upgrade().unwrap(),
+251 |         );
+252 |         log::info!("Adding port with id: {}", port.id);
+253 |
+254 |         self.inner.lock().add_port(port.id, port);
+    |                                             ---- Use-after-free (confidence 99%): Location in file src/driver/net/bridge.rs line 254.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _49(port, src/driver/net/bridge.rs:247) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _49(port, src/driver/net/bridge.rs:247) is used at BB47(src/driver/net/bridge.rs:254).
+255 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/net/bridge.rs:254:9
+    |
+237 | pub fn add_device(&self, device: Arc<dyn BridgeEnableDevice>) {
+238 |         if let Some(netns) = self.netns() {
+239 |             if !Arc::ptr_eq(
+240 |                 &netns,
+241 |                 &device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 |             ) {
+243 |                 log::warn!("Port and bridge are in different net namespaces");
+244 |                 return;
+245 |             }
+246 |         }
+247 |         let port = BridgePort::new(
+248 |             self.next_port_id(),
+249 |             device.clone(),
+250 |             &self.self_ref.upgrade().unwrap(),
+251 |         );
+252 |         log::info!("Adding port with id: {}", port.id);
+253 |
+254 |         self.inner.lock().add_port(port.id, port);
+    |         ----------------------------------------- Use-after-free (confidence 99%): Location in file src/driver/net/bridge.rs line 254.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _98(_, src/driver/net/bridge.rs:254) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _98(_, src/driver/net/bridge.rs:254) is used at BB47(src/driver/net/bridge.rs:254).
+255 |     }
+    |
+render dot for DefId(0:10524 ~ dragonos_kernel[9e38]::driver::net::bridge::{impl#3}::add_device)

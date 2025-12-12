@@ -1,0 +1,50 @@
+22:08:07|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fchownat.rs:36:1
+   |
+36 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+37 | |         vec![
+38 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", Self::dirfd(args))),
+39 | |             FormattedSyscallParam::new("pathname", format!("{:#x}", Self::pathname(args) as usize)),
+40 | |             FormattedSyscallParam::new("uid", format!("{:#x}", Self::uid(args))),
+41 | |             FormattedSyscallParam::new("gid", format!("{:#x}", Self::gid(args))),
+42 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+43 | |         ]
+44 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fchownat.rs line 36.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_fchownat.rs:39) and _9(_, src/filesystem/vfs/syscall/sys_fchownat.rs:38) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_fchownat.rs:39) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_fchownat.rs:38) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fchownat.rs:36:1
+   |
+36 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+37 | |         vec![
+38 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", Self::dirfd(args))),
+39 | |             FormattedSyscallParam::new("pathname", format!("{:#x}", Self::pathname(args) as usize)),
+40 | |             FormattedSyscallParam::new("uid", format!("{:#x}", Self::uid(args))),
+41 | |             FormattedSyscallParam::new("gid", format!("{:#x}", Self::gid(args))),
+42 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+43 | |         ]
+44 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fchownat.rs line 36.
+    | MIR detail: Value _58(_, src/filesystem/vfs/syscall/sys_fchownat.rs:40) and _33(_, src/filesystem/vfs/syscall/sys_fchownat.rs:39) are alias.
+    | MIR detail: _58(_, src/filesystem/vfs/syscall/sys_fchownat.rs:40) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/filesystem/vfs/syscall/sys_fchownat.rs:39) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_fchownat.rs:36:1
+   |
+36 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+37 | |         vec![
+38 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", Self::dirfd(args))),
+39 | |             FormattedSyscallParam::new("pathname", format!("{:#x}", Self::pathname(args) as usize)),
+40 | |             FormattedSyscallParam::new("uid", format!("{:#x}", Self::uid(args))),
+41 | |             FormattedSyscallParam::new("gid", format!("{:#x}", Self::gid(args))),
+42 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+43 | |         ]
+44 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_fchownat.rs line 36.
+    | MIR detail: Value _82(_, src/filesystem/vfs/syscall/sys_fchownat.rs:41) and _58(_, src/filesystem/vfs/syscall/sys_fchownat.rs:40) are alias.
+    | MIR detail: _82(_, src/filesystem/vfs/syscall/sys_fchownat.rs:41) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _58(_, src/filesystem/vfs/syscall/sys_fchownat.rs:40) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:19885 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_fchownat::{impl#0}::entry_format)

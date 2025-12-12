@@ -1,0 +1,37 @@
+22:08:05|RAP|WARN|: Dangling pointer detected in function "truncate"
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "truncate"
+warning: Dangling pointer detected.
+    --> src/filesystem/fat/fs.rs:1789:1
+     |
+1789 | / fn truncate(&self, len: usize) -> Result<(), SystemError> {
+1790 | |         let guard: SpinLockGuard<FATInode> = self.0.lock();
+1791 | |         let old_size = guard.metadata.size as usize;
+1792 | |         if len < old_size {
+1793 | |             drop(guard);
+1794 | |             self.resize(len)
+1795 | |         } else {
+1796 | |             Ok(())
+1797 | |         }
+1798 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1789.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in truncate and _1(self, src/filesystem/fat/fs.rs:1789) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in truncate is dropped at BB18446744073709551615(src/filesystem/fat/fs.rs:1789); _1(self, src/filesystem/fat/fs.rs:1789) became dangling.
+     |
+warning: Dangling pointer detected during unwinding.
+    --> src/filesystem/fat/fs.rs:1789:1
+     |
+1789 | / fn truncate(&self, len: usize) -> Result<(), SystemError> {
+1790 | |         let guard: SpinLockGuard<FATInode> = self.0.lock();
+1791 | |         let old_size = guard.metadata.size as usize;
+1792 | |         if len < old_size {
+1793 | |             drop(guard);
+1794 | |             self.resize(len)
+1795 | |         } else {
+1796 | |             Ok(())
+1797 | |         }
+1798 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1789.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in truncate and _1(self, src/filesystem/fat/fs.rs:1789) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in truncate is dropped at BB18446744073709551615(src/filesystem/fat/fs.rs:1789); _1(self, src/filesystem/fat/fs.rs:1789) became dangling.
+     |
+render dot for DefId(0:17957 ~ dragonos_kernel[9e38]::filesystem::fat::fs::{impl#12}::truncate)

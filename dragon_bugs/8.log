@@ -1,0 +1,33 @@
+22:07:48|RAP|WARN|: Dangling pointer detected in function "print_cpus"
+22:07:48|RAP|WARN|: Dangling pointer detected during unwinding in function "print_cpus"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/smp/mod.rs:187:1
+    |
+187 | / fn print_cpus(s: &str, mask: &CpuMask) {
+188 | |     let mut v = vec![];
+189 | |     for cpu in mask.iter_cpu() {
+190 | |         v.push(cpu.data());
+191 | |     }
+192 | |
+193 | |     debug!("{s}: cpus: {v:?}\n");
+194 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/smp/mod.rs line 187.
+    | MIR detail: Value _3(v, src/arch/x86_64/smp/mod.rs:188) and _1(s, src/arch/x86_64/smp/mod.rs:187) are alias.
+    | MIR detail: _3(v, src/arch/x86_64/smp/mod.rs:188) is dropped at BB24(src/arch/x86_64/smp/mod.rs:194); _1(s, src/arch/x86_64/smp/mod.rs:187) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/smp/mod.rs:187:1
+    |
+187 | / fn print_cpus(s: &str, mask: &CpuMask) {
+188 | |     let mut v = vec![];
+189 | |     for cpu in mask.iter_cpu() {
+190 | |         v.push(cpu.data());
+191 | |     }
+192 | |
+193 | |     debug!("{s}: cpus: {v:?}\n");
+194 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/smp/mod.rs line 187.
+    | MIR detail: Value _3(v, src/arch/x86_64/smp/mod.rs:188) and _1(s, src/arch/x86_64/smp/mod.rs:187) are alias.
+    | MIR detail: _3(v, src/arch/x86_64/smp/mod.rs:188) is dropped at BB26(src/arch/x86_64/smp/mod.rs:194); _1(s, src/arch/x86_64/smp/mod.rs:187) became dangling.
+    |
+render dot for DefId(0:2123 ~ dragonos_kernel[9e38]::arch::x86_64::smp::print_cpus)

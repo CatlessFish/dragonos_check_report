@@ -1,0 +1,131 @@
+22:08:18|RAP|WARN|: Dangling pointer detected in function "update_self_load_avg"
+warning: Dangling pointer detected.
+   --> src/sched/fair.rs:893:1
+    |
+893 | / fn update_self_load_avg(&mut self, now: u64) -> u32 {
+894 | |         let mut removed_load = 0;
+895 | |         let mut removed_util = 0;
+896 | |         let mut removed_runnable = 0;
+897 | |
+898 | |         let mut decayed = 0;
+899 | |
+900 | |         if self.removed.lock().nr > 0 {
+901 | |             let mut removed_guard = self.removed.lock();
+902 | |             let divider = self.avg.get_pelt_divider();
+903 | |
+904 | |             swap::<usize>(&mut removed_guard.util_avg, &mut removed_util);
+905 | |             swap::<usize>(&mut removed_guard.load_avg, &mut removed_load);
+906 | |             swap::<usize>(&mut removed_guard.runnable_avg, &mut removed_runnable);
+907 | |
+908 | |             removed_guard.nr = 0;
+909 | |
+910 | |             let mut r = removed_load;
+911 | |
+912 | |             sub_positive(&mut self.avg.load_avg, r);
+913 | |             sub_positive(&mut (self.avg.load_sum as usize), r * divider);
+914 | |
+915 | |             self.avg.load_sum = self
+916 | |                 .avg
+917 | |                 .load_sum
+918 | |                 .max((self.avg.load_avg * PELT_MIN_DIVIDER) as u64);
+919 | |
+920 | |             r = removed_util;
+921 | |             sub_positive(&mut self.avg.util_avg, r);
+922 | |             sub_positive(&mut (self.avg.util_sum as usize), r * divider);
+923 | |             self.avg.util_sum = self
+924 | |                 .avg
+925 | |                 .util_sum
+926 | |                 .max((self.avg.util_avg * PELT_MIN_DIVIDER) as u64);
+927 | |
+928 | |             r = removed_runnable;
+929 | |             sub_positive(&mut self.avg.runnable_avg, r);
+930 | |             sub_positive(&mut (self.avg.runnable_sum as usize), r * divider);
+931 | |             self.avg.runnable_sum = self
+932 | |                 .avg
+933 | |                 .runnable_sum
+934 | |                 .max((self.avg.runnable_avg * PELT_MIN_DIVIDER) as u64);
+935 | |
+936 | |             drop(removed_guard);
+937 | |             self.add_task_group_propagate(
+938 | |                 -(removed_runnable as isize * divider as isize) >> SCHED_CAPACITY_SHIFT,
+939 | |             );
+940 | |
+941 | |             decayed = 1;
+942 | |         }
+943 | |
+944 | |         decayed |= self.__update_load_avg(now) as u32;
+945 | |
+946 | |         self.last_update_time_copy = self.avg.last_update_time;
+947 | |
+948 | |         return decayed;
+949 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/sched/fair.rs line 893.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in update_self_load_avg and _1(self, src/sched/fair.rs:893) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in update_self_load_avg is dropped at BB18446744073709551615(src/sched/fair.rs:893); _1(self, src/sched/fair.rs:893) became dangling.
+    |
+22:08:18|RAP|WARN|: Dangling pointer detected during unwinding in function "update_self_load_avg"
+warning: Dangling pointer detected during unwinding.
+   --> src/sched/fair.rs:893:1
+    |
+893 | / fn update_self_load_avg(&mut self, now: u64) -> u32 {
+894 | |         let mut removed_load = 0;
+895 | |         let mut removed_util = 0;
+896 | |         let mut removed_runnable = 0;
+897 | |
+898 | |         let mut decayed = 0;
+899 | |
+900 | |         if self.removed.lock().nr > 0 {
+901 | |             let mut removed_guard = self.removed.lock();
+902 | |             let divider = self.avg.get_pelt_divider();
+903 | |
+904 | |             swap::<usize>(&mut removed_guard.util_avg, &mut removed_util);
+905 | |             swap::<usize>(&mut removed_guard.load_avg, &mut removed_load);
+906 | |             swap::<usize>(&mut removed_guard.runnable_avg, &mut removed_runnable);
+907 | |
+908 | |             removed_guard.nr = 0;
+909 | |
+910 | |             let mut r = removed_load;
+911 | |
+912 | |             sub_positive(&mut self.avg.load_avg, r);
+913 | |             sub_positive(&mut (self.avg.load_sum as usize), r * divider);
+914 | |
+915 | |             self.avg.load_sum = self
+916 | |                 .avg
+917 | |                 .load_sum
+918 | |                 .max((self.avg.load_avg * PELT_MIN_DIVIDER) as u64);
+919 | |
+920 | |             r = removed_util;
+921 | |             sub_positive(&mut self.avg.util_avg, r);
+922 | |             sub_positive(&mut (self.avg.util_sum as usize), r * divider);
+923 | |             self.avg.util_sum = self
+924 | |                 .avg
+925 | |                 .util_sum
+926 | |                 .max((self.avg.util_avg * PELT_MIN_DIVIDER) as u64);
+927 | |
+928 | |             r = removed_runnable;
+929 | |             sub_positive(&mut self.avg.runnable_avg, r);
+930 | |             sub_positive(&mut (self.avg.runnable_sum as usize), r * divider);
+931 | |             self.avg.runnable_sum = self
+932 | |                 .avg
+933 | |                 .runnable_sum
+934 | |                 .max((self.avg.runnable_avg * PELT_MIN_DIVIDER) as u64);
+935 | |
+936 | |             drop(removed_guard);
+937 | |             self.add_task_group_propagate(
+938 | |                 -(removed_runnable as isize * divider as isize) >> SCHED_CAPACITY_SHIFT,
+939 | |             );
+940 | |
+941 | |             decayed = 1;
+942 | |         }
+943 | |
+944 | |         decayed |= self.__update_load_avg(now) as u32;
+945 | |
+946 | |         self.last_update_time_copy = self.avg.last_update_time;
+947 | |
+948 | |         return decayed;
+949 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/sched/fair.rs line 893.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in update_self_load_avg and _1(self, src/sched/fair.rs:893) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in update_self_load_avg is dropped at BB18446744073709551615(src/sched/fair.rs:893); _1(self, src/sched/fair.rs:893) became dangling.
+    |
+render dot for DefId(0:30250 ~ dragonos_kernel[9e38]::sched::fair::{impl#2}::update_self_load_avg)

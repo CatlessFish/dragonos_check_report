@@ -1,0 +1,116 @@
+bb0 at src/libs/notifier.rs:66:13: 66:19
+bb1 at src/libs/notifier.rs:66:70: 66:71
+bb2 at src/libs/notifier.rs:67:28: 67:29
+bb3 at src/libs/notifier.rs:69:28: 69:30
+bb4 at src/libs/notifier.rs:68:29: 68:48
+bb5 at src/libs/notifier.rs:71:5: 71:6
+fn libs::notifier::NotifierChain::<V, T>::unregister
+_0:  @ core::result::Result<(), system_error::SystemError> 
+_1:  @ &'{erased} mut libs::notifier::NotifierChain<V/#0, T/#1> 
+_2:  @ alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_3:  @ alloc::vec::ExtractIf<'{erased}, alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>, Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)]), alloc::alloc::Global> 
+_4:  @ &'{erased} mut alloc::vec::Vec<alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>, alloc::alloc::Global> 
+_5:  @ core::ops::RangeFull 
+_6:  @ Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)]) 
+_7:  @ &'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_8:  @ usize 
+_9:  @ alloc::vec::ExtractIf<'{erased}, alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>, Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)]), alloc::alloc::Global> 
+_10:  @ ! 
+_11:  @ system_error::SystemError 
+_12:  @ ! 
+_13:  @ () 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &mut ((*_1).0: alloc::vec::Vec<alloc::sync::Arc<dyn libs::notifier::NotifierBlock<V, T>>>))) @ _4=&mut ((*_1).0: alloc::vec::Vec<alloc::sync::Arc<dyn libs::notifier::NotifierBlock<V, T>>>) @ Ref
+    StorageLive(_5) @ StorageLive
+    Assign((_5, core::ops::RangeFull)) @ _5=core::ops::RangeFull @ Aggregate
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &_2)) @ _7=&_2 @ Ref
+    Assign((_6, {closure@src/libs/notifier.rs:66:44: 66:47} { block: move _7 })) @ _6={closure@src/libs/notifier.rs:66:44: 66:47} { block: move _7 } @ Aggregate
+    StorageDead(_7) @ StorageDead
+    _3 = alloc::vec::Vec::<alloc::sync::Arc<dyn libs::notifier::NotifierBlock<V, T>>>::extract_if::<{closure@src/libs/notifier.rs:66:44: 66:47}, core::ops::RangeFull>(move _4, move _5, move _6) -> [return: bb1, unwind: bb7] @ Call: FnDid: 8323
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, move _3)) @ _9=move _3 @ Use
+    _8 = <alloc::vec::ExtractIf<'_, alloc::sync::Arc<dyn libs::notifier::NotifierBlock<V, T>>, {closure@src/libs/notifier.rs:66:44: 66:47}> as core::iter::Iterator>::count(move _9) -> [return: bb2, unwind: bb7] @ Call: FnDid: 9361
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    switchInt(copy _8) -> [0: bb4, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_13) @ StorageLive
+    Assign((_13, ())) @ _13=() @ Aggregate
+    Assign((_0, core::result::Result::<(), system_error::SystemError>::Ok(move _13))) @ _0=core::result::Result::<(), system_error::SystemError>::Ok(move _13) @ Aggregate
+    StorageDead(_13) @ StorageDead
+    goto -> bb5 @ Goto
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::ENOENT)) @ _11=system_error::SystemError::ENOENT @ Aggregate
+    Assign((_0, core::result::Result::<(), system_error::SystemError>::Err(move _11))) @ _0=core::result::Result::<(), system_error::SystemError>::Err(move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    goto -> bb5 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    drop(_2) -> [return: bb6, unwind: bb8] @ Drop
+}
+bb 6 {
+CleanUp: false
+    return @ Return
+}
+bb 7 {
+CleanUp: true
+    drop(_2) -> [return: bb8, unwind terminate(cleanup)] @ Drop
+}
+bb 8 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/libs/notifier.rs:66:60: 66:66
+bb1 at src/libs/notifier.rs:66:69: 66:70
+fn libs::notifier::NotifierChain::<V, T>::unregister::{closure#0}
+_0:  @ bool 
+_1:  @ &'{erased} mut Closure(DefId(0:4682 ~ dragonos_kernel[9e38]::libs::notifier::{impl#0}::unregister::{closure#0}), [V/#0, T/#1, i16, Binder { value: extern "RustCall" fn((&'^0 mut alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)) -> bool, bound_vars: [Region(BrAnon)] }, (&'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global>,)]) 
+_2:  @ &'{erased} mut alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_3:  @ &'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_4:  @ &'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_5:  @ &'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_6:  @ &'{erased} alloc::sync::Arc<dyn [Binder { value: Trait(libs::notifier::NotifierBlock<V, T>), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_6, deref_copy ((*_1).0: &alloc::sync::Arc<dyn libs::notifier::NotifierBlock<V, T>>))) @ _6=deref_copy ((*_1).0: &alloc::sync::Arc<dyn libs::notifier::NotifierBlock<V, T>>) @ CopyForDeref
+    Assign((_4, &(*_6))) @ _4=&(*_6) @ Ref
+    Assign((_3, &(*_4))) @ _3=&(*_4) @ Ref
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &(*_2))) @ _5=&(*_2) @ Ref
+    _0 = alloc::sync::Arc::<dyn libs::notifier::NotifierBlock<V, T>>::ptr_eq(move _3, move _5) -> [return: bb1, unwind continue] @ Call: FnDid: 6953
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+

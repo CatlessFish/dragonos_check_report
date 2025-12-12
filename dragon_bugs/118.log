@@ -1,0 +1,32 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/syscall/sys_sendfile.rs:126:1
+    |
+126 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+127 | |         vec![
+128 | |             crate::syscall::table::FormattedSyscallParam::new("out_fd", format!("{:#x}", args[0])),
+129 | |             crate::syscall::table::FormattedSyscallParam::new("in_fd", format!("{:#x}", args[1])),
+130 | |             crate::syscall::table::FormattedSyscallParam::new("offset", format!("{:#x}", args[2])),
+131 | |             crate::syscall::table::FormattedSyscallParam::new("count", format!("{:#x}", args[3])),
+132 | |         ]
+133 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_sendfile.rs line 126.
+    | MIR detail: Value _34(_, src/filesystem/vfs/syscall/sys_sendfile.rs:129) and _9(_, src/filesystem/vfs/syscall/sys_sendfile.rs:128) are alias.
+    | MIR detail: _34(_, src/filesystem/vfs/syscall/sys_sendfile.rs:129) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_sendfile.rs:128) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/syscall/sys_sendfile.rs:126:1
+    |
+126 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+127 | |         vec![
+128 | |             crate::syscall::table::FormattedSyscallParam::new("out_fd", format!("{:#x}", args[0])),
+129 | |             crate::syscall::table::FormattedSyscallParam::new("in_fd", format!("{:#x}", args[1])),
+130 | |             crate::syscall::table::FormattedSyscallParam::new("offset", format!("{:#x}", args[2])),
+131 | |             crate::syscall::table::FormattedSyscallParam::new("count", format!("{:#x}", args[3])),
+132 | |         ]
+133 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_sendfile.rs line 126.
+    | MIR detail: Value _59(_, src/filesystem/vfs/syscall/sys_sendfile.rs:130) and _34(_, src/filesystem/vfs/syscall/sys_sendfile.rs:129) are alias.
+    | MIR detail: _59(_, src/filesystem/vfs/syscall/sys_sendfile.rs:130) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _34(_, src/filesystem/vfs/syscall/sys_sendfile.rs:129) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:20840 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_sendfile::{impl#0}::entry_format)

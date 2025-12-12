@@ -1,0 +1,79 @@
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_pwrite64.rs:33:1
+   |
+33 | / fn handle(&self, args: &[usize], frame: &mut TrapFrame) -> Result<usize, SystemError> {
+34 | |         let fd = Self::fd(args);
+35 | |         let buf_vaddr = Self::buf(args);
+36 | |         let len = Self::len(args);
+37 | |         let offset = Self::offset(args);
+38 | |
+39 | |         let user_buffer_reader = UserBufferReader::new(buf_vaddr, len, frame.is_from_user())?;
+40 | |         let user_buf = user_buffer_reader.read_from_user(0)?;
+41 | |
+42 | |         let binding = ProcessManager::current_pcb().fd_table();
+43 | |         let fd_table_guard = binding.read();
+44 | |
+45 | |         let file = fd_table_guard.get_file_by_fd(fd);
+46 | |         if file.is_none() {
+47 | |             return Err(SystemError::EBADF);
+48 | |         }
+49 | |         // drop guard 以避免无法调度的问题
+50 | |         drop(fd_table_guard);
+51 | |         let file = file.unwrap();
+52 | |
+53 | |         // 检查是否是管道/Socket (ESPIPE)
+54 | |         let md = file.metadata()?;
+55 | |         if md.file_type == FileType::Pipe
+56 | |             || md.file_type == FileType::Socket
+57 | |             || md.file_type == FileType::CharDevice
+58 | |         {
+59 | |             return Err(SystemError::ESPIPE);
+60 | |         }
+61 | |
+62 | |         return file.pwrite(offset, len, user_buf);
+63 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwrite64.rs line 33.
+    | MIR detail: Value _54(_, src/filesystem/vfs/syscall/sys_pwrite64.rs:50) and _34(binding, src/filesystem/vfs/syscall/sys_pwrite64.rs:42) are alias.
+    | MIR detail: _54(_, src/filesystem/vfs/syscall/sys_pwrite64.rs:50) is dropped at BB27(src/filesystem/vfs/syscall/sys_pwrite64.rs:50); _34(binding, src/filesystem/vfs/syscall/sys_pwrite64.rs:42) is dropped at BB51(src/filesystem/vfs/syscall/sys_pwrite64.rs:63).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pwrite64.rs:33:1
+   |
+33 | / fn handle(&self, args: &[usize], frame: &mut TrapFrame) -> Result<usize, SystemError> {
+34 | |         let fd = Self::fd(args);
+35 | |         let buf_vaddr = Self::buf(args);
+36 | |         let len = Self::len(args);
+37 | |         let offset = Self::offset(args);
+38 | |
+39 | |         let user_buffer_reader = UserBufferReader::new(buf_vaddr, len, frame.is_from_user())?;
+40 | |         let user_buf = user_buffer_reader.read_from_user(0)?;
+41 | |
+42 | |         let binding = ProcessManager::current_pcb().fd_table();
+43 | |         let fd_table_guard = binding.read();
+44 | |
+45 | |         let file = fd_table_guard.get_file_by_fd(fd);
+46 | |         if file.is_none() {
+47 | |             return Err(SystemError::EBADF);
+48 | |         }
+49 | |         // drop guard 以避免无法调度的问题
+50 | |         drop(fd_table_guard);
+51 | |         let file = file.unwrap();
+52 | |
+53 | |         // 检查是否是管道/Socket (ESPIPE)
+54 | |         let md = file.metadata()?;
+55 | |         if md.file_type == FileType::Pipe
+56 | |             || md.file_type == FileType::Socket
+57 | |             || md.file_type == FileType::CharDevice
+58 | |         {
+59 | |             return Err(SystemError::ESPIPE);
+60 | |         }
+61 | |
+62 | |         return file.pwrite(offset, len, user_buf);
+63 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwrite64.rs line 33.
+    | MIR detail: Value _54(_, src/filesystem/vfs/syscall/sys_pwrite64.rs:50) and _34(binding, src/filesystem/vfs/syscall/sys_pwrite64.rs:42) are alias.
+    | MIR detail: _54(_, src/filesystem/vfs/syscall/sys_pwrite64.rs:50) is dropped at BB27(src/filesystem/vfs/syscall/sys_pwrite64.rs:50); _34(binding, src/filesystem/vfs/syscall/sys_pwrite64.rs:42) is dropped at BB56(src/filesystem/vfs/syscall/sys_pwrite64.rs:63).
+   |
+render dot for DefId(0:20268 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pwrite64::{impl#0}::handle)

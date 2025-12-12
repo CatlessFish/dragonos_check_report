@@ -1,0 +1,243 @@
+22:08:06|RAP|WARN|: Dangling pointer detected in function "do_create_group"
+warning: Dangling pointer detected.
+   --> src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &self,
+ 56 | |         kobj: &Arc<dyn KObject>,
+ 57 | |         group: &'static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -> Result<(), SystemError> {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc<KernFSInode>;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _3(group, src/filesystem/sysfs/group.rs:57) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB60(src/filesystem/sysfs/group.rs:106); _3(group, src/filesystem/sysfs/group.rs:57) became dangling.
+    |
+warning: Dangling pointer detected.
+   --> src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &self,
+ 56 | |         kobj: &Arc<dyn KObject>,
+ 57 | |         group: &'static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -> Result<(), SystemError> {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc<KernFSInode>;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _1(self, src/filesystem/sysfs/group.rs:55) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB60(src/filesystem/sysfs/group.rs:106); _1(self, src/filesystem/sysfs/group.rs:55) became dangling.
+    |
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function "do_create_group"
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &self,
+ 56 | |         kobj: &Arc<dyn KObject>,
+ 57 | |         group: &'static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -> Result<(), SystemError> {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc<KernFSInode>;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _3(group, src/filesystem/sysfs/group.rs:57) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB62(src/filesystem/sysfs/group.rs:106); _3(group, src/filesystem/sysfs/group.rs:57) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/sysfs/group.rs:54:1
+    |
+ 54 | / fn do_create_group(
+ 55 | |         &self,
+ 56 | |         kobj: &Arc<dyn KObject>,
+ 57 | |         group: &'static dyn AttributeGroup,
+ 58 | |         update: bool,
+ 59 | |     ) -> Result<(), SystemError> {
+ 60 | |         // kobj的inode必须存在
+ 61 | |         let kobj_inode = kobj.inode().ok_or(SystemError::EINVAL)?;
+ 62 | |
+ 63 | |         if group.attrs().is_empty() {
+ 64 | |             return Err(SystemError::EINVAL);
+ 65 | |         }
+ 66 | |
+ 67 | |         let parent_inode: Arc<KernFSInode>;
+ 68 | |         if group.name().is_some() {
+ 69 | |             if update {
+ 70 | |                 // 如果是更新，那么group的name必须存在
+ 71 | |                 parent_inode = kobj_inode
+ 72 | |                     .find(group.name().unwrap())
+ 73 | |                     .map_err(|_| SystemError::EINVAL)?
+ 74 | |                     .downcast_arc()
+ 75 | |                     .unwrap();
+ 76 | |             } else {
+ 77 | |                 let private_data = KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(
+ 78 | |                     SysKernDirPriv::new(kobj.clone()),
+ 79 | |                 ));
+ 80 | |                 parent_inode = kobj_inode
+ 81 | |                     .add_dir(
+ 82 | |                         group.name().unwrap().to_string(),
+ 83 | |                         InodeMode::S_IRWXU | InodeMode::S_IRUGO | InodeMode::S_IXUGO,
+ 84 | |                         Some(private_data),
+ 85 | |                         None,
+ 86 | |                     )
+ 87 | |                     .map_err(|e| {
+ 88 | |                         if e == SystemError::EEXIST {
+ 89 | |                             self.warn_duplicate(&kobj_inode, group.name().unwrap());
+ 90 | |                         }
+ 91 | |                         e
+ 92 | |                     })?;
+ 93 | |             }
+ 94 | |         } else {
+ 95 | |             parent_inode = kobj_inode.clone();
+ 96 | |         }
+ 97 | |
+ 98 | |         if let Err(e) = self.group_create_files(parent_inode.clone(), kobj, group, update) {
+ 99 | |             if group.name().is_some() {
+100 | |                 parent_inode.remove_recursive();
+101 | |             }
+102 | |             return Err(e);
+103 | |         }
+104 | |
+105 | |         return Ok(());
+106 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/group.rs line 54.
+    | MIR detail: Value _6(kobj_inode, src/filesystem/sysfs/group.rs:61) and _1(self, src/filesystem/sysfs/group.rs:55) are alias.
+    | MIR detail: _6(kobj_inode, src/filesystem/sysfs/group.rs:61) is dropped at BB62(src/filesystem/sysfs/group.rs:106); _1(self, src/filesystem/sysfs/group.rs:55) became dangling.
+    |
+render dot for DefId(0:19005 ~ dragonos_kernel[9e38]::filesystem::sysfs::group::{impl#0}::do_create_group)

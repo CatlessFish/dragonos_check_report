@@ -1,0 +1,247 @@
+bb0 at src/filesystem/kernfs/mod.rs:74:13: 74:23
+bb1 at src/filesystem/kernfs/mod.rs:75:13: 75:15
+bb2 at src/filesystem/kernfs/mod.rs:76:42: 76:43
+bb3 at src/filesystem/kernfs/mod.rs:78:10: 78:11
+bb4 at src/filesystem/kernfs/mod.rs:80:69: 80:70
+bb5 at src/filesystem/kernfs/mod.rs:80:18: 80:19
+bb6 at src/filesystem/kernfs/mod.rs:80:9: 80:33
+bb7 at src/filesystem/kernfs/mod.rs:80:32: 80:33
+bb8 at src/filesystem/kernfs/mod.rs:80:9: 80:40
+bb9 at src/filesystem/kernfs/mod.rs:80:9: 80:40
+bb10 at src/filesystem/kernfs/mod.rs:80:70: 80:71
+bb11 at src/filesystem/kernfs/mod.rs:81:52: 81:53
+bb12 at src/filesystem/kernfs/mod.rs:81:19: 81:20
+bb13 at src/filesystem/kernfs/mod.rs:81:10: 81:31
+bb14 at src/filesystem/kernfs/mod.rs:81:30: 81:31
+bb15 at src/filesystem/kernfs/mod.rs:81:9: 81:31
+bb16 at src/filesystem/kernfs/mod.rs:81:9: 81:31
+bb17 at src/filesystem/kernfs/mod.rs:81:53: 81:54
+bb18 at src/filesystem/kernfs/mod.rs:83:5: 83:6
+fn filesystem::kernfs::KernFS::new
+_0:  @ alloc::sync::Arc<filesystem::kernfs::KernFS, alloc::alloc::Global> 
+_1:  @ &'{erased} str 
+_2:  @ ! 
+_3:  @ alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_4:  @ alloc::sync::Arc<filesystem::kernfs::KernFS, alloc::alloc::Global> 
+_5:  @ filesystem::kernfs::KernFS 
+_6:  @ alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_7:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_8:  @ &'{erased} str 
+_9:  @ alloc::sync::Weak<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_10:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_11:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_12:  @ &'{erased} mut filesystem::kernfs::InnerKernFSInode 
+_13:  @ &'{erased} mut libs::rwlock::RwLockWriteGuard<'{erased}, filesystem::kernfs::InnerKernFSInode> 
+_14:  @ libs::rwlock::RwLockWriteGuard<'{erased}, filesystem::kernfs::InnerKernFSInode> 
+_15:  @ &'{erased} libs::rwlock::RwLock<filesystem::kernfs::InnerKernFSInode> 
+_16:  @ &'{erased} filesystem::kernfs::KernFSInode 
+_17:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_18:  @ alloc::sync::Weak<filesystem::kernfs::KernFS, alloc::alloc::Global> 
+_19:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFS, alloc::alloc::Global> 
+_20:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFS, alloc::alloc::Global> 
+_21:  @ &'{erased} mut alloc::sync::Weak<filesystem::kernfs::KernFS, alloc::alloc::Global> 
+_22:  @ &'{erased} mut libs::rwlock::RwLockWriteGuard<'{erased}, alloc::sync::Weak<filesystem::kernfs::KernFS, alloc::alloc::Global>> 
+_23:  @ libs::rwlock::RwLockWriteGuard<'{erased}, alloc::sync::Weak<filesystem::kernfs::KernFS, alloc::alloc::Global>> 
+_24:  @ &'{erased} libs::rwlock::RwLock<alloc::sync::Weak<filesystem::kernfs::KernFS, alloc::alloc::Global>> 
+_25:  @ &'{erased} filesystem::kernfs::KernFSInode 
+_26:  @ &'{erased} alloc::sync::Arc<filesystem::kernfs::KernFSInode, alloc::alloc::Global> 
+_27:  @ bool 
+_28:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_28, const false)) @ _28=const false @ Use
+    Assign((_27, const false)) @ _27=const false @ Use
+    StorageLive(_3) @ StorageLive
+    _3 = filesystem::kernfs::KernFS::create_root_inode() -> [return: bb1, unwind continue] @ Call: FnDid: 18124
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &_3)) @ _7=&_3 @ Ref
+    _6 = <alloc::sync::Arc<filesystem::kernfs::KernFSInode> as core::clone::Clone>::clone(move _7) -> [return: bb2, unwind: bb24] @ Call: FnDid: 3116
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    Assign((_8, copy _1)) @ _8=copy _1 @ Use
+    Assign((_5, filesystem::kernfs::KernFS { root_inode: move _6, fsname: move _8 })) @ _5=filesystem::kernfs::KernFS { root_inode: move _6, fsname: move _8 } @ Aggregate
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    _4 = alloc::sync::Arc::<filesystem::kernfs::KernFS>::new(move _5) -> [return: bb3, unwind: bb24] @ Call: FnDid: 6875
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &_3)) @ _11=&_3 @ Ref
+    Assign((_10, &(*_11))) @ _10=&(*_11) @ Ref
+    _9 = alloc::sync::Arc::<filesystem::kernfs::KernFSInode>::downgrade(move _10) -> [return: bb4, unwind: bb23] @ Call: FnDid: 6946
+}
+bb 4 {
+CleanUp: false
+    Assign((_28, const true)) @ _28=const true @ Use
+    StorageDead(_10) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &_3)) @ _17=&_3 @ Ref
+    _16 = <alloc::sync::Arc<filesystem::kernfs::KernFSInode> as lazy_static::__Deref>::deref(move _17) -> [return: bb5, unwind: bb22] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_15, &((*_16).0: libs::rwlock::RwLock<filesystem::kernfs::InnerKernFSInode>))) @ _15=&((*_16).0: libs::rwlock::RwLock<filesystem::kernfs::InnerKernFSInode>) @ Ref
+    _14 = libs::rwlock::RwLock::<filesystem::kernfs::InnerKernFSInode>::write(move _15) -> [return: bb6, unwind: bb22] @ Call: FnDid: 5165
+}
+bb 6 {
+CleanUp: false
+    Assign((_13, &mut _14)) @ _13=&mut _14 @ Ref
+    _12 = <libs::rwlock::RwLockWriteGuard<'_, filesystem::kernfs::InnerKernFSInode> as core::ops::DerefMut>::deref_mut(move _13) -> [return: bb7, unwind: bb29] @ Call: FnDid: 3915
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    drop(((*_12).0: alloc::sync::Weak<filesystem::kernfs::KernFSInode>)) -> [return: bb8, unwind: bb9] @ Drop
+}
+bb 8 {
+CleanUp: false
+    Assign((_28, const false)) @ _28=const false @ Use
+    Assign((((*_12).0: alloc::sync::Weak<filesystem::kernfs::KernFSInode>), move _9)) @ ((*_12).0: alloc::sync::Weak<filesystem::kernfs::KernFSInode>)=move _9 @ Use
+    Assign((_28, const false)) @ _28=const false @ Use
+    StorageDead(_9) @ StorageDead
+    drop(_14) -> [return: bb10, unwind: bb23] @ Drop
+}
+bb 9 {
+CleanUp: true
+    Assign((_28, const false)) @ _28=const false @ Use
+    Assign((((*_12).0: alloc::sync::Weak<filesystem::kernfs::KernFSInode>), move _9)) @ ((*_12).0: alloc::sync::Weak<filesystem::kernfs::KernFSInode>)=move _9 @ Use
+    goto -> bb29 @ Goto
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &_4)) @ _20=&_4 @ Ref
+    Assign((_19, &(*_20))) @ _19=&(*_20) @ Ref
+    _18 = alloc::sync::Arc::<filesystem::kernfs::KernFS>::downgrade(move _19) -> [return: bb11, unwind: bb23] @ Call: FnDid: 6946
+}
+bb 11 {
+CleanUp: false
+    Assign((_27, const true)) @ _27=const true @ Use
+    StorageDead(_19) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &_3)) @ _26=&_3 @ Ref
+    _25 = <alloc::sync::Arc<filesystem::kernfs::KernFSInode> as lazy_static::__Deref>::deref(move _26) -> [return: bb12, unwind: bb20] @ Call: FnDid: 3903
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    Assign((_24, &((*_25).1: libs::rwlock::RwLock<alloc::sync::Weak<filesystem::kernfs::KernFS>>))) @ _24=&((*_25).1: libs::rwlock::RwLock<alloc::sync::Weak<filesystem::kernfs::KernFS>>) @ Ref
+    _23 = libs::rwlock::RwLock::<alloc::sync::Weak<filesystem::kernfs::KernFS>>::write(move _24) -> [return: bb13, unwind: bb20] @ Call: FnDid: 5165
+}
+bb 13 {
+CleanUp: false
+    Assign((_22, &mut _23)) @ _22=&mut _23 @ Ref
+    StorageDead(_24) @ StorageDead
+    _21 = <libs::rwlock::RwLockWriteGuard<'_, alloc::sync::Weak<filesystem::kernfs::KernFS>> as core::ops::DerefMut>::deref_mut(move _22) -> [return: bb14, unwind: bb27] @ Call: FnDid: 3915
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    drop((*_21)) -> [return: bb15, unwind: bb16] @ Drop
+}
+bb 15 {
+CleanUp: false
+    Assign((_27, const false)) @ _27=const false @ Use
+    Assign(((*_21), move _18)) @ (*_21)=move _18 @ Use
+    Assign((_27, const false)) @ _27=const false @ Use
+    StorageDead(_18) @ StorageDead
+    drop(_23) -> [return: bb17, unwind: bb23] @ Drop
+}
+bb 16 {
+CleanUp: true
+    Assign((_27, const false)) @ _27=const false @ Use
+    Assign(((*_21), move _18)) @ (*_21)=move _18 @ Use
+    goto -> bb27 @ Goto
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    Assign((_0, move _4)) @ _0=move _4 @ Use
+    StorageDead(_4) @ StorageDead
+    drop(_3) -> [return: bb18, unwind: bb25] @ Drop
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 19 {
+CleanUp: true
+    drop(_23) -> [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 20 {
+CleanUp: true
+    drop(_18) -> [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 21 {
+CleanUp: true
+    drop(_14) -> [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 22 {
+CleanUp: true
+    drop(_9) -> [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    drop(_4) -> [return: bb24, unwind terminate(cleanup)] @ Drop
+}
+bb 24 {
+CleanUp: true
+    drop(_3) -> [return: bb25, unwind terminate(cleanup)] @ Drop
+}
+bb 25 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 26 {
+CleanUp: true
+    drop(_18) -> [return: bb19, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    switchInt(copy _27) -> [0: bb19, otherwise: bb26] @ SwitchInt
+}
+bb 28 {
+CleanUp: true
+    drop(_9) -> [return: bb21, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    switchInt(copy _28) -> [0: bb21, otherwise: bb28] @ SwitchInt
+}
+

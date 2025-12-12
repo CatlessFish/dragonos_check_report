@@ -1,0 +1,55 @@
+22:07:59|RAP|WARN|: Double free detected in function "rtc_hctosys"
+warning: Double free detected.
+   --> src/driver/rtc/class.rs:96:1
+    |
+ 96 | / fn rtc_hctosys(dev: &Arc<RtcGeneralDevice>) {
+ 97 | |     let r = rtc_read_time(dev);
+ 98 | |     if let Err(e) = r {
+ 99 | |         dev.set_hc2sys_result(Err(e));
+100 | |         return;
+101 | |     }
+102 | |
+103 | |     let time = r.unwrap();
+104 | |     let timespec64: PosixTimeSpec = time.into();
+105 | |     let r = do_settimeofday64(timespec64);
+106 | |     dev.set_hc2sys_result(r);
+107 | |
+108 | |     info!(
+109 | |         "Setting system clock to {} {} UTC ({})",
+110 | |         time.date_string(),
+111 | |         time.time_string(),
+112 | |         timespec64.tv_sec
+113 | |     );
+114 | | }
+    | |_- Double free (confidence 99%): Location in file src/driver/rtc/class.rs line 96.
+    | MIR detail: Value _43(_, src/driver/rtc/class.rs:111) and _40(_, src/driver/rtc/class.rs:110) are alias.
+    | MIR detail: _43(_, src/driver/rtc/class.rs:111) is dropped at BB23(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _40(_, src/driver/rtc/class.rs:110) is dropped at BB24(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+22:07:59|RAP|WARN|: Double free detected in function "rtc_hctosys"
+warning: Double free detected during unwinding.
+   --> src/driver/rtc/class.rs:96:1
+    |
+ 96 | / fn rtc_hctosys(dev: &Arc<RtcGeneralDevice>) {
+ 97 | |     let r = rtc_read_time(dev);
+ 98 | |     if let Err(e) = r {
+ 99 | |         dev.set_hc2sys_result(Err(e));
+100 | |         return;
+101 | |     }
+102 | |
+103 | |     let time = r.unwrap();
+104 | |     let timespec64: PosixTimeSpec = time.into();
+105 | |     let r = do_settimeofday64(timespec64);
+106 | |     dev.set_hc2sys_result(r);
+107 | |
+108 | |     info!(
+109 | |         "Setting system clock to {} {} UTC ({})",
+110 | |         time.date_string(),
+111 | |         time.time_string(),
+112 | |         timespec64.tv_sec
+113 | |     );
+114 | | }
+    | |_- Double free (confidence 99%): Location in file src/driver/rtc/class.rs line 96.
+    | MIR detail: Value _43(_, src/driver/rtc/class.rs:111) and _40(_, src/driver/rtc/class.rs:110) are alias.
+    | MIR detail: _43(_, src/driver/rtc/class.rs:111) is dropped at BB23(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _40(_, src/driver/rtc/class.rs:110) is dropped at BB32(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+render dot for DefId(0:12835 ~ dragonos_kernel[9e38]::driver::rtc::class::rtc_hctosys)

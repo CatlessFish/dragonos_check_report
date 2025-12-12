@@ -1,0 +1,41 @@
+22:08:14|RAP|WARN|: Dangling pointer detected in function "remove"
+warning: Dangling pointer detected.
+  --> src/net/socket/unix/ns/mod.rs:70:1
+   |
+70 | / fn remove(&self, name: Arc<[u8]>) {
+71 | |         let mut handles = self.handles.write();
+72 | |
+73 | |         let Entry::Occupied(occupied) = handles.entry(name) else {
+74 | |             return;
+75 | |         };
+76 | |
+77 | |         // 如果引用计数为0，说明名字已经不再使用，可以移除
+78 | |         if occupied.get().strong_count() == 0 {
+79 | |             occupied.remove();
+80 | |         }
+81 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/ns/mod.rs line 70.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in remove and _1(self, src/net/socket/unix/ns/mod.rs:70) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in remove is dropped at BB18446744073709551615(src/net/socket/unix/ns/mod.rs:70); _1(self, src/net/socket/unix/ns/mod.rs:70) became dangling.
+   |
+22:08:14|RAP|WARN|: Dangling pointer detected during unwinding in function "remove"
+warning: Dangling pointer detected during unwinding.
+  --> src/net/socket/unix/ns/mod.rs:70:1
+   |
+70 | / fn remove(&self, name: Arc<[u8]>) {
+71 | |         let mut handles = self.handles.write();
+72 | |
+73 | |         let Entry::Occupied(occupied) = handles.entry(name) else {
+74 | |             return;
+75 | |         };
+76 | |
+77 | |         // 如果引用计数为0，说明名字已经不再使用，可以移除
+78 | |         if occupied.get().strong_count() == 0 {
+79 | |             occupied.remove();
+80 | |         }
+81 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/ns/mod.rs line 70.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in remove and _1(self, src/net/socket/unix/ns/mod.rs:70) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in remove is dropped at BB18446744073709551615(src/net/socket/unix/ns/mod.rs:70); _1(self, src/net/socket/unix/ns/mod.rs:70) became dangling.
+   |
+render dot for DefId(0:26927 ~ dragonos_kernel[9e38]::net::socket::unix::ns::{impl#2}::remove)

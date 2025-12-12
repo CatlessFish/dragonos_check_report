@@ -1,0 +1,16 @@
+22:08:18|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/smp/syscall/sys_sched_getaffinity.rs:40:1
+   |
+40 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+41 | |         vec![
+42 | |             FormattedSyscallParam::new("pid", args[0].to_string()),
+43 | |             FormattedSyscallParam::new("size", args[1].to_string()),
+44 | |             FormattedSyscallParam::new("set", format!("0x{:x}", args[2])),
+45 | |         ]
+46 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/smp/syscall/sys_sched_getaffinity.rs line 40.
+    | MIR detail: Value _15(_, src/smp/syscall/sys_sched_getaffinity.rs:43) and _9(_, src/smp/syscall/sys_sched_getaffinity.rs:42) are alias.
+    | MIR detail: _15(_, src/smp/syscall/sys_sched_getaffinity.rs:43) is dropped at BB15(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/smp/syscall/sys_sched_getaffinity.rs:42) is dropped at BB16(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:30712 ~ dragonos_kernel[9e38]::smp::syscall::sys_sched_getaffinity::{impl#0}::entry_format)

@@ -1,0 +1,119 @@
+22:08:06|RAP|WARN|: Dangling pointer detected in function "move_to"
+warning: Dangling pointer detected.
+   --> src/filesystem/ramfs/mod.rs:441:1
+    |
+441 | / fn move_to(
+442 | |         &self,
+443 | |         old_name: &str,
+444 | |         target: &Arc<dyn IndexNode>,
+445 | |         new_name: &str,
+446 | |         flags: RenameFlags,
+447 | |     ) -> Result<(), SystemError> {
+448 | |         let inode_to_move = self
+449 | |             .find(old_name)?
+450 | |             .downcast_arc::<LockedRamFSInode>()
+451 | |             .ok_or(SystemError::EINVAL)?;
+452 | |
+453 | |         let new_name = DName::from(new_name);
+454 | |
+455 | |         inode_to_move.0.lock().name = new_name.clone();
+456 | |
+457 | |         let target_id = target.metadata()?.inode_id;
+458 | |
+459 | |         let mut self_inode = self.0.lock();
+460 | |         // 判断是否在同一目录下, 是则进行重命名
+461 | |         if target_id == self_inode.metadata.inode_id {
+462 | |             if flags.contains(RenameFlags::NOREPLACE) && self_inode.children.contains_key(&new_name)
+463 | |             {
+464 | |                 return Err(SystemError::EEXIST);
+465 | |             }
+466 | |             self_inode.children.remove(&DName::from(old_name));
+467 | |             self_inode.children.insert(new_name, inode_to_move);
+468 | |             return Ok(());
+469 | |         }
+470 | |         drop(self_inode);
+471 | |
+472 | |         // 修改其对父节点的引用
+473 | |         inode_to_move.0.lock().parent = Arc::downgrade(
+474 | |             &target
+475 | |                 .clone()
+476 | |                 .downcast_arc::<LockedRamFSInode>()
+477 | |                 .ok_or(SystemError::EINVAL)?,
+478 | |         );
+479 | |
+480 | |         // 在新的目录下创建一个硬链接
+481 | |         target.link(new_name.as_ref(), &(inode_to_move as Arc<dyn IndexNode>))?;
+482 | |
+483 | |         // 取消现有的目录下的这个硬链接
+484 | |         if let Err(e) = self.unlink(old_name) {
+485 | |             // 当操作失败时回退操作
+486 | |             target.unlink(new_name.as_ref())?;
+487 | |             return Err(e);
+488 | |         }
+489 | |
+490 | |         return Ok(());
+491 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/ramfs/mod.rs line 441.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in move_to and _1(self, src/filesystem/ramfs/mod.rs:442) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in move_to is dropped at BB18446744073709551615(src/filesystem/ramfs/mod.rs:441); _1(self, src/filesystem/ramfs/mod.rs:442) became dangling.
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function "move_to"
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/ramfs/mod.rs:441:1
+    |
+441 | / fn move_to(
+442 | |         &self,
+443 | |         old_name: &str,
+444 | |         target: &Arc<dyn IndexNode>,
+445 | |         new_name: &str,
+446 | |         flags: RenameFlags,
+447 | |     ) -> Result<(), SystemError> {
+448 | |         let inode_to_move = self
+449 | |             .find(old_name)?
+450 | |             .downcast_arc::<LockedRamFSInode>()
+451 | |             .ok_or(SystemError::EINVAL)?;
+452 | |
+453 | |         let new_name = DName::from(new_name);
+454 | |
+455 | |         inode_to_move.0.lock().name = new_name.clone();
+456 | |
+457 | |         let target_id = target.metadata()?.inode_id;
+458 | |
+459 | |         let mut self_inode = self.0.lock();
+460 | |         // 判断是否在同一目录下, 是则进行重命名
+461 | |         if target_id == self_inode.metadata.inode_id {
+462 | |             if flags.contains(RenameFlags::NOREPLACE) && self_inode.children.contains_key(&new_name)
+463 | |             {
+464 | |                 return Err(SystemError::EEXIST);
+465 | |             }
+466 | |             self_inode.children.remove(&DName::from(old_name));
+467 | |             self_inode.children.insert(new_name, inode_to_move);
+468 | |             return Ok(());
+469 | |         }
+470 | |         drop(self_inode);
+471 | |
+472 | |         // 修改其对父节点的引用
+473 | |         inode_to_move.0.lock().parent = Arc::downgrade(
+474 | |             &target
+475 | |                 .clone()
+476 | |                 .downcast_arc::<LockedRamFSInode>()
+477 | |                 .ok_or(SystemError::EINVAL)?,
+478 | |         );
+479 | |
+480 | |         // 在新的目录下创建一个硬链接
+481 | |         target.link(new_name.as_ref(), &(inode_to_move as Arc<dyn IndexNode>))?;
+482 | |
+483 | |         // 取消现有的目录下的这个硬链接
+484 | |         if let Err(e) = self.unlink(old_name) {
+485 | |             // 当操作失败时回退操作
+486 | |             target.unlink(new_name.as_ref())?;
+487 | |             return Err(e);
+488 | |         }
+489 | |
+490 | |         return Ok(());
+491 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/ramfs/mod.rs line 441.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in move_to and _1(self, src/filesystem/ramfs/mod.rs:442) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in move_to is dropped at BB18446744073709551615(src/filesystem/ramfs/mod.rs:441); _1(self, src/filesystem/ramfs/mod.rs:442) became dangling.
+    |
+render dot for DefId(0:18847 ~ dragonos_kernel[9e38]::filesystem::ramfs::{impl#4}::move_to)

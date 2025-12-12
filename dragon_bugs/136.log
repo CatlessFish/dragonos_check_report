@@ -1,0 +1,127 @@
+22:08:09|RAP|WARN|: Double free detected in function "try_to_run_init_process"
+warning: Double free detected.
+   --> src/init/initial_kthread.rs:173:1
+    |
+173 | / fn try_to_run_init_process(
+174 | |     path: &str,
+175 | |     proc_init_info: &mut ProcInitInfo,
+176 | |     ext_args: &Option<&str>,
+177 | |     trap_frame: &mut TrapFrame,
+178 | | ) -> Result<(), SystemError> {
+179 | |     log::debug!("Trying to run init process at {:?}", path);
+180 | |     let mut args_to_insert = alloc::vec::Vec::new();
+181 | |     args_to_insert.push(CString::new(path).unwrap());
+182 | |
+183 | |     if let Some(ext_args) = ext_args {
+184 | |         // Split ext_args by whitespace and trim each part
+185 | |         for arg in ext_args.split_whitespace() {
+186 | |             args_to_insert.push(CString::new(arg.trim()).unwrap());
+187 | |         }
+188 | |     }
+189 | |     proc_init_info.proc_name = CString::new(path).unwrap();
+190 | |     let elements_to_remove = args_to_insert.len();
+191 | |     let old_args = core::mem::replace(&mut proc_init_info.args, args_to_insert);
+192 | |     proc_init_info.args.extend(old_args);
+193 | |     if let Err(e) = run_init_process(proc_init_info, trap_frame) {
+194 | |         if e != SystemError::ENOENT {
+195 | |             error!(
+196 | |                 "Failed to run init process: {path} exists but couldn't execute it (error {:?})",
+197 | |                 e
+198 | |             );
+199 | |         }
+200 | |
+201 | |         proc_init_info.args.drain(0..elements_to_remove);
+202 | |         return Err(e);
+203 | |     }
+204 | |
+205 | |     Ok(())
+206 | | }
+    | |_- Double free (confidence 99%): Location in file src/init/initial_kthread.rs line 173.
+    | MIR detail: Value _122(_, src/init/initial_kthread.rs:201) and _122(_, src/init/initial_kthread.rs:201) are alias.
+    | MIR detail: _122(_, src/init/initial_kthread.rs:201) is dropped at BB59(src/init/initial_kthread.rs:201); _122(_, src/init/initial_kthread.rs:201) is dropped at BB59(src/init/initial_kthread.rs:201).
+    |
+22:08:09|RAP|WARN|: Dangling pointer detected in function "try_to_run_init_process"
+22:08:09|RAP|WARN|: Dangling pointer detected during unwinding in function "try_to_run_init_process"
+warning: Dangling pointer detected.
+   --> src/init/initial_kthread.rs:173:1
+    |
+173 | / fn try_to_run_init_process(
+174 | |     path: &str,
+175 | |     proc_init_info: &mut ProcInitInfo,
+176 | |     ext_args: &Option<&str>,
+177 | |     trap_frame: &mut TrapFrame,
+178 | | ) -> Result<(), SystemError> {
+179 | |     log::debug!("Trying to run init process at {:?}", path);
+180 | |     let mut args_to_insert = alloc::vec::Vec::new();
+181 | |     args_to_insert.push(CString::new(path).unwrap());
+182 | |
+183 | |     if let Some(ext_args) = ext_args {
+184 | |         // Split ext_args by whitespace and trim each part
+185 | |         for arg in ext_args.split_whitespace() {
+186 | |             args_to_insert.push(CString::new(arg.trim()).unwrap());
+187 | |         }
+188 | |     }
+189 | |     proc_init_info.proc_name = CString::new(path).unwrap();
+190 | |     let elements_to_remove = args_to_insert.len();
+191 | |     let old_args = core::mem::replace(&mut proc_init_info.args, args_to_insert);
+192 | |     proc_init_info.args.extend(old_args);
+193 | |     if let Err(e) = run_init_process(proc_init_info, trap_frame) {
+194 | |         if e != SystemError::ENOENT {
+195 | |             error!(
+196 | |                 "Failed to run init process: {path} exists but couldn't execute it (error {:?})",
+197 | |                 e
+198 | |             );
+199 | |         }
+200 | |
+201 | |         proc_init_info.args.drain(0..elements_to_remove);
+202 | |         return Err(e);
+203 | |     }
+204 | |
+205 | |     Ok(())
+206 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/init/initial_kthread.rs line 173.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in try_to_run_init_process and _2(proc_init_info, src/init/initial_kthread.rs:175) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in try_to_run_init_process is dropped at BB18446744073709551615(src/init/initial_kthread.rs:173); _2(proc_init_info, src/init/initial_kthread.rs:175) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/init/initial_kthread.rs:173:1
+    |
+173 | / fn try_to_run_init_process(
+174 | |     path: &str,
+175 | |     proc_init_info: &mut ProcInitInfo,
+176 | |     ext_args: &Option<&str>,
+177 | |     trap_frame: &mut TrapFrame,
+178 | | ) -> Result<(), SystemError> {
+179 | |     log::debug!("Trying to run init process at {:?}", path);
+180 | |     let mut args_to_insert = alloc::vec::Vec::new();
+181 | |     args_to_insert.push(CString::new(path).unwrap());
+182 | |
+183 | |     if let Some(ext_args) = ext_args {
+184 | |         // Split ext_args by whitespace and trim each part
+185 | |         for arg in ext_args.split_whitespace() {
+186 | |             args_to_insert.push(CString::new(arg.trim()).unwrap());
+187 | |         }
+188 | |     }
+189 | |     proc_init_info.proc_name = CString::new(path).unwrap();
+190 | |     let elements_to_remove = args_to_insert.len();
+191 | |     let old_args = core::mem::replace(&mut proc_init_info.args, args_to_insert);
+192 | |     proc_init_info.args.extend(old_args);
+193 | |     if let Err(e) = run_init_process(proc_init_info, trap_frame) {
+194 | |         if e != SystemError::ENOENT {
+195 | |             error!(
+196 | |                 "Failed to run init process: {path} exists but couldn't execute it (error {:?})",
+197 | |                 e
+198 | |             );
+199 | |         }
+200 | |
+201 | |         proc_init_info.args.drain(0..elements_to_remove);
+202 | |         return Err(e);
+203 | |     }
+204 | |
+205 | |     Ok(())
+206 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/init/initial_kthread.rs line 173.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in try_to_run_init_process and _2(proc_init_info, src/init/initial_kthread.rs:175) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in try_to_run_init_process is dropped at BB18446744073709551615(src/init/initial_kthread.rs:173); _2(proc_init_info, src/init/initial_kthread.rs:175) became dangling.
+    |
+render dot for DefId(0:22168 ~ dragonos_kernel[9e38]::init::initial_kthread::try_to_run_init_process)

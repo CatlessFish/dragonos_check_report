@@ -1,0 +1,92 @@
+22:07:59|RAP|WARN|: Double free detected in function "new"
+warning: Double free detected during unwinding.
+   --> src/driver/net/virtio_net.rs:519:1
+    |
+519 | / pub fn new(mut device_inner: VirtIONicDeviceInner) -> Arc<Self> {
+520 | |         let iface_id = generate_iface_id();
+521 | |         let mut iface_config = iface::Config::new(wire::HardwareAddress::Ethernet(
+522 | |             wire::EthernetAddress(device_inner.inner.lock().mac_address()),
+523 | |         ));
+524 | |         iface_config.random_seed = rand() as u64;
+525 | |
+526 | |         let iface = iface::Interface::new(iface_config, &mut device_inner, Instant::now().into());
+527 | |
+528 | |         let flags = InterfaceFlags::UP
+529 | |             | InterfaceFlags::BROADCAST
+530 | |             | InterfaceFlags::RUNNING
+531 | |             | InterfaceFlags::MULTICAST
+532 | |             | InterfaceFlags::LOWER_UP;
+533 | |
+534 | |         let iface = Arc::new(VirtioInterface {
+535 | |             device_inner: VirtIONicDeviceInnerWrapper(UnsafeCell::new(device_inner)),
+536 | |             locked_kobj_state: LockedKObjectState::default(),
+537 | |             iface_name: format!("eth{}", iface_id),
+538 | |             iface_common: super::IfaceCommon::new(
+539 | |                 iface_id,
+540 | |                 crate::driver::net::types::InterfaceType::EETHER,
+541 | |                 flags,
+542 | |                 iface,
+543 | |             ),
+544 | |             inner: SpinLock::new(InnerVirtIOInterface {
+545 | |                 kobj_common: KObjectCommonData::default(),
+546 | |                 device_common: DeviceCommonData::default(),
+547 | |                 netdevice_common: NetDeviceCommonData::default(),
+548 | |             }),
+549 | |         });
+550 | |
+551 | |         // 设置napi struct
+552 | |         let napi_struct = NapiStruct::new(iface.clone(), 10);
+553 | |         *iface.common().napi_struct.write() = Some(napi_struct);
+554 | |
+555 | |         iface
+556 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 519.
+    | MIR detail: Value _45(_, src/driver/net/virtio_net.rs:538) and _45(_, src/driver/net/virtio_net.rs:538) are alias.
+    | MIR detail: _45(_, src/driver/net/virtio_net.rs:538) is dropped at BB43(src/driver/net/virtio_net.rs:549); _45(_, src/driver/net/virtio_net.rs:538) is dropped at BB43(src/driver/net/virtio_net.rs:549).
+    |
+warning: Double free detected during unwinding.
+   --> src/driver/net/virtio_net.rs:519:1
+    |
+519 | / pub fn new(mut device_inner: VirtIONicDeviceInner) -> Arc<Self> {
+520 | |         let iface_id = generate_iface_id();
+521 | |         let mut iface_config = iface::Config::new(wire::HardwareAddress::Ethernet(
+522 | |             wire::EthernetAddress(device_inner.inner.lock().mac_address()),
+523 | |         ));
+524 | |         iface_config.random_seed = rand() as u64;
+525 | |
+526 | |         let iface = iface::Interface::new(iface_config, &mut device_inner, Instant::now().into());
+527 | |
+528 | |         let flags = InterfaceFlags::UP
+529 | |             | InterfaceFlags::BROADCAST
+530 | |             | InterfaceFlags::RUNNING
+531 | |             | InterfaceFlags::MULTICAST
+532 | |             | InterfaceFlags::LOWER_UP;
+533 | |
+534 | |         let iface = Arc::new(VirtioInterface {
+535 | |             device_inner: VirtIONicDeviceInnerWrapper(UnsafeCell::new(device_inner)),
+536 | |             locked_kobj_state: LockedKObjectState::default(),
+537 | |             iface_name: format!("eth{}", iface_id),
+538 | |             iface_common: super::IfaceCommon::new(
+539 | |                 iface_id,
+540 | |                 crate::driver::net::types::InterfaceType::EETHER,
+541 | |                 flags,
+542 | |                 iface,
+543 | |             ),
+544 | |             inner: SpinLock::new(InnerVirtIOInterface {
+545 | |                 kobj_common: KObjectCommonData::default(),
+546 | |                 device_common: DeviceCommonData::default(),
+547 | |                 netdevice_common: NetDeviceCommonData::default(),
+548 | |             }),
+549 | |         });
+550 | |
+551 | |         // 设置napi struct
+552 | |         let napi_struct = NapiStruct::new(iface.clone(), 10);
+553 | |         *iface.common().napi_struct.write() = Some(napi_struct);
+554 | |
+555 | |         iface
+556 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 519.
+    | MIR detail: Value _27(iface, src/driver/net/virtio_net.rs:534) and _27(iface, src/driver/net/virtio_net.rs:534) are alias.
+    | MIR detail: _27(iface, src/driver/net/virtio_net.rs:534) is dropped at BB40(src/driver/net/virtio_net.rs:556); _27(iface, src/driver/net/virtio_net.rs:534) is dropped at BB40(src/driver/net/virtio_net.rs:556).
+    |
+render dot for DefId(0:11670 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{impl#20}::new)

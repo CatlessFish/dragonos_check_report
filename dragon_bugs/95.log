@@ -1,0 +1,79 @@
+22:08:08|RAP|WARN|: Double free detected in function "do_preadv"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_preadv.rs:65:1
+   |
+65 | / pub fn do_preadv(fd: i32, iovecs: &IoVecs, offset: usize) -> Result<usize, SystemError> {
+66 | |     let binding = ProcessManager::current_pcb().fd_table();
+67 | |     let fd_table_guard = binding.read();
+68 | |
+69 | |     let file = fd_table_guard
+70 | |         .get_file_by_fd(fd)
+71 | |         .ok_or(SystemError::EBADF)?;
+72 | |
+73 | |     drop(fd_table_guard);
+74 | |
+75 | |     // 检查是否是管道/Socket (ESPIPE)
+76 | |     let md = file.metadata()?;
+77 | |     if md.file_type == FileType::Pipe
+78 | |         || md.file_type == FileType::Socket
+79 | |         || md.file_type == FileType::CharDevice
+80 | |     {
+81 | |         return Err(SystemError::ESPIPE);
+82 | |     }
+83 | |
+84 | |     // Create a kernel buffer to read data into.
+85 | |     // TODO: Support scatter-gather I/O directly in FS to avoid this copy.
+86 | |     let mut data = vec![0; iovecs.total_len()];
+87 | |
+88 | |     // Read from file at offset into kernel buffer.
+89 | |     let read_len = file.pread(offset, data.len(), &mut data)?;
+90 | |
+91 | |     // Scatter the read data back to user buffers.
+92 | |     iovecs.scatter(&data[..read_len]);
+93 | |
+94 | |     Ok(read_len)
+95 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_preadv.rs line 65.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_preadv.rs:73) and _4(binding, src/filesystem/vfs/syscall/sys_preadv.rs:66) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_preadv.rs:73) is dropped at BB12(src/filesystem/vfs/syscall/sys_preadv.rs:73); _4(binding, src/filesystem/vfs/syscall/sys_preadv.rs:66) is dropped at BB45(src/filesystem/vfs/syscall/sys_preadv.rs:95).
+   |
+22:08:08|RAP|WARN|: Double free detected in function "do_preadv"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_preadv.rs:65:1
+   |
+65 | / pub fn do_preadv(fd: i32, iovecs: &IoVecs, offset: usize) -> Result<usize, SystemError> {
+66 | |     let binding = ProcessManager::current_pcb().fd_table();
+67 | |     let fd_table_guard = binding.read();
+68 | |
+69 | |     let file = fd_table_guard
+70 | |         .get_file_by_fd(fd)
+71 | |         .ok_or(SystemError::EBADF)?;
+72 | |
+73 | |     drop(fd_table_guard);
+74 | |
+75 | |     // 检查是否是管道/Socket (ESPIPE)
+76 | |     let md = file.metadata()?;
+77 | |     if md.file_type == FileType::Pipe
+78 | |         || md.file_type == FileType::Socket
+79 | |         || md.file_type == FileType::CharDevice
+80 | |     {
+81 | |         return Err(SystemError::ESPIPE);
+82 | |     }
+83 | |
+84 | |     // Create a kernel buffer to read data into.
+85 | |     // TODO: Support scatter-gather I/O directly in FS to avoid this copy.
+86 | |     let mut data = vec![0; iovecs.total_len()];
+87 | |
+88 | |     // Read from file at offset into kernel buffer.
+89 | |     let read_len = file.pread(offset, data.len(), &mut data)?;
+90 | |
+91 | |     // Scatter the read data back to user buffers.
+92 | |     iovecs.scatter(&data[..read_len]);
+93 | |
+94 | |     Ok(read_len)
+95 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_preadv.rs line 65.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_preadv.rs:73) and _4(binding, src/filesystem/vfs/syscall/sys_preadv.rs:66) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_preadv.rs:73) is dropped at BB12(src/filesystem/vfs/syscall/sys_preadv.rs:73); _4(binding, src/filesystem/vfs/syscall/sys_preadv.rs:66) is dropped at BB55(src/filesystem/vfs/syscall/sys_preadv.rs:95).
+   |
+render dot for DefId(0:20232 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_preadv::do_preadv)

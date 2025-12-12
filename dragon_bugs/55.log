@@ -1,0 +1,131 @@
+22:08:05|RAP|WARN|: Dangling pointer detected in function "mknod"
+warning: Dangling pointer detected.
+    --> src/filesystem/fat/fs.rs:1997:1
+     |
+1997 | / fn mknod(
+1998 | |         &self,
+1999 | |         filename: &str,
+2000 | |         mode: InodeMode,
+2001 | |         _dev_t: DeviceNumber,
+2002 | |     ) -> Result<Arc<dyn IndexNode>, SystemError> {
+2003 | |         let mut inode = self.0.lock();
+2004 | |         if inode.metadata.file_type != FileType::Dir {
+2005 | |             return Err(SystemError::ENOTDIR);
+2006 | |         }
+2007 | |
+2008 | |         let mode = if (mode.bits() & InodeMode::S_IFMT.bits()) == 0 {
+2009 | |             mode | InodeMode::S_IFREG
+2010 | |         } else {
+2011 | |             mode
+2012 | |         };
+2013 | |         let umask = crate::process::ProcessManager::current_pcb()
+2014 | |             .fs_struct()
+2015 | |             .umask();
+2016 | |         let final_mode = mode & !umask;
+2017 | |
+2018 | |         // 判断需要创建的类型
+2019 | |         if unlikely(final_mode.contains(InodeMode::S_IFREG)) {
+2020 | |             // 普通文件
+2021 | |             drop(inode);
+2022 | |             return self.create(filename, FileType::File, mode);
+2023 | |         }
+2024 | |
+2025 | |         let dname = DName::from(filename);
+2026 | |         let nod = LockedFATInode::new(
+2027 | |             dname,
+2028 | |             inode.fs.upgrade().unwrap(),
+2029 | |             inode.self_ref.clone(),
+2030 | |             FATDirEntry::File(FATFile::default()),
+2031 | |         );
+2032 | |
+2033 | |         if final_mode.contains(InodeMode::S_IFIFO) {
+2034 | |             nod.0.lock().metadata.file_type = FileType::Pipe;
+2035 | |             // 创建pipe文件
+2036 | |             let pipe_inode = LockedPipeInode::new();
+2037 | |             // 标记为命名管道（FIFO），这样 open 时才会应用 FIFO 阻塞语义
+2038 | |             pipe_inode.set_fifo();
+2039 | |             // 设置special_node
+2040 | |             nod.0.lock().special_node = Some(SpecialNodeData::Pipe(pipe_inode));
+2041 | |         } else if final_mode.contains(InodeMode::S_IFBLK) {
+2042 | |             nod.0.lock().metadata.file_type = FileType::BlockDevice;
+2043 | |             unimplemented!()
+2044 | |         } else if final_mode.contains(InodeMode::S_IFCHR) {
+2045 | |             nod.0.lock().metadata.file_type = FileType::CharDevice;
+2046 | |             unimplemented!()
+2047 | |         } else {
+2048 | |             return Err(SystemError::EINVAL);
+2049 | |         }
+2050 | |
+2051 | |         inode.children.insert(to_search_name(filename), nod.clone());
+2052 | |         Ok(nod)
+2053 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1997.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in mknod and _1(self, src/filesystem/fat/fs.rs:1998) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in mknod is dropped at BB18446744073709551615(src/filesystem/fat/fs.rs:1997); _1(self, src/filesystem/fat/fs.rs:1998) became dangling.
+     |
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "mknod"
+warning: Dangling pointer detected during unwinding.
+    --> src/filesystem/fat/fs.rs:1997:1
+     |
+1997 | / fn mknod(
+1998 | |         &self,
+1999 | |         filename: &str,
+2000 | |         mode: InodeMode,
+2001 | |         _dev_t: DeviceNumber,
+2002 | |     ) -> Result<Arc<dyn IndexNode>, SystemError> {
+2003 | |         let mut inode = self.0.lock();
+2004 | |         if inode.metadata.file_type != FileType::Dir {
+2005 | |             return Err(SystemError::ENOTDIR);
+2006 | |         }
+2007 | |
+2008 | |         let mode = if (mode.bits() & InodeMode::S_IFMT.bits()) == 0 {
+2009 | |             mode | InodeMode::S_IFREG
+2010 | |         } else {
+2011 | |             mode
+2012 | |         };
+2013 | |         let umask = crate::process::ProcessManager::current_pcb()
+2014 | |             .fs_struct()
+2015 | |             .umask();
+2016 | |         let final_mode = mode & !umask;
+2017 | |
+2018 | |         // 判断需要创建的类型
+2019 | |         if unlikely(final_mode.contains(InodeMode::S_IFREG)) {
+2020 | |             // 普通文件
+2021 | |             drop(inode);
+2022 | |             return self.create(filename, FileType::File, mode);
+2023 | |         }
+2024 | |
+2025 | |         let dname = DName::from(filename);
+2026 | |         let nod = LockedFATInode::new(
+2027 | |             dname,
+2028 | |             inode.fs.upgrade().unwrap(),
+2029 | |             inode.self_ref.clone(),
+2030 | |             FATDirEntry::File(FATFile::default()),
+2031 | |         );
+2032 | |
+2033 | |         if final_mode.contains(InodeMode::S_IFIFO) {
+2034 | |             nod.0.lock().metadata.file_type = FileType::Pipe;
+2035 | |             // 创建pipe文件
+2036 | |             let pipe_inode = LockedPipeInode::new();
+2037 | |             // 标记为命名管道（FIFO），这样 open 时才会应用 FIFO 阻塞语义
+2038 | |             pipe_inode.set_fifo();
+2039 | |             // 设置special_node
+2040 | |             nod.0.lock().special_node = Some(SpecialNodeData::Pipe(pipe_inode));
+2041 | |         } else if final_mode.contains(InodeMode::S_IFBLK) {
+2042 | |             nod.0.lock().metadata.file_type = FileType::BlockDevice;
+2043 | |             unimplemented!()
+2044 | |         } else if final_mode.contains(InodeMode::S_IFCHR) {
+2045 | |             nod.0.lock().metadata.file_type = FileType::CharDevice;
+2046 | |             unimplemented!()
+2047 | |         } else {
+2048 | |             return Err(SystemError::EINVAL);
+2049 | |         }
+2050 | |
+2051 | |         inode.children.insert(to_search_name(filename), nod.clone());
+2052 | |         Ok(nod)
+2053 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1997.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in mknod and _1(self, src/filesystem/fat/fs.rs:1998) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in mknod is dropped at BB18446744073709551615(src/filesystem/fat/fs.rs:1997); _1(self, src/filesystem/fat/fs.rs:1998) became dangling.
+     |
+render dot for DefId(0:17967 ~ dragonos_kernel[9e38]::filesystem::fat::fs::{impl#12}::mknod)

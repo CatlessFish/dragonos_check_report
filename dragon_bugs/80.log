@@ -1,0 +1,49 @@
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+22:08:07|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_ftruncate.rs:32:1
+   |
+32 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+33 | |         let fd = Self::fd(args);
+34 | |         let len = Self::len(args);
+35 | |
+36 | |         let binding = ProcessManager::current_pcb().fd_table();
+37 | |         let fd_table_guard = binding.read();
+38 | |
+39 | |         if let Some(file) = fd_table_guard.get_file_by_fd(fd) {
+40 | |             // drop guard 以避免无法调度的问题
+41 | |             drop(fd_table_guard);
+42 | |             let r = file.ftruncate(len).map(|_| 0);
+43 | |             return r;
+44 | |         }
+45 | |
+46 | |         return Err(SystemError::EBADF);
+47 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ftruncate.rs line 32.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) and _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) is dropped at BB11(src/filesystem/vfs/syscall/sys_ftruncate.rs:41); _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) is dropped at BB18(src/filesystem/vfs/syscall/sys_ftruncate.rs:47).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_ftruncate.rs:32:1
+   |
+32 | / fn handle(&self, args: &[usize], _frame: &mut TrapFrame) -> Result<usize, SystemError> {
+33 | |         let fd = Self::fd(args);
+34 | |         let len = Self::len(args);
+35 | |
+36 | |         let binding = ProcessManager::current_pcb().fd_table();
+37 | |         let fd_table_guard = binding.read();
+38 | |
+39 | |         if let Some(file) = fd_table_guard.get_file_by_fd(fd) {
+40 | |             // drop guard 以避免无法调度的问题
+41 | |             drop(fd_table_guard);
+42 | |             let r = file.ftruncate(len).map(|_| 0);
+43 | |             return r;
+44 | |         }
+45 | |
+46 | |         return Err(SystemError::EBADF);
+47 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ftruncate.rs line 32.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) and _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_ftruncate.rs:41) is dropped at BB11(src/filesystem/vfs/syscall/sys_ftruncate.rs:41); _9(binding, src/filesystem/vfs/syscall/sys_ftruncate.rs:36) is dropped at BB21(src/filesystem/vfs/syscall/sys_ftruncate.rs:47).
+   |
+render dot for DefId(0:19961 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_ftruncate::{impl#0}::handle)

@@ -1,0 +1,93 @@
+22:08:17|RAP|WARN|: Dangling pointer detected in function "do_wait_for_common"
+22:08:17|RAP|WARN|: Dangling pointer detected during unwinding in function "do_wait_for_common"
+warning: Dangling pointer detected.
+  --> src/sched/completion.rs:31:1
+   |
+31 | / fn do_wait_for_common(&self, mut timeout: i64, interuptible: bool) -> Result<i64, SystemError> {
+32 | |         let mut inner = self.inner.lock_irqsave();
+33 | |         let pcb = ProcessManager::current_pcb();
+34 | |         if inner.done == 0 {
+35 | |             //loop break 类似 do while 保证进行一次信号检测
+36 | |             loop {
+37 | |                 //检查当前线程是否有未处理的信号
+38 | |                 if pcb.sig_info_irqsave().sig_pending().has_pending() {
+39 | |                     return Err(SystemError::ERESTARTSYS);
+40 | |                 }
+41 | |
+42 | |                 let e = if interuptible {
+43 | |                     unsafe { inner.wait_queue.sleep_without_schedule() }
+44 | |                 } else {
+45 | |                     unsafe { inner.wait_queue.sleep_without_schedule_uninterruptible() }
+46 | |                 };
+47 | |                 if e.is_err() {
+48 | |                     break;
+49 | |                 }
+50 | |                 drop(inner);
+51 | |                 timeout = schedule_timeout(timeout)?;
+52 | |                 inner = self.inner.lock_irqsave();
+53 | |                 if inner.done != 0 || timeout <= 0 {
+54 | |                     break;
+55 | |                 }
+56 | |             }
+57 | |             inner.wait_queue.wakeup(None);
+58 | |             if inner.done == 0 {
+59 | |                 drop(inner);
+60 | |                 return Ok(timeout);
+61 | |             }
+62 | |         }
+63 | |         if inner.done != COMPLETE_ALL {
+64 | |             inner.done -= 1;
+65 | |         }
+66 | |         drop(inner);
+67 | |         return Ok(if timeout > 0 { timeout } else { 1 });
+68 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/sched/completion.rs line 31.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_wait_for_common and _1(self, src/sched/completion.rs:31) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_wait_for_common is dropped at BB18446744073709551615(src/sched/completion.rs:31); _1(self, src/sched/completion.rs:31) became dangling.
+   |
+warning: Dangling pointer detected during unwinding.
+  --> src/sched/completion.rs:31:1
+   |
+31 | / fn do_wait_for_common(&self, mut timeout: i64, interuptible: bool) -> Result<i64, SystemError> {
+32 | |         let mut inner = self.inner.lock_irqsave();
+33 | |         let pcb = ProcessManager::current_pcb();
+34 | |         if inner.done == 0 {
+35 | |             //loop break 类似 do while 保证进行一次信号检测
+36 | |             loop {
+37 | |                 //检查当前线程是否有未处理的信号
+38 | |                 if pcb.sig_info_irqsave().sig_pending().has_pending() {
+39 | |                     return Err(SystemError::ERESTARTSYS);
+40 | |                 }
+41 | |
+42 | |                 let e = if interuptible {
+43 | |                     unsafe { inner.wait_queue.sleep_without_schedule() }
+44 | |                 } else {
+45 | |                     unsafe { inner.wait_queue.sleep_without_schedule_uninterruptible() }
+46 | |                 };
+47 | |                 if e.is_err() {
+48 | |                     break;
+49 | |                 }
+50 | |                 drop(inner);
+51 | |                 timeout = schedule_timeout(timeout)?;
+52 | |                 inner = self.inner.lock_irqsave();
+53 | |                 if inner.done != 0 || timeout <= 0 {
+54 | |                     break;
+55 | |                 }
+56 | |             }
+57 | |             inner.wait_queue.wakeup(None);
+58 | |             if inner.done == 0 {
+59 | |                 drop(inner);
+60 | |                 return Ok(timeout);
+61 | |             }
+62 | |         }
+63 | |         if inner.done != COMPLETE_ALL {
+64 | |             inner.done -= 1;
+65 | |         }
+66 | |         drop(inner);
+67 | |         return Ok(if timeout > 0 { timeout } else { 1 });
+68 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/sched/completion.rs line 31.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_wait_for_common and _1(self, src/sched/completion.rs:31) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_wait_for_common is dropped at BB18446744073709551615(src/sched/completion.rs:31); _1(self, src/sched/completion.rs:31) became dangling.
+   |
+render dot for DefId(0:30104 ~ dragonos_kernel[9e38]::sched::completion::{impl#0}::do_wait_for_common)

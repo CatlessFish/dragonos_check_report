@@ -1,0 +1,44 @@
+22:07:58|RAP|WARN|: Double free detected in function "new"
+warning: Double free detected during unwinding.
+   --> src/driver/net/e1000e/e1000e_driver.rs:195:1
+    |
+195 | / pub fn new(mut driver: E1000EDriver) -> Arc<Self> {
+196 | |         let iface_id = generate_iface_id();
+197 | |         let mut iface_config = smoltcp::iface::Config::new(HardwareAddress::Ethernet(
+198 | |             smoltcp::wire::EthernetAddress(driver.inner.lock().mac_address()),
+199 | |         ));
+200 | |         iface_config.random_seed = rand() as u64;
+201 | |
+202 | |         let iface =
+203 | |             smoltcp::iface::Interface::new(iface_config, &mut driver, Instant::now().into());
+204 | |
+205 | |         let flags = InterfaceFlags::UP
+206 | |             | InterfaceFlags::BROADCAST
+207 | |             | InterfaceFlags::RUNNING
+208 | |             | InterfaceFlags::MULTICAST
+209 | |             | InterfaceFlags::LOWER_UP;
+210 | |
+211 | |         let iface = Arc::new(E1000EInterface {
+212 | |             driver: E1000EDriverWrapper(UnsafeCell::new(driver)),
+213 | |             common: IfaceCommon::new(
+214 | |                 iface_id,
+215 | |                 crate::driver::net::types::InterfaceType::EETHER,
+216 | |                 flags,
+217 | |                 iface,
+218 | |             ),
+219 | |             name: format!("eth{}", iface_id),
+220 | |             inner: SpinLock::new(InnerE1000EInterface {
+221 | |                 netdevice_common: NetDeviceCommonData::default(),
+222 | |                 device_common: DeviceCommonData::default(),
+223 | |                 kobj_common: KObjectCommonData::default(),
+224 | |             }),
+225 | |             locked_kobj_state: LockedKObjectState::default(),
+226 | |         });
+227 | |
+228 | |         iface
+229 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 195.
+    | MIR detail: Value _30(_, src/driver/net/e1000e/e1000e_driver.rs:213) and _30(_, src/driver/net/e1000e/e1000e_driver.rs:213) are alias.
+    | MIR detail: _30(_, src/driver/net/e1000e/e1000e_driver.rs:213) is dropped at BB31(src/driver/net/e1000e/e1000e_driver.rs:226); _30(_, src/driver/net/e1000e/e1000e_driver.rs:213) is dropped at BB31(src/driver/net/e1000e/e1000e_driver.rs:226).
+    |
+render dot for DefId(0:10889 ~ dragonos_kernel[9e38]::driver::net::e1000e::e1000e_driver::{impl#13}::new)

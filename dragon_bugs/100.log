@@ -1,0 +1,61 @@
+22:08:08|RAP|WARN|: Double free detected in function "do_pwritev"
+22:08:08|RAP|WARN|: Double free detected in function "do_pwritev"
+warning: Double free detected.
+   --> src/filesystem/vfs/syscall/sys_pwritev.rs:86:1
+    |
+ 86 | / pub fn do_pwritev(fd: i32, buf: &[u8], offset: usize) -> Result<usize, SystemError> {
+ 87 | |     let binding = ProcessManager::current_pcb().fd_table();
+ 88 | |     let fd_table_guard = binding.read();
+ 89 | |
+ 90 | |     let file = fd_table_guard
+ 91 | |         .get_file_by_fd(fd)
+ 92 | |         .ok_or(SystemError::EBADF)?;
+ 93 | |
+ 94 | |     // 释放 fd_table_guard 的读锁
+ 95 | |     drop(fd_table_guard);
+ 96 | |
+ 97 | |     // 检查是否是管道/Socket (ESPIPE)
+ 98 | |     let md = file.metadata()?;
+ 99 | |     if md.file_type == FileType::Pipe
+100 | |         || md.file_type == FileType::Socket
+101 | |         || md.file_type == FileType::CharDevice
+102 | |     {
+103 | |         return Err(SystemError::ESPIPE);
+104 | |     }
+105 | |
+106 | |     file.pwrite(offset, buf.len(), buf)
+107 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwritev.rs line 86.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_pwritev.rs:95) and _4(binding, src/filesystem/vfs/syscall/sys_pwritev.rs:87) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_pwritev.rs:95) is dropped at BB12(src/filesystem/vfs/syscall/sys_pwritev.rs:95); _4(binding, src/filesystem/vfs/syscall/sys_pwritev.rs:87) is dropped at BB35(src/filesystem/vfs/syscall/sys_pwritev.rs:107).
+    |
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/syscall/sys_pwritev.rs:86:1
+    |
+ 86 | / pub fn do_pwritev(fd: i32, buf: &[u8], offset: usize) -> Result<usize, SystemError> {
+ 87 | |     let binding = ProcessManager::current_pcb().fd_table();
+ 88 | |     let fd_table_guard = binding.read();
+ 89 | |
+ 90 | |     let file = fd_table_guard
+ 91 | |         .get_file_by_fd(fd)
+ 92 | |         .ok_or(SystemError::EBADF)?;
+ 93 | |
+ 94 | |     // 释放 fd_table_guard 的读锁
+ 95 | |     drop(fd_table_guard);
+ 96 | |
+ 97 | |     // 检查是否是管道/Socket (ESPIPE)
+ 98 | |     let md = file.metadata()?;
+ 99 | |     if md.file_type == FileType::Pipe
+100 | |         || md.file_type == FileType::Socket
+101 | |         || md.file_type == FileType::CharDevice
+102 | |     {
+103 | |         return Err(SystemError::ESPIPE);
+104 | |     }
+105 | |
+106 | |     file.pwrite(offset, buf.len(), buf)
+107 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwritev.rs line 86.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_pwritev.rs:95) and _4(binding, src/filesystem/vfs/syscall/sys_pwritev.rs:87) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_pwritev.rs:95) is dropped at BB12(src/filesystem/vfs/syscall/sys_pwritev.rs:95); _4(binding, src/filesystem/vfs/syscall/sys_pwritev.rs:87) is dropped at BB43(src/filesystem/vfs/syscall/sys_pwritev.rs:107).
+    |
+render dot for DefId(0:20299 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pwritev::do_pwritev)

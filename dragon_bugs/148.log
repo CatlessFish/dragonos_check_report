@@ -1,0 +1,16 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/ipc/syscall/sys_shmctl.rs:79:1
+   |
+79 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+80 | |         vec![
+81 | |             FormattedSyscallParam::new("shmid", format!("{}", Self::id(args).data())),
+82 | |             FormattedSyscallParam::new("cmd", format!("{}", Self::cmd(args))),
+83 | |             FormattedSyscallParam::new("buf", format!("{:#x}", Self::user_buf(args) as usize)),
+84 | |         ]
+85 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_shmctl.rs line 79.
+    | MIR detail: Value _26(_, src/ipc/syscall/sys_shmctl.rs:82) and _9(_, src/ipc/syscall/sys_shmctl.rs:81) are alias.
+    | MIR detail: _26(_, src/ipc/syscall/sys_shmctl.rs:82) is dropped at BB22(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/ipc/syscall/sys_shmctl.rs:81) is dropped at BB23(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:23123 ~ dragonos_kernel[9e38]::ipc::syscall::sys_shmctl::{impl#1}::entry_format)

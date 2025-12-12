@@ -1,0 +1,711 @@
+bb0 at src/exception/manage.rs:716:9: 718:10
+bb2 at src/exception/manage.rs:716:27: 716:28
+bb3 at src/exception/manage.rs:716:27: 716:28
+bb4 at src/exception/manage.rs:720:36: 720:37
+bb5 at src/exception/manage.rs:722:28: 722:34
+bb6 at src/exception/manage.rs:722:41: 722:42
+bb7 at src/exception/manage.rs:723:12: 723:24
+bb8 at src/exception/manage.rs:723:12: 723:33
+bb11 at src/exception/manage.rs:723:42: 723:43
+bb13 at src/exception/manage.rs:723:42: 723:43
+bb14 at src/exception/manage.rs:727:33: 727:45
+bb15 at src/exception/manage.rs:727:53: 727:54
+bb16 at src/exception/manage.rs:727:62: 727:63
+bb17 at src/exception/manage.rs:727:63: 727:64
+bb18 at src/exception/manage.rs:727:68: 727:69
+bb19 at src/exception/manage.rs:727:69: 727:70
+bb20 at src/exception/manage.rs:728:26: 728:27
+bb21 at src/exception/manage.rs:729:9: 729:15
+bb22 at src/exception/manage.rs:729:9: 730:33
+bb23 at src/exception/manage.rs:731:34: 731:35
+bb24 at src/exception/manage.rs:739:14: 739:15
+bb25 at src/exception/manage.rs:740:17: 740:18
+bb26 at src/exception/manage.rs:741:5: 741:6
+bb27 at src/exception/manage.rs:741:5: 741:6
+bb28 at src/exception/manage.rs:741:5: 741:6
+fn exception::manage::IrqManager::wake_up_and_wait_for_irq_thread_ready
+_0:  @ () 
+_1:  @ &'{erased} exception::manage::IrqManager 
+_2:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqDesc, alloc::alloc::Global> 
+_3:  @ core::option::Option<alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global>> 
+_4:  @ () 
+_5:  @ bool 
+_6:  @ &'{erased} core::option::Option<alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global>> 
+_7:  @ ! 
+_8:  @ alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global> 
+_9:  @ core::option::Option<alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global>> 
+_10:  @ libs::spinlock::SpinLockGuard<'{erased}, exception::irqdesc::InnerIrqAction> 
+_11:  @ &'{erased} exception::irqdesc::IrqAction 
+_12:  @ &'{erased} exception::irqdesc::IrqAction 
+_13:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global> 
+_14:  @ () 
+_15:  @ bool 
+_16:  @ &'{erased} core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_17:  @ core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_18:  @ &'{erased} exception::irqdesc::InnerIrqAction 
+_19:  @ &'{erased} exception::irqdesc::InnerIrqAction 
+_20:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, exception::irqdesc::InnerIrqAction> 
+_21:  @ ! 
+_22:  @ core::option::Option<()> 
+_23:  @ core::result::Result<(), system_error::SystemError> 
+_24:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_25:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_26:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_27:  @ core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_28:  @ &'{erased} exception::irqdesc::InnerIrqAction 
+_29:  @ &'{erased} exception::irqdesc::InnerIrqAction 
+_30:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, exception::irqdesc::InnerIrqAction> 
+_31:  @ () 
+_32:  @ libs::spinlock::SpinLockGuard<'{erased}, exception::irqdesc::InnerIrqAction> 
+_33:  @ core::option::Option<i64> 
+_34:  @ core::result::Result<i64, ()> 
+_35:  @ core::result::Result<i64, system_error::SystemError> 
+_36:  @ &'{erased} sched::completion::Completion 
+_37:  @ &'{erased} sched::completion::Completion 
+_38:  @ &'{erased} exception::irqdesc::IrqAction 
+_39:  @ &'{erased} exception::irqdesc::IrqAction 
+_40:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global> 
+_41:  @ Closure(DefId(0:16719 ~ dragonos_kernel[9e38]::exception::manage::{impl#0}::wake_up_and_wait_for_irq_thread_ready::{closure#0}), [i32, Binder { value: extern "RustCall" fn((system_error::SystemError,)), bound_vars: [] }, (&'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global>, &'{erased} alloc::sync::Arc<exception::irqdesc::IrqDesc, alloc::alloc::Global>)]) 
+_42:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global> 
+_43:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqDesc, alloc::alloc::Global> 
+_44:  @ bool 
+_45:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_45, const false)) @ _45=const false @ Use
+    Assign((_44, const true)) @ _44=const true @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &_3)) @ _6=&_3 @ Ref
+    _5 = core::option::Option::<alloc::sync::Arc<exception::irqdesc::IrqAction>>::is_none(move _6) -> [return: bb1, unwind: bb39] @ Call: FnDid: 10146
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _5) -> [0: bb3, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -> bb35 @ Goto
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_4, const ())) @ _4=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_9, move _3)) @ _9=move _3 @ Use
+    _8 = core::option::Option::<alloc::sync::Arc<exception::irqdesc::IrqAction>>::unwrap(move _9) -> [return: bb4, unwind: bb39] @ Call: FnDid: 10157
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &_8)) @ _13=&_8 @ Ref
+    _12 = <alloc::sync::Arc<exception::irqdesc::IrqAction> as lazy_static::__Deref>::deref(move _13) -> [return: bb5, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    Assign((_11, &(*_12))) @ _11=&(*_12) @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = exception::irqdesc::IrqAction::inner(move _11) -> [return: bb6, unwind: bb32] @ Call: FnDid: 16500
+}
+bb 6 {
+CleanUp: false
+    Assign((_45, const true)) @ _45=const true @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &_10)) @ _20=&_10 @ Ref
+    _19 = <libs::spinlock::SpinLockGuard<'_, exception::irqdesc::InnerIrqAction> as lazy_static::__Deref>::deref(move _20) -> [return: bb7, unwind: bb37] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    Assign((_18, &(*_19))) @ _18=&(*_19) @ Ref
+    StorageDead(_20) @ StorageDead
+    _17 = exception::irqdesc::InnerIrqAction::thread(move _18) -> [return: bb8, unwind: bb37] @ Call: FnDid: 16512
+}
+bb 8 {
+CleanUp: false
+    Assign((_16, &_17)) @ _16=&_17 @ Ref
+    StorageDead(_18) @ StorageDead
+    _15 = core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::is_none(move _16) -> [return: bb9, unwind: bb31] @ Call: FnDid: 10146
+}
+bb 9 {
+CleanUp: false
+    switchInt(move _15) -> [0: bb12, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    drop(_17) -> [return: bb11, unwind: bb37] @ Drop
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    drop(_10) -> [return: bb27, unwind: bb32] @ Drop
+}
+bb 12 {
+CleanUp: false
+    drop(_17) -> [return: bb13, unwind: bb37] @ Drop
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_14, const ())) @ _14=const () @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &_10)) @ _30=&_10 @ Ref
+    _29 = <libs::spinlock::SpinLockGuard<'_, exception::irqdesc::InnerIrqAction> as lazy_static::__Deref>::deref(move _30) -> [return: bb14, unwind: bb37] @ Call: FnDid: 3903
+}
+bb 14 {
+CleanUp: false
+    Assign((_28, &(*_29))) @ _28=&(*_29) @ Ref
+    StorageDead(_30) @ StorageDead
+    _27 = exception::irqdesc::InnerIrqAction::thread(move _28) -> [return: bb15, unwind: bb37] @ Call: FnDid: 16512
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    _26 = core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::unwrap(move _27) -> [return: bb16, unwind: bb37] @ Call: FnDid: 10157
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    Assign((_25, &_26)) @ _25=&_26 @ Ref
+    Assign((_24, &(*_25))) @ _24=&(*_25) @ Ref
+    _23 = process::ProcessManager::wakeup(move _24) -> [return: bb17, unwind: bb30] @ Call: FnDid: 29871
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    _22 = core::result::Result::<(), system_error::SystemError>::ok(move _23) -> [return: bb18, unwind: bb30] @ Call: FnDid: 10993
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    drop(_26) -> [return: bb19, unwind: bb37] @ Drop
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_45, const false)) @ _45=const false @ Use
+    Assign((_32, move _10)) @ _32=move _10 @ Use
+    _31 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, exception::irqdesc::InnerIrqAction>>(move _32) -> [return: bb20, unwind: bb37] @ Call: FnDid: 2323
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &_8)) @ _40=&_8 @ Ref
+    _39 = <alloc::sync::Arc<exception::irqdesc::IrqAction> as lazy_static::__Deref>::deref(move _40) -> [return: bb21, unwind: bb37] @ Call: FnDid: 3903
+}
+bb 21 {
+CleanUp: false
+    Assign((_38, &(*_39))) @ _38=&(*_39) @ Ref
+    StorageDead(_40) @ StorageDead
+    _37 = exception::irqdesc::IrqAction::thread_completion(move _38) -> [return: bb22, unwind: bb37] @ Call: FnDid: 16501
+}
+bb 22 {
+CleanUp: false
+    Assign((_36, &(*_37))) @ _36=&(*_37) @ Ref
+    StorageDead(_38) @ StorageDead
+    _35 = sched::completion::Completion::wait_for_completion(move _36) -> [return: bb23, unwind: bb37] @ Call: FnDid: 30106
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_42, &_8)) @ _42=&_8 @ Ref
+    StorageLive(_43) @ StorageLive
+    Assign((_43, &(*_2))) @ _43=&(*_2) @ Ref
+    Assign((_41, {closure@src/exception/manage.rs:732:22: 732:25} { action: move _42, desc: move _43 })) @ _41={closure@src/exception/manage.rs:732:22: 732:25} { action: move _42, desc: move _43 } @ Aggregate
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    _34 = core::result::Result::<i64, system_error::SystemError>::map_err::<(), {closure@src/exception/manage.rs:732:22: 732:25}>(move _35, move _41) -> [return: bb24, unwind: bb37] @ Call: FnDid: 11010
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    _33 = core::result::Result::<i64, ()>::ok(move _34) -> [return: bb25, unwind: bb37] @ Call: FnDid: 10993
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    Assign((_45, const false)) @ _45=const false @ Use
+    StorageDead(_10) @ StorageDead
+    drop(_8) -> [return: bb26, unwind: bb39] @ Drop
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    goto -> bb29 @ Goto
+}
+bb 27 {
+CleanUp: false
+    Assign((_45, const false)) @ _45=const false @ Use
+    StorageDead(_10) @ StorageDead
+    drop(_8) -> [return: bb28, unwind: bb39] @ Drop
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    goto -> bb35 @ Goto
+}
+bb 29 {
+CleanUp: false
+    return @ Return
+}
+bb 30 {
+CleanUp: true
+    drop(_26) -> [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 31 {
+CleanUp: true
+    drop(_17) -> [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    drop(_8) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 33 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 34 {
+CleanUp: false
+    drop(_3) -> [return: bb29, unwind: bb33] @ Drop
+}
+bb 35 {
+CleanUp: false
+    switchInt(copy _44) -> [0: bb29, otherwise: bb34] @ SwitchInt
+}
+bb 36 {
+CleanUp: true
+    drop(_10) -> [return: bb32, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    switchInt(copy _45) -> [0: bb32, otherwise: bb36] @ SwitchInt
+}
+bb 38 {
+CleanUp: true
+    drop(_3) -> [return: bb33, unwind terminate(cleanup)] @ Drop
+}
+bb 39 {
+CleanUp: true
+    switchInt(copy _44) -> [0: bb33, otherwise: bb38] @ SwitchInt
+}
+
+bb0 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:107:34: 114:6
+bb2 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb3 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb6 at src/exception/manage.rs:735:21: 735:27
+bb7 at src/exception/manage.rs:735:21: 735:35
+bb8 at src/exception/manage.rs:735:21: 735:35
+bb9 at src/exception/manage.rs:735:41: 735:42
+bb10 at src/exception/manage.rs:736:21: 736:25
+bb11 at src/exception/manage.rs:736:21: 736:36
+bb12 at src/exception/manage.rs:736:21: 736:36
+bb13 at src/exception/manage.rs:736:41: 736:42
+bb14 at src/exception/manage.rs:734:63: 734:64
+bb15 at src/exception/manage.rs:734:73: 734:74
+bb16 at src/exception/manage.rs:734:86: 734:87
+bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb18 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb20 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:14: 144:15
+bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:14: 144:15
+bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb23 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb25 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+fn exception::manage::IrqManager::wake_up_and_wait_for_irq_thread_ready::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:16719 ~ dragonos_kernel[9e38]::exception::manage::{impl#0}::wake_up_and_wait_for_irq_thread_ready::{closure#0}), [i32, Binder { value: extern "RustCall" fn((system_error::SystemError,)), bound_vars: [] }, (&'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global>, &'{erased} alloc::sync::Arc<exception::irqdesc::IrqDesc, alloc::alloc::Global>)]) 
+_2:  @ system_error::SystemError 
+_3:  @ () 
+_4:  @ log::Level 
+_5:  @ bool 
+_6:  @ &'{erased} log::Level 
+_7:  @ &'{erased} log::LevelFilter 
+_8:  @ log::LevelFilter 
+_9:  @ bool 
+_10:  @ &'{erased} log::Level 
+_11:  @ &'{erased} log::LevelFilter 
+_12:  @ log::LevelFilter 
+_13:  @ () 
+_14:  @ log::__private_api::GlobalLogger 
+_15:  @ core::fmt::Arguments<'{erased}> 
+_16:  @ (&'{erased} &'{erased} alloc::string::String, &'{erased} exception::IrqNumber, &'{erased} system_error::SystemError) 
+_17:  @ &'{erased} &'{erased} alloc::string::String 
+_18:  @ &'{erased} alloc::string::String 
+_19:  @ &'{erased} exception::irqdesc::InnerIrqAction 
+_20:  @ &'{erased} exception::irqdesc::InnerIrqAction 
+_21:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, exception::irqdesc::InnerIrqAction> 
+_22:  @ libs::spinlock::SpinLockGuard<'{erased}, exception::irqdesc::InnerIrqAction> 
+_23:  @ &'{erased} exception::irqdesc::IrqAction 
+_24:  @ &'{erased} exception::irqdesc::IrqAction 
+_25:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global> 
+_26:  @ &'{erased} exception::IrqNumber 
+_27:  @ exception::IrqNumber 
+_28:  @ &'{erased} exception::irqdata::IrqData 
+_29:  @ &'{erased} exception::irqdata::IrqData 
+_30:  @ &'{erased} alloc::sync::Arc<exception::irqdata::IrqData, alloc::alloc::Global> 
+_31:  @ alloc::sync::Arc<exception::irqdata::IrqData, alloc::alloc::Global> 
+_32:  @ &'{erased} exception::irqdesc::IrqDesc 
+_33:  @ &'{erased} exception::irqdesc::IrqDesc 
+_34:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqDesc, alloc::alloc::Global> 
+_35:  @ &'{erased} system_error::SystemError 
+_36:  @ [core::fmt::rt::Argument<'{erased}>; 3_usize] 
+_37:  @ core::fmt::rt::Argument<'{erased}> 
+_38:  @ &'{erased} &'{erased} alloc::string::String 
+_39:  @ core::fmt::rt::Argument<'{erased}> 
+_40:  @ &'{erased} exception::IrqNumber 
+_41:  @ core::fmt::rt::Argument<'{erased}> 
+_42:  @ &'{erased} system_error::SystemError 
+_43:  @ &'{erased} [&'{erased} str; 3_usize] 
+_44:  @ &'{erased} [&'{erased} str; 3_usize] 
+_45:  @ [&'{erased} str; 3_usize] 
+_46:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 3_usize] 
+_47:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 3_usize] 
+_48:  @ log::Level 
+_49:  @ &'{erased} (&'{erased} str, &'{erased} str, &'{erased} core::panic::Location<'{erased}>) 
+_50:  @ &'{erased} (&'{erased} str, &'{erased} str, &'{erased} core::panic::Location<'{erased}>) 
+_51:  @ (&'{erased} str, &'{erased} str, &'{erased} core::panic::Location<'{erased}>) 
+_52:  @ &'{erased} str 
+_53:  @ &'{erased} str 
+_54:  @ &'{erased} core::panic::Location<'{erased}> 
+_55:  @ &'{erased} core::panic::Location<'{erased}> 
+_56:  @ () 
+_57:  @ &'{erased} [&'{erased} str; 3_usize] 
+_58:  @ &'{erased} log::LevelFilter 
+_59:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqAction, alloc::alloc::Global> 
+_60:  @ &'{erased} alloc::sync::Arc<exception::irqdesc::IrqDesc, alloc::alloc::Global> 
+_61:  @ &'{erased} &'{erased} alloc::string::String 
+_62:  @ &'{erased} exception::IrqNumber 
+_63:  @ &'{erased} system_error::SystemError 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, log::Level::Warn)) @ _4=log::Level::Warn @ Aggregate
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &_4)) @ _6=&_4 @ Ref
+    StorageLive(_7) @ StorageLive
+    Assign((_58, const exception::manage::IrqManager::wake_up_and_wait_for_irq_thread_ready::{closure#0}::promoted[1])) @ _58=const exception::manage::IrqManager::wake_up_and_wait_for_irq_thread_ready::{closure#0}::promoted[1] @ Use
+    Assign((_7, &(*_58))) @ _7=&(*_58) @ Ref
+    _5 = <log::Level as core::cmp::PartialOrd<log::LevelFilter>>::le(move _6, move _7) -> [return: bb1, unwind continue] @ Call: FnDid: 3215
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _5) -> [0: bb23, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &_4)) @ _10=&_4 @ Ref
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    _12 = log::max_level() -> [return: bb3, unwind continue] @ Call: FnDid: 134
+}
+bb 3 {
+CleanUp: false
+    Assign((_11, &_12)) @ _11=&_12 @ Ref
+    _9 = <log::Level as core::cmp::PartialOrd<log::LevelFilter>>::le(move _10, move _11) -> [return: bb4, unwind continue] @ Call: FnDid: 3215
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _9) -> [0: bb22, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, log::__private_api::GlobalLogger)) @ _14=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_59, deref_copy (_1.0: &alloc::sync::Arc<exception::irqdesc::IrqAction>))) @ _59=deref_copy (_1.0: &alloc::sync::Arc<exception::irqdesc::IrqAction>) @ CopyForDeref
+    Assign((_25, &(*_59))) @ _25=&(*_59) @ Ref
+    _24 = <alloc::sync::Arc<exception::irqdesc::IrqAction> as lazy_static::__Deref>::deref(move _25) -> [return: bb6, unwind continue] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_23, &(*_24))) @ _23=&(*_24) @ Ref
+    StorageDead(_25) @ StorageDead
+    _22 = exception::irqdesc::IrqAction::inner(move _23) -> [return: bb7, unwind continue] @ Call: FnDid: 16500
+}
+bb 7 {
+CleanUp: false
+    Assign((_21, &_22)) @ _21=&_22 @ Ref
+    _20 = <libs::spinlock::SpinLockGuard<'_, exception::irqdesc::InnerIrqAction> as lazy_static::__Deref>::deref(move _21) -> [return: bb8, unwind: bb27] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    Assign((_19, &(*_20))) @ _19=&(*_20) @ Ref
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    _18 = exception::irqdesc::InnerIrqAction::name(move _19) -> [return: bb9, unwind: bb27] @ Call: FnDid: 16521
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_17, &_18)) @ _17=&_18 @ Ref
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_60, deref_copy (_1.1: &alloc::sync::Arc<exception::irqdesc::IrqDesc>))) @ _60=deref_copy (_1.1: &alloc::sync::Arc<exception::irqdesc::IrqDesc>) @ CopyForDeref
+    Assign((_34, &(*_60))) @ _34=&(*_60) @ Ref
+    _33 = <alloc::sync::Arc<exception::irqdesc::IrqDesc> as lazy_static::__Deref>::deref(move _34) -> [return: bb10, unwind: bb27] @ Call: FnDid: 3903
+}
+bb 10 {
+CleanUp: false
+    Assign((_32, &(*_33))) @ _32=&(*_33) @ Ref
+    StorageDead(_34) @ StorageDead
+    _31 = exception::irqdesc::IrqDesc::irq_data(move _32) -> [return: bb11, unwind: bb27] @ Call: FnDid: 16428
+}
+bb 11 {
+CleanUp: false
+    Assign((_30, &_31)) @ _30=&_31 @ Ref
+    _29 = <alloc::sync::Arc<exception::irqdata::IrqData> as lazy_static::__Deref>::deref(move _30) -> [return: bb12, unwind: bb26] @ Call: FnDid: 3903
+}
+bb 12 {
+CleanUp: false
+    Assign((_28, &(*_29))) @ _28=&(*_29) @ Ref
+    StorageDead(_32) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    _27 = exception::irqdata::IrqData::irq(move _28) -> [return: bb13, unwind: bb26] @ Call: FnDid: 16248
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    Assign((_26, &_27)) @ _26=&_27 @ Ref
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &_2)) @ _35=&_2 @ Ref
+    Assign((_16, (move _17, move _26, move _35))) @ _16=(move _17, move _26, move _35) @ Aggregate
+    StorageDead(_35) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_61, deref_copy (_16.0: &&alloc::string::String))) @ _61=deref_copy (_16.0: &&alloc::string::String) @ CopyForDeref
+    Assign((_38, &(*_61))) @ _38=&(*_61) @ Ref
+    _37 = core::fmt::rt::Argument::<'_>::new_display::<&alloc::string::String>(move _38) -> [return: bb14, unwind: bb26] @ Call: FnDid: 11807
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_62, deref_copy (_16.1: &exception::IrqNumber))) @ _62=deref_copy (_16.1: &exception::IrqNumber) @ CopyForDeref
+    Assign((_40, &(*_62))) @ _40=&(*_62) @ Ref
+    _39 = core::fmt::rt::Argument::<'_>::new_debug::<exception::IrqNumber>(move _40) -> [return: bb15, unwind: bb26] @ Call: FnDid: 11809
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_63, deref_copy (_16.2: &system_error::SystemError))) @ _63=deref_copy (_16.2: &system_error::SystemError) @ CopyForDeref
+    Assign((_42, &(*_63))) @ _42=&(*_63) @ Ref
+    _41 = core::fmt::rt::Argument::<'_>::new_debug::<system_error::SystemError>(move _42) -> [return: bb16, unwind: bb26] @ Call: FnDid: 11809
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    Assign((_36, [move _37, move _39, move _41])) @ _36=[move _37, move _39, move _41] @ Aggregate
+    StorageDead(_41) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_57, const exception::manage::IrqManager::wake_up_and_wait_for_irq_thread_ready::{closure#0}::promoted[0])) @ _57=const exception::manage::IrqManager::wake_up_and_wait_for_irq_thread_ready::{closure#0}::promoted[0] @ Use
+    Assign((_44, &(*_57))) @ _44=&(*_57) @ Ref
+    Assign((_43, &(*_44))) @ _43=&(*_44) @ Ref
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &_36)) @ _47=&_36 @ Ref
+    Assign((_46, &(*_47))) @ _46=&(*_47) @ Ref
+    _15 = core::fmt::rt::<impl core::fmt::Arguments<'_>>::new_v1::<3, 3>(move _43, move _46) -> [return: bb17, unwind: bb26] @ Call: FnDid: 11836
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    Assign((_48, copy _4)) @ _48=copy _4 @ Use
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, const "dragonos_kernel::exception::manage")) @ _53=const "dragonos_kernel::exception::manage" @ Use
+    Assign((_52, &(*_53))) @ _52=&(*_53) @ Ref
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    _55 = log::__private_api::loc() -> [return: bb18, unwind: bb26] @ Call: FnDid: 184
+}
+bb 18 {
+CleanUp: false
+    Assign((_54, &(*_55))) @ _54=&(*_55) @ Ref
+    Assign((_51, (move _52, const "dragonos_kernel::exception::manage", move _54))) @ _51=(move _52, const "dragonos_kernel::exception::manage", move _54) @ Aggregate
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    Assign((_50, &_51)) @ _50=&_51 @ Ref
+    Assign((_49, &(*_50))) @ _49=&(*_50) @ Ref
+    StorageLive(_56) @ StorageLive
+    Assign((_56, ())) @ _56=() @ Aggregate
+    _13 = log::__private_api::log::<'_, (), log::__private_api::GlobalLogger>(move _14, move _15, move _48, move _49, move _56) -> [return: bb19, unwind: bb26] @ Call: FnDid: 178
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_31) -> [return: bb20, unwind: bb27] @ Drop
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    drop(_22) -> [return: bb21, unwind: bb28] @ Drop
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -> bb25 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    goto -> bb24 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -> bb24 @ Goto
+}
+bb 24 {
+CleanUp: false
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -> bb25 @ Goto
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
+}
+bb 26 {
+CleanUp: true
+    drop(_31) -> [return: bb27, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    drop(_22) -> [return: bb28, unwind terminate(cleanup)] @ Drop
+}
+bb 28 {
+CleanUp: true
+    resume @ UnwindResume
+}
+

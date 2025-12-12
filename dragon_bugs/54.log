@@ -1,0 +1,89 @@
+22:08:05|RAP|WARN|: Double free detected in function "rmdir"
+22:08:05|RAP|WARN|: Double free detected in function "rmdir"
+warning: Double free detected.
+    --> src/filesystem/fat/fs.rs:1896:1
+     |
+1896 | / fn rmdir(&self, name: &str) -> Result<(), SystemError> {
+1897 | |         let mut guard: SpinLockGuard<FATInode> = self.0.lock();
+1898 | |         let target: Arc<LockedFATInode> = guard.find(name)?;
+1899 | |         // 对目标inode上锁，以防更改
+1900 | |         let target_guard: SpinLockGuard<FATInode> = target.0.lock();
+1901 | |         // 先从缓存删除
+1902 | |         guard.children.remove(&to_search_name(name));
+1903 | |
+1904 | |         let dir = match &guard.inode_type {
+1905 | |             FATDirEntry::File(_) | FATDirEntry::VolId(_) => {
+1906 | |                 return Err(SystemError::ENOTDIR);
+1907 | |             }
+1908 | |             FATDirEntry::Dir(d) => d,
+1909 | |             FATDirEntry::UnInit => {
+1910 | |                 error!("FATFS: param: Inode_type uninitialized.");
+1911 | |                 return Err(SystemError::EROFS);
+1912 | |             }
+1913 | |         };
+1914 | |         // 检查文件夹是否存在
+1915 | |         dir.check_existence(name, Some(true), guard.fs.upgrade().unwrap())?;
+1916 | |
+1917 | |         // 再从磁盘删除
+1918 | |         let r: Result<(), SystemError> =
+1919 | |             dir.remove(guard.fs.upgrade().unwrap().clone(), name, true);
+1920 | |         match r {
+1921 | |             Ok(_) => return r,
+1922 | |             Err(r) => {
+1923 | |                 if r == SystemError::ENOTEMPTY {
+1924 | |                     // 如果要删除的是目录，且不为空，则删除动作未发生，重新加入缓存
+1925 | |                     guard.children.insert(to_search_name(name), target.clone());
+1926 | |                     drop(target_guard);
+1927 | |                 }
+1928 | |                 return Err(r);
+1929 | |             }
+1930 | |         }
+1931 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1896.
+    | MIR detail: Value _108(_, src/filesystem/fat/fs.rs:1926) and _19(_, src/filesystem/fat/fs.rs:1900) are alias.
+    | MIR detail: _108(_, src/filesystem/fat/fs.rs:1926) is dropped at BB55(src/filesystem/fat/fs.rs:1926); _19(_, src/filesystem/fat/fs.rs:1900) is dropped at BB62(src/filesystem/fat/fs.rs:1931).
+     |
+warning: Double free detected during unwinding.
+    --> src/filesystem/fat/fs.rs:1896:1
+     |
+1896 | / fn rmdir(&self, name: &str) -> Result<(), SystemError> {
+1897 | |         let mut guard: SpinLockGuard<FATInode> = self.0.lock();
+1898 | |         let target: Arc<LockedFATInode> = guard.find(name)?;
+1899 | |         // 对目标inode上锁，以防更改
+1900 | |         let target_guard: SpinLockGuard<FATInode> = target.0.lock();
+1901 | |         // 先从缓存删除
+1902 | |         guard.children.remove(&to_search_name(name));
+1903 | |
+1904 | |         let dir = match &guard.inode_type {
+1905 | |             FATDirEntry::File(_) | FATDirEntry::VolId(_) => {
+1906 | |                 return Err(SystemError::ENOTDIR);
+1907 | |             }
+1908 | |             FATDirEntry::Dir(d) => d,
+1909 | |             FATDirEntry::UnInit => {
+1910 | |                 error!("FATFS: param: Inode_type uninitialized.");
+1911 | |                 return Err(SystemError::EROFS);
+1912 | |             }
+1913 | |         };
+1914 | |         // 检查文件夹是否存在
+1915 | |         dir.check_existence(name, Some(true), guard.fs.upgrade().unwrap())?;
+1916 | |
+1917 | |         // 再从磁盘删除
+1918 | |         let r: Result<(), SystemError> =
+1919 | |             dir.remove(guard.fs.upgrade().unwrap().clone(), name, true);
+1920 | |         match r {
+1921 | |             Ok(_) => return r,
+1922 | |             Err(r) => {
+1923 | |                 if r == SystemError::ENOTEMPTY {
+1924 | |                     // 如果要删除的是目录，且不为空，则删除动作未发生，重新加入缓存
+1925 | |                     guard.children.insert(to_search_name(name), target.clone());
+1926 | |                     drop(target_guard);
+1927 | |                 }
+1928 | |                 return Err(r);
+1929 | |             }
+1930 | |         }
+1931 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1896.
+    | MIR detail: Value _108(_, src/filesystem/fat/fs.rs:1926) and _19(_, src/filesystem/fat/fs.rs:1900) are alias.
+    | MIR detail: _108(_, src/filesystem/fat/fs.rs:1926) is dropped at BB55(src/filesystem/fat/fs.rs:1926); _19(_, src/filesystem/fat/fs.rs:1900) is dropped at BB67(src/filesystem/fat/fs.rs:1931).
+     |
+render dot for DefId(0:17963 ~ dragonos_kernel[9e38]::filesystem::fat::fs::{impl#12}::rmdir)

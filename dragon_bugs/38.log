@@ -1,0 +1,213 @@
+22:08:00|RAP|WARN|: Double free detected in function "install"
+warning: Double free detected during unwinding.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:397:1
+    |
+397 | / fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 | |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 | |             return Err(SystemError::ENODEV);
+400 | |         }
+401 | |
+402 | |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 | |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 | |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 | |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 | |         vc_data_guard.init(
+407 | |             Some(tty.core().window_size().row.into()),
+408 | |             Some(tty.core().window_size().col.into()),
+409 | |             true,
+410 | |         );
+411 | |         drop(vc_data_guard);
+412 | |         let vc = VirtConsole::new(Some(vc_data));
+413 | |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+414 | |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+415 | |             vc_manager().free(vc_index);
+416 | |         })?;
+417 | |
+418 | |         Ok(())
+419 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 397.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _26(vc_data, src/driver/serial/serial8250/serial8250_pio.rs:403) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _26(vc_data, src/driver/serial/serial8250/serial8250_pio.rs:403) is dropped at BB75(src/driver/serial/serial8250/serial8250_pio.rs:419).
+    |
+22:08:00|RAP|WARN|: Use-after-free detected in function "install"
+warning: Use-after-free detected.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:413:43
+    |
+397 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 |             return Err(SystemError::ENODEV);
+400 |         }
+401 |
+402 |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 |         vc_data_guard.init(
+407 |             Some(tty.core().window_size().row.into()),
+408 |             Some(tty.core().window_size().col.into()),
+409 |             true,
+410 |         );
+411 |         drop(vc_data_guard);
+412 |         let vc = VirtConsole::new(Some(vc_data));
+413 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+    |                                           -- Use-after-free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 413.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _72(vc, src/driver/serial/serial8250/serial8250_pio.rs:412) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _72(vc, src/driver/serial/serial8250/serial8250_pio.rs:412) is used at BB38(src/driver/serial/serial8250/serial8250_pio.rs:413).
+414 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+415 |             vc_manager().free(vc_index);
+416 |         })?;
+417 |
+418 |         Ok(())
+419 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:414:38
+    |
+397 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 |             return Err(SystemError::ENODEV);
+400 |         }
+401 |
+402 |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 |         vc_data_guard.init(
+407 |             Some(tty.core().window_size().row.into()),
+408 |             Some(tty.core().window_size().col.into()),
+409 |             true,
+410 |         );
+411 |         drop(vc_data_guard);
+412 |         let vc = VirtConsole::new(Some(vc_data));
+413 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+414 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+    |                                      ---------- Use-after-free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 414.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _97(_, src/driver/serial/serial8250/serial8250_pio.rs:414) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _97(_, src/driver/serial/serial8250/serial8250_pio.rs:414) is used at BB44(src/driver/serial/serial8250/serial8250_pio.rs:414).
+415 |             vc_manager().free(vc_index);
+416 |         })?;
+417 |
+418 |         Ok(())
+419 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:412:18
+    |
+397 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 |             return Err(SystemError::ENODEV);
+400 |         }
+401 |
+402 |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 |         vc_data_guard.init(
+407 |             Some(tty.core().window_size().row.into()),
+408 |             Some(tty.core().window_size().col.into()),
+409 |             true,
+410 |         );
+411 |         drop(vc_data_guard);
+412 |         let vc = VirtConsole::new(Some(vc_data));
+    |                  ------------------------------- Use-after-free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 412.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _73(_, src/driver/serial/serial8250/serial8250_pio.rs:412) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _73(_, src/driver/serial/serial8250/serial8250_pio.rs:412) is used at BB36(src/driver/serial/serial8250/serial8250_pio.rs:412).
+413 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+414 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+415 |             vc_manager().free(vc_index);
+416 |         })?;
+417 |
+418 |         Ok(())
+419 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:413:43
+    |
+397 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 |             return Err(SystemError::ENODEV);
+400 |         }
+401 |
+402 |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 |         vc_data_guard.init(
+407 |             Some(tty.core().window_size().row.into()),
+408 |             Some(tty.core().window_size().col.into()),
+409 |             true,
+410 |         );
+411 |         drop(vc_data_guard);
+412 |         let vc = VirtConsole::new(Some(vc_data));
+413 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+    |                                           ---------- Use-after-free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 413.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _82(_, src/driver/serial/serial8250/serial8250_pio.rs:413) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _82(_, src/driver/serial/serial8250/serial8250_pio.rs:413) is used at BB38(src/driver/serial/serial8250/serial8250_pio.rs:413).
+414 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+415 |             vc_manager().free(vc_index);
+416 |         })?;
+417 |
+418 |         Ok(())
+419 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:412:35
+    |
+397 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 |             return Err(SystemError::ENODEV);
+400 |         }
+401 |
+402 |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 |         vc_data_guard.init(
+407 |             Some(tty.core().window_size().row.into()),
+408 |             Some(tty.core().window_size().col.into()),
+409 |             true,
+410 |         );
+411 |         drop(vc_data_guard);
+412 |         let vc = VirtConsole::new(Some(vc_data));
+    |                                   ------------- Use-after-free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 412.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _74(_, src/driver/serial/serial8250/serial8250_pio.rs:412) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _74(_, src/driver/serial/serial8250/serial8250_pio.rs:412) is used at BB36(src/driver/serial/serial8250/serial8250_pio.rs:412).
+413 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+414 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+415 |             vc_manager().free(vc_index);
+416 |         })?;
+417 |
+418 |         Ok(())
+419 |     }
+    |
+warning: Use-after-free detected.
+   --> src/driver/serial/serial8250/serial8250_pio.rs:412:40
+    |
+397 | fn install(&self, driver: Arc<TtyDriver>, tty: Arc<TtyCore>) -> Result<(), SystemError> {
+398 |         if tty.core().index() >= unsafe { PIO_PORTS.len() } {
+399 |             return Err(SystemError::ENODEV);
+400 |         }
+401 |
+402 |         *tty.core().window_size_write() = WindowSize::DEFAULT;
+403 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+404 |         let mut vc_data_guard = vc_data.lock_irqsave();
+405 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&dummy_console()) as Weak<dyn ConsoleSwitch>);
+406 |         vc_data_guard.init(
+407 |             Some(tty.core().window_size().row.into()),
+408 |             Some(tty.core().window_size().col.into()),
+409 |             true,
+410 |         );
+411 |         drop(vc_data_guard);
+412 |         let vc = VirtConsole::new(Some(vc_data));
+    |                                        ------- Use-after-free (confidence 99%): Location in file src/driver/serial/serial8250/serial8250_pio.rs line 412.
+    | MIR detail: Value _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) and _26(vc_data, src/driver/serial/serial8250/serial8250_pio.rs:403) are alias.
+    | MIR detail: _71(_, src/driver/serial/serial8250/serial8250_pio.rs:411) is dropped at BB35(src/driver/serial/serial8250/serial8250_pio.rs:411); _26(vc_data, src/driver/serial/serial8250/serial8250_pio.rs:403) is used at BB36(src/driver/serial/serial8250/serial8250_pio.rs:412).
+413 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+414 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+415 |             vc_manager().free(vc_index);
+416 |         })?;
+417 |
+418 |         Ok(())
+419 |     }
+    |
+render dot for DefId(0:13306 ~ dragonos_kernel[9e38]::driver::serial::serial8250::serial8250_pio::{impl#6}::install)

@@ -1,0 +1,235 @@
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
+bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
+bb2 at src/misc/syscall.rs:48:50: 48:68
+bb3 at src/misc/syscall.rs:48:79: 48:80
+bb4 at src/misc/syscall.rs:48:80: 48:81
+bb5 at src/misc/syscall.rs:49:50: 49:68
+bb6 at src/misc/syscall.rs:49:79: 49:80
+bb7 at src/misc/syscall.rs:49:80: 49:81
+bb8 at src/misc/syscall.rs:50:47: 50:62
+bb9 at src/misc/syscall.rs:50:73: 50:74
+bb10 at src/misc/syscall.rs:50:74: 50:75
+bb11 at src/misc/syscall.rs:51:47: 51:62
+bb12 at src/misc/syscall.rs:51:73: 51:74
+bb13 at src/misc/syscall.rs:51:74: 51:75
+bb14 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
+bb19 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
+bb20 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+bb21 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+fn <misc::syscall::SysRebootHandle as syscall::table::Syscall>::entry_format
+_0:  @ alloc::vec::Vec<syscall::table::FormattedSyscallParam, alloc::alloc::Global> 
+_1:  @ &'{erased} misc::syscall::SysRebootHandle 
+_2:  @ &'{erased} [usize] 
+_3:  @ alloc::boxed::Box<[syscall::table::FormattedSyscallParam], alloc::alloc::Global> 
+_4:  @ alloc::boxed::Box<[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global> 
+_5:  @ usize 
+_6:  @ usize 
+_7:  @ *mut u8 
+_8:  @ alloc::boxed::Box<[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global> 
+_9:  @ syscall::table::FormattedSyscallParam 
+_10:  @ alloc::string::String 
+_11:  @ &'{erased} u32 
+_12:  @ u32 
+_13:  @ &'{erased} [usize] 
+_14:  @ syscall::table::FormattedSyscallParam 
+_15:  @ alloc::string::String 
+_16:  @ &'{erased} u32 
+_17:  @ u32 
+_18:  @ &'{erased} [usize] 
+_19:  @ syscall::table::FormattedSyscallParam 
+_20:  @ alloc::string::String 
+_21:  @ &'{erased} u32 
+_22:  @ u32 
+_23:  @ &'{erased} [usize] 
+_24:  @ syscall::table::FormattedSyscallParam 
+_25:  @ alloc::string::String 
+_26:  @ &'{erased} usize 
+_27:  @ usize 
+_28:  @ &'{erased} [usize] 
+_29:  @ &'{erased} mut alloc::boxed::Box<[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global> 
+_30:  @ () 
+_31:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
+_32:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
+_33:  @ *const () 
+_34:  @ usize 
+_35:  @ usize 
+_36:  @ usize 
+_37:  @ usize 
+_38:  @ bool 
+_39:  @ *const () 
+_40:  @ usize 
+_41:  @ usize 
+_42:  @ bool 
+_43:  @ bool 
+_44:  @ bool 
+_45:  @ bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -> [return: bb1, unwind continue] @ Call: FnDid: 147
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 4]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 4]) @ ShallowInitBox
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &(*_2))) @ _13=&(*_2) @ Ref
+    _12 = misc::syscall::SysRebootHandle::magic1(move _13) -> [return: bb2, unwind: bb19] @ Call: FnDid: 23530
+}
+bb 2 {
+CleanUp: false
+    Assign((_11, &_12)) @ _11=&_12 @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = <u32 as alloc::string::ToString>::to_string(move _11) -> [return: bb3, unwind: bb19] @ Call: FnDid: 6626
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    _9 = syscall::table::FormattedSyscallParam::new(const "magic1", move _10) -> [return: bb4, unwind: bb19] @ Call: FnDid: 30792
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, &(*_2))) @ _18=&(*_2) @ Ref
+    _17 = misc::syscall::SysRebootHandle::magic2(move _18) -> [return: bb5, unwind: bb17] @ Call: FnDid: 23531
+}
+bb 5 {
+CleanUp: false
+    Assign((_16, &_17)) @ _16=&_17 @ Ref
+    StorageDead(_18) @ StorageDead
+    _15 = <u32 as alloc::string::ToString>::to_string(move _16) -> [return: bb6, unwind: bb17] @ Call: FnDid: 6626
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    _14 = syscall::table::FormattedSyscallParam::new(const "magic2", move _15) -> [return: bb7, unwind: bb17] @ Call: FnDid: 30792
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &(*_2))) @ _23=&(*_2) @ Ref
+    _22 = misc::syscall::SysRebootHandle::cmd(move _23) -> [return: bb8, unwind: bb16] @ Call: FnDid: 23532
+}
+bb 8 {
+CleanUp: false
+    Assign((_21, &_22)) @ _21=&_22 @ Ref
+    StorageDead(_23) @ StorageDead
+    _20 = <u32 as alloc::string::ToString>::to_string(move _21) -> [return: bb9, unwind: bb16] @ Call: FnDid: 6626
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    _19 = syscall::table::FormattedSyscallParam::new(const "cmd", move _20) -> [return: bb10, unwind: bb16] @ Call: FnDid: 30792
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &(*_2))) @ _28=&(*_2) @ Ref
+    _27 = misc::syscall::SysRebootHandle::arg(move _28) -> [return: bb11, unwind: bb15] @ Call: FnDid: 23533
+}
+bb 11 {
+CleanUp: false
+    Assign((_26, &_27)) @ _26=&_27 @ Ref
+    StorageDead(_28) @ StorageDead
+    _25 = <usize as alloc::string::ToString>::to_string(move _26) -> [return: bb12, unwind: bb15] @ Call: FnDid: 6626
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    _24 = syscall::table::FormattedSyscallParam::new(const "arg", move _25) -> [return: bb13, unwind: bb15] @ Call: FnDid: 30792
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    Assign((_32, copy ((_8.0: core::ptr::Unique<[syscall::table::FormattedSyscallParam; 4]>).0: core::ptr::NonNull<[syscall::table::FormattedSyscallParam; 4]>) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _32=copy ((_8.0: core::ptr::Unique<[syscall::table::FormattedSyscallParam; 4]>).0: core::ptr::NonNull<[syscall::table::FormattedSyscallParam; 4]>) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
+    Assign((_33, copy _32 as *const () (PtrToPtr))) @ _33=copy _32 as *const () (PtrToPtr) @ Cast
+    Assign((_34, copy _33 as usize (Transmute))) @ _34=copy _33 as usize (Transmute) @ Cast
+    Assign((_35, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _35=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    Assign((_36, Sub(copy _35, const 1_usize))) @ _36=Sub(copy _35, const 1_usize) @ BinaryOp
+    Assign((_37, BitAnd(copy _34, copy _36))) @ _37=BitAnd(copy _34, copy _36) @ BinaryOp
+    Assign((_38, Eq(copy _37, const 0_usize))) @ _38=Eq(copy _37, const 0_usize) @ BinaryOp
+    assert(copy _38, "misaligned pointer dereference: address must be a multiple of {} but is {}", copy _35, copy _34) -> [success: bb20, unwind unreachable] @ Assert
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    return @ Return
+}
+bb 15 {
+CleanUp: true
+    drop(_19) -> [return: bb16, unwind terminate(cleanup)] @ Drop
+}
+bb 16 {
+CleanUp: true
+    drop(_14) -> [return: bb17, unwind terminate(cleanup)] @ Drop
+}
+bb 17 {
+CleanUp: true
+    drop(_9) -> [return: bb19, unwind terminate(cleanup)] @ Drop
+}
+bb 18 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 19 {
+CleanUp: true
+    Assign((_31, copy ((_8.0: core::ptr::Unique<[syscall::table::FormattedSyscallParam; 4]>).0: core::ptr::NonNull<[syscall::table::FormattedSyscallParam; 4]>) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _31=copy ((_8.0: core::ptr::Unique<[syscall::table::FormattedSyscallParam; 4]>).0: core::ptr::NonNull<[syscall::table::FormattedSyscallParam; 4]>) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
+    Assign((_29, &mut _8)) @ _29=&mut _8 @ Ref
+    _30 = <alloc::boxed::Box<[syscall::table::FormattedSyscallParam; 4]> as core::ops::Drop>::drop(move _29) -> [return: bb22, unwind terminate(cleanup)] @ Call: FnDid: 3937
+}
+bb 20 {
+CleanUp: false
+    Assign((_39, copy _32 as *const () (PtrToPtr))) @ _39=copy _32 as *const () (PtrToPtr) @ Cast
+    Assign((_40, copy _39 as usize (Transmute))) @ _40=copy _39 as usize (Transmute) @ Cast
+    Assign((_41, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _41=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    Assign((_42, Ne(copy _41, const 0_usize))) @ _42=Ne(copy _41, const 0_usize) @ BinaryOp
+    Assign((_43, Eq(copy _40, const 0_usize))) @ _43=Eq(copy _40, const 0_usize) @ BinaryOp
+    Assign((_44, BitAnd(copy _43, copy _42))) @ _44=BitAnd(copy _43, copy _42) @ BinaryOp
+    Assign((_45, Not(copy _44))) @ _45=Not(copy _44) @ UnaryOp
+    assert(copy _45, "null pointer dereference occurred") -> [success: bb21, unwind unreachable] @ Assert
+}
+bb 21 {
+CleanUp: false
+    Assign(((*_32), [move _9, move _14, move _19, move _24])) @ (*_32)=[move _9, move _14, move _19, move _24] @ Aggregate
+    StorageDead(_24) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_4, move _8)) @ _4=move _8 @ Use
+    Assign((_3, move _4 as alloc::boxed::Box<[syscall::table::FormattedSyscallParam]> (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box<[syscall::table::FormattedSyscallParam]> (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_8) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    _0 = alloc::slice::<impl [syscall::table::FormattedSyscallParam]>::into_vec::<alloc::alloc::Global>(move _3) -> [return: bb14, unwind: bb18] @ Call: FnDid: 6192
+}
+bb 22 {
+CleanUp: true
+    goto -> bb18 @ Goto
+}
+

@@ -1,0 +1,35 @@
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "write_at"
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/kernfs/mod.rs:390:1
+    |
+390 | / fn write_at(
+391 | |         &self,
+392 | |         offset: usize,
+393 | |         len: usize,
+394 | |         buf: &[u8],
+395 | |         data: SpinLockGuard<FilePrivateData>,
+396 | |     ) -> Result<usize, SystemError> {
+397 | |         if self.inode_type != KernInodeType::File {
+398 | |             return Err(SystemError::EISDIR);
+399 | |         }
+400 | |
+401 | |         if self.callback.is_none() {
+402 | |             return Err(SystemError::ENOSYS);
+403 | |         }
+404 | |
+405 | |         // release the private data lock before calling the callback
+406 | |         drop(data);
+407 | |
+408 | |         let callback_data =
+409 | |             KernCallbackData::new(self.self_ref.upgrade().unwrap(), self.private_data.lock());
+410 | |         return self
+411 | |             .callback
+412 | |             .as_ref()
+413 | |             .unwrap()
+414 | |             .write(callback_data, &buf[..len], offset);
+415 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/kernfs/mod.rs line 390.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in write_at and _1(self, src/filesystem/kernfs/mod.rs:391) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in write_at is dropped at BB18446744073709551615(src/filesystem/kernfs/mod.rs:390); _1(self, src/filesystem/kernfs/mod.rs:391) became dangling.
+    |
+render dot for DefId(0:18156 ~ dragonos_kernel[9e38]::filesystem::kernfs::{impl#2}::write_at)

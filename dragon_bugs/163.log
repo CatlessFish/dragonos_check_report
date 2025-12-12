@@ -1,0 +1,115 @@
+22:08:13|RAP|WARN|: Double free detected in function "listen"
+warning: Double free detected during unwinding.
+   --> src/net/socket/inet/stream/inner.rs:129:1
+    |
+129 | / pub(super) fn listen(self, backlog: usize) -> Result<Listening, (Self, SystemError)> {
+130 | |         let (inner, local) = match self {
+131 | |             Init::Unbound(_) => {
+132 | |                 return Err((self, SystemError::EINVAL));
+133 | |             }
+134 | |             Init::Bound(inner) => inner,
+135 | |         };
+136 | |         let listen_addr = if local.addr.is_unspecified() {
+137 | |             smoltcp::wire::IpListenEndpoint::from(local.port)
+138 | |         } else {
+139 | |             smoltcp::wire::IpListenEndpoint::from(local)
+140 | |         };
+141 | |         log::debug!("listen at {:?}", listen_addr);
+142 | |         let mut inners = Vec::new();
+143 | |         if let Err(err) = || -> Result<(), SystemError> {
+144 | |             for _ in 0..(backlog - 1) {
+145 | |                 // -1 because the first one is already bound
+146 | |                 let new_listen = socket::inet::BoundInner::bind(
+147 | |                     new_listen_smoltcp_socket(listen_addr),
+148 | |                     listen_addr
+149 | |                         .addr
+150 | |                         .as_ref()
+151 | |                         .unwrap_or(&smoltcp::wire::IpAddress::from(
+152 | |                             smoltcp::wire::Ipv4Address::UNSPECIFIED,
+153 | |                         )),
+154 | |                     inner.netns(),
+155 | |                 )?;
+156 | |                 inners.push(new_listen);
+157 | |             }
+158 | |             Ok(())
+159 | |         }() {
+160 | |             return Err((Init::Bound((inner, local)), err));
+161 | |         }
+162 | |
+163 | |         if let Err(err) = inner.with_mut::<smoltcp::socket::tcp::Socket, _, _>(|socket| {
+164 | |             socket
+165 | |                 .listen(listen_addr)
+166 | |                 .map_err(|_| SystemError::ECONNREFUSED)
+167 | |         }) {
+168 | |             return Err((Init::Bound((inner, local)), err));
+169 | |         }
+170 | |
+171 | |         inners.push(inner);
+172 | |         return Ok(Listening {
+173 | |             inners,
+174 | |             connect: AtomicUsize::new(0),
+175 | |             listen_addr,
+176 | |         });
+177 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/net/socket/inet/stream/inner.rs line 129.
+    | MIR detail: Value _49(inners, src/net/socket/inet/stream/inner.rs:142) and _4(inner, src/net/socket/inet/stream/inner.rs:130) are alias.
+    | MIR detail: _49(inners, src/net/socket/inet/stream/inner.rs:142) is dropped at BB42(src/net/socket/inet/stream/inner.rs:177); _4(inner, src/net/socket/inet/stream/inner.rs:130) is dropped at BB44(src/net/socket/inet/stream/inner.rs:177).
+    |
+22:08:13|RAP|WARN|: Dangling pointer detected in function "listen"
+warning: Dangling pointer detected.
+   --> src/net/socket/inet/stream/inner.rs:129:1
+    |
+129 | / pub(super) fn listen(self, backlog: usize) -> Result<Listening, (Self, SystemError)> {
+130 | |         let (inner, local) = match self {
+131 | |             Init::Unbound(_) => {
+132 | |                 return Err((self, SystemError::EINVAL));
+133 | |             }
+134 | |             Init::Bound(inner) => inner,
+135 | |         };
+136 | |         let listen_addr = if local.addr.is_unspecified() {
+137 | |             smoltcp::wire::IpListenEndpoint::from(local.port)
+138 | |         } else {
+139 | |             smoltcp::wire::IpListenEndpoint::from(local)
+140 | |         };
+141 | |         log::debug!("listen at {:?}", listen_addr);
+142 | |         let mut inners = Vec::new();
+143 | |         if let Err(err) = || -> Result<(), SystemError> {
+144 | |             for _ in 0..(backlog - 1) {
+145 | |                 // -1 because the first one is already bound
+146 | |                 let new_listen = socket::inet::BoundInner::bind(
+147 | |                     new_listen_smoltcp_socket(listen_addr),
+148 | |                     listen_addr
+149 | |                         .addr
+150 | |                         .as_ref()
+151 | |                         .unwrap_or(&smoltcp::wire::IpAddress::from(
+152 | |                             smoltcp::wire::Ipv4Address::UNSPECIFIED,
+153 | |                         )),
+154 | |                     inner.netns(),
+155 | |                 )?;
+156 | |                 inners.push(new_listen);
+157 | |             }
+158 | |             Ok(())
+159 | |         }() {
+160 | |             return Err((Init::Bound((inner, local)), err));
+161 | |         }
+162 | |
+163 | |         if let Err(err) = inner.with_mut::<smoltcp::socket::tcp::Socket, _, _>(|socket| {
+164 | |             socket
+165 | |                 .listen(listen_addr)
+166 | |                 .map_err(|_| SystemError::ECONNREFUSED)
+167 | |         }) {
+168 | |             return Err((Init::Bound((inner, local)), err));
+169 | |         }
+170 | |
+171 | |         inners.push(inner);
+172 | |         return Ok(Listening {
+173 | |             inners,
+174 | |             connect: AtomicUsize::new(0),
+175 | |             listen_addr,
+176 | |         });
+177 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/stream/inner.rs line 129.
+    | MIR detail: Value _49(inners, src/net/socket/inet/stream/inner.rs:142) and _0(_, src/net/socket/inet/stream/inner.rs:129) are alias.
+    | MIR detail: _49(inners, src/net/socket/inet/stream/inner.rs:142) is dropped at BB38(src/net/socket/inet/stream/inner.rs:177); _0(_, src/net/socket/inet/stream/inner.rs:129) became dangling.
+    |
+render dot for DefId(0:25890 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen)

@@ -1,0 +1,32 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_openat.rs:58:1
+   |
+58 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+59 | |         vec![
+60 | |             FormattedSyscallParam::new("dirfd", Self::dirfd(args).to_string()),
+61 | |             FormattedSyscallParam::new("pathname", format!("{:#x}", Self::path(args) as usize)),
+62 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::o_flags(args))),
+63 | |             FormattedSyscallParam::new("mode", format!("{:#o}", Self::mode(args))),
+64 | |         ]
+65 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_openat.rs line 58.
+    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_openat.rs:61) and _9(_, src/filesystem/vfs/syscall/sys_openat.rs:60) are alias.
+    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_openat.rs:61) is dropped at BB25(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_openat.rs:60) is dropped at BB26(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_openat.rs:58:1
+   |
+58 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+59 | |         vec![
+60 | |             FormattedSyscallParam::new("dirfd", Self::dirfd(args).to_string()),
+61 | |             FormattedSyscallParam::new("pathname", format!("{:#x}", Self::path(args) as usize)),
+62 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::o_flags(args))),
+63 | |             FormattedSyscallParam::new("mode", format!("{:#o}", Self::mode(args))),
+64 | |         ]
+65 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_openat.rs line 58.
+    | MIR detail: Value _39(_, src/filesystem/vfs/syscall/sys_openat.rs:62) and _14(_, src/filesystem/vfs/syscall/sys_openat.rs:61) are alias.
+    | MIR detail: _39(_, src/filesystem/vfs/syscall/sys_openat.rs:62) is dropped at BB24(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/filesystem/vfs/syscall/sys_openat.rs:61) is dropped at BB25(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20180 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_openat::{impl#0}::entry_format)

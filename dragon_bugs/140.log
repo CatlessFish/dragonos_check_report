@@ -1,0 +1,61 @@
+22:08:10|RAP|WARN|: Dangling pointer detected in function "ioctl"
+warning: Dangling pointer detected.
+   --> src/ipc/pipe.rs:857:1
+    |
+857 | / fn ioctl(
+858 | |         &self,
+859 | |         cmd: u32,
+860 | |         data: usize,
+861 | |         _private_data: &FilePrivateData,
+862 | |     ) -> Result<usize, SystemError> {
+863 | |         match cmd {
+864 | |             FIONREAD => {
+865 | |                 let inner = self.inner.lock();
+866 | |                 let available = inner.valid_cnt;
+867 | |                 drop(inner);
+868 | |
+869 | |                 let mut writer =
+870 | |                     UserBufferWriter::new(data as *mut u8, core::mem::size_of::<i32>(), true)?;
+871 | |                 writer
+872 | |                     .buffer_protected(0)?
+873 | |                     .write_one::<i32>(0, &available)?;
+874 | |                 Ok(0)
+875 | |             }
+876 | |             _ => Err(SystemError::ENOSYS),
+877 | |         }
+878 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 857.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in ioctl and _1(self, src/ipc/pipe.rs:858) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in ioctl is dropped at BB18446744073709551615(src/ipc/pipe.rs:857); _1(self, src/ipc/pipe.rs:858) became dangling.
+    |
+22:08:10|RAP|WARN|: Dangling pointer detected during unwinding in function "ioctl"
+warning: Dangling pointer detected during unwinding.
+   --> src/ipc/pipe.rs:857:1
+    |
+857 | / fn ioctl(
+858 | |         &self,
+859 | |         cmd: u32,
+860 | |         data: usize,
+861 | |         _private_data: &FilePrivateData,
+862 | |     ) -> Result<usize, SystemError> {
+863 | |         match cmd {
+864 | |             FIONREAD => {
+865 | |                 let inner = self.inner.lock();
+866 | |                 let available = inner.valid_cnt;
+867 | |                 drop(inner);
+868 | |
+869 | |                 let mut writer =
+870 | |                     UserBufferWriter::new(data as *mut u8, core::mem::size_of::<i32>(), true)?;
+871 | |                 writer
+872 | |                     .buffer_protected(0)?
+873 | |                     .write_one::<i32>(0, &available)?;
+874 | |                 Ok(0)
+875 | |             }
+876 | |             _ => Err(SystemError::ENOSYS),
+877 | |         }
+878 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 857.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in ioctl and _1(self, src/ipc/pipe.rs:858) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in ioctl is dropped at BB18446744073709551615(src/ipc/pipe.rs:857); _1(self, src/ipc/pipe.rs:858) became dangling.
+    |
+render dot for DefId(0:22438 ~ dragonos_kernel[9e38]::ipc::pipe::{impl#6}::ioctl)

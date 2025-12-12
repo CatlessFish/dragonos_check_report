@@ -1,0 +1,16 @@
+22:08:07|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_lseek.rs:69:1
+   |
+69 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+70 | |         vec![
+71 | |             FormattedSyscallParam::new("fd", Self::fd(args).to_string()),
+72 | |             FormattedSyscallParam::new("offset", Self::offset(args).to_string()),
+73 | |             FormattedSyscallParam::new("whence", Self::whence_name(Self::whence(args))),
+74 | |         ]
+75 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_lseek.rs line 69.
+    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_lseek.rs:72) and _9(_, src/filesystem/vfs/syscall/sys_lseek.rs:71) are alias.
+    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_lseek.rs:72) is dropped at BB12(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_lseek.rs:71) is dropped at BB13(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20105 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_lseek::{impl#0}::entry_format)

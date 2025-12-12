@@ -1,0 +1,41 @@
+22:08:16|RAP|WARN|: Double free detected in function "create"
+22:08:16|RAP|WARN|: Double free detected in function "create"
+warning: Double free detected.
+   --> src/process/kthread.rs:340:1
+    |
+340 | / pub fn create(func: KernelThreadClosure, name: String) -> Option<Arc<ProcessControlBlock>> {
+341 | |         let info = KernelThreadCreateInfo::new(func, name);
+342 | |         while unsafe { KTHREAD_DAEMON_PCB.is_none() } {
+343 | |             // 等待kthreadd启动
+344 | |             spin_loop()
+345 | |         }
+346 | |         KTHREAD_CREATE_LIST.lock().push_back(info.clone());
+347 | |         compiler_fence(Ordering::SeqCst);
+348 | |         ProcessManager::wakeup(unsafe { KTHREAD_DAEMON_PCB.as_ref().unwrap() })
+349 | |             .expect("Failed to wakeup kthread daemon");
+350 | |         return info.poll_result();
+351 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/kthread.rs line 340.
+    | MIR detail: Value _4(info, src/process/kthread.rs:341) and _4(info, src/process/kthread.rs:341) are alias.
+    | MIR detail: _4(info, src/process/kthread.rs:341) is dropped at BB18(src/process/kthread.rs:351); _4(info, src/process/kthread.rs:341) is dropped at BB18(src/process/kthread.rs:351).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/kthread.rs:340:1
+    |
+340 | / pub fn create(func: KernelThreadClosure, name: String) -> Option<Arc<ProcessControlBlock>> {
+341 | |         let info = KernelThreadCreateInfo::new(func, name);
+342 | |         while unsafe { KTHREAD_DAEMON_PCB.is_none() } {
+343 | |             // 等待kthreadd启动
+344 | |             spin_loop()
+345 | |         }
+346 | |         KTHREAD_CREATE_LIST.lock().push_back(info.clone());
+347 | |         compiler_fence(Ordering::SeqCst);
+348 | |         ProcessManager::wakeup(unsafe { KTHREAD_DAEMON_PCB.as_ref().unwrap() })
+349 | |             .expect("Failed to wakeup kthread daemon");
+350 | |         return info.poll_result();
+351 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/kthread.rs line 340.
+    | MIR detail: Value _4(info, src/process/kthread.rs:341) and _4(info, src/process/kthread.rs:341) are alias.
+    | MIR detail: _4(info, src/process/kthread.rs:341) is dropped at BB21(src/process/kthread.rs:351); _4(info, src/process/kthread.rs:341) is dropped at BB21(src/process/kthread.rs:351).
+    |
+render dot for DefId(0:28148 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::create)

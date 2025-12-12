@@ -1,0 +1,70 @@
+22:07:54|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new("uaddr", format!("{:#x}", Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new("futex_op", format!("{:#x}", Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new("val", Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new("utime", format!("{:#x}", Self::utime(args))),
+100 | |             FormattedSyscallParam::new("uaddr2", format!("{:#x}", Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new("val3", Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _64(_, src/libs/futex/syscall/sys_futex.rs:99) and _35(_, src/libs/futex/syscall/sys_futex.rs:97) are alias.
+    | MIR detail: _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _35(_, src/libs/futex/syscall/sys_futex.rs:97) is dropped at BB38(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new("uaddr", format!("{:#x}", Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new("futex_op", format!("{:#x}", Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new("val", Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new("utime", format!("{:#x}", Self::utime(args))),
+100 | |             FormattedSyscallParam::new("uaddr2", format!("{:#x}", Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new("val3", Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _64(_, src/libs/futex/syscall/sys_futex.rs:99) and _9(_, src/libs/futex/syscall/sys_futex.rs:96) are alias.
+    | MIR detail: _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/libs/futex/syscall/sys_futex.rs:96) is dropped at BB39(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new("uaddr", format!("{:#x}", Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new("futex_op", format!("{:#x}", Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new("val", Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new("utime", format!("{:#x}", Self::utime(args))),
+100 | |             FormattedSyscallParam::new("uaddr2", format!("{:#x}", Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new("val3", Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _88(_, src/libs/futex/syscall/sys_futex.rs:100) and _64(_, src/libs/futex/syscall/sys_futex.rs:99) are alias.
+    | MIR detail: _88(_, src/libs/futex/syscall/sys_futex.rs:100) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/libs/futex/syscall/sys_futex.rs:94:1
+    |
+ 94 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+ 95 | |         vec![
+ 96 | |             FormattedSyscallParam::new("uaddr", format!("{:#x}", Self::uaddr(args).data())),
+ 97 | |             FormattedSyscallParam::new("futex_op", format!("{:#x}", Self::operation_raw(args))),
+ 98 | |             FormattedSyscallParam::new("val", Self::val(args).to_string()),
+ 99 | |             FormattedSyscallParam::new("utime", format!("{:#x}", Self::utime(args))),
+100 | |             FormattedSyscallParam::new("uaddr2", format!("{:#x}", Self::uaddr2(args).data())),
+101 | |             FormattedSyscallParam::new("val3", Self::val3(args).to_string()),
+102 | |         ]
+103 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/libs/futex/syscall/sys_futex.rs line 94.
+    | MIR detail: Value _64(_, src/libs/futex/syscall/sys_futex.rs:99) and _59(_, src/libs/futex/syscall/sys_futex.rs:98) are alias.
+    | MIR detail: _64(_, src/libs/futex/syscall/sys_futex.rs:99) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _59(_, src/libs/futex/syscall/sys_futex.rs:98) is dropped at BB37(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:5539 ~ dragonos_kernel[9e38]::libs::futex::syscall::sys_futex::{impl#0}::entry_format)

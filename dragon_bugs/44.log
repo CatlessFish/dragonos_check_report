@@ -1,0 +1,23 @@
+22:08:04|RAP|WARN|: Double free detected in function "new"
+warning: Double free detected during unwinding.
+  --> src/filesystem/devpts/mod.rs:53:1
+   |
+53 | / pub fn new() -> Arc<Self> {
+54 | |         let root_inode = Arc::new(LockedDevPtsFSInode::new());
+55 | |         root_inode.inner.lock().parent = Arc::downgrade(&root_inode);
+56 | |         root_inode.inner.lock().self_ref = Arc::downgrade(&root_inode);
+57 | |         let ret = Arc::new(Self {
+58 | |             root_inode,
+59 | |             pts_ida: SpinLock::new(IdAllocator::new(0, NR_UNIX98_PTY_MAX as usize).unwrap()),
+60 | |             pts_count: AtomicU32::new(0),
+61 | |         });
+62 | |
+63 | |         ret.root_inode.set_fs(Arc::downgrade(&ret));
+64 | |
+65 | |         ret
+66 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/devpts/mod.rs line 53.
+    | MIR detail: Value _12(_, src/filesystem/devpts/mod.rs:56) and _10(_, src/filesystem/devpts/mod.rs:55) are alias.
+    | MIR detail: _12(_, src/filesystem/devpts/mod.rs:56) is dropped at BB30(src/filesystem/devpts/mod.rs:56); _10(_, src/filesystem/devpts/mod.rs:55) is dropped at BB38(src/filesystem/devpts/mod.rs:66).
+   |
+render dot for DefId(0:17211 ~ dragonos_kernel[9e38]::filesystem::devpts::{impl#0}::new)

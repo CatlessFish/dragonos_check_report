@@ -1,0 +1,192 @@
+22:08:15|RAP|WARN|: Use-after-free detected in function "select_remote_and_bind"
+warning: Use-after-free detected.
+   --> src/net/socket/utils/datagram_common.rs:188:17
+    |
+164 | pub fn select_remote_and_bind<UnboundSocket, BoundSocket, B, F, R>(
+165 |     inner_lock: &RwLock<Inner<UnboundSocket, BoundSocket>>,
+166 |     remote: Option<UnboundSocket::Endpoint>,
+167 |     bind_ephemeral: B,
+168 |     op: F,
+169 | ) -> Result<R, SystemError>
+170 | where
+171 |     UnboundSocket: Unbound<Endpoint = BoundSocket::Endpoint, Bound = BoundSocket>,
+172 |     BoundSocket: Bound,
+173 |     B: FnOnce() -> Result<(), SystemError>,
+174 |     F: FnOnce(&BoundSocket, UnboundSocket::Endpoint) -> Result<R, SystemError>,
+175 | {
+176 |     let mut inner = inner_lock.read();
+177 |
+178 |     // 这里用 loop 只是为了用 break :)
+179 |     #[expect(clippy::never_loop)]
+180 |     let bound = loop {
+181 |         if let Inner::Bound(bound) = &*inner {
+182 |             break bound;
+183 |         }
+184 |
+185 |         drop(inner);
+186 |         bind_ephemeral()?;
+187 |
+188 |         inner = inner_lock.read();
+    |                 ----------------- Use-after-free (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 188.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _30(_, src/net/socket/utils/datagram_common.rs:188) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _30(_, src/net/socket/utils/datagram_common.rs:188) is used at BB9(src/net/socket/utils/datagram_common.rs:188).
+189 |
+190 |         if let Inner::Bound(bound_datagram) = &*inner {
+191 |             break bound_datagram;
+192 |         }
+193 |
+194 |         panic!("Socket binding state inconsistent after bind_ephemeral");
+195 |     };
+196 |
+197 |     let remote_endpoint = match remote {
+198 |         Some(r) => r.clone(),
+199 |         None => bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 |     };
+201 |
+202 |     op(bound, remote_endpoint)
+203 | }
+    |
+warning: Use-after-free detected.
+   --> src/net/socket/utils/datagram_common.rs:188:9
+    |
+164 | pub fn select_remote_and_bind<UnboundSocket, BoundSocket, B, F, R>(
+165 |     inner_lock: &RwLock<Inner<UnboundSocket, BoundSocket>>,
+166 |     remote: Option<UnboundSocket::Endpoint>,
+167 |     bind_ephemeral: B,
+168 |     op: F,
+169 | ) -> Result<R, SystemError>
+170 | where
+171 |     UnboundSocket: Unbound<Endpoint = BoundSocket::Endpoint, Bound = BoundSocket>,
+172 |     BoundSocket: Bound,
+173 |     B: FnOnce() -> Result<(), SystemError>,
+174 |     F: FnOnce(&BoundSocket, UnboundSocket::Endpoint) -> Result<R, SystemError>,
+175 | {
+176 |     let mut inner = inner_lock.read();
+177 |
+178 |     // 这里用 loop 只是为了用 break :)
+179 |     #[expect(clippy::never_loop)]
+180 |     let bound = loop {
+181 |         if let Inner::Bound(bound) = &*inner {
+182 |             break bound;
+183 |         }
+184 |
+185 |         drop(inner);
+186 |         bind_ephemeral()?;
+187 |
+188 |         inner = inner_lock.read();
+    |         ----- Use-after-free (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 188.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _29(_, src/net/socket/utils/datagram_common.rs:188) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _29(_, src/net/socket/utils/datagram_common.rs:188) is used at BB12(src/net/socket/utils/datagram_common.rs:190).
+189 |
+190 |         if let Inner::Bound(bound_datagram) = &*inner {
+191 |             break bound_datagram;
+192 |         }
+193 |
+194 |         panic!("Socket binding state inconsistent after bind_ephemeral");
+195 |     };
+196 |
+197 |     let remote_endpoint = match remote {
+198 |         Some(r) => r.clone(),
+199 |         None => bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 |     };
+201 |
+202 |     op(bound, remote_endpoint)
+203 | }
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected in function "select_remote_and_bind"
+warning: Dangling pointer detected.
+   --> src/net/socket/utils/datagram_common.rs:164:1
+    |
+164 | / pub fn select_remote_and_bind<UnboundSocket, BoundSocket, B, F, R>(
+165 | |     inner_lock: &RwLock<Inner<UnboundSocket, BoundSocket>>,
+166 | |     remote: Option<UnboundSocket::Endpoint>,
+167 | |     bind_ephemeral: B,
+168 | |     op: F,
+169 | | ) -> Result<R, SystemError>
+170 | | where
+171 | |     UnboundSocket: Unbound<Endpoint = BoundSocket::Endpoint, Bound = BoundSocket>,
+172 | |     BoundSocket: Bound,
+173 | |     B: FnOnce() -> Result<(), SystemError>,
+174 | |     F: FnOnce(&BoundSocket, UnboundSocket::Endpoint) -> Result<R, SystemError>,
+175 | | {
+176 | |     let mut inner = inner_lock.read();
+177 | |
+178 | |     // 这里用 loop 只是为了用 break :)
+179 | |     #[expect(clippy::never_loop)]
+180 | |     let bound = loop {
+181 | |         if let Inner::Bound(bound) = &*inner {
+182 | |             break bound;
+183 | |         }
+184 | |
+185 | |         drop(inner);
+186 | |         bind_ephemeral()?;
+187 | |
+188 | |         inner = inner_lock.read();
+189 | |
+190 | |         if let Inner::Bound(bound_datagram) = &*inner {
+191 | |             break bound_datagram;
+192 | |         }
+193 | |
+194 | |         panic!("Socket binding state inconsistent after bind_ephemeral");
+195 | |     };
+196 | |
+197 | |     let remote_endpoint = match remote {
+198 | |         Some(r) => r.clone(),
+199 | |         None => bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 | |     };
+201 | |
+202 | |     op(bound, remote_endpoint)
+203 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 164.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function "select_remote_and_bind"
+warning: Dangling pointer detected during unwinding.
+   --> src/net/socket/utils/datagram_common.rs:164:1
+    |
+164 | / pub fn select_remote_and_bind<UnboundSocket, BoundSocket, B, F, R>(
+165 | |     inner_lock: &RwLock<Inner<UnboundSocket, BoundSocket>>,
+166 | |     remote: Option<UnboundSocket::Endpoint>,
+167 | |     bind_ephemeral: B,
+168 | |     op: F,
+169 | | ) -> Result<R, SystemError>
+170 | | where
+171 | |     UnboundSocket: Unbound<Endpoint = BoundSocket::Endpoint, Bound = BoundSocket>,
+172 | |     BoundSocket: Bound,
+173 | |     B: FnOnce() -> Result<(), SystemError>,
+174 | |     F: FnOnce(&BoundSocket, UnboundSocket::Endpoint) -> Result<R, SystemError>,
+175 | | {
+176 | |     let mut inner = inner_lock.read();
+177 | |
+178 | |     // 这里用 loop 只是为了用 break :)
+179 | |     #[expect(clippy::never_loop)]
+180 | |     let bound = loop {
+181 | |         if let Inner::Bound(bound) = &*inner {
+182 | |             break bound;
+183 | |         }
+184 | |
+185 | |         drop(inner);
+186 | |         bind_ephemeral()?;
+187 | |
+188 | |         inner = inner_lock.read();
+189 | |
+190 | |         if let Inner::Bound(bound_datagram) = &*inner {
+191 | |             break bound_datagram;
+192 | |         }
+193 | |
+194 | |         panic!("Socket binding state inconsistent after bind_ephemeral");
+195 | |     };
+196 | |
+197 | |     let remote_endpoint = match remote {
+198 | |         Some(r) => r.clone(),
+199 | |         None => bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 | |     };
+201 | |
+202 | |     op(bound, remote_endpoint)
+203 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 164.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) became dangling.
+    |
+render dot for DefId(0:27212 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::select_remote_and_bind)

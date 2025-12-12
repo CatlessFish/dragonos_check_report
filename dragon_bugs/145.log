@@ -1,0 +1,42 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/ipc/syscall/sys_rt_sigtimedwait.rs:274:1
+    |
+274 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+275 | |         let uthese = Self::uthese(args);
+276 | |         let uinfo = Self::uinfo(args);
+277 | |         let uts = Self::uts(args);
+278 | |         let sigsetsize = Self::sigsetsize(args);
+279 | |
+280 | |         vec![
+281 | |             FormattedSyscallParam::new("uthese", format!("{:#x}", uthese as usize)),
+282 | |             FormattedSyscallParam::new("uinfo", format!("{:#x}", uinfo as usize)),
+283 | |             FormattedSyscallParam::new("uts", format!("{:#x}", uts as usize)),
+284 | |             FormattedSyscallParam::new("sigsetsize", format!("{}", sigsetsize)),
+285 | |         ]
+286 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_sigtimedwait.rs line 274.
+    | MIR detail: Value _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) and _41(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:282) are alias.
+    | MIR detail: _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _41(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:282) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/ipc/syscall/sys_rt_sigtimedwait.rs:274:1
+    |
+274 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+275 | |         let uthese = Self::uthese(args);
+276 | |         let uinfo = Self::uinfo(args);
+277 | |         let uts = Self::uts(args);
+278 | |         let sigsetsize = Self::sigsetsize(args);
+279 | |
+280 | |         vec![
+281 | |             FormattedSyscallParam::new("uthese", format!("{:#x}", uthese as usize)),
+282 | |             FormattedSyscallParam::new("uinfo", format!("{:#x}", uinfo as usize)),
+283 | |             FormattedSyscallParam::new("uts", format!("{:#x}", uts as usize)),
+284 | |             FormattedSyscallParam::new("sigsetsize", format!("{}", sigsetsize)),
+285 | |         ]
+286 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_sigtimedwait.rs line 274.
+    | MIR detail: Value _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) and _17(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:281) are alias.
+    | MIR detail: _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _17(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:281) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:23032 ~ dragonos_kernel[9e38]::ipc::syscall::sys_rt_sigtimedwait::{impl#1}::entry_format)

@@ -1,0 +1,519 @@
+bb0 at src/process/kthread.rs:341:13: 341:17
+bb1 at src/process/kthread.rs:341:58: 341:59
+bb2 at src/process/kthread.rs:342:15: 342:54
+bb3 at src/process/kthread.rs:342:51: 342:52
+bb4 at src/process/kthread.rs:342:53: 342:54
+bb5 at src/process/kthread.rs:342:53: 342:54
+bb6 at src/process/kthread.rs:345:9: 345:10
+bb7 at src/process/kthread.rs:346:9: 346:35
+bb8 at src/process/kthread.rs:346:9: 346:35
+bb9 at src/process/kthread.rs:346:57: 346:58
+bb10 at src/process/kthread.rs:346:58: 346:59
+bb11 at src/process/kthread.rs:346:59: 346:60
+bb12 at src/process/kthread.rs:347:40: 347:41
+bb13 at src/process/kthread.rs:348:67: 348:68
+bb14 at src/process/kthread.rs:348:41: 348:77
+bb15 at src/process/kthread.rs:348:79: 348:80
+bb16 at src/process/kthread.rs:349:54: 349:55
+bb17 at src/process/kthread.rs:350:16: 350:20
+bb18 at src/process/kthread.rs:350:33: 350:34
+bb19 at src/process/kthread.rs:351:5: 351:6
+bb23 at src/process/kthread.rs:348:41: 348:59
+bb24 at src/process/kthread.rs:342:24: 342:42
+bb25 at src/process/kthread.rs:342:24: 342:42
+bb26 at src/process/kthread.rs:348:41: 348:59
+fn process::kthread::KernelThreadMechanism::create
+_0:  @ core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_1:  @ process::kthread::KernelThreadClosure 
+_2:  @ alloc::string::String 
+_3:  @ ! 
+_4:  @ alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global> 
+_5:  @ process::kthread::KernelThreadClosure 
+_6:  @ alloc::string::String 
+_7:  @ () 
+_8:  @ () 
+_9:  @ bool 
+_10:  @ &'{erased} core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_11:  @ *mut core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_12:  @ ! 
+_13:  @ () 
+_14:  @ ! 
+_15:  @ () 
+_16:  @ &'{erased} mut alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global>, alloc::alloc::Global> 
+_17:  @ &'{erased} mut alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global>, alloc::alloc::Global> 
+_18:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global>, alloc::alloc::Global>> 
+_19:  @ libs::spinlock::SpinLockGuard<'{erased}, alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global>, alloc::alloc::Global>> 
+_20:  @ &'{erased} libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global>, alloc::alloc::Global>> 
+_21:  @ &'{erased} libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global>, alloc::alloc::Global>> 
+_22:  @ alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global> 
+_23:  @ &'{erased} alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global> 
+_24:  @ () 
+_25:  @ core::sync::atomic::Ordering 
+_26:  @ () 
+_27:  @ core::result::Result<(), system_error::SystemError> 
+_28:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_29:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_30:  @ core::option::Option<&'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_31:  @ &'{erased} core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_32:  @ *mut core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_33:  @ &'{erased} str 
+_34:  @ &'{erased} str 
+_35:  @ &'{erased} process::kthread::KernelThreadCreateInfo 
+_36:  @ &'{erased} process::kthread::KernelThreadCreateInfo 
+_37:  @ &'{erased} alloc::sync::Arc<process::kthread::KernelThreadCreateInfo, alloc::alloc::Global> 
+_38:  @ *const () 
+_39:  @ usize 
+_40:  @ usize 
+_41:  @ usize 
+_42:  @ usize 
+_43:  @ bool 
+_44:  @ *const () 
+_45:  @ usize 
+_46:  @ usize 
+_47:  @ usize 
+_48:  @ usize 
+_49:  @ bool 
+_50:  @ *const () 
+_51:  @ usize 
+_52:  @ bool 
+_53:  @ bool 
+_54:  @ bool 
+_55:  @ *const () 
+_56:  @ usize 
+_57:  @ bool 
+_58:  @ bool 
+_59:  @ bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, move _1)) @ _5=move _1 @ Use
+    StorageLive(_6) @ StorageLive
+    Assign((_6, move _2)) @ _6=move _2 @ Use
+    _4 = process::kthread::KernelThreadCreateInfo::new(move _5, move _6) -> [return: bb1, unwind: bb22] @ Call: FnDid: 28131
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    goto -> bb2 @ Goto
+}
+bb 2 {
+CleanUp: false
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, const {alloc164620: *mut core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>})) @ _11=const {alloc164620: *mut core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>} @ Use
+    Assign((_44, copy _11 as *const () (PtrToPtr))) @ _44=copy _11 as *const () (PtrToPtr) @ Cast
+    Assign((_45, copy _44 as usize (Transmute))) @ _45=copy _44 as usize (Transmute) @ Cast
+    Assign((_46, AlignOf(core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>))) @ _46=AlignOf(core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>) @ NullaryOp
+    Assign((_47, Sub(copy _46, const 1_usize))) @ _47=Sub(copy _46, const 1_usize) @ BinaryOp
+    Assign((_48, BitAnd(copy _45, copy _47))) @ _48=BitAnd(copy _45, copy _47) @ BinaryOp
+    Assign((_49, Eq(copy _48, const 0_usize))) @ _49=Eq(copy _48, const 0_usize) @ BinaryOp
+    assert(copy _49, "misaligned pointer dereference: address must be a multiple of {} but is {}", copy _46, copy _45) -> [success: bb24, unwind unreachable] @ Assert
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    switchInt(move _9) -> [0: bb5, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    _8 = core::hint::spin_loop() -> [return: bb6, unwind: bb21] @ Call: FnDid: 1452
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    Assign((_7, const ())) @ _7=const () @ Use
+    StorageDead(_13) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, const {alloc164604: &libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo>>>})) @ _21=const {alloc164604: &libs::spinlock::SpinLock<alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo>>>} @ Use
+    Assign((_20, &(*_21))) @ _20=&(*_21) @ Ref
+    _19 = libs::spinlock::SpinLock::<alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo>>>::lock(move _20) -> [return: bb7, unwind: bb21] @ Call: FnDid: 5261
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    goto -> bb2 @ Goto
+}
+bb 7 {
+CleanUp: false
+    Assign((_18, &mut _19)) @ _18=&mut _19 @ Ref
+    _17 = <libs::spinlock::SpinLockGuard<'_, alloc::collections::LinkedList<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo>>> as core::ops::DerefMut>::deref_mut(move _18) -> [return: bb8, unwind: bb20] @ Call: FnDid: 3915
+}
+bb 8 {
+CleanUp: false
+    Assign((_16, &mut (*_17))) @ _16=&mut (*_17) @ Ref
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &_4)) @ _23=&_4 @ Ref
+    _22 = <alloc::sync::Arc<process::kthread::KernelThreadCreateInfo> as core::clone::Clone>::clone(move _23) -> [return: bb9, unwind: bb20] @ Call: FnDid: 3116
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    _15 = alloc::collections::LinkedList::<alloc::sync::Arc<process::kthread::KernelThreadCreateInfo>>::push_back(move _16, move _22) -> [return: bb10, unwind: bb20] @ Call: FnDid: 4242
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    drop(_19) -> [return: bb11, unwind: bb21] @ Drop
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, core::sync::atomic::Ordering::SeqCst)) @ _25=core::sync::atomic::Ordering::SeqCst @ Aggregate
+    _24 = core::sync::atomic::compiler_fence(move _25) -> [return: bb12, unwind: bb21] @ Call: FnDid: 11427
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, const {alloc164620: *mut core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>})) @ _32=const {alloc164620: *mut core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>} @ Use
+    Assign((_38, copy _32 as *const () (PtrToPtr))) @ _38=copy _32 as *const () (PtrToPtr) @ Cast
+    Assign((_39, copy _38 as usize (Transmute))) @ _39=copy _38 as usize (Transmute) @ Cast
+    Assign((_40, AlignOf(core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>))) @ _40=AlignOf(core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>>) @ NullaryOp
+    Assign((_41, Sub(copy _40, const 1_usize))) @ _41=Sub(copy _40, const 1_usize) @ BinaryOp
+    Assign((_42, BitAnd(copy _39, copy _41))) @ _42=BitAnd(copy _39, copy _41) @ BinaryOp
+    Assign((_43, Eq(copy _42, const 0_usize))) @ _43=Eq(copy _42, const 0_usize) @ BinaryOp
+    assert(copy _43, "misaligned pointer dereference: address must be a multiple of {} but is {}", copy _40, copy _39) -> [success: bb23, unwind unreachable] @ Assert
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    _29 = core::option::Option::<&alloc::sync::Arc<process::ProcessControlBlock>>::unwrap(move _30) -> [return: bb14, unwind: bb21] @ Call: FnDid: 10157
+}
+bb 14 {
+CleanUp: false
+    Assign((_28, &(*_29))) @ _28=&(*_29) @ Ref
+    StorageDead(_30) @ StorageDead
+    _27 = process::ProcessManager::wakeup(move _28) -> [return: bb15, unwind: bb21] @ Call: FnDid: 29871
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, const "Failed to wakeup kthread daemon")) @ _34=const "Failed to wakeup kthread daemon" @ Use
+    Assign((_33, &(*_34))) @ _33=&(*_34) @ Ref
+    _26 = core::result::Result::<(), system_error::SystemError>::expect(move _27, move _33) -> [return: bb16, unwind: bb21] @ Call: FnDid: 11023
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &_4)) @ _37=&_4 @ Ref
+    _36 = <alloc::sync::Arc<process::kthread::KernelThreadCreateInfo> as lazy_static::__Deref>::deref(move _37) -> [return: bb17, unwind: bb21] @ Call: FnDid: 3903
+}
+bb 17 {
+CleanUp: false
+    Assign((_35, &(*_36))) @ _35=&(*_36) @ Ref
+    StorageDead(_37) @ StorageDead
+    _0 = process::kthread::KernelThreadCreateInfo::poll_result(move _35) -> [return: bb18, unwind: bb21] @ Call: FnDid: 28132
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_4) -> [return: bb19, unwind: bb22] @ Drop
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 20 {
+CleanUp: true
+    drop(_19) -> [return: bb21, unwind terminate(cleanup)] @ Drop
+}
+bb 21 {
+CleanUp: true
+    drop(_4) -> [return: bb22, unwind terminate(cleanup)] @ Drop
+}
+bb 22 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 23 {
+CleanUp: false
+    Assign((_55, copy _32 as *const () (PtrToPtr))) @ _55=copy _32 as *const () (PtrToPtr) @ Cast
+    Assign((_56, copy _55 as usize (Transmute))) @ _56=copy _55 as usize (Transmute) @ Cast
+    Assign((_57, Eq(copy _56, const 0_usize))) @ _57=Eq(copy _56, const 0_usize) @ BinaryOp
+    Assign((_58, BitAnd(copy _57, const true))) @ _58=BitAnd(copy _57, const true) @ BinaryOp
+    Assign((_59, Not(copy _58))) @ _59=Not(copy _58) @ UnaryOp
+    assert(copy _59, "null pointer dereference occurred") -> [success: bb26, unwind unreachable] @ Assert
+}
+bb 24 {
+CleanUp: false
+    Assign((_50, copy _11 as *const () (PtrToPtr))) @ _50=copy _11 as *const () (PtrToPtr) @ Cast
+    Assign((_51, copy _50 as usize (Transmute))) @ _51=copy _50 as usize (Transmute) @ Cast
+    Assign((_52, Eq(copy _51, const 0_usize))) @ _52=Eq(copy _51, const 0_usize) @ BinaryOp
+    Assign((_53, BitAnd(copy _52, const true))) @ _53=BitAnd(copy _52, const true) @ BinaryOp
+    Assign((_54, Not(copy _53))) @ _54=Not(copy _53) @ UnaryOp
+    assert(copy _54, "null pointer dereference occurred") -> [success: bb25, unwind unreachable] @ Assert
+}
+bb 25 {
+CleanUp: false
+    Assign((_10, &(*_11))) @ _10=&(*_11) @ Ref
+    _9 = core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::is_none(move _10) -> [return: bb3, unwind: bb21] @ Call: FnDid: 10146
+}
+bb 26 {
+CleanUp: false
+    Assign((_31, &(*_32))) @ _31=&(*_32) @ Ref
+    _30 = core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::as_ref(move _31) -> [return: bb13, unwind: bb21] @ Call: FnDid: 10149
+}
+
+bb0 at src/process/kthread.rs:368:13: 368:16
+bb1 at src/process/kthread.rs:368:42: 368:43
+bb2 at src/process/kthread.rs:368:43: 368:44
+bb4 at src/process/kthread.rs:368:19: 368:44
+bb5 at src/process/kthread.rs:368:43: 368:44
+bb6 at src/process/kthread.rs:368:43: 368:44
+bb7 at src/process/kthread.rs:369:36: 369:37
+bb8 at src/process/kthread.rs:370:88: 370:89
+bb9 at src/process/kthread.rs:372:5: 372:6
+bb12 at src/process/kthread.rs:368:44: 368:45
+fn process::kthread::KernelThreadMechanism::create_and_run
+_0:  @ core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_1:  @ process::kthread::KernelThreadClosure 
+_2:  @ alloc::string::String 
+_3:  @ ! 
+_4:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_5:  @ core::ops::ControlFlow<core::option::Option<core::convert::Infallible>, alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_6:  @ core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_7:  @ process::kthread::KernelThreadClosure 
+_8:  @ alloc::string::String 
+_9:  @ isize 
+_10:  @ core::option::Option<core::convert::Infallible> 
+_11:  @ ! 
+_12:  @ core::option::Option<core::convert::Infallible> 
+_13:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_14:  @ () 
+_15:  @ core::result::Result<(), system_error::SystemError> 
+_16:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_17:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_18:  @ Closure(DefId(0:28150 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::create_and_run::{closure#0}), [i32, Binder { value: extern "RustCall" fn((system_error::SystemError,)), bound_vars: [] }, (&'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>,)]) 
+_19:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_20:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_21:  @ isize 
+_22:  @ isize 
+_23:  @ isize 
+_24:  @ isize 
+_25:  @ isize 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, move _1)) @ _7=move _1 @ Use
+    StorageLive(_8) @ StorageLive
+    Assign((_8, move _2)) @ _8=move _2 @ Use
+    _6 = process::kthread::KernelThreadMechanism::create(move _7, move _8) -> [return: bb1, unwind: bb11] @ Call: FnDid: 28148
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    _5 = <core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>> as core::ops::Try>::branch(move _6) -> [return: bb2, unwind: bb11] @ Call: FnDid: 4199
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_9, discriminant(_5))) @ _9=discriminant(_5) @ Discriminant
+    switchInt(move _9) -> [0: bb4, 1: bb5, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_13) @ StorageLive
+    Assign((_13, move ((_5 as Continue).0: alloc::sync::Arc<process::ProcessControlBlock>))) @ _13=move ((_5 as Continue).0: alloc::sync::Arc<process::ProcessControlBlock>) @ Use
+    Assign((_4, move _13)) @ _4=move _13 @ Use
+    StorageDead(_13) @ StorageDead
+    Assign((_23, discriminant(_5))) @ _23=discriminant(_5) @ Discriminant
+    StorageDead(_5) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &_4)) @ _17=&_4 @ Ref
+    Assign((_16, &(*_17))) @ _16=&(*_17) @ Ref
+    _15 = process::ProcessManager::wakeup(move _16) -> [return: bb7, unwind: bb10] @ Call: FnDid: 29871
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_10) @ StorageLive
+    Assign((_10, copy ((_5 as Break).0: core::option::Option<core::convert::Infallible>))) @ _10=copy ((_5 as Break).0: core::option::Option<core::convert::Infallible>) @ Use
+    StorageLive(_12) @ StorageLive
+    Assign((_12, copy _10)) @ _12=copy _10 @ Use
+    _0 = <core::option::Option<alloc::sync::Arc<process::ProcessControlBlock>> as core::ops::FromResidual<core::option::Option<core::convert::Infallible>>>::from_residual(move _12) -> [return: bb6, unwind: bb12] @ Call: FnDid: 4202
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_21, discriminant(_5))) @ _21=discriminant(_5) @ Discriminant
+    StorageDead(_5) @ StorageDead
+    goto -> bb9 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &_4)) @ _19=&_4 @ Ref
+    Assign((_18, {closure@src/process/kthread.rs:370:29: 370:32} { pcb: move _19 })) @ _18={closure@src/process/kthread.rs:370:29: 370:32} { pcb: move _19 } @ Aggregate
+    StorageDead(_19) @ StorageDead
+    _14 = core::result::Result::<(), system_error::SystemError>::unwrap_or_else::<{closure@src/process/kthread.rs:370:29: 370:32}>(move _15, move _18) -> [return: bb8, unwind: bb10] @ Call: FnDid: 11041
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    Assign((_20, move _4)) @ _20=move _4 @ Use
+    Assign((_0, core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::Some(move _20))) @ _0=core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::Some(move _20) @ Aggregate
+    StorageDead(_20) @ StorageDead
+    goto -> bb9 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 10 {
+CleanUp: true
+    drop(_4) -> [return: bb11, unwind terminate(cleanup)] @ Drop
+}
+bb 11 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 12 {
+CleanUp: true
+    Assign((_25, discriminant(_5))) @ _25=discriminant(_5) @ Discriminant
+    goto -> bb11 @ Goto
+}
+
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:9: 107:73
+bb1 at src/process/kthread.rs:370:74: 370:77
+bb2 at src/process/kthread.rs:370:86: 370:87
+bb3 at src/process/kthread.rs:370:70: 370:71
+bb4 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+fn process::kthread::KernelThreadMechanism::create_and_run::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:28150 ~ dragonos_kernel[9e38]::process::kthread::{impl#7}::create_and_run::{closure#0}), [i32, Binder { value: extern "RustCall" fn((system_error::SystemError,)), bound_vars: [] }, (&'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>,)]) 
+_2:  @ system_error::SystemError 
+_3:  @ ! 
+_4:  @ ! 
+_5:  @ core::fmt::Arguments<'{erased}> 
+_6:  @ [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_7:  @ core::fmt::rt::Argument<'{erased}> 
+_8:  @ &'{erased} process::RawPid 
+_9:  @ &'{erased} process::RawPid 
+_10:  @ process::RawPid 
+_11:  @ &'{erased} process::ProcessControlBlock 
+_12:  @ &'{erased} process::ProcessControlBlock 
+_13:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_14:  @ &'{erased} [&'{erased} str; 1_usize] 
+_15:  @ &'{erased} [&'{erased} str; 1_usize] 
+_16:  @ [&'{erased} str; 1_usize] 
+_17:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_18:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_19:  @ &'{erased} [&'{erased} str; 1_usize] 
+_20:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_20, deref_copy (_1.0: &alloc::sync::Arc<process::ProcessControlBlock>))) @ _20=deref_copy (_1.0: &alloc::sync::Arc<process::ProcessControlBlock>) @ CopyForDeref
+    Assign((_13, &(*_20))) @ _13=&(*_20) @ Ref
+    _12 = <alloc::sync::Arc<process::ProcessControlBlock> as lazy_static::__Deref>::deref(move _13) -> [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_11, &(*_12))) @ _11=&(*_12) @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = process::ProcessControlBlock::raw_pid(move _11) -> [return: bb2, unwind continue] @ Call: FnDid: 29942
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    Assign((_9, &_10)) @ _9=&_10 @ Ref
+    Assign((_8, &(*_9))) @ _8=&(*_9) @ Ref
+    _7 = core::fmt::rt::Argument::<'_>::new_debug::<process::RawPid>(move _8) -> [return: bb3, unwind continue] @ Call: FnDid: 11809
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_6, [move _7])) @ _6=[move _7] @ Aggregate
+    StorageDead(_7) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_19, const process::kthread::KernelThreadMechanism::create_and_run::{closure#0}::promoted[0])) @ _19=const process::kthread::KernelThreadMechanism::create_and_run::{closure#0}::promoted[0] @ Use
+    Assign((_15, &(*_19))) @ _15=&(*_19) @ Ref
+    Assign((_14, &(*_15))) @ _14=&(*_15) @ Ref
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, &_6)) @ _18=&_6 @ Ref
+    Assign((_17, &(*_18))) @ _17=&(*_18) @ Ref
+    _5 = core::fmt::rt::<impl core::fmt::Arguments<'_>>::new_v1::<1, 1>(move _14, move _17) -> [return: bb4, unwind continue] @ Call: FnDid: 11836
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    _4 = core::panicking::panic_fmt(move _5) -> unwind continue @ Call: FnDid: 10541
+}
+

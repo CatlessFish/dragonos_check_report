@@ -1,0 +1,75 @@
+22:08:15|RAP|WARN|: Dangling pointer detected in function "listen"
+warning: Dangling pointer detected.
+   --> src/net/socket/unix/stream/mod.rs:189:1
+    |
+189 | / fn listen(&self, backlog: usize) -> Result<(), SystemError> {
+190 | |         const SOMAXCONN: usize = 4096;
+191 | |         let backlog = backlog.saturating_add(1).min(SOMAXCONN);
+192 | |
+193 | |         let mut writer = self.inner.write();
+194 | |
+195 | |         let (inner, err) = match writer.take().expect("UnixStreamSocket inner is None") {
+196 | |             Inner::Init(init) => {
+197 | |                 match init.listen(backlog, self.is_seqpacket, self.wait_queue.clone()) {
+198 | |                     Ok(listener) => (Inner::Listener(listener), None),
+199 | |                     Err((err, init)) => (Inner::Init(init), Some(err)),
+200 | |                 }
+201 | |             }
+202 | |             Inner::Listener(listener) => {
+203 | |                 listener.listen(backlog);
+204 | |                 (Inner::Listener(listener), None)
+205 | |             }
+206 | |             Inner::Connected(connected) => (Inner::Connected(connected), Some(SystemError::EINVAL)),
+207 | |         };
+208 | |
+209 | |         writer.replace(inner);
+210 | |         drop(writer);
+211 | |
+212 | |         if let Some(err) = err {
+213 | |             return Err(err);
+214 | |         }
+215 | |
+216 | |         return Ok(());
+217 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 189.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in listen and _1(self, src/net/socket/unix/stream/mod.rs:189) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in listen is dropped at BB18446744073709551615(src/net/socket/unix/stream/mod.rs:189); _1(self, src/net/socket/unix/stream/mod.rs:189) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function "listen"
+warning: Dangling pointer detected during unwinding.
+   --> src/net/socket/unix/stream/mod.rs:189:1
+    |
+189 | / fn listen(&self, backlog: usize) -> Result<(), SystemError> {
+190 | |         const SOMAXCONN: usize = 4096;
+191 | |         let backlog = backlog.saturating_add(1).min(SOMAXCONN);
+192 | |
+193 | |         let mut writer = self.inner.write();
+194 | |
+195 | |         let (inner, err) = match writer.take().expect("UnixStreamSocket inner is None") {
+196 | |             Inner::Init(init) => {
+197 | |                 match init.listen(backlog, self.is_seqpacket, self.wait_queue.clone()) {
+198 | |                     Ok(listener) => (Inner::Listener(listener), None),
+199 | |                     Err((err, init)) => (Inner::Init(init), Some(err)),
+200 | |                 }
+201 | |             }
+202 | |             Inner::Listener(listener) => {
+203 | |                 listener.listen(backlog);
+204 | |                 (Inner::Listener(listener), None)
+205 | |             }
+206 | |             Inner::Connected(connected) => (Inner::Connected(connected), Some(SystemError::EINVAL)),
+207 | |         };
+208 | |
+209 | |         writer.replace(inner);
+210 | |         drop(writer);
+211 | |
+212 | |         if let Some(err) = err {
+213 | |             return Err(err);
+214 | |         }
+215 | |
+216 | |         return Ok(());
+217 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 189.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in listen and _1(self, src/net/socket/unix/stream/mod.rs:189) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in listen is dropped at BB18446744073709551615(src/net/socket/unix/stream/mod.rs:189); _1(self, src/net/socket/unix/stream/mod.rs:189) became dangling.
+    |
+render dot for DefId(0:27106 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::listen)

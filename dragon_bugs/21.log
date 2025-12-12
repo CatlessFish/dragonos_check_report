@@ -1,0 +1,111 @@
+22:07:56|RAP|WARN|: Double free detected in function "add_driver"
+warning: Double free detected.
+   --> src/driver/base/device/bus.rs:295:1
+    |
+295 | / pub fn add_driver(&self, driver: &Arc<dyn Driver>) -> Result<(), SystemError> {
+296 | |         let bus = driver
+297 | |             .bus()
+298 | |             .and_then(|bus| bus.upgrade())
+299 | |             .ok_or(SystemError::EINVAL)?;
+300 | |         debug!("bus '{}' add driver '{}'", bus.name(), driver.name());
+301 | |
+302 | |         let kobj = driver.clone() as Arc<dyn KObject>;
+303 | |         kobj.set_kset(bus.subsystem().drivers_kset());
+304 | |         KObjectManager::init_and_add_kobj(kobj, Some(&BusDriverKType))?;
+305 | |
+306 | |         bus.subsystem().add_driver_to_vec(driver)?;
+307 | |         if bus.subsystem().drivers_autoprobe() {
+308 | |             let r = driver_manager().driver_attach(driver);
+309 | |             if let Err(e) = r {
+310 | |                 bus.subsystem().remove_driver_from_vec(driver);
+311 | |                 return Err(e);
+312 | |             }
+313 | |         }
+314 | |
+315 | |         driver_manager()
+316 | |             .add_groups(driver, bus.drv_groups())
+317 | |             .map_err(|e| {
+318 | |                 error!(
+319 | |                     "BusManager::add_driver: driver '{:?}' add_groups failed, err: '{:?}",
+320 | |                     driver.name(),
+321 | |                     e
+322 | |                 );
+323 | |                 e
+324 | |             })
+325 | |             .ok();
+326 | |
+327 | |         if !driver.suppress_bind_attrs() {
+328 | |             self.add_bind_files(driver)
+329 | |                 .map_err(|e| {
+330 | |                     error!(
+331 | |                         "BusManager::add_driver: driver '{:?}' add_bind_files failed, err: '{:?}",
+332 | |                         driver.name(),
+333 | |                         e
+334 | |                     );
+335 | |                     e
+336 | |                 })
+337 | |                 .ok();
+338 | |         }
+339 | |
+340 | |         return Ok(());
+341 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/bus.rs line 295.
+    | MIR detail: Value _39(_, src/driver/base/device/bus.rs:300) and _34(_, src/driver/base/device/bus.rs:300) are alias.
+    | MIR detail: _39(_, src/driver/base/device/bus.rs:300) is dropped at BB23(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _34(_, src/driver/base/device/bus.rs:300) is dropped at BB24(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+22:07:56|RAP|WARN|: Double free detected in function "add_driver"
+warning: Double free detected during unwinding.
+   --> src/driver/base/device/bus.rs:295:1
+    |
+295 | / pub fn add_driver(&self, driver: &Arc<dyn Driver>) -> Result<(), SystemError> {
+296 | |         let bus = driver
+297 | |             .bus()
+298 | |             .and_then(|bus| bus.upgrade())
+299 | |             .ok_or(SystemError::EINVAL)?;
+300 | |         debug!("bus '{}' add driver '{}'", bus.name(), driver.name());
+301 | |
+302 | |         let kobj = driver.clone() as Arc<dyn KObject>;
+303 | |         kobj.set_kset(bus.subsystem().drivers_kset());
+304 | |         KObjectManager::init_and_add_kobj(kobj, Some(&BusDriverKType))?;
+305 | |
+306 | |         bus.subsystem().add_driver_to_vec(driver)?;
+307 | |         if bus.subsystem().drivers_autoprobe() {
+308 | |             let r = driver_manager().driver_attach(driver);
+309 | |             if let Err(e) = r {
+310 | |                 bus.subsystem().remove_driver_from_vec(driver);
+311 | |                 return Err(e);
+312 | |             }
+313 | |         }
+314 | |
+315 | |         driver_manager()
+316 | |             .add_groups(driver, bus.drv_groups())
+317 | |             .map_err(|e| {
+318 | |                 error!(
+319 | |                     "BusManager::add_driver: driver '{:?}' add_groups failed, err: '{:?}",
+320 | |                     driver.name(),
+321 | |                     e
+322 | |                 );
+323 | |                 e
+324 | |             })
+325 | |             .ok();
+326 | |
+327 | |         if !driver.suppress_bind_attrs() {
+328 | |             self.add_bind_files(driver)
+329 | |                 .map_err(|e| {
+330 | |                     error!(
+331 | |                         "BusManager::add_driver: driver '{:?}' add_bind_files failed, err: '{:?}",
+332 | |                         driver.name(),
+333 | |                         e
+334 | |                     );
+335 | |                     e
+336 | |                 })
+337 | |                 .ok();
+338 | |         }
+339 | |
+340 | |         return Ok(());
+341 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/bus.rs line 295.
+    | MIR detail: Value _39(_, src/driver/base/device/bus.rs:300) and _34(_, src/driver/base/device/bus.rs:300) are alias.
+    | MIR detail: _39(_, src/driver/base/device/bus.rs:300) is dropped at BB23(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _34(_, src/driver/base/device/bus.rs:300) is dropped at BB78(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+render dot for DefId(0:7796 ~ dragonos_kernel[9e38]::driver::base::device::bus::{impl#4}::add_driver)

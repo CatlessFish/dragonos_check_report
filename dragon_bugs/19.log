@@ -1,0 +1,35 @@
+22:07:54|RAP|WARN|: Dangling pointer detected in function "sleep_without_schedule"
+warning: Dangling pointer detected.
+   --> src/libs/wait_queue.rs:394:1
+    |
+394 | / pub unsafe fn sleep_without_schedule(&self, events: u64) {
+395 | |         before_sleep_check(1);
+396 | |         let mut guard = self.wait_list.lock_irqsave();
+397 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+398 | |             panic!("sleep error: {:?}", e);
+399 | |         });
+400 | |         guard.push((events, ProcessManager::current_pcb()));
+401 | |         drop(guard);
+402 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 394.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep_without_schedule and _1(self, src/libs/wait_queue.rs:394) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep_without_schedule is dropped at BB18446744073709551615(src/libs/wait_queue.rs:394); _1(self, src/libs/wait_queue.rs:394) became dangling.
+    |
+22:07:54|RAP|WARN|: Dangling pointer detected during unwinding in function "sleep_without_schedule"
+warning: Dangling pointer detected during unwinding.
+   --> src/libs/wait_queue.rs:394:1
+    |
+394 | / pub unsafe fn sleep_without_schedule(&self, events: u64) {
+395 | |         before_sleep_check(1);
+396 | |         let mut guard = self.wait_list.lock_irqsave();
+397 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+398 | |             panic!("sleep error: {:?}", e);
+399 | |         });
+400 | |         guard.push((events, ProcessManager::current_pcb()));
+401 | |         drop(guard);
+402 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 394.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep_without_schedule and _1(self, src/libs/wait_queue.rs:394) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep_without_schedule is dropped at BB18446744073709551615(src/libs/wait_queue.rs:394); _1(self, src/libs/wait_queue.rs:394) became dangling.
+    |
+render dot for DefId(0:5664 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep_without_schedule)

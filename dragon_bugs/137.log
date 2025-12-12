@@ -1,0 +1,32 @@
+22:08:09|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/init/kexec/syscall.rs:53:1
+   |
+53 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+54 | |         vec![
+55 | |             FormattedSyscallParam::new("entry", format!("{:#x}", Self::entry(args))),
+56 | |             FormattedSyscallParam::new("nr_segments", format!("{:#x}", Self::nr_segments(args))),
+57 | |             FormattedSyscallParam::new("segments_ptr", format!("{:#x}", Self::segments_ptr(args))),
+58 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+59 | |         ]
+60 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/init/kexec/syscall.rs line 53.
+    | MIR detail: Value _33(_, src/init/kexec/syscall.rs:56) and _9(_, src/init/kexec/syscall.rs:55) are alias.
+    | MIR detail: _33(_, src/init/kexec/syscall.rs:56) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/init/kexec/syscall.rs:55) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/init/kexec/syscall.rs:53:1
+   |
+53 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+54 | |         vec![
+55 | |             FormattedSyscallParam::new("entry", format!("{:#x}", Self::entry(args))),
+56 | |             FormattedSyscallParam::new("nr_segments", format!("{:#x}", Self::nr_segments(args))),
+57 | |             FormattedSyscallParam::new("segments_ptr", format!("{:#x}", Self::segments_ptr(args))),
+58 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+59 | |         ]
+60 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/init/kexec/syscall.rs line 53.
+    | MIR detail: Value _57(_, src/init/kexec/syscall.rs:57) and _33(_, src/init/kexec/syscall.rs:56) are alias.
+    | MIR detail: _57(_, src/init/kexec/syscall.rs:57) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/init/kexec/syscall.rs:56) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:22234 ~ dragonos_kernel[9e38]::init::kexec::syscall::{impl#1}::entry_format)

@@ -1,0 +1,61 @@
+22:08:05|RAP|WARN|: Dangling pointer detected in function "create"
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "create"
+warning: Dangling pointer detected.
+  --> src/filesystem/ext4/inode.rs:54:1
+   |
+54 | / fn create(
+55 | |         &self,
+56 | |         name: &str,
+57 | |         file_type: vfs::FileType,
+58 | |         mode: vfs::InodeMode,
+59 | |     ) -> Result<Arc<dyn IndexNode>, SystemError> {
+60 | |         let mut guard = self.0.lock();
+61 | |         // another_ext4的高4位是文件类型，低12位是权限
+62 | |         let file_mode = InodeMode::from(file_type).union(mode);
+63 | |         let ext4 = &guard.concret_fs().fs;
+64 | |         let id = ext4.create(
+65 | |             guard.inner_inode_num,
+66 | |             name,
+67 | |             another_ext4::InodeMode::from_bits_truncate(file_mode.bits() as u16),
+68 | |         )?;
+69 | |         let dname = DName::from(name);
+70 | |         let inode = LockedExt4Inode::new(id, guard.fs_ptr.clone(), dname.clone());
+71 | |         // 更新 children 缓存
+72 | |         guard.children.insert(dname, inode.clone());
+73 | |         drop(guard);
+74 | |         Ok(inode as Arc<dyn IndexNode>)
+75 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/ext4/inode.rs line 54.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in create and _1(self, src/filesystem/ext4/inode.rs:55) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in create is dropped at BB18446744073709551615(src/filesystem/ext4/inode.rs:54); _1(self, src/filesystem/ext4/inode.rs:55) became dangling.
+   |
+warning: Dangling pointer detected during unwinding.
+  --> src/filesystem/ext4/inode.rs:54:1
+   |
+54 | / fn create(
+55 | |         &self,
+56 | |         name: &str,
+57 | |         file_type: vfs::FileType,
+58 | |         mode: vfs::InodeMode,
+59 | |     ) -> Result<Arc<dyn IndexNode>, SystemError> {
+60 | |         let mut guard = self.0.lock();
+61 | |         // another_ext4的高4位是文件类型，低12位是权限
+62 | |         let file_mode = InodeMode::from(file_type).union(mode);
+63 | |         let ext4 = &guard.concret_fs().fs;
+64 | |         let id = ext4.create(
+65 | |             guard.inner_inode_num,
+66 | |             name,
+67 | |             another_ext4::InodeMode::from_bits_truncate(file_mode.bits() as u16),
+68 | |         )?;
+69 | |         let dname = DName::from(name);
+70 | |         let inode = LockedExt4Inode::new(id, guard.fs_ptr.clone(), dname.clone());
+71 | |         // 更新 children 缓存
+72 | |         guard.children.insert(dname, inode.clone());
+73 | |         drop(guard);
+74 | |         Ok(inode as Arc<dyn IndexNode>)
+75 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/ext4/inode.rs line 54.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in create and _1(self, src/filesystem/ext4/inode.rs:55) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in create is dropped at BB18446744073709551615(src/filesystem/ext4/inode.rs:54); _1(self, src/filesystem/ext4/inode.rs:55) became dangling.
+   |
+render dot for DefId(0:17544 ~ dragonos_kernel[9e38]::filesystem::ext4::inode::{impl#0}::create)

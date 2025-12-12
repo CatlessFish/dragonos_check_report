@@ -1,0 +1,106 @@
+22:07:47|RAP|WARN|: Use-after-free detected in function "hpet_disable"
+22:07:47|RAP|WARN|: Dangling pointer detected in function "hpet_disable"
+warning: Use-after-free detected.
+   --> src/arch/x86_64/driver/hpet.rs:363:38
+    |
+340 | pub fn hpet_disable(&self) {
+341 |         debug!("HPET disable");
+342 |         if !is_hpet_enabled() {
+343 |             return;
+344 |         }
+345 |
+346 |         // 恢复启动时的配置
+347 |         let mut cfg = self.boot_cfg;
+348 |         cfg &= !HPET_CFG_ENABLE;
+349 |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+350 |         unsafe { regs.write_general_config(cfg) };
+351 |
+352 |         // 恢复各个定时器启动时的配置
+353 |         for i in 0..self.info.hpet_number {
+354 |             let (inner_guard, timer_reg) = unsafe { self.timer_mut(i).unwrap() };
+355 |             unsafe {
+356 |                 timer_reg.write_config(inner_guard.timer_boot_cfg[i as usize]);
+357 |             }
+358 |             drop(inner_guard);
+359 |         }
+360 |
+361 |         // 如果HPET在启动时已经启用了，重新启用它
+362 |         if (self.boot_cfg & HPET_CFG_ENABLE) != 0 {
+363 |             let (_, regs) = unsafe { self.hpet_regs_mut() };
+    |                                      -------------------- Use-after-free (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 363.
+    | MIR detail: Value _33(_, src/arch/x86_64/driver/hpet.rs:349) and _74(_, src/arch/x86_64/driver/hpet.rs:363) are alias.
+    | MIR detail: _33(_, src/arch/x86_64/driver/hpet.rs:349) is dropped at BB16(src/arch/x86_64/driver/hpet.rs:349); _74(_, src/arch/x86_64/driver/hpet.rs:363) is used at BB31(src/arch/x86_64/driver/hpet.rs:363).
+364 |             unsafe { regs.write_general_config(self.boot_cfg) };
+365 |         }
+366 |     }
+    |
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function "hpet_disable"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/driver/hpet.rs:340:1
+    |
+340 | / pub fn hpet_disable(&self) {
+341 | |         debug!("HPET disable");
+342 | |         if !is_hpet_enabled() {
+343 | |             return;
+344 | |         }
+345 | |
+346 | |         // 恢复启动时的配置
+347 | |         let mut cfg = self.boot_cfg;
+348 | |         cfg &= !HPET_CFG_ENABLE;
+349 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+350 | |         unsafe { regs.write_general_config(cfg) };
+351 | |
+352 | |         // 恢复各个定时器启动时的配置
+353 | |         for i in 0..self.info.hpet_number {
+354 | |             let (inner_guard, timer_reg) = unsafe { self.timer_mut(i).unwrap() };
+355 | |             unsafe {
+356 | |                 timer_reg.write_config(inner_guard.timer_boot_cfg[i as usize]);
+357 | |             }
+358 | |             drop(inner_guard);
+359 | |         }
+360 | |
+361 | |         // 如果HPET在启动时已经启用了，重新启用它
+362 | |         if (self.boot_cfg & HPET_CFG_ENABLE) != 0 {
+363 | |             let (_, regs) = unsafe { self.hpet_regs_mut() };
+364 | |             unsafe { regs.write_general_config(self.boot_cfg) };
+365 | |         }
+366 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 340.
+    | MIR detail: Value _33(_, src/arch/x86_64/driver/hpet.rs:349) and _1(self, src/arch/x86_64/driver/hpet.rs:340) are alias.
+    | MIR detail: _33(_, src/arch/x86_64/driver/hpet.rs:349) is dropped at BB16(src/arch/x86_64/driver/hpet.rs:349); _1(self, src/arch/x86_64/driver/hpet.rs:340) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/driver/hpet.rs:340:1
+    |
+340 | / pub fn hpet_disable(&self) {
+341 | |         debug!("HPET disable");
+342 | |         if !is_hpet_enabled() {
+343 | |             return;
+344 | |         }
+345 | |
+346 | |         // 恢复启动时的配置
+347 | |         let mut cfg = self.boot_cfg;
+348 | |         cfg &= !HPET_CFG_ENABLE;
+349 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+350 | |         unsafe { regs.write_general_config(cfg) };
+351 | |
+352 | |         // 恢复各个定时器启动时的配置
+353 | |         for i in 0..self.info.hpet_number {
+354 | |             let (inner_guard, timer_reg) = unsafe { self.timer_mut(i).unwrap() };
+355 | |             unsafe {
+356 | |                 timer_reg.write_config(inner_guard.timer_boot_cfg[i as usize]);
+357 | |             }
+358 | |             drop(inner_guard);
+359 | |         }
+360 | |
+361 | |         // 如果HPET在启动时已经启用了，重新启用它
+362 | |         if (self.boot_cfg & HPET_CFG_ENABLE) != 0 {
+363 | |             let (_, regs) = unsafe { self.hpet_regs_mut() };
+364 | |             unsafe { regs.write_general_config(self.boot_cfg) };
+365 | |         }
+366 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 340.
+    | MIR detail: Value _33(_, src/arch/x86_64/driver/hpet.rs:349) and _1(self, src/arch/x86_64/driver/hpet.rs:340) are alias.
+    | MIR detail: _33(_, src/arch/x86_64/driver/hpet.rs:349) is dropped at BB16(src/arch/x86_64/driver/hpet.rs:349); _1(self, src/arch/x86_64/driver/hpet.rs:340) became dangling.
+    |
+render dot for DefId(0:617 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::hpet_disable)

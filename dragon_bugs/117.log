@@ -1,0 +1,74 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_mount.rs:80:1
+   |
+80 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+81 | |         let flags = MountFlags::from_bits(Self::mountflags(args)).unwrap_or(MountFlags::empty());
+82 | |
+83 | |         vec![
+84 | |             FormattedSyscallParam::new("source", format!("{:?}", Self::source(args))),
+85 | |             FormattedSyscallParam::new("target", format!("{:?}", Self::target(args))),
+86 | |             FormattedSyscallParam::new(
+87 | |                 "filesystem type",
+88 | |                 format!("{:?}", Self::filesystemtype(args)),
+89 | |             ),
+90 | |             FormattedSyscallParam::new(
+91 | |                 "mountflags",
+92 | |                 format!("{:?} ({:#x})", flags, Self::mountflags(args)),
+93 | |             ),
+94 | |             FormattedSyscallParam::new("data", format!("{:?}", Self::raw_data(args))),
+95 | |         ]
+96 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_mount.rs line 80.
+    | MIR detail: Value _59(_, src/filesystem/vfs/syscall/sys_mount.rs:90) and _44(_, src/filesystem/vfs/syscall/sys_mount.rs:86) are alias.
+    | MIR detail: _59(_, src/filesystem/vfs/syscall/sys_mount.rs:90) is dropped at BB38(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _44(_, src/filesystem/vfs/syscall/sys_mount.rs:86) is dropped at BB39(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_mount.rs:80:1
+   |
+80 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+81 | |         let flags = MountFlags::from_bits(Self::mountflags(args)).unwrap_or(MountFlags::empty());
+82 | |
+83 | |         vec![
+84 | |             FormattedSyscallParam::new("source", format!("{:?}", Self::source(args))),
+85 | |             FormattedSyscallParam::new("target", format!("{:?}", Self::target(args))),
+86 | |             FormattedSyscallParam::new(
+87 | |                 "filesystem type",
+88 | |                 format!("{:?}", Self::filesystemtype(args)),
+89 | |             ),
+90 | |             FormattedSyscallParam::new(
+91 | |                 "mountflags",
+92 | |                 format!("{:?} ({:#x})", flags, Self::mountflags(args)),
+93 | |             ),
+94 | |             FormattedSyscallParam::new("data", format!("{:?}", Self::raw_data(args))),
+95 | |         ]
+96 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_mount.rs line 80.
+    | MIR detail: Value _44(_, src/filesystem/vfs/syscall/sys_mount.rs:86) and _29(_, src/filesystem/vfs/syscall/sys_mount.rs:85) are alias.
+    | MIR detail: _44(_, src/filesystem/vfs/syscall/sys_mount.rs:86) is dropped at BB39(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _29(_, src/filesystem/vfs/syscall/sys_mount.rs:85) is dropped at BB40(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_mount.rs:80:1
+   |
+80 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+81 | |         let flags = MountFlags::from_bits(Self::mountflags(args)).unwrap_or(MountFlags::empty());
+82 | |
+83 | |         vec![
+84 | |             FormattedSyscallParam::new("source", format!("{:?}", Self::source(args))),
+85 | |             FormattedSyscallParam::new("target", format!("{:?}", Self::target(args))),
+86 | |             FormattedSyscallParam::new(
+87 | |                 "filesystem type",
+88 | |                 format!("{:?}", Self::filesystemtype(args)),
+89 | |             ),
+90 | |             FormattedSyscallParam::new(
+91 | |                 "mountflags",
+92 | |                 format!("{:?} ({:#x})", flags, Self::mountflags(args)),
+93 | |             ),
+94 | |             FormattedSyscallParam::new("data", format!("{:?}", Self::raw_data(args))),
+95 | |         ]
+96 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_mount.rs line 80.
+    | MIR detail: Value _44(_, src/filesystem/vfs/syscall/sys_mount.rs:86) and _14(_, src/filesystem/vfs/syscall/sys_mount.rs:84) are alias.
+    | MIR detail: _44(_, src/filesystem/vfs/syscall/sys_mount.rs:86) is dropped at BB39(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/filesystem/vfs/syscall/sys_mount.rs:84) is dropped at BB41(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20804 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_mount::{impl#0}::entry_format)

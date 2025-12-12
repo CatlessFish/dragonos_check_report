@@ -1,0 +1,100 @@
+22:07:58|RAP|WARN|: Double free detected in function "new"
+warning: Double free detected during unwinding.
+   --> src/driver/net/veth.rs:323:1
+    |
+323 | / pub fn new(driver: VethDriver) -> Arc<Self> {
+324 | |         let iface_id = generate_iface_id();
+325 | |         let name = driver.name();
+326 | |         let mac = [
+327 | |             0x02,
+328 | |             0x00,
+329 | |             0x00,
+330 | |             0x00,
+331 | |             (iface_id >> 8) as u8,
+332 | |             iface_id as u8,
+333 | |         ];
+334 | |         let hw_addr = HardwareAddress::Ethernet(EthernetAddress(mac));
+335 | |         let mut iface_config = smoltcp::iface::Config::new(hw_addr);
+336 | |         iface_config.random_seed = rand() as u64;
+337 | |         let mut iface = smoltcp::iface::Interface::new(
+338 | |             iface_config,
+339 | |             &mut driver.clone(),
+340 | |             crate::time::Instant::now().into(),
+341 | |         );
+342 | |         iface.set_any_ip(true);
+343 | |
+344 | |         let flags = InterfaceFlags::BROADCAST
+345 | |             | InterfaceFlags::MULTICAST
+346 | |             | InterfaceFlags::UP
+347 | |             | InterfaceFlags::RUNNING
+348 | |             | InterfaceFlags::LOWER_UP;
+349 | |
+350 | |         let device = Arc::new(VethInterface {
+351 | |             name,
+352 | |             driver: VethDriverWarpper(UnsafeCell::new(driver.clone())),
+353 | |             common: IfaceCommon::new(iface_id, super::types::InterfaceType::EETHER, flags, iface),
+354 | |             inner: SpinLock::new(VethCommonData::default()),
+355 | |             locked_kobj_state: LockedKObjectState::default(),
+356 | |         });
+357 | |         let napi_struct = NapiStruct::new(device.clone(), 10);
+358 | |         *device.common.napi_struct.write() = Some(napi_struct);
+359 | |
+360 | |         driver.inner.lock().self_iface_ref = Arc::downgrade(&device);
+361 | |
+362 | |         // log::info!("VethInterface {} created with ID {}", device.name, iface_id);
+363 | |         device
+364 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/veth.rs line 323.
+    | MIR detail: Value _33(device, src/driver/net/veth.rs:350) and _33(device, src/driver/net/veth.rs:350) are alias.
+    | MIR detail: _33(device, src/driver/net/veth.rs:350) is dropped at BB43(src/driver/net/veth.rs:364); _33(device, src/driver/net/veth.rs:350) is dropped at BB43(src/driver/net/veth.rs:364).
+    |
+warning: Double free detected during unwinding.
+   --> src/driver/net/veth.rs:323:1
+    |
+323 | / pub fn new(driver: VethDriver) -> Arc<Self> {
+324 | |         let iface_id = generate_iface_id();
+325 | |         let name = driver.name();
+326 | |         let mac = [
+327 | |             0x02,
+328 | |             0x00,
+329 | |             0x00,
+330 | |             0x00,
+331 | |             (iface_id >> 8) as u8,
+332 | |             iface_id as u8,
+333 | |         ];
+334 | |         let hw_addr = HardwareAddress::Ethernet(EthernetAddress(mac));
+335 | |         let mut iface_config = smoltcp::iface::Config::new(hw_addr);
+336 | |         iface_config.random_seed = rand() as u64;
+337 | |         let mut iface = smoltcp::iface::Interface::new(
+338 | |             iface_config,
+339 | |             &mut driver.clone(),
+340 | |             crate::time::Instant::now().into(),
+341 | |         );
+342 | |         iface.set_any_ip(true);
+343 | |
+344 | |         let flags = InterfaceFlags::BROADCAST
+345 | |             | InterfaceFlags::MULTICAST
+346 | |             | InterfaceFlags::UP
+347 | |             | InterfaceFlags::RUNNING
+348 | |             | InterfaceFlags::LOWER_UP;
+349 | |
+350 | |         let device = Arc::new(VethInterface {
+351 | |             name,
+352 | |             driver: VethDriverWarpper(UnsafeCell::new(driver.clone())),
+353 | |             common: IfaceCommon::new(iface_id, super::types::InterfaceType::EETHER, flags, iface),
+354 | |             inner: SpinLock::new(VethCommonData::default()),
+355 | |             locked_kobj_state: LockedKObjectState::default(),
+356 | |         });
+357 | |         let napi_struct = NapiStruct::new(device.clone(), 10);
+358 | |         *device.common.napi_struct.write() = Some(napi_struct);
+359 | |
+360 | |         driver.inner.lock().self_iface_ref = Arc::downgrade(&device);
+361 | |
+362 | |         // log::info!("VethInterface {} created with ID {}", device.name, iface_id);
+363 | |         device
+364 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/veth.rs line 323.
+    | MIR detail: Value _40(_, src/driver/net/veth.rs:353) and _40(_, src/driver/net/veth.rs:353) are alias.
+    | MIR detail: _40(_, src/driver/net/veth.rs:353) is dropped at BB45(src/driver/net/veth.rs:356); _40(_, src/driver/net/veth.rs:353) is dropped at BB45(src/driver/net/veth.rs:356).
+    |
+render dot for DefId(0:11420 ~ dragonos_kernel[9e38]::driver::net::veth::{impl#10}::new)

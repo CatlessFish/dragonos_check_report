@@ -1,0 +1,135 @@
+22:08:16|RAP|WARN|: Double free detected in function "fork"
+22:08:16|RAP|WARN|: Double free detected in function "fork"
+warning: Double free detected.
+   --> src/process/fork.rs:194:1
+    |
+194 | / pub fn fork(
+195 | |         current_trapframe: &TrapFrame,
+196 | |         clone_flags: CloneFlags,
+197 | |     ) -> Result<RawPid, SystemError> {
+198 | |         let current_pcb = ProcessManager::current_pcb();
+199 | |
+200 | |         let new_kstack: KernelStack = KernelStack::new()?;
+201 | |
+202 | |         let name = current_pcb.basic().name().to_string();
+203 | |
+204 | |         let mut args = KernelCloneArgs::new();
+205 | |         args.flags = clone_flags;
+206 | |         args.exit_signal = Signal::SIGCHLD;
+207 | |         args.verify()?;
+208 | |         let pcb = ProcessControlBlock::new(name, new_kstack);
+209 | |         Self::copy_process(&current_pcb, &pcb, args, current_trapframe).map_err(|e| {
+210 | |             error!(
+211 | |                 "fork: Failed to copy process, current pid: [{:?}], new pid: [{:?}]. Error: {:?}",
+212 | |                 current_pcb.raw_pid(),
+213 | |                 pcb.raw_pid(),
+214 | |                 e
+215 | |             );
+216 | |             e
+217 | |         })?;
+218 | |         // if pcb.raw_pid().data() > 1 {
+219 | |         //     log::debug!(
+220 | |         //         "fork done, pid: {}, pgid: {:?}, tgid: {:?}, sid: {}",
+221 | |         //         pcb.raw_pid(),
+222 | |         //         pcb.task_pgrp().map(|x| x.pid_vnr().data()),
+223 | |         //         pcb.task_tgid_vnr(),
+224 | |         //         pcb.task_session().map_or(0, |s| s.pid_vnr().data())
+225 | |         //     );
+226 | |         // }
+227 | |
+228 | |         // 向procfs注册进程
+229 | |         procfs_register_pid(pcb.raw_pid()).unwrap_or_else(|e| {
+230 | |             panic!(
+231 | |                 "fork: Failed to register pid to procfs, pid: [{:?}]. Error: {:?}",
+232 | |                 pcb.raw_pid(),
+233 | |                 e
+234 | |             )
+235 | |         });
+236 | |
+237 | |         pcb.sched_info().set_on_cpu(Some(smp_get_processor_id()));
+238 | |
+239 | |         ProcessManager::wakeup(&pcb).unwrap_or_else(|e| {
+240 | |             panic!(
+241 | |                 "fork: Failed to wakeup new process, pid: [{:?}]. Error: {:?}",
+242 | |                 pcb.raw_pid(),
+243 | |                 e
+244 | |             )
+245 | |         });
+246 | |
+247 | |         if ProcessManager::current_pid().data() == 0 {
+248 | |             return Ok(pcb.raw_pid());
+249 | |         }
+250 | |
+251 | |         return Ok(pcb.pid().pid_vnr());
+252 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/fork.rs line 194.
+    | MIR detail: Value _35(pcb, src/process/fork.rs:208) and _4(current_pcb, src/process/fork.rs:198) are alias.
+    | MIR detail: _35(pcb, src/process/fork.rs:208) is dropped at BB48(src/process/fork.rs:252); _4(current_pcb, src/process/fork.rs:198) is dropped at BB52(src/process/fork.rs:252).
+    |
+warning: Double free detected during unwinding.
+   --> src/process/fork.rs:194:1
+    |
+194 | / pub fn fork(
+195 | |         current_trapframe: &TrapFrame,
+196 | |         clone_flags: CloneFlags,
+197 | |     ) -> Result<RawPid, SystemError> {
+198 | |         let current_pcb = ProcessManager::current_pcb();
+199 | |
+200 | |         let new_kstack: KernelStack = KernelStack::new()?;
+201 | |
+202 | |         let name = current_pcb.basic().name().to_string();
+203 | |
+204 | |         let mut args = KernelCloneArgs::new();
+205 | |         args.flags = clone_flags;
+206 | |         args.exit_signal = Signal::SIGCHLD;
+207 | |         args.verify()?;
+208 | |         let pcb = ProcessControlBlock::new(name, new_kstack);
+209 | |         Self::copy_process(&current_pcb, &pcb, args, current_trapframe).map_err(|e| {
+210 | |             error!(
+211 | |                 "fork: Failed to copy process, current pid: [{:?}], new pid: [{:?}]. Error: {:?}",
+212 | |                 current_pcb.raw_pid(),
+213 | |                 pcb.raw_pid(),
+214 | |                 e
+215 | |             );
+216 | |             e
+217 | |         })?;
+218 | |         // if pcb.raw_pid().data() > 1 {
+219 | |         //     log::debug!(
+220 | |         //         "fork done, pid: {}, pgid: {:?}, tgid: {:?}, sid: {}",
+221 | |         //         pcb.raw_pid(),
+222 | |         //         pcb.task_pgrp().map(|x| x.pid_vnr().data()),
+223 | |         //         pcb.task_tgid_vnr(),
+224 | |         //         pcb.task_session().map_or(0, |s| s.pid_vnr().data())
+225 | |         //     );
+226 | |         // }
+227 | |
+228 | |         // 向procfs注册进程
+229 | |         procfs_register_pid(pcb.raw_pid()).unwrap_or_else(|e| {
+230 | |             panic!(
+231 | |                 "fork: Failed to register pid to procfs, pid: [{:?}]. Error: {:?}",
+232 | |                 pcb.raw_pid(),
+233 | |                 e
+234 | |             )
+235 | |         });
+236 | |
+237 | |         pcb.sched_info().set_on_cpu(Some(smp_get_processor_id()));
+238 | |
+239 | |         ProcessManager::wakeup(&pcb).unwrap_or_else(|e| {
+240 | |             panic!(
+241 | |                 "fork: Failed to wakeup new process, pid: [{:?}]. Error: {:?}",
+242 | |                 pcb.raw_pid(),
+243 | |                 e
+244 | |             )
+245 | |         });
+246 | |
+247 | |         if ProcessManager::current_pid().data() == 0 {
+248 | |             return Ok(pcb.raw_pid());
+249 | |         }
+250 | |
+251 | |         return Ok(pcb.pid().pid_vnr());
+252 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/fork.rs line 194.
+    | MIR detail: Value _35(pcb, src/process/fork.rs:208) and _4(current_pcb, src/process/fork.rs:198) are alias.
+    | MIR detail: _35(pcb, src/process/fork.rs:208) is dropped at BB55(src/process/fork.rs:252); _4(current_pcb, src/process/fork.rs:198) is dropped at BB57(src/process/fork.rs:252).
+    |
+render dot for DefId(0:27988 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork)

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #<%= number %>: Dragon Bugs</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #<%= number %>
+            <% if (functionName) { %>
+                 <span class="func-name"><%= functionName %></span>
+            <% } %>
+        </h1>
+
+
+        <div class="two-column">
+            <% if (hasLog) { %>
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable"><%= logContent %></pre>
+                </div>
+            <% } %>
+
+            <% if (hasMir) { %>
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable"><%= mirContent %></div>
+                </div>
+            <% } %>
+        </div>
+
+        <% if (!hasLog && !hasMir) { %>
+            <p>No content available for this entry.</p>
+        <% } %>
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+22:08:06|RAP|WARN|: Double free detected in function "dynamical_find_fd"
+warning: Double free detected.
+   --> src/filesystem/procfs/mod.rs:740:1
+    |
+740 | / fn dynamical_find_fd(&self, fd: &str) -> Result<Arc<dyn IndexNode>, SystemError> {
+741 | |         // ::log::info!("ProcFS: Dynamically opening fd files for current process.");
+742 | |         let fd = fd.parse::<i32>().map_err(|_| SystemError::EINVAL)?;
+743 | |         let pcb = ProcessManager::current_pcb();
+744 | |         let fd_table = pcb.fd_table();
+745 | |         let fd_table = fd_table.read();
+746 | |         let file = fd_table.get_file_by_fd(fd);
+747 | |         if let Some(file) = file {
+748 | |             // 获取原始文件的 inode
+749 | |             let target_inode = file.inode();
+750 | |             drop(fd_table);
+751 | |
+752 | |             let _ = self.unlink(&fd.to_string());
+753 | |             let fd_file = self.create(&fd.to_string(), FileType::SymLink, InodeMode::S_IRUGO)?;
+754 | |             let fd_file_proc = fd_file
+755 | |                 .as_any_ref()
+756 | |                 .downcast_ref::<LockedProcFSInode>()
+757 | |                 .unwrap();
+758 | |             let mut guard = fd_file_proc.0.lock();
+759 | |             guard.fdata.fd = fd;
+760 | |             guard.fdata.ftype = ProcFileType::ProcFdFile;
+761 | |             // 存储原始文件的 inode，用于魔法链接
+762 | |             guard.fdata.target_inode = Some(target_inode);
+763 | |             drop(guard);
+764 | |             return Ok(fd_file);
+765 | |         } else {
+766 | |             return Err(SystemError::ENOENT);
+767 | |         }
+768 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/procfs/mod.rs line 740.
+    | MIR detail: Value _36(_, src/filesystem/procfs/mod.rs:750) and _15(fd_table, src/filesystem/procfs/mod.rs:744) are alias.
+    | MIR detail: _36(_, src/filesystem/procfs/mod.rs:750) is dropped at BB17(src/filesystem/procfs/mod.rs:750); _15(fd_table, src/filesystem/procfs/mod.rs:744) is dropped at BB47(src/filesystem/procfs/mod.rs:768).
+    |
+22:08:06|RAP|WARN|: Double free detected in function "dynamical_find_fd"
+warning: Double free detected during unwinding.
+   --> src/filesystem/procfs/mod.rs:740:1
+    |
+740 | / fn dynamical_find_fd(&self, fd: &str) -> Result<Arc<dyn IndexNode>, SystemError> {
+741 | |         // ::log::info!("ProcFS: Dynamically opening fd files for current process.");
+742 | |         let fd = fd.parse::<i32>().map_err(|_| SystemError::EINVAL)?;
+743 | |         let pcb = ProcessManager::current_pcb();
+744 | |         let fd_table = pcb.fd_table();
+745 | |         let fd_table = fd_table.read();
+746 | |         let file = fd_table.get_file_by_fd(fd);
+747 | |         if let Some(file) = file {
+748 | |             // 获取原始文件的 inode
+749 | |             let target_inode = file.inode();
+750 | |             drop(fd_table);
+751 | |
+752 | |             let _ = self.unlink(&fd.to_string());
+753 | |             let fd_file = self.create(&fd.to_string(), FileType::SymLink, InodeMode::S_IRUGO)?;
+754 | |             let fd_file_proc = fd_file
+755 | |                 .as_any_ref()
+756 | |                 .downcast_ref::<LockedProcFSInode>()
+757 | |                 .unwrap();
+758 | |             let mut guard = fd_file_proc.0.lock();
+759 | |             guard.fdata.fd = fd;
+760 | |             guard.fdata.ftype = ProcFileType::ProcFdFile;
+761 | |             // 存储原始文件的 inode，用于魔法链接
+762 | |             guard.fdata.target_inode = Some(target_inode);
+763 | |             drop(guard);
+764 | |             return Ok(fd_file);
+765 | |         } else {
+766 | |             return Err(SystemError::ENOENT);
+767 | |         }
+768 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/procfs/mod.rs line 740.
+    | MIR detail: Value _36(_, src/filesystem/procfs/mod.rs:750) and _15(fd_table, src/filesystem/procfs/mod.rs:744) are alias.
+    | MIR detail: _36(_, src/filesystem/procfs/mod.rs:750) is dropped at BB17(src/filesystem/procfs/mod.rs:750); _15(fd_table, src/filesystem/procfs/mod.rs:744) is dropped at BB55(src/filesystem/procfs/mod.rs:768).
+    |
+render dot for DefId(0:18734 ~ dragonos_kernel[9e38]::filesystem::procfs::{impl#8}::dynamical_find_fd)

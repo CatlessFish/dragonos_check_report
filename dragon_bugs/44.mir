@@ -1,0 +1,340 @@
+bb0 at src/filesystem/devpts/mod.rs:54:13: 54:23
+bb2 at src/filesystem/devpts/mod.rs:54:61: 54:62
+bb3 at src/filesystem/devpts/mod.rs:55:68: 55:69
+bb4 at src/filesystem/devpts/mod.rs:55:18: 55:19
+bb5 at src/filesystem/devpts/mod.rs:55:9: 55:32
+bb6 at src/filesystem/devpts/mod.rs:55:31: 55:32
+bb7 at src/filesystem/devpts/mod.rs:55:9: 55:39
+bb8 at src/filesystem/devpts/mod.rs:55:9: 55:39
+bb9 at src/filesystem/devpts/mod.rs:55:69: 55:70
+bb10 at src/filesystem/devpts/mod.rs:56:70: 56:71
+bb11 at src/filesystem/devpts/mod.rs:56:18: 56:19
+bb12 at src/filesystem/devpts/mod.rs:56:9: 56:32
+bb13 at src/filesystem/devpts/mod.rs:56:31: 56:32
+bb14 at src/filesystem/devpts/mod.rs:56:9: 56:41
+bb15 at src/filesystem/devpts/mod.rs:56:9: 56:41
+bb16 at src/filesystem/devpts/mod.rs:56:71: 56:72
+bb17 at src/filesystem/devpts/mod.rs:59:82: 59:83
+bb18 at src/filesystem/devpts/mod.rs:59:91: 59:92
+bb19 at src/filesystem/devpts/mod.rs:59:92: 59:93
+bb20 at src/filesystem/devpts/mod.rs:57:28: 61:10
+bb21 at src/filesystem/devpts/mod.rs:61:10: 61:11
+bb22 at src/filesystem/devpts/mod.rs:63:11: 63:12
+bb23 at src/filesystem/devpts/mod.rs:63:9: 63:23
+bb24 at src/filesystem/devpts/mod.rs:63:50: 63:51
+bb25 at src/filesystem/devpts/mod.rs:63:51: 63:52
+fn filesystem::devpts::DevPtsFs::new
+_0:  @ alloc::sync::Arc<filesystem::devpts::DevPtsFs, alloc::alloc::Global> 
+_1:  @ alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_2:  @ filesystem::devpts::LockedDevPtsFSInode 
+_3:  @ alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_4:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_5:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_6:  @ &'{erased} mut filesystem::devpts::PtsDevInode 
+_7:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, filesystem::devpts::PtsDevInode> 
+_8:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::devpts::PtsDevInode> 
+_9:  @ &'{erased} libs::spinlock::SpinLock<filesystem::devpts::PtsDevInode> 
+_10:  @ &'{erased} filesystem::devpts::LockedDevPtsFSInode 
+_11:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_12:  @ alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_13:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_14:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_15:  @ &'{erased} mut filesystem::devpts::PtsDevInode 
+_16:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, filesystem::devpts::PtsDevInode> 
+_17:  @ libs::spinlock::SpinLockGuard<'{erased}, filesystem::devpts::PtsDevInode> 
+_18:  @ &'{erased} libs::spinlock::SpinLock<filesystem::devpts::PtsDevInode> 
+_19:  @ &'{erased} filesystem::devpts::LockedDevPtsFSInode 
+_20:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_21:  @ alloc::sync::Arc<filesystem::devpts::DevPtsFs, alloc::alloc::Global> 
+_22:  @ filesystem::devpts::DevPtsFs 
+_23:  @ alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_24:  @ libs::spinlock::SpinLock<ida::IdAllocator> 
+_25:  @ ida::IdAllocator 
+_26:  @ core::option::Option<ida::IdAllocator> 
+_27:  @ usize 
+_28:  @ core::sync::atomic::AtomicU32 
+_29:  @ () 
+_30:  @ &'{erased} filesystem::devpts::LockedDevPtsFSInode 
+_31:  @ &'{erased} filesystem::devpts::LockedDevPtsFSInode 
+_32:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode, alloc::alloc::Global> 
+_33:  @ &'{erased} filesystem::devpts::DevPtsFs 
+_34:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::DevPtsFs, alloc::alloc::Global> 
+_35:  @ alloc::sync::Weak<filesystem::devpts::DevPtsFs, alloc::alloc::Global> 
+_36:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::DevPtsFs, alloc::alloc::Global> 
+_37:  @ &'{erased} alloc::sync::Arc<filesystem::devpts::DevPtsFs, alloc::alloc::Global> 
+_38:  @ bool 
+_39:  @ bool 
+_40:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_40, const false)) @ _40=const false @ Use
+    Assign((_39, const false)) @ _39=const false @ Use
+    Assign((_38, const false)) @ _38=const false @ Use
+    StorageLive(_1) @ StorageLive
+    StorageLive(_2) @ StorageLive
+    _2 = filesystem::devpts::LockedDevPtsFSInode::new() -> [return: bb1, unwind continue] @ Call: FnDid: 17220
+}
+bb 1 {
+CleanUp: false
+    _1 = alloc::sync::Arc::<filesystem::devpts::LockedDevPtsFSInode>::new(move _2) -> [return: bb2, unwind: bb33] @ Call: FnDid: 6875
+}
+bb 2 {
+CleanUp: false
+    Assign((_40, const true)) @ _40=const true @ Use
+    StorageDead(_2) @ StorageDead
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &_1)) @ _5=&_1 @ Ref
+    Assign((_4, &(*_5))) @ _4=&(*_5) @ Ref
+    _3 = alloc::sync::Arc::<filesystem::devpts::LockedDevPtsFSInode>::downgrade(move _4) -> [return: bb3, unwind: bb39] @ Call: FnDid: 6946
+}
+bb 3 {
+CleanUp: false
+    Assign((_39, const true)) @ _39=const true @ Use
+    StorageDead(_4) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &_1)) @ _11=&_1 @ Ref
+    _10 = <alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode> as lazy_static::__Deref>::deref(move _11) -> [return: bb4, unwind: bb32] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    Assign((_9, &((*_10).0: libs::spinlock::SpinLock<filesystem::devpts::PtsDevInode>))) @ _9=&((*_10).0: libs::spinlock::SpinLock<filesystem::devpts::PtsDevInode>) @ Ref
+    _8 = libs::spinlock::SpinLock::<filesystem::devpts::PtsDevInode>::lock(move _9) -> [return: bb5, unwind: bb32] @ Call: FnDid: 5261
+}
+bb 5 {
+CleanUp: false
+    Assign((_7, &mut _8)) @ _7=&mut _8 @ Ref
+    _6 = <libs::spinlock::SpinLockGuard<'_, filesystem::devpts::PtsDevInode> as core::ops::DerefMut>::deref_mut(move _7) -> [return: bb6, unwind: bb37] @ Call: FnDid: 3915
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    drop(((*_6).3: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>)) -> [return: bb7, unwind: bb8] @ Drop
+}
+bb 7 {
+CleanUp: false
+    Assign((_39, const false)) @ _39=const false @ Use
+    Assign((((*_6).3: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>), move _3)) @ ((*_6).3: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>)=move _3 @ Use
+    Assign((_39, const false)) @ _39=const false @ Use
+    StorageDead(_3) @ StorageDead
+    drop(_8) -> [return: bb9, unwind: bb39] @ Drop
+}
+bb 8 {
+CleanUp: true
+    Assign((_39, const false)) @ _39=const false @ Use
+    Assign((((*_6).3: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>), move _3)) @ ((*_6).3: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>)=move _3 @ Use
+    goto -> bb37 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &_1)) @ _14=&_1 @ Ref
+    Assign((_13, &(*_14))) @ _13=&(*_14) @ Ref
+    _12 = alloc::sync::Arc::<filesystem::devpts::LockedDevPtsFSInode>::downgrade(move _13) -> [return: bb10, unwind: bb39] @ Call: FnDid: 6946
+}
+bb 10 {
+CleanUp: false
+    Assign((_38, const true)) @ _38=const true @ Use
+    StorageDead(_13) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &_1)) @ _20=&_1 @ Ref
+    _19 = <alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode> as lazy_static::__Deref>::deref(move _20) -> [return: bb11, unwind: bb30] @ Call: FnDid: 3903
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    Assign((_18, &((*_19).0: libs::spinlock::SpinLock<filesystem::devpts::PtsDevInode>))) @ _18=&((*_19).0: libs::spinlock::SpinLock<filesystem::devpts::PtsDevInode>) @ Ref
+    _17 = libs::spinlock::SpinLock::<filesystem::devpts::PtsDevInode>::lock(move _18) -> [return: bb12, unwind: bb30] @ Call: FnDid: 5261
+}
+bb 12 {
+CleanUp: false
+    Assign((_16, &mut _17)) @ _16=&mut _17 @ Ref
+    _15 = <libs::spinlock::SpinLockGuard<'_, filesystem::devpts::PtsDevInode> as core::ops::DerefMut>::deref_mut(move _16) -> [return: bb13, unwind: bb35] @ Call: FnDid: 3915
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    drop(((*_15).4: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>)) -> [return: bb14, unwind: bb15] @ Drop
+}
+bb 14 {
+CleanUp: false
+    Assign((_38, const false)) @ _38=const false @ Use
+    Assign((((*_15).4: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>), move _12)) @ ((*_15).4: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>)=move _12 @ Use
+    Assign((_38, const false)) @ _38=const false @ Use
+    StorageDead(_12) @ StorageDead
+    drop(_17) -> [return: bb16, unwind: bb39] @ Drop
+}
+bb 15 {
+CleanUp: true
+    Assign((_38, const false)) @ _38=const false @ Use
+    Assign((((*_15).4: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>), move _12)) @ ((*_15).4: alloc::sync::Weak<filesystem::devpts::LockedDevPtsFSInode>)=move _12 @ Use
+    goto -> bb35 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_40, const false)) @ _40=const false @ Use
+    Assign((_23, move _1)) @ _23=move _1 @ Use
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, const driver::tty::pty::unix98pty::NR_UNIX98_PTY_MAX as usize (IntToInt))) @ _27=const driver::tty::pty::unix98pty::NR_UNIX98_PTY_MAX as usize (IntToInt) @ Cast
+    _26 = ida::IdAllocator::new(const 0_usize, move _27) -> [return: bb17, unwind: bb28] @ Call: FnDid: 29
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    _25 = core::option::Option::<ida::IdAllocator>::unwrap(move _26) -> [return: bb18, unwind: bb28] @ Call: FnDid: 10157
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    _24 = libs::spinlock::SpinLock::<ida::IdAllocator>::new(move _25) -> [return: bb19, unwind: bb28] @ Call: FnDid: 5260
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    _28 = core::sync::atomic::AtomicU32::new(const 0_u32) -> [return: bb20, unwind: bb27] @ Call: FnDid: 50200
+}
+bb 20 {
+CleanUp: false
+    Assign((_22, filesystem::devpts::DevPtsFs { root_inode: move _23, pts_ida: move _24, pts_count: move _28 })) @ _22=filesystem::devpts::DevPtsFs { root_inode: move _23, pts_ida: move _24, pts_count: move _28 } @ Aggregate
+    StorageDead(_28) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    _21 = alloc::sync::Arc::<filesystem::devpts::DevPtsFs>::new(move _22) -> [return: bb21, unwind: bb39] @ Call: FnDid: 6875
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &_21)) @ _34=&_21 @ Ref
+    _33 = <alloc::sync::Arc<filesystem::devpts::DevPtsFs> as lazy_static::__Deref>::deref(move _34) -> [return: bb22, unwind: bb26] @ Call: FnDid: 3903
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_32, &((*_33).0: alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode>))) @ _32=&((*_33).0: alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode>) @ Ref
+    _31 = <alloc::sync::Arc<filesystem::devpts::LockedDevPtsFSInode> as lazy_static::__Deref>::deref(move _32) -> [return: bb23, unwind: bb26] @ Call: FnDid: 3903
+}
+bb 23 {
+CleanUp: false
+    Assign((_30, &(*_31))) @ _30=&(*_31) @ Ref
+    StorageDead(_32) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &_21)) @ _37=&_21 @ Ref
+    Assign((_36, &(*_37))) @ _36=&(*_37) @ Ref
+    _35 = alloc::sync::Arc::<filesystem::devpts::DevPtsFs>::downgrade(move _36) -> [return: bb24, unwind: bb26] @ Call: FnDid: 6946
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    _29 = filesystem::devpts::LockedDevPtsFSInode::set_fs(move _30, move _35) -> [return: bb25, unwind: bb26] @ Call: FnDid: 17221
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    Assign((_0, move _21)) @ _0=move _21 @ Use
+    StorageDead(_21) @ StorageDead
+    Assign((_40, const false)) @ _40=const false @ Use
+    StorageDead(_1) @ StorageDead
+    return @ Return
+}
+bb 26 {
+CleanUp: true
+    drop(_21) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    drop(_24) -> [return: bb28, unwind terminate(cleanup)] @ Drop
+}
+bb 28 {
+CleanUp: true
+    drop(_23) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    drop(_17) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 30 {
+CleanUp: true
+    drop(_12) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 31 {
+CleanUp: true
+    drop(_8) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    drop(_3) -> [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 33 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 34 {
+CleanUp: true
+    drop(_12) -> [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 35 {
+CleanUp: true
+    switchInt(copy _38) -> [0: bb29, otherwise: bb34] @ SwitchInt
+}
+bb 36 {
+CleanUp: true
+    drop(_3) -> [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    switchInt(copy _39) -> [0: bb31, otherwise: bb36] @ SwitchInt
+}
+bb 38 {
+CleanUp: true
+    drop(_1) -> [return: bb33, unwind terminate(cleanup)] @ Drop
+}
+bb 39 {
+CleanUp: true
+    switchInt(copy _40) -> [0: bb33, otherwise: bb38] @ SwitchInt
+}
+

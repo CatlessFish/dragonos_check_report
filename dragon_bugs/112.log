@@ -1,0 +1,55 @@
+22:08:08|RAP|WARN|: Double free detected in function "do_write"
+warning: Double free detected.
+   --> src/filesystem/vfs/syscall/sys_write.rs:95:1
+    |
+ 95 | / pub(super) fn do_write(fd: i32, buf: &[u8]) -> Result<usize, SystemError> {
+ 96 | |     let binding = ProcessManager::current_pcb().fd_table();
+ 97 | |     let fd_table_guard = binding.read();
+ 98 | |
+ 99 | |     let file = fd_table_guard
+100 | |         .get_file_by_fd(fd)
+101 | |         .ok_or(SystemError::EBADF)?;
+102 | |
+103 | |     // drop guard 以避免无法调度的问题
+104 | |     drop(fd_table_guard);
+105 | |
+106 | |     if file.flags().contains(FileFlags::O_APPEND) {
+107 | |         // todo：lseek和write之间不是原子操作，可能有竞态条件
+108 | |         // linux中使用inode上的rwsem来使write() with O_APPEND操作原子化
+109 | |         file.lseek(SeekFrom::SeekEnd(0))?;
+110 | |     }
+111 | |
+112 | |     return file.write(buf.len(), buf);
+113 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_write.rs line 95.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_write.rs:104) and _4(binding, src/filesystem/vfs/syscall/sys_write.rs:96) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_write.rs:104) is dropped at BB12(src/filesystem/vfs/syscall/sys_write.rs:104); _4(binding, src/filesystem/vfs/syscall/sys_write.rs:96) is dropped at BB33(src/filesystem/vfs/syscall/sys_write.rs:113).
+    |
+22:08:08|RAP|WARN|: Double free detected in function "do_write"
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/syscall/sys_write.rs:95:1
+    |
+ 95 | / pub(super) fn do_write(fd: i32, buf: &[u8]) -> Result<usize, SystemError> {
+ 96 | |     let binding = ProcessManager::current_pcb().fd_table();
+ 97 | |     let fd_table_guard = binding.read();
+ 98 | |
+ 99 | |     let file = fd_table_guard
+100 | |         .get_file_by_fd(fd)
+101 | |         .ok_or(SystemError::EBADF)?;
+102 | |
+103 | |     // drop guard 以避免无法调度的问题
+104 | |     drop(fd_table_guard);
+105 | |
+106 | |     if file.flags().contains(FileFlags::O_APPEND) {
+107 | |         // todo：lseek和write之间不是原子操作，可能有竞态条件
+108 | |         // linux中使用inode上的rwsem来使write() with O_APPEND操作原子化
+109 | |         file.lseek(SeekFrom::SeekEnd(0))?;
+110 | |     }
+111 | |
+112 | |     return file.write(buf.len(), buf);
+113 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_write.rs line 95.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_write.rs:104) and _4(binding, src/filesystem/vfs/syscall/sys_write.rs:96) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_write.rs:104) is dropped at BB12(src/filesystem/vfs/syscall/sys_write.rs:104); _4(binding, src/filesystem/vfs/syscall/sys_write.rs:96) is dropped at BB36(src/filesystem/vfs/syscall/sys_write.rs:113).
+    |
+render dot for DefId(0:20603 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_write::do_write)

@@ -1,0 +1,65 @@
+22:07:47|RAP|WARN|: Dangling pointer detected in function "is_counting"
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function "is_counting"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/driver/hpet.rs:282:1
+    |
+282 | / fn is_counting(&self) -> bool {
+283 | |         self.restart_counter();
+284 | |
+285 | |         let (_, regs) = unsafe { self.hpet_regs() };
+286 | |         let t = regs.main_counter_value();
+287 | |         // 获取当前时间戳(TSC)值
+288 | |         let start = unsafe { rdtsc() };
+289 | |
+290 | |         loop {
+291 | |             // 如果hpet计数器值发生变化，说明hpet计数器正在计数
+292 | |             if t != regs.main_counter_value() {
+293 | |                 return true;
+294 | |             }
+295 | |             // 获取当前时间戳(TSC)值
+296 | |             let now = unsafe { rdtsc() };
+297 | |             if (now - start) >= 200_000 {
+298 | |                 break;
+299 | |             }
+300 | |         }
+301 | |
+302 | |         // 如果在200,000个TSC周期内，HPET计数器值没有发生变化，则HPET计数器没有在计数
+303 | |         warn!("HPET counter is not counting");
+304 | |         return false;
+305 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 282.
+    | MIR detail: Value _6(_, src/arch/x86_64/driver/hpet.rs:285) and _1(self, src/arch/x86_64/driver/hpet.rs:282) are alias.
+    | MIR detail: _6(_, src/arch/x86_64/driver/hpet.rs:285) is dropped at BB2(src/arch/x86_64/driver/hpet.rs:285); _1(self, src/arch/x86_64/driver/hpet.rs:282) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/driver/hpet.rs:282:1
+    |
+282 | / fn is_counting(&self) -> bool {
+283 | |         self.restart_counter();
+284 | |
+285 | |         let (_, regs) = unsafe { self.hpet_regs() };
+286 | |         let t = regs.main_counter_value();
+287 | |         // 获取当前时间戳(TSC)值
+288 | |         let start = unsafe { rdtsc() };
+289 | |
+290 | |         loop {
+291 | |             // 如果hpet计数器值发生变化，说明hpet计数器正在计数
+292 | |             if t != regs.main_counter_value() {
+293 | |                 return true;
+294 | |             }
+295 | |             // 获取当前时间戳(TSC)值
+296 | |             let now = unsafe { rdtsc() };
+297 | |             if (now - start) >= 200_000 {
+298 | |                 break;
+299 | |             }
+300 | |         }
+301 | |
+302 | |         // 如果在200,000个TSC周期内，HPET计数器值没有发生变化，则HPET计数器没有在计数
+303 | |         warn!("HPET counter is not counting");
+304 | |         return false;
+305 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 282.
+    | MIR detail: Value _6(_, src/arch/x86_64/driver/hpet.rs:285) and _1(self, src/arch/x86_64/driver/hpet.rs:282) are alias.
+    | MIR detail: _6(_, src/arch/x86_64/driver/hpet.rs:285) is dropped at BB2(src/arch/x86_64/driver/hpet.rs:285); _1(self, src/arch/x86_64/driver/hpet.rs:282) became dangling.
+    |
+render dot for DefId(0:612 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::is_counting)

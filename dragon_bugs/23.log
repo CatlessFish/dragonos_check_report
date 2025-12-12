@@ -1,0 +1,215 @@
+22:07:56|RAP|WARN|: Double free detected in function "call_driver_probe"
+warning: Double free detected.
+   --> src/driver/base/device/dd.rs:508:1
+    |
+508 | / fn call_driver_probe(
+509 | |         &self,
+510 | |         device: &Arc<dyn Device>,
+511 | |         driver: &Arc<dyn Driver>,
+512 | |     ) -> Result<(), SystemError> {
+513 | |         let bus = device
+514 | |             .bus()
+515 | |             .and_then(|bus| bus.upgrade())
+516 | |             .ok_or(SystemError::EINVAL)?;
+517 | |         let r = bus.probe(device);
+518 | |         if r == Err(SystemError::ENOSYS) {
+519 | |             error!(
+520 | |                 "call_driver_probe: bus.probe() failed, dev: '{}', err: {:?}",
+521 | |                 device.name(),
+522 | |                 r
+523 | |             );
+524 | |             return r;
+525 | |         }
+526 | |
+527 | |         if r.is_ok() {
+528 | |             return Ok(());
+529 | |         }
+530 | |
+531 | |         let err = r.unwrap_err();
+532 | |         match err {
+533 | |             SystemError::ENODEV | SystemError::ENXIO => {
+534 | |                 debug!(
+535 | |                     "driver'{}': probe of {} rejects match {:?}",
+536 | |                     driver.name(),
+537 | |                     device.name(),
+538 | |                     err
+539 | |                 );
+540 | |             }
+541 | |
+542 | |             _ => {
+543 | |                 warn!(
+544 | |                     "driver'{}': probe of {} failed with error {:?}",
+545 | |                     driver.name(),
+546 | |                     device.name(),
+547 | |                     err
+548 | |                 );
+549 | |             }
+550 | |         }
+551 | |
+552 | |         return Err(err);
+553 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/dd.rs line 508.
+    | MIR detail: Value _146(_, src/driver/base/device/dd.rs:546) and _141(_, src/driver/base/device/dd.rs:545) are alias.
+    | MIR detail: _146(_, src/driver/base/device/dd.rs:546) is dropped at BB73(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _141(_, src/driver/base/device/dd.rs:545) is dropped at BB74(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+warning: Double free detected.
+   --> src/driver/base/device/dd.rs:508:1
+    |
+508 | / fn call_driver_probe(
+509 | |         &self,
+510 | |         device: &Arc<dyn Device>,
+511 | |         driver: &Arc<dyn Driver>,
+512 | |     ) -> Result<(), SystemError> {
+513 | |         let bus = device
+514 | |             .bus()
+515 | |             .and_then(|bus| bus.upgrade())
+516 | |             .ok_or(SystemError::EINVAL)?;
+517 | |         let r = bus.probe(device);
+518 | |         if r == Err(SystemError::ENOSYS) {
+519 | |             error!(
+520 | |                 "call_driver_probe: bus.probe() failed, dev: '{}', err: {:?}",
+521 | |                 device.name(),
+522 | |                 r
+523 | |             );
+524 | |             return r;
+525 | |         }
+526 | |
+527 | |         if r.is_ok() {
+528 | |             return Ok(());
+529 | |         }
+530 | |
+531 | |         let err = r.unwrap_err();
+532 | |         match err {
+533 | |             SystemError::ENODEV | SystemError::ENXIO => {
+534 | |                 debug!(
+535 | |                     "driver'{}': probe of {} rejects match {:?}",
+536 | |                     driver.name(),
+537 | |                     device.name(),
+538 | |                     err
+539 | |                 );
+540 | |             }
+541 | |
+542 | |             _ => {
+543 | |                 warn!(
+544 | |                     "driver'{}': probe of {} failed with error {:?}",
+545 | |                     driver.name(),
+546 | |                     device.name(),
+547 | |                     err
+548 | |                 );
+549 | |             }
+550 | |         }
+551 | |
+552 | |         return Err(err);
+553 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/dd.rs line 508.
+    | MIR detail: Value _100(_, src/driver/base/device/dd.rs:537) and _95(_, src/driver/base/device/dd.rs:536) are alias.
+    | MIR detail: _100(_, src/driver/base/device/dd.rs:537) is dropped at BB52(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _95(_, src/driver/base/device/dd.rs:536) is dropped at BB53(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+22:07:56|RAP|WARN|: Double free detected in function "call_driver_probe"
+warning: Double free detected during unwinding.
+   --> src/driver/base/device/dd.rs:508:1
+    |
+508 | / fn call_driver_probe(
+509 | |         &self,
+510 | |         device: &Arc<dyn Device>,
+511 | |         driver: &Arc<dyn Driver>,
+512 | |     ) -> Result<(), SystemError> {
+513 | |         let bus = device
+514 | |             .bus()
+515 | |             .and_then(|bus| bus.upgrade())
+516 | |             .ok_or(SystemError::EINVAL)?;
+517 | |         let r = bus.probe(device);
+518 | |         if r == Err(SystemError::ENOSYS) {
+519 | |             error!(
+520 | |                 "call_driver_probe: bus.probe() failed, dev: '{}', err: {:?}",
+521 | |                 device.name(),
+522 | |                 r
+523 | |             );
+524 | |             return r;
+525 | |         }
+526 | |
+527 | |         if r.is_ok() {
+528 | |             return Ok(());
+529 | |         }
+530 | |
+531 | |         let err = r.unwrap_err();
+532 | |         match err {
+533 | |             SystemError::ENODEV | SystemError::ENXIO => {
+534 | |                 debug!(
+535 | |                     "driver'{}': probe of {} rejects match {:?}",
+536 | |                     driver.name(),
+537 | |                     device.name(),
+538 | |                     err
+539 | |                 );
+540 | |             }
+541 | |
+542 | |             _ => {
+543 | |                 warn!(
+544 | |                     "driver'{}': probe of {} failed with error {:?}",
+545 | |                     driver.name(),
+546 | |                     device.name(),
+547 | |                     err
+548 | |                 );
+549 | |             }
+550 | |         }
+551 | |
+552 | |         return Err(err);
+553 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/dd.rs line 508.
+    | MIR detail: Value _146(_, src/driver/base/device/dd.rs:546) and _141(_, src/driver/base/device/dd.rs:545) are alias.
+    | MIR detail: _146(_, src/driver/base/device/dd.rs:546) is dropped at BB83(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _141(_, src/driver/base/device/dd.rs:545) is dropped at BB84(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+warning: Double free detected during unwinding.
+   --> src/driver/base/device/dd.rs:508:1
+    |
+508 | / fn call_driver_probe(
+509 | |         &self,
+510 | |         device: &Arc<dyn Device>,
+511 | |         driver: &Arc<dyn Driver>,
+512 | |     ) -> Result<(), SystemError> {
+513 | |         let bus = device
+514 | |             .bus()
+515 | |             .and_then(|bus| bus.upgrade())
+516 | |             .ok_or(SystemError::EINVAL)?;
+517 | |         let r = bus.probe(device);
+518 | |         if r == Err(SystemError::ENOSYS) {
+519 | |             error!(
+520 | |                 "call_driver_probe: bus.probe() failed, dev: '{}', err: {:?}",
+521 | |                 device.name(),
+522 | |                 r
+523 | |             );
+524 | |             return r;
+525 | |         }
+526 | |
+527 | |         if r.is_ok() {
+528 | |             return Ok(());
+529 | |         }
+530 | |
+531 | |         let err = r.unwrap_err();
+532 | |         match err {
+533 | |             SystemError::ENODEV | SystemError::ENXIO => {
+534 | |                 debug!(
+535 | |                     "driver'{}': probe of {} rejects match {:?}",
+536 | |                     driver.name(),
+537 | |                     device.name(),
+538 | |                     err
+539 | |                 );
+540 | |             }
+541 | |
+542 | |             _ => {
+543 | |                 warn!(
+544 | |                     "driver'{}': probe of {} failed with error {:?}",
+545 | |                     driver.name(),
+546 | |                     device.name(),
+547 | |                     err
+548 | |                 );
+549 | |             }
+550 | |         }
+551 | |
+552 | |         return Err(err);
+553 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/dd.rs line 508.
+    | MIR detail: Value _100(_, src/driver/base/device/dd.rs:537) and _95(_, src/driver/base/device/dd.rs:536) are alias.
+    | MIR detail: _100(_, src/driver/base/device/dd.rs:537) is dropped at BB85(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144); _95(_, src/driver/base/device/dd.rs:536) is dropped at BB86(/home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144).
+    |
+render dot for DefId(0:7935 ~ dragonos_kernel[9e38]::driver::base::device::dd::{impl#2}::call_driver_probe)

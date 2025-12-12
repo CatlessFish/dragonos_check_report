@@ -1,0 +1,187 @@
+bb0 at src/libs/rwlock.rs:453:9: 455:10
+bb1 at src/libs/rwlock.rs:453:15: 453:51
+bb2 at src/libs/rwlock.rs:453:15: 453:42
+bb4 at src/libs/rwlock.rs:453:50: 453:51
+bb5 at src/libs/rwlock.rs:454:24: 454:25
+bb6 at src/libs/rwlock.rs:453:50: 453:51
+bb7 at src/libs/rwlock.rs:458:45: 458:46
+bb8 at src/libs/rwlock.rs:460:23: 460:24
+bb9 at src/libs/rwlock.rs:463:45: 463:46
+bb14 at src/libs/rwlock.rs:463:28: 463:46
+bb15 at src/libs/rwlock.rs:463:28: 463:46
+fn libs::rwlock::RwLockUpgradableGuard::<'rwlock, T>::downgrade
+_0:  @ libs::rwlock::RwLockReadGuard<'{erased}, T/#1> 
+_1:  @ libs::rwlock::RwLockUpgradableGuard<'{erased}, T/#1> 
+_2:  @ () 
+_3:  @ () 
+_4:  @ bool 
+_5:  @ &'{erased} core::result::Result<u32, system_error::SystemError> 
+_6:  @ core::result::Result<u32, system_error::SystemError> 
+_7:  @ &'{erased} libs::rwlock::RwLock<T/#1> 
+_8:  @ () 
+_9:  @ ! 
+_10:  @ () 
+_11:  @ ! 
+_12:  @ &'{erased} libs::rwlock::RwLock<T/#1> 
+_13:  @ core::option::Option<exception::IrqFlagsGuard> 
+_14:  @ &'{erased} mut core::option::Option<exception::IrqFlagsGuard> 
+_15:  @ () 
+_16:  @ libs::rwlock::RwLockUpgradableGuard<'{erased}, T/#1> 
+_17:  @ *const T/#1 
+_18:  @ &'{erased} T/#1 
+_19:  @ *mut T/#1 
+_20:  @ &'{erased} core::cell::UnsafeCell<T/#1> 
+_21:  @ &'{erased} core::sync::atomic::AtomicU32 
+_22:  @ &'{erased} core::sync::atomic::AtomicU32 
+_23:  @ core::option::Option<exception::IrqFlagsGuard> 
+_24:  @ &'{erased} libs::rwlock::RwLock<T/#1> 
+_25:  @ &'{erased} libs::rwlock::RwLock<T/#1> 
+_26:  @ bool 
+_27:  @ *const () 
+_28:  @ usize 
+_29:  @ usize 
+_30:  @ usize 
+_31:  @ usize 
+_32:  @ bool 
+_33:  @ *const () 
+_34:  @ usize 
+_35:  @ bool 
+_36:  @ bool 
+_37:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_26, const false)) @ _26=const false @ Use
+    Assign((_26, const true)) @ _26=const true @ Use
+    StorageLive(_2) @ StorageLive
+    goto -> bb1 @ Goto
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_24, deref_copy (_1.1: &libs::rwlock::RwLock<T>))) @ _24=deref_copy (_1.1: &libs::rwlock::RwLock<T>) @ CopyForDeref
+    Assign((_7, &(*_24))) @ _7=&(*_24) @ Ref
+    _6 = libs::rwlock::RwLock::<T>::current_reader(move _7) -> [return: bb2, unwind: bb13] @ Call: FnDid: 5152
+}
+bb 2 {
+CleanUp: false
+    Assign((_5, &_6)) @ _5=&_6 @ Ref
+    StorageDead(_7) @ StorageDead
+    _4 = core::result::Result::<u32, system_error::SystemError>::is_err(move _5) -> [return: bb3, unwind: bb13] @ Call: FnDid: 10990
+}
+bb 3 {
+CleanUp: false
+    switchInt(move _4) -> [0: bb6, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    _8 = core::hint::spin_loop() -> [return: bb5, unwind: bb13] @ Call: FnDid: 1452
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    StorageDead(_4) @ StorageDead
+    goto -> bb1 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    Assign((_2, const ())) @ _2=const () @ Use
+    StorageDead(_10) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    Assign((_25, deref_copy (_1.1: &libs::rwlock::RwLock<T>))) @ _25=deref_copy (_1.1: &libs::rwlock::RwLock<T>) @ CopyForDeref
+    Assign((_12, &(*_25))) @ _12=&(*_25) @ Ref
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &mut (_1.2: core::option::Option<exception::IrqFlagsGuard>))) @ _14=&mut (_1.2: core::option::Option<exception::IrqFlagsGuard>) @ Ref
+    _13 = core::option::Option::<exception::IrqFlagsGuard>::take(move _14) -> [return: bb7, unwind: bb13] @ Call: FnDid: 10206
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_26, const false)) @ _26=const false @ Use
+    Assign((_16, move _1)) @ _16=move _1 @ Use
+    _15 = core::mem::drop::<libs::rwlock::RwLockUpgradableGuard<'_, T>>(move _16) -> [return: bb8, unwind: bb10] @ Call: FnDid: 2323
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &((*_12).1: core::cell::UnsafeCell<T>))) @ _20=&((*_12).1: core::cell::UnsafeCell<T>) @ Ref
+    _19 = core::cell::UnsafeCell::<T>::get(move _20) -> [return: bb9, unwind: bb10] @ Call: FnDid: 5687
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    Assign((_27, copy _19 as *const () (PtrToPtr))) @ _27=copy _19 as *const () (PtrToPtr) @ Cast
+    Assign((_28, copy _27 as usize (Transmute))) @ _28=copy _27 as usize (Transmute) @ Cast
+    Assign((_29, AlignOf(T))) @ _29=AlignOf(T) @ NullaryOp
+    Assign((_30, Sub(copy _29, const 1_usize))) @ _30=Sub(copy _29, const 1_usize) @ BinaryOp
+    Assign((_31, BitAnd(copy _28, copy _30))) @ _31=BitAnd(copy _28, copy _30) @ BinaryOp
+    Assign((_32, Eq(copy _31, const 0_usize))) @ _32=Eq(copy _31, const 0_usize) @ BinaryOp
+    assert(copy _32, "misaligned pointer dereference: address must be a multiple of {} but is {}", copy _29, copy _28) -> [success: bb14, unwind unreachable] @ Assert
+}
+bb 10 {
+CleanUp: true
+    drop(_13) -> [return: bb13, unwind terminate(cleanup)] @ Drop
+}
+bb 11 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 12 {
+CleanUp: true
+    drop(_1) -> [return: bb11, unwind terminate(cleanup)] @ Drop
+}
+bb 13 {
+CleanUp: true
+    switchInt(copy _26) -> [0: bb11, otherwise: bb12] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    Assign((_33, copy _19 as *const () (PtrToPtr))) @ _33=copy _19 as *const () (PtrToPtr) @ Cast
+    Assign((_34, copy _33 as usize (Transmute))) @ _34=copy _33 as usize (Transmute) @ Cast
+    Assign((_35, Eq(copy _34, const 0_usize))) @ _35=Eq(copy _34, const 0_usize) @ BinaryOp
+    Assign((_36, BitAnd(copy _35, const true))) @ _36=BitAnd(copy _35, const true) @ BinaryOp
+    Assign((_37, Not(copy _36))) @ _37=Not(copy _36) @ UnaryOp
+    assert(copy _37, "null pointer dereference occurred") -> [success: bb15, unwind unreachable] @ Assert
+}
+bb 15 {
+CleanUp: false
+    Assign((_18, &(*_19))) @ _18=&(*_19) @ Ref
+    Assign((_17, &raw const (*_18))) @ _17=&raw const (*_18) @ RawPtr
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &((*_12).0: core::sync::atomic::AtomicU32))) @ _22=&((*_12).0: core::sync::atomic::AtomicU32) @ Ref
+    Assign((_21, &(*_22))) @ _21=&(*_22) @ Ref
+    StorageLive(_23) @ StorageLive
+    Assign((_23, move _13)) @ _23=move _13 @ Use
+    Assign((_0, libs::rwlock::RwLockReadGuard::<'_, T> { data: move _17, lock: move _21, irq_guard: move _23 })) @ _0=libs::rwlock::RwLockReadGuard::<'_, T> { data: move _17, lock: move _21, irq_guard: move _23 } @ Aggregate
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    return @ Return
+}
+

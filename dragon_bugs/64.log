@@ -1,0 +1,261 @@
+22:08:06|RAP|WARN|: Double free detected in function "add_file_with_mode"
+warning: Double free detected.
+   --> src/filesystem/sysfs/file.rs:115:1
+    |
+115 | / pub(super) fn add_file_with_mode(
+116 | |         &self,
+117 | |         parent: &Arc<KernFSInode>,
+118 | |         attr: &'static dyn Attribute,
+119 | |         mode: InodeMode,
+120 | |     ) -> Result<(), SystemError> {
+121 | |         let x = parent.private_data_mut();
+122 | |         let kobj: Arc<dyn KObject>;
+123 | |         if let Some(KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(dt))) = x.as_ref() {
+124 | |             kobj = dt.kobj().unwrap();
+125 | |         } else {
+126 | |             drop(x);
+127 | |             let path = self.kernfs_path(parent);
+128 | |             panic!("parent '{path}' is not a dir");
+129 | |         }
+130 | |         drop(x);
+131 | |
+132 | |         let sysfs_ops: &dyn SysFSOps = kobj.kobj_type().unwrap().sysfs_ops().ok_or_else(|| {
+133 | |             warn!("missing sysfs attribute operations for kobject: {kobj:?}");
+134 | |             SystemError::EINVAL
+135 | |         })?;
+136 | |
+137 | |         // assume that all sysfs ops are preallocated.
+138 | |
+139 | |         let sys_support = sysfs_ops.support(attr);
+140 | |
+141 | |         let kern_callback: &'static dyn KernFSCallback;
+142 | |         if sys_support.contains(SysFSOpsSupport::ATTR_SHOW)
+143 | |             && sys_support.contains(SysFSOpsSupport::ATTR_STORE)
+144 | |         {
+145 | |             kern_callback = &PreallocKFOpsRW;
+146 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_SHOW) {
+147 | |             kern_callback = &PreallocKFOpsReadOnly;
+148 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_STORE) {
+149 | |             kern_callback = &PreallocKFOpsWriteOnly;
+150 | |         } else {
+151 | |             kern_callback = &PreallocKFOpsEmpty;
+152 | |         }
+153 | |
+154 | |         let sys_priv = SysFSKernPrivateData::File(SysKernFilePriv::new(&kobj, Some(attr), None));
+155 | |         let r = parent.add_file(
+156 | |             attr.name().to_string(),
+157 | |             mode.bitand(InodeMode::S_IRWXUGO),
+158 | |             Some(4096),
+159 | |             Some(KernInodePrivateData::SysFS(sys_priv)),
+160 | |             Some(kern_callback),
+161 | |         );
+162 | |
+163 | |         if let Err(e) = r {
+164 | |             if e == SystemError::EEXIST {
+165 | |                 self.warn_duplicate(parent, attr.name());
+166 | |             }
+167 | |
+168 | |             return Err(e);
+169 | |         }
+170 | |         return Ok(());
+171 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/sysfs/file.rs line 115.
+    | MIR detail: Value _97(r, src/filesystem/sysfs/file.rs:155) and _10(kobj, src/filesystem/sysfs/file.rs:122) are alias.
+    | MIR detail: _97(r, src/filesystem/sysfs/file.rs:155) is dropped at BB63(src/filesystem/sysfs/file.rs:171); _10(kobj, src/filesystem/sysfs/file.rs:122) is dropped at BB57(src/filesystem/sysfs/file.rs:171).
+    |
+22:08:06|RAP|WARN|: Double free detected in function "add_file_with_mode"
+warning: Double free detected during unwinding.
+   --> src/filesystem/sysfs/file.rs:115:1
+    |
+115 | / pub(super) fn add_file_with_mode(
+116 | |         &self,
+117 | |         parent: &Arc<KernFSInode>,
+118 | |         attr: &'static dyn Attribute,
+119 | |         mode: InodeMode,
+120 | |     ) -> Result<(), SystemError> {
+121 | |         let x = parent.private_data_mut();
+122 | |         let kobj: Arc<dyn KObject>;
+123 | |         if let Some(KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(dt))) = x.as_ref() {
+124 | |             kobj = dt.kobj().unwrap();
+125 | |         } else {
+126 | |             drop(x);
+127 | |             let path = self.kernfs_path(parent);
+128 | |             panic!("parent '{path}' is not a dir");
+129 | |         }
+130 | |         drop(x);
+131 | |
+132 | |         let sysfs_ops: &dyn SysFSOps = kobj.kobj_type().unwrap().sysfs_ops().ok_or_else(|| {
+133 | |             warn!("missing sysfs attribute operations for kobject: {kobj:?}");
+134 | |             SystemError::EINVAL
+135 | |         })?;
+136 | |
+137 | |         // assume that all sysfs ops are preallocated.
+138 | |
+139 | |         let sys_support = sysfs_ops.support(attr);
+140 | |
+141 | |         let kern_callback: &'static dyn KernFSCallback;
+142 | |         if sys_support.contains(SysFSOpsSupport::ATTR_SHOW)
+143 | |             && sys_support.contains(SysFSOpsSupport::ATTR_STORE)
+144 | |         {
+145 | |             kern_callback = &PreallocKFOpsRW;
+146 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_SHOW) {
+147 | |             kern_callback = &PreallocKFOpsReadOnly;
+148 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_STORE) {
+149 | |             kern_callback = &PreallocKFOpsWriteOnly;
+150 | |         } else {
+151 | |             kern_callback = &PreallocKFOpsEmpty;
+152 | |         }
+153 | |
+154 | |         let sys_priv = SysFSKernPrivateData::File(SysKernFilePriv::new(&kobj, Some(attr), None));
+155 | |         let r = parent.add_file(
+156 | |             attr.name().to_string(),
+157 | |             mode.bitand(InodeMode::S_IRWXUGO),
+158 | |             Some(4096),
+159 | |             Some(KernInodePrivateData::SysFS(sys_priv)),
+160 | |             Some(kern_callback),
+161 | |         );
+162 | |
+163 | |         if let Err(e) = r {
+164 | |             if e == SystemError::EEXIST {
+165 | |                 self.warn_duplicate(parent, attr.name());
+166 | |             }
+167 | |
+168 | |             return Err(e);
+169 | |         }
+170 | |         return Ok(());
+171 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/sysfs/file.rs line 115.
+    | MIR detail: Value _97(r, src/filesystem/sysfs/file.rs:155) and _10(kobj, src/filesystem/sysfs/file.rs:122) are alias.
+    | MIR detail: _97(r, src/filesystem/sysfs/file.rs:155) is dropped at BB59(src/filesystem/sysfs/file.rs:171); _10(kobj, src/filesystem/sysfs/file.rs:122) is dropped at BB69(src/filesystem/sysfs/file.rs:171).
+    |
+22:08:06|RAP|WARN|: Dangling pointer detected in function "add_file_with_mode"
+warning: Dangling pointer detected.
+   --> src/filesystem/sysfs/file.rs:115:1
+    |
+115 | / pub(super) fn add_file_with_mode(
+116 | |         &self,
+117 | |         parent: &Arc<KernFSInode>,
+118 | |         attr: &'static dyn Attribute,
+119 | |         mode: InodeMode,
+120 | |     ) -> Result<(), SystemError> {
+121 | |         let x = parent.private_data_mut();
+122 | |         let kobj: Arc<dyn KObject>;
+123 | |         if let Some(KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(dt))) = x.as_ref() {
+124 | |             kobj = dt.kobj().unwrap();
+125 | |         } else {
+126 | |             drop(x);
+127 | |             let path = self.kernfs_path(parent);
+128 | |             panic!("parent '{path}' is not a dir");
+129 | |         }
+130 | |         drop(x);
+131 | |
+132 | |         let sysfs_ops: &dyn SysFSOps = kobj.kobj_type().unwrap().sysfs_ops().ok_or_else(|| {
+133 | |             warn!("missing sysfs attribute operations for kobject: {kobj:?}");
+134 | |             SystemError::EINVAL
+135 | |         })?;
+136 | |
+137 | |         // assume that all sysfs ops are preallocated.
+138 | |
+139 | |         let sys_support = sysfs_ops.support(attr);
+140 | |
+141 | |         let kern_callback: &'static dyn KernFSCallback;
+142 | |         if sys_support.contains(SysFSOpsSupport::ATTR_SHOW)
+143 | |             && sys_support.contains(SysFSOpsSupport::ATTR_STORE)
+144 | |         {
+145 | |             kern_callback = &PreallocKFOpsRW;
+146 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_SHOW) {
+147 | |             kern_callback = &PreallocKFOpsReadOnly;
+148 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_STORE) {
+149 | |             kern_callback = &PreallocKFOpsWriteOnly;
+150 | |         } else {
+151 | |             kern_callback = &PreallocKFOpsEmpty;
+152 | |         }
+153 | |
+154 | |         let sys_priv = SysFSKernPrivateData::File(SysKernFilePriv::new(&kobj, Some(attr), None));
+155 | |         let r = parent.add_file(
+156 | |             attr.name().to_string(),
+157 | |             mode.bitand(InodeMode::S_IRWXUGO),
+158 | |             Some(4096),
+159 | |             Some(KernInodePrivateData::SysFS(sys_priv)),
+160 | |             Some(kern_callback),
+161 | |         );
+162 | |
+163 | |         if let Err(e) = r {
+164 | |             if e == SystemError::EEXIST {
+165 | |                 self.warn_duplicate(parent, attr.name());
+166 | |             }
+167 | |
+168 | |             return Err(e);
+169 | |         }
+170 | |         return Ok(());
+171 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/file.rs line 115.
+    | MIR detail: Value _97(r, src/filesystem/sysfs/file.rs:155) and _3(attr, src/filesystem/sysfs/file.rs:118) are alias.
+    | MIR detail: _97(r, src/filesystem/sysfs/file.rs:155) is dropped at BB63(src/filesystem/sysfs/file.rs:171); _3(attr, src/filesystem/sysfs/file.rs:118) became dangling.
+    |
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function "add_file_with_mode"
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/sysfs/file.rs:115:1
+    |
+115 | / pub(super) fn add_file_with_mode(
+116 | |         &self,
+117 | |         parent: &Arc<KernFSInode>,
+118 | |         attr: &'static dyn Attribute,
+119 | |         mode: InodeMode,
+120 | |     ) -> Result<(), SystemError> {
+121 | |         let x = parent.private_data_mut();
+122 | |         let kobj: Arc<dyn KObject>;
+123 | |         if let Some(KernInodePrivateData::SysFS(SysFSKernPrivateData::Dir(dt))) = x.as_ref() {
+124 | |             kobj = dt.kobj().unwrap();
+125 | |         } else {
+126 | |             drop(x);
+127 | |             let path = self.kernfs_path(parent);
+128 | |             panic!("parent '{path}' is not a dir");
+129 | |         }
+130 | |         drop(x);
+131 | |
+132 | |         let sysfs_ops: &dyn SysFSOps = kobj.kobj_type().unwrap().sysfs_ops().ok_or_else(|| {
+133 | |             warn!("missing sysfs attribute operations for kobject: {kobj:?}");
+134 | |             SystemError::EINVAL
+135 | |         })?;
+136 | |
+137 | |         // assume that all sysfs ops are preallocated.
+138 | |
+139 | |         let sys_support = sysfs_ops.support(attr);
+140 | |
+141 | |         let kern_callback: &'static dyn KernFSCallback;
+142 | |         if sys_support.contains(SysFSOpsSupport::ATTR_SHOW)
+143 | |             && sys_support.contains(SysFSOpsSupport::ATTR_STORE)
+144 | |         {
+145 | |             kern_callback = &PreallocKFOpsRW;
+146 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_SHOW) {
+147 | |             kern_callback = &PreallocKFOpsReadOnly;
+148 | |         } else if sys_support.contains(SysFSOpsSupport::ATTR_STORE) {
+149 | |             kern_callback = &PreallocKFOpsWriteOnly;
+150 | |         } else {
+151 | |             kern_callback = &PreallocKFOpsEmpty;
+152 | |         }
+153 | |
+154 | |         let sys_priv = SysFSKernPrivateData::File(SysKernFilePriv::new(&kobj, Some(attr), None));
+155 | |         let r = parent.add_file(
+156 | |             attr.name().to_string(),
+157 | |             mode.bitand(InodeMode::S_IRWXUGO),
+158 | |             Some(4096),
+159 | |             Some(KernInodePrivateData::SysFS(sys_priv)),
+160 | |             Some(kern_callback),
+161 | |         );
+162 | |
+163 | |         if let Err(e) = r {
+164 | |             if e == SystemError::EEXIST {
+165 | |                 self.warn_duplicate(parent, attr.name());
+166 | |             }
+167 | |
+168 | |             return Err(e);
+169 | |         }
+170 | |         return Ok(());
+171 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/sysfs/file.rs line 115.
+    | MIR detail: Value _10(kobj, src/filesystem/sysfs/file.rs:122) and _3(attr, src/filesystem/sysfs/file.rs:118) are alias.
+    | MIR detail: _10(kobj, src/filesystem/sysfs/file.rs:122) is dropped at BB69(src/filesystem/sysfs/file.rs:171); _3(attr, src/filesystem/sysfs/file.rs:118) became dangling.
+    |
+render dot for DefId(0:18949 ~ dragonos_kernel[9e38]::filesystem::sysfs::file::{impl#1}::add_file_with_mode)

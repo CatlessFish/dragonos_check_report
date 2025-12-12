@@ -1,0 +1,27 @@
+22:07:54|RAP|WARN|: Dangling pointer detected in function "remove"
+warning: Dangling pointer detected.
+   --> src/libs/futex/futex.rs:141:1
+    |
+141 | / pub fn remove(&mut self, futex: Arc<FutexObj>) {
+142 | |         self.chain
+143 | |             .extract_if(|x| Arc::ptr_eq(x, &futex))
+144 | |             .for_each(drop);
+145 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/futex/futex.rs line 141.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in remove and _1(self, src/libs/futex/futex.rs:141) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in remove is dropped at BB18446744073709551615(src/libs/futex/futex.rs:141); _1(self, src/libs/futex/futex.rs:141) became dangling.
+    |
+22:07:54|RAP|WARN|: Dangling pointer detected during unwinding in function "remove"
+warning: Dangling pointer detected during unwinding.
+   --> src/libs/futex/futex.rs:141:1
+    |
+141 | / pub fn remove(&mut self, futex: Arc<FutexObj>) {
+142 | |         self.chain
+143 | |             .extract_if(|x| Arc::ptr_eq(x, &futex))
+144 | |             .for_each(drop);
+145 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/futex/futex.rs line 141.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in remove and _1(self, src/libs/futex/futex.rs:141) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in remove is dropped at BB18446744073709551615(src/libs/futex/futex.rs:141); _1(self, src/libs/futex/futex.rs:141) became dangling.
+    |
+render dot for DefId(0:5415 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove)

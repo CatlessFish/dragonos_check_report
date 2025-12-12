@@ -1,0 +1,127 @@
+22:08:04|RAP|WARN|: Dangling pointer detected in function "read_at"
+warning: Dangling pointer detected.
+   --> src/filesystem/eventfd.rs:140:1
+    |
+140 | / fn read_at(
+141 | |         &self,
+142 | |         _offset: usize,
+143 | |         len: usize,
+144 | |         buf: &mut [u8],
+145 | |         data_guard: SpinLockGuard<FilePrivateData>,
+146 | |     ) -> Result<usize, SystemError> {
+147 | |         let data = data_guard.clone();
+148 | |         drop(data_guard);
+149 | |         if len < 8 {
+150 | |             return Err(SystemError::EINVAL);
+151 | |         }
+152 | |         let mut lock_efd = self.eventfd.lock();
+153 | |         while lock_efd.count == 0 {
+154 | |             if lock_efd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+155 | |                 drop(lock_efd);
+156 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+157 | |             }
+158 | |
+159 | |             drop(lock_efd);
+160 | |
+161 | |             if ProcessManager::current_pcb().has_pending_signal_fast() {
+162 | |                 return Err(SystemError::ERESTARTSYS);
+163 | |             }
+164 | |
+165 | |             let r = wq_wait_event_interruptible!(self.wait_queue, self.readable(), {});
+166 | |             if r.is_err() {
+167 | |                 ProcessManager::current_pcb()
+168 | |                     .flags()
+169 | |                     .insert(ProcessFlags::HAS_PENDING_SIGNAL);
+170 | |
+171 | |                 return Err(SystemError::ERESTARTSYS);
+172 | |             }
+173 | |
+174 | |             lock_efd = self.eventfd.lock();
+175 | |         }
+176 | |         let mut val = lock_efd.count;
+177 | |
+178 | |         let mut eventfd = lock_efd;
+179 | |         if eventfd.flags.contains(EventFdFlags::EFD_SEMAPHORE) {
+180 | |             eventfd.count -= 1;
+181 | |             val = 1;
+182 | |         } else {
+183 | |             eventfd.count = 0;
+184 | |         }
+185 | |         let val_bytes = val.to_ne_bytes();
+186 | |         buf[..8].copy_from_slice(&val_bytes);
+187 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+188 | |         drop(eventfd);
+189 | |
+190 | |         // 唤醒epoll中等待的进程
+191 | |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+192 | |
+193 | |         return Ok(8);
+194 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 140.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in read_at and _1(self, src/filesystem/eventfd.rs:141) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in read_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:140); _1(self, src/filesystem/eventfd.rs:141) became dangling.
+    |
+22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function "read_at"
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/eventfd.rs:140:1
+    |
+140 | / fn read_at(
+141 | |         &self,
+142 | |         _offset: usize,
+143 | |         len: usize,
+144 | |         buf: &mut [u8],
+145 | |         data_guard: SpinLockGuard<FilePrivateData>,
+146 | |     ) -> Result<usize, SystemError> {
+147 | |         let data = data_guard.clone();
+148 | |         drop(data_guard);
+149 | |         if len < 8 {
+150 | |             return Err(SystemError::EINVAL);
+151 | |         }
+152 | |         let mut lock_efd = self.eventfd.lock();
+153 | |         while lock_efd.count == 0 {
+154 | |             if lock_efd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+155 | |                 drop(lock_efd);
+156 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+157 | |             }
+158 | |
+159 | |             drop(lock_efd);
+160 | |
+161 | |             if ProcessManager::current_pcb().has_pending_signal_fast() {
+162 | |                 return Err(SystemError::ERESTARTSYS);
+163 | |             }
+164 | |
+165 | |             let r = wq_wait_event_interruptible!(self.wait_queue, self.readable(), {});
+166 | |             if r.is_err() {
+167 | |                 ProcessManager::current_pcb()
+168 | |                     .flags()
+169 | |                     .insert(ProcessFlags::HAS_PENDING_SIGNAL);
+170 | |
+171 | |                 return Err(SystemError::ERESTARTSYS);
+172 | |             }
+173 | |
+174 | |             lock_efd = self.eventfd.lock();
+175 | |         }
+176 | |         let mut val = lock_efd.count;
+177 | |
+178 | |         let mut eventfd = lock_efd;
+179 | |         if eventfd.flags.contains(EventFdFlags::EFD_SEMAPHORE) {
+180 | |             eventfd.count -= 1;
+181 | |             val = 1;
+182 | |         } else {
+183 | |             eventfd.count = 0;
+184 | |         }
+185 | |         let val_bytes = val.to_ne_bytes();
+186 | |         buf[..8].copy_from_slice(&val_bytes);
+187 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&data, &eventfd)? as u32);
+188 | |         drop(eventfd);
+189 | |
+190 | |         // 唤醒epoll中等待的进程
+191 | |         EventPoll::wakeup_epoll(&self.epitems, pollflag)?;
+192 | |
+193 | |         return Ok(8);
+194 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 140.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in read_at and _1(self, src/filesystem/eventfd.rs:141) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in read_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:140); _1(self, src/filesystem/eventfd.rs:141) became dangling.
+    |
+render dot for DefId(0:17410 ~ dragonos_kernel[9e38]::filesystem::eventfd::{impl#3}::read_at)

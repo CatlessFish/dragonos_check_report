@@ -1,0 +1,16 @@
+22:08:12|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/mm/syscall/sys_msync.rs:137:1
+    |
+137 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+138 | |         vec![
+139 | |             FormattedSyscallParam::new("start_vaddr", format!("{:#x}", Self::start_vaddr(args))),
+140 | |             FormattedSyscallParam::new("len", format!("{:#x}", Self::len(args))),
+141 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+142 | |         ]
+143 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_msync.rs line 137.
+    | MIR detail: Value _33(_, src/mm/syscall/sys_msync.rs:140) and _9(_, src/mm/syscall/sys_msync.rs:139) are alias.
+    | MIR detail: _33(_, src/mm/syscall/sys_msync.rs:140) is dropped at BB21(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/mm/syscall/sys_msync.rs:139) is dropped at BB22(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:24834 ~ dragonos_kernel[9e38]::mm::syscall::sys_msync::{impl#0}::entry_format)

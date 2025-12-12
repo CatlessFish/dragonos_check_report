@@ -1,0 +1,39 @@
+22:08:00|RAP|WARN|: Double free detected in function "show"
+warning: Double free detected.
+   --> src/driver/rtc/sysfs.rs:304:1
+    |
+304 | / fn show(&self, kobj: Arc<dyn KObject>, buf: &mut [u8]) -> Result<usize, SystemError> {
+305 | |         let rtc_device = kobj
+306 | |             .parent()
+307 | |             .and_then(|x| x.upgrade())
+308 | |             .ok_or(SystemError::ENODEV)?;
+309 | |         let rtc_device = kobj2rtc_device(rtc_device).ok_or(SystemError::EINVAL)?;
+310 | |
+311 | |         let driver_name = rtc_device.driver().ok_or(SystemError::ENODEV)?.name();
+312 | |         let device_name = rtc_device.name();
+313 | |         sysfs_emit_str(buf, &format!("{} {}\n", driver_name, device_name))
+314 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/rtc/sysfs.rs line 304.
+    | MIR detail: Value _48(device_name, src/driver/rtc/sysfs.rs:312) and _31(driver_name, src/driver/rtc/sysfs.rs:311) are alias.
+    | MIR detail: _48(device_name, src/driver/rtc/sysfs.rs:312) is dropped at BB33(src/driver/rtc/sysfs.rs:314); _31(driver_name, src/driver/rtc/sysfs.rs:311) is dropped at BB34(src/driver/rtc/sysfs.rs:314).
+    |
+22:08:00|RAP|WARN|: Double free detected in function "show"
+warning: Double free detected during unwinding.
+   --> src/driver/rtc/sysfs.rs:304:1
+    |
+304 | / fn show(&self, kobj: Arc<dyn KObject>, buf: &mut [u8]) -> Result<usize, SystemError> {
+305 | |         let rtc_device = kobj
+306 | |             .parent()
+307 | |             .and_then(|x| x.upgrade())
+308 | |             .ok_or(SystemError::ENODEV)?;
+309 | |         let rtc_device = kobj2rtc_device(rtc_device).ok_or(SystemError::EINVAL)?;
+310 | |
+311 | |         let driver_name = rtc_device.driver().ok_or(SystemError::ENODEV)?.name();
+312 | |         let device_name = rtc_device.name();
+313 | |         sysfs_emit_str(buf, &format!("{} {}\n", driver_name, device_name))
+314 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/rtc/sysfs.rs line 304.
+    | MIR detail: Value _48(device_name, src/driver/rtc/sysfs.rs:312) and _31(driver_name, src/driver/rtc/sysfs.rs:311) are alias.
+    | MIR detail: _48(device_name, src/driver/rtc/sysfs.rs:312) is dropped at BB45(src/driver/rtc/sysfs.rs:314); _31(driver_name, src/driver/rtc/sysfs.rs:311) is dropped at BB46(src/driver/rtc/sysfs.rs:314).
+    |
+render dot for DefId(0:13043 ~ dragonos_kernel[9e38]::driver::rtc::sysfs::{impl#6}::show)

@@ -1,0 +1,50 @@
+22:08:12|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/mm/syscall/sys_mremap.rs:111:1
+    |
+111 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+112 | |         vec![
+113 | |             FormattedSyscallParam::new("old_vaddr", format!("{:#x}", Self::old_vaddr(args))),
+114 | |             FormattedSyscallParam::new("old_len", format!("{:#x}", Self::old_len(args))),
+115 | |             FormattedSyscallParam::new("new_len", format!("{:#x}", Self::new_len(args))),
+116 | |             FormattedSyscallParam::new("mremap_flags", format!("{:#x}", Self::mremap_flags(args))),
+117 | |             FormattedSyscallParam::new("new_vaddr", format!("{:#x}", Self::new_vaddr(args))),
+118 | |         ]
+119 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_mremap.rs line 111.
+    | MIR detail: Value _33(_, src/mm/syscall/sys_mremap.rs:114) and _9(_, src/mm/syscall/sys_mremap.rs:113) are alias.
+    | MIR detail: _33(_, src/mm/syscall/sys_mremap.rs:114) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/mm/syscall/sys_mremap.rs:113) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/mm/syscall/sys_mremap.rs:111:1
+    |
+111 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+112 | |         vec![
+113 | |             FormattedSyscallParam::new("old_vaddr", format!("{:#x}", Self::old_vaddr(args))),
+114 | |             FormattedSyscallParam::new("old_len", format!("{:#x}", Self::old_len(args))),
+115 | |             FormattedSyscallParam::new("new_len", format!("{:#x}", Self::new_len(args))),
+116 | |             FormattedSyscallParam::new("mremap_flags", format!("{:#x}", Self::mremap_flags(args))),
+117 | |             FormattedSyscallParam::new("new_vaddr", format!("{:#x}", Self::new_vaddr(args))),
+118 | |         ]
+119 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_mremap.rs line 111.
+    | MIR detail: Value _57(_, src/mm/syscall/sys_mremap.rs:115) and _33(_, src/mm/syscall/sys_mremap.rs:114) are alias.
+    | MIR detail: _57(_, src/mm/syscall/sys_mremap.rs:115) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/mm/syscall/sys_mremap.rs:114) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/mm/syscall/sys_mremap.rs:111:1
+    |
+111 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+112 | |         vec![
+113 | |             FormattedSyscallParam::new("old_vaddr", format!("{:#x}", Self::old_vaddr(args))),
+114 | |             FormattedSyscallParam::new("old_len", format!("{:#x}", Self::old_len(args))),
+115 | |             FormattedSyscallParam::new("new_len", format!("{:#x}", Self::new_len(args))),
+116 | |             FormattedSyscallParam::new("mremap_flags", format!("{:#x}", Self::mremap_flags(args))),
+117 | |             FormattedSyscallParam::new("new_vaddr", format!("{:#x}", Self::new_vaddr(args))),
+118 | |         ]
+119 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/mm/syscall/sys_mremap.rs line 111.
+    | MIR detail: Value _81(_, src/mm/syscall/sys_mremap.rs:116) and _57(_, src/mm/syscall/sys_mremap.rs:115) are alias.
+    | MIR detail: _81(_, src/mm/syscall/sys_mremap.rs:116) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _57(_, src/mm/syscall/sys_mremap.rs:115) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:24800 ~ dragonos_kernel[9e38]::mm::syscall::sys_mremap::{impl#0}::entry_format)

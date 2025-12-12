@@ -1,0 +1,72 @@
+22:07:53|RAP|WARN|: Use-after-free detected in function "downgrade"
+warning: Use-after-free detected.
+   --> src/libs/rwlock.rs:462:9
+    |
+452 |   pub fn downgrade(mut self) -> RwLockReadGuard<'rwlock, T> {
+453 |           while self.inner.current_reader().is_err() {
+454 |               spin_loop();
+455 |           }
+456 |
+457 |           let inner: &RwLock<T> = self.inner;
+458 |           let irq_guard = self.irq_guard.take();
+459 |           // 自动移去UPGRADED比特位
+460 |           mem::drop(self);
+461 |
+462 | /         RwLockReadGuard {
+463 | |             data: unsafe { &*inner.data.get() },
+464 | |             lock: &inner.lock,
+465 | |             irq_guard,
+466 | |         }
+    | |_________- Use-after-free (confidence 99%): Location in file src/libs/rwlock.rs line 462.
+    | MIR detail: Value _16(_, src/libs/rwlock.rs:460) and _23(_, src/libs/rwlock.rs:465) are alias.
+    | MIR detail: _16(_, src/libs/rwlock.rs:460) is dropped at BB7(src/libs/rwlock.rs:460); _23(_, src/libs/rwlock.rs:465) is used at BB15(src/libs/rwlock.rs:467).
+467 |       }
+    |
+warning: Use-after-free detected.
+   --> src/libs/rwlock.rs:465:13
+    |
+452 | pub fn downgrade(mut self) -> RwLockReadGuard<'rwlock, T> {
+453 |         while self.inner.current_reader().is_err() {
+454 |             spin_loop();
+455 |         }
+456 |
+457 |         let inner: &RwLock<T> = self.inner;
+458 |         let irq_guard = self.irq_guard.take();
+459 |         // 自动移去UPGRADED比特位
+460 |         mem::drop(self);
+461 |
+462 |         RwLockReadGuard {
+463 |             data: unsafe { &*inner.data.get() },
+464 |             lock: &inner.lock,
+465 |             irq_guard,
+    |             --------- Use-after-free (confidence 99%): Location in file src/libs/rwlock.rs line 465.
+    | MIR detail: Value _16(_, src/libs/rwlock.rs:460) and _13(irq_guard, src/libs/rwlock.rs:458) are alias.
+    | MIR detail: _16(_, src/libs/rwlock.rs:460) is dropped at BB7(src/libs/rwlock.rs:460); _13(irq_guard, src/libs/rwlock.rs:458) is used at BB15(src/libs/rwlock.rs:467).
+466 |         }
+467 |     }
+    |
+22:07:53|RAP|WARN|: Dangling pointer detected in function "downgrade"
+warning: Dangling pointer detected.
+   --> src/libs/rwlock.rs:452:1
+    |
+452 | / pub fn downgrade(mut self) -> RwLockReadGuard<'rwlock, T> {
+453 | |         while self.inner.current_reader().is_err() {
+454 | |             spin_loop();
+455 | |         }
+456 | |
+457 | |         let inner: &RwLock<T> = self.inner;
+458 | |         let irq_guard = self.irq_guard.take();
+459 | |         // 自动移去UPGRADED比特位
+460 | |         mem::drop(self);
+461 | |
+462 | |         RwLockReadGuard {
+463 | |             data: unsafe { &*inner.data.get() },
+464 | |             lock: &inner.lock,
+465 | |             irq_guard,
+466 | |         }
+467 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/rwlock.rs line 452.
+    | MIR detail: Value _16(_, src/libs/rwlock.rs:460) and _0(_, src/libs/rwlock.rs:452) are alias.
+    | MIR detail: _16(_, src/libs/rwlock.rs:460) is dropped at BB7(src/libs/rwlock.rs:460); _0(_, src/libs/rwlock.rs:452) became dangling.
+    |
+render dot for DefId(0:5191 ~ dragonos_kernel[9e38]::libs::rwlock::{impl#6}::downgrade)

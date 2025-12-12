@@ -1,0 +1,25 @@
+22:07:47|RAP|WARN|: Dangling pointer detected in function "reset_counter"
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function "reset_counter"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/driver/hpet.rs:326:1
+    |
+326 | / fn reset_counter(&self) {
+327 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+328 | |         unsafe { regs.write_main_counter_value(0) };
+329 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 326.
+    | MIR detail: Value _3(_, src/arch/x86_64/driver/hpet.rs:327) and _1(self, src/arch/x86_64/driver/hpet.rs:326) are alias.
+    | MIR detail: _3(_, src/arch/x86_64/driver/hpet.rs:327) is dropped at BB1(src/arch/x86_64/driver/hpet.rs:327); _1(self, src/arch/x86_64/driver/hpet.rs:326) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/driver/hpet.rs:326:1
+    |
+326 | / fn reset_counter(&self) {
+327 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+328 | |         unsafe { regs.write_main_counter_value(0) };
+329 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 326.
+    | MIR detail: Value _3(_, src/arch/x86_64/driver/hpet.rs:327) and _1(self, src/arch/x86_64/driver/hpet.rs:326) are alias.
+    | MIR detail: _3(_, src/arch/x86_64/driver/hpet.rs:327) is dropped at BB1(src/arch/x86_64/driver/hpet.rs:327); _1(self, src/arch/x86_64/driver/hpet.rs:326) became dangling.
+    |
+render dot for DefId(0:615 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::reset_counter)

@@ -1,0 +1,20 @@
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "new"
+warning: Dangling pointer detected during unwinding.
+  --> src/filesystem/kernfs/mod.rs:73:1
+   |
+73 | / pub fn new(fsname: &'static str) -> Arc<Self> {
+74 | |         let root_inode = Self::create_root_inode();
+75 | |         let fs = Arc::new(Self {
+76 | |             root_inode: root_inode.clone(),
+77 | |             fsname,
+78 | |         });
+79 | |
+80 | |         root_inode.inner.write().parent = Arc::downgrade(&root_inode);
+81 | |         *root_inode.fs.write() = Arc::downgrade(&fs);
+82 | |         return fs;
+83 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/kernfs/mod.rs line 73.
+    | MIR detail: Value _4(fs, src/filesystem/kernfs/mod.rs:75) and _1(fsname, src/filesystem/kernfs/mod.rs:73) are alias.
+    | MIR detail: _4(fs, src/filesystem/kernfs/mod.rs:75) is dropped at BB23(src/filesystem/kernfs/mod.rs:83); _1(fsname, src/filesystem/kernfs/mod.rs:73) became dangling.
+   |
+render dot for DefId(0:18123 ~ dragonos_kernel[9e38]::filesystem::kernfs::{impl#1}::new)

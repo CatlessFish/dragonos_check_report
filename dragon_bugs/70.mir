@@ -1,0 +1,227 @@
+bb0 at src/filesystem/vfs/open.rs:143:9: 143:17
+bb1 at src/filesystem/vfs/open.rs:143:21: 143:50
+bb2 at src/filesystem/vfs/open.rs:143:21: 143:50
+bb3 at src/filesystem/vfs/open.rs:143:60: 143:61
+bb4 at src/filesystem/vfs/open.rs:143:61: 143:62
+bb5 at src/filesystem/vfs/open.rs:144:20: 144:28
+bb6 at src/filesystem/vfs/open.rs:144:34: 144:35
+bb7 at src/filesystem/vfs/open.rs:146:17: 146:25
+bb8 at src/filesystem/vfs/open.rs:146:43: 146:44
+bb9 at src/filesystem/vfs/open.rs:146:17: 146:53
+bb10 at src/filesystem/vfs/open.rs:146:17: 146:53
+bb11 at src/filesystem/vfs/open.rs:146:60: 146:61
+bb12 at src/filesystem/vfs/open.rs:146:61: 146:62
+bb13 at src/filesystem/vfs/open.rs:148:46: 148:47
+bb14 at src/filesystem/vfs/open.rs:150:18: 150:19
+bb15 at src/filesystem/vfs/open.rs:153:1: 153:2
+fn filesystem::vfs::open::ksys_fchown
+_0:  @ core::result::Result<usize, system_error::SystemError> 
+_1:  @ i32 
+_2:  @ usize 
+_3:  @ usize 
+_4:  @ ! 
+_5:  @ &'{erased} alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>, alloc::alloc::Global> 
+_6:  @ alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>, alloc::alloc::Global> 
+_7:  @ &'{erased} process::ProcessControlBlock 
+_8:  @ &'{erased} process::ProcessControlBlock 
+_9:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_10:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_11:  @ libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_12:  @ &'{erased} libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec> 
+_13:  @ &'{erased} libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec> 
+_14:  @ &'{erased} alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>, alloc::alloc::Global> 
+_15:  @ alloc::sync::Arc<dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_16:  @ &'{erased} filesystem::vfs::file::File 
+_17:  @ &'{erased} filesystem::vfs::file::File 
+_18:  @ &'{erased} alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_19:  @ alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global> 
+_20:  @ core::option::Option<alloc::sync::Arc<filesystem::vfs::file::File, alloc::alloc::Global>> 
+_21:  @ &'{erased} filesystem::vfs::file::FileDescriptorVec 
+_22:  @ &'{erased} filesystem::vfs::file::FileDescriptorVec 
+_23:  @ &'{erased} libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_24:  @ i32 
+_25:  @ core::result::Result<usize, system_error::SystemError> 
+_26:  @ alloc::sync::Arc<dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_27:  @ alloc::sync::Arc<dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + '{erased}, alloc::alloc::Global> 
+_28:  @ usize 
+_29:  @ usize 
+_30:  @ () 
+_31:  @ libs::rwlock::RwLockReadGuard<'{erased}, filesystem::vfs::file::FileDescriptorVec> 
+_32:  @ bool 
+_33:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_33, const false)) @ _33=const false @ Use
+    Assign((_32, const false)) @ _32=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    _10 = process::ProcessManager::current_pcb() -> [return: bb1, unwind continue] @ Call: FnDid: 29866
+}
+bb 1 {
+CleanUp: false
+    Assign((_9, &_10)) @ _9=&_10 @ Ref
+    _8 = <alloc::sync::Arc<process::ProcessControlBlock> as lazy_static::__Deref>::deref(move _9) -> [return: bb2, unwind: bb18] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_7, &(*_8))) @ _7=&(*_8) @ Ref
+    StorageDead(_9) @ StorageDead
+    _6 = process::ProcessControlBlock::fd_table(move _7) -> [return: bb3, unwind: bb18] @ Call: FnDid: 29947
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    Assign((_5, &_6)) @ _5=&_6 @ Ref
+    drop(_10) -> [return: bb4, unwind: bb17] @ Drop
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &(*_5))) @ _14=&(*_5) @ Ref
+    _13 = <alloc::sync::Arc<libs::rwlock::RwLock<filesystem::vfs::file::FileDescriptorVec>> as lazy_static::__Deref>::deref(move _14) -> [return: bb5, unwind: bb17] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    Assign((_12, &(*_13))) @ _12=&(*_13) @ Ref
+    StorageDead(_14) @ StorageDead
+    _11 = libs::rwlock::RwLock::<filesystem::vfs::file::FileDescriptorVec>::read(move _12) -> [return: bb6, unwind: bb17] @ Call: FnDid: 5156
+}
+bb 6 {
+CleanUp: false
+    Assign((_33, const true)) @ _33=const true @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &_11)) @ _23=&_11 @ Ref
+    _22 = <libs::rwlock::RwLockReadGuard<'_, filesystem::vfs::file::FileDescriptorVec> as lazy_static::__Deref>::deref(move _23) -> [return: bb7, unwind: bb23] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    Assign((_21, &(*_22))) @ _21=&(*_22) @ Ref
+    StorageDead(_23) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    Assign((_24, copy _1)) @ _24=copy _1 @ Use
+    _20 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _21, move _24) -> [return: bb8, unwind: bb23] @ Call: FnDid: 19231
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    _19 = core::option::Option::<alloc::sync::Arc<filesystem::vfs::file::File>>::unwrap(move _20) -> [return: bb9, unwind: bb23] @ Call: FnDid: 10157
+}
+bb 9 {
+CleanUp: false
+    Assign((_18, &_19)) @ _18=&_19 @ Ref
+    _17 = <alloc::sync::Arc<filesystem::vfs::file::File> as lazy_static::__Deref>::deref(move _18) -> [return: bb10, unwind: bb16] @ Call: FnDid: 3903
+}
+bb 10 {
+CleanUp: false
+    Assign((_16, &(*_17))) @ _16=&(*_17) @ Ref
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    _15 = filesystem::vfs::file::File::inode(move _16) -> [return: bb11, unwind: bb16] @ Call: FnDid: 19197
+}
+bb 11 {
+CleanUp: false
+    Assign((_32, const true)) @ _32=const true @ Use
+    StorageDead(_16) @ StorageDead
+    drop(_19) -> [return: bb12, unwind: bb21] @ Drop
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_32, const false)) @ _32=const false @ Use
+    Assign((_27, move _15)) @ _27=move _15 @ Use
+    Assign((_26, move _27 as alloc::sync::Arc<dyn filesystem::vfs::IndexNode> (PointerCoercion(Unsize, Implicit)))) @ _26=move _27 as alloc::sync::Arc<dyn filesystem::vfs::IndexNode> (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_27) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    Assign((_28, copy _2)) @ _28=copy _2 @ Use
+    StorageLive(_29) @ StorageLive
+    Assign((_29, copy _3)) @ _29=copy _3 @ Use
+    _25 = filesystem::vfs::open::chown_common(move _26, move _28, move _29) -> [return: bb13, unwind: bb21] @ Call: FnDid: 19507
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_33, const false)) @ _33=const false @ Use
+    Assign((_31, move _11)) @ _31=move _11 @ Use
+    _30 = core::mem::drop::<libs::rwlock::RwLockReadGuard<'_, filesystem::vfs::file::FileDescriptorVec>>(move _31) -> [return: bb14, unwind: bb21] @ Call: FnDid: 2323
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    Assign((_0, move _25)) @ _0=move _25 @ Use
+    StorageDead(_25) @ StorageDead
+    Assign((_32, const false)) @ _32=const false @ Use
+    StorageDead(_15) @ StorageDead
+    Assign((_33, const false)) @ _33=const false @ Use
+    StorageDead(_11) @ StorageDead
+    drop(_6) -> [return: bb15, unwind: bb19] @ Drop
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    return @ Return
+}
+bb 16 {
+CleanUp: true
+    drop(_19) -> [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 17 {
+CleanUp: true
+    drop(_6) -> [return: bb19, unwind terminate(cleanup)] @ Drop
+}
+bb 18 {
+CleanUp: true
+    drop(_10) -> [return: bb19, unwind terminate(cleanup)] @ Drop
+}
+bb 19 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 20 {
+CleanUp: true
+    drop(_15) -> [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 21 {
+CleanUp: true
+    switchInt(copy _32) -> [0: bb23, otherwise: bb20] @ SwitchInt
+}
+bb 22 {
+CleanUp: true
+    drop(_11) -> [return: bb17, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    switchInt(copy _33) -> [0: bb17, otherwise: bb22] @ SwitchInt
+}
+

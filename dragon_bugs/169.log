@@ -1,0 +1,39 @@
+22:08:15|RAP|WARN|: Dangling pointer detected in function "pop_incoming"
+warning: Dangling pointer detected.
+   --> src/net/socket/unix/stream/inner.rs:384:1
+    |
+384 | / fn pop_incoming(&self) -> Result<Connected, SystemError> {
+385 | |         let mut guard = self.incoming_conns.lock();
+386 | |
+387 | |         let Some(incoming_conns) = &mut *guard else {
+388 | |             return Err(SystemError::EINVAL);
+389 | |         };
+390 | |         let conn = incoming_conns.pop_front();
+391 | |         drop(guard);
+392 | |
+393 | |         conn.ok_or(SystemError::EAGAIN_OR_EWOULDBLOCK)
+394 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/inner.rs line 384.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in pop_incoming and _1(self, src/net/socket/unix/stream/inner.rs:384) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in pop_incoming is dropped at BB18446744073709551615(src/net/socket/unix/stream/inner.rs:384); _1(self, src/net/socket/unix/stream/inner.rs:384) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function "pop_incoming"
+warning: Dangling pointer detected during unwinding.
+   --> src/net/socket/unix/stream/inner.rs:384:1
+    |
+384 | / fn pop_incoming(&self) -> Result<Connected, SystemError> {
+385 | |         let mut guard = self.incoming_conns.lock();
+386 | |
+387 | |         let Some(incoming_conns) = &mut *guard else {
+388 | |             return Err(SystemError::EINVAL);
+389 | |         };
+390 | |         let conn = incoming_conns.pop_front();
+391 | |         drop(guard);
+392 | |
+393 | |         conn.ok_or(SystemError::EAGAIN_OR_EWOULDBLOCK)
+394 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/inner.rs line 384.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in pop_incoming and _1(self, src/net/socket/unix/stream/inner.rs:384) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in pop_incoming is dropped at BB18446744073709551615(src/net/socket/unix/stream/inner.rs:384); _1(self, src/net/socket/unix/stream/inner.rs:384) became dangling.
+    |
+render dot for DefId(0:27079 ~ dragonos_kernel[9e38]::net::socket::unix::stream::inner::{impl#6}::pop_incoming)

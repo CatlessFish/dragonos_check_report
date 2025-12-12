@@ -1,0 +1,89 @@
+22:08:13|RAP|WARN|: Dangling pointer detected in function "get_ephemeral_port"
+warning: Dangling pointer detected.
+  --> src/net/socket/inet/common/port.rs:33:1
+   |
+33 | / pub fn get_ephemeral_port(&self, socket_type: Types) -> Result<u16, SystemError> {
+34 | |         // TODO: selects non-conflict high port
+35 | |
+36 | |         static mut EPHEMERAL_PORT: u16 = 0;
+37 | |         unsafe {
+38 | |             if EPHEMERAL_PORT == 0 {
+39 | |                 EPHEMERAL_PORT = (49152 + rand() % (65536 - 49152)) as u16;
+40 | |             }
+41 | |         }
+42 | |
+43 | |         let mut remaining = 65536 - 49152; // 剩余尝试分配端口次数
+44 | |         let mut port: u16;
+45 | |         while remaining > 0 {
+46 | |             unsafe {
+47 | |                 if EPHEMERAL_PORT == 65535 {
+48 | |                     EPHEMERAL_PORT = 49152;
+49 | |                 } else {
+50 | |                     EPHEMERAL_PORT += 1;
+51 | |                 }
+52 | |                 port = EPHEMERAL_PORT;
+53 | |             }
+54 | |
+55 | |             // 使用 ListenTable 检查端口是否被占用
+56 | |             let listen_table_guard = match socket_type {
+57 | |                 Udp => self.udp_port_table.lock(),
+58 | |                 Tcp => self.tcp_port_table.lock(),
+59 | |                 _ => panic!("{:?} cann't get a port", socket_type),
+60 | |             };
+61 | |             if listen_table_guard.get(&port).is_none() {
+62 | |                 drop(listen_table_guard);
+63 | |                 return Ok(port);
+64 | |             }
+65 | |             remaining -= 1;
+66 | |         }
+67 | |         return Err(SystemError::EADDRINUSE);
+68 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/common/port.rs line 33.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in get_ephemeral_port and _1(self, src/net/socket/inet/common/port.rs:33) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in get_ephemeral_port is dropped at BB18446744073709551615(src/net/socket/inet/common/port.rs:33); _1(self, src/net/socket/inet/common/port.rs:33) became dangling.
+   |
+22:08:13|RAP|WARN|: Dangling pointer detected during unwinding in function "get_ephemeral_port"
+warning: Dangling pointer detected during unwinding.
+  --> src/net/socket/inet/common/port.rs:33:1
+   |
+33 | / pub fn get_ephemeral_port(&self, socket_type: Types) -> Result<u16, SystemError> {
+34 | |         // TODO: selects non-conflict high port
+35 | |
+36 | |         static mut EPHEMERAL_PORT: u16 = 0;
+37 | |         unsafe {
+38 | |             if EPHEMERAL_PORT == 0 {
+39 | |                 EPHEMERAL_PORT = (49152 + rand() % (65536 - 49152)) as u16;
+40 | |             }
+41 | |         }
+42 | |
+43 | |         let mut remaining = 65536 - 49152; // 剩余尝试分配端口次数
+44 | |         let mut port: u16;
+45 | |         while remaining > 0 {
+46 | |             unsafe {
+47 | |                 if EPHEMERAL_PORT == 65535 {
+48 | |                     EPHEMERAL_PORT = 49152;
+49 | |                 } else {
+50 | |                     EPHEMERAL_PORT += 1;
+51 | |                 }
+52 | |                 port = EPHEMERAL_PORT;
+53 | |             }
+54 | |
+55 | |             // 使用 ListenTable 检查端口是否被占用
+56 | |             let listen_table_guard = match socket_type {
+57 | |                 Udp => self.udp_port_table.lock(),
+58 | |                 Tcp => self.tcp_port_table.lock(),
+59 | |                 _ => panic!("{:?} cann't get a port", socket_type),
+60 | |             };
+61 | |             if listen_table_guard.get(&port).is_none() {
+62 | |                 drop(listen_table_guard);
+63 | |                 return Ok(port);
+64 | |             }
+65 | |             remaining -= 1;
+66 | |         }
+67 | |         return Err(SystemError::EADDRINUSE);
+68 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/common/port.rs line 33.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in get_ephemeral_port and _1(self, src/net/socket/inet/common/port.rs:33) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in get_ephemeral_port is dropped at BB18446744073709551615(src/net/socket/inet/common/port.rs:33); _1(self, src/net/socket/inet/common/port.rs:33) became dangling.
+   |
+render dot for DefId(0:25703 ~ dragonos_kernel[9e38]::net::socket::inet::common::port::{impl#1}::get_ephemeral_port)

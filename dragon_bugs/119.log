@@ -1,0 +1,75 @@
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_sync.rs:57:1
+   |
+57 | / fn handle(
+58 | |         &self,
+59 | |         args: &[usize],
+60 | |         _frame: &mut TrapFrame,
+61 | |     ) -> Result<usize, system_error::SystemError> {
+62 | |         let fd = args[0] as i32;
+63 | |
+64 | |         // Get the file descriptor table
+65 | |         let binding = ProcessManager::current_pcb().fd_table();
+66 | |         let fd_table_guard = binding.read();
+67 | |
+68 | |         // Validate that the fd exists
+69 | |         let file = fd_table_guard
+70 | |             .get_file_by_fd(fd)
+71 | |             .ok_or(SystemError::EBADF)?;
+72 | |
+73 | |         // drop guard 以避免无法调度的问题
+74 | |         drop(fd_table_guard);
+75 | |
+76 | |         // Check if the file descriptor was opened with O_PATH
+77 | |         if file.flags().contains(FileFlags::O_PATH) {
+78 | |             return Err(SystemError::EBADF);
+79 | |         }
+80 | |
+81 | |         // TODO: now, we ignore the fd and sync all filesystems.
+82 | |         // In the future, we should sync only the filesystem of the given fd.
+83 | |         page_reclaimer_lock_irqsave().flush_dirty_pages();
+84 | |         Ok(0)
+85 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_sync.rs line 57.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_sync.rs:74) and _9(binding, src/filesystem/vfs/syscall/sys_sync.rs:65) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_sync.rs:74) is dropped at BB13(src/filesystem/vfs/syscall/sys_sync.rs:74); _9(binding, src/filesystem/vfs/syscall/sys_sync.rs:65) is dropped at BB26(src/filesystem/vfs/syscall/sys_sync.rs:85).
+   |
+22:08:08|RAP|WARN|: Double free detected in function "handle"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_sync.rs:57:1
+   |
+57 | / fn handle(
+58 | |         &self,
+59 | |         args: &[usize],
+60 | |         _frame: &mut TrapFrame,
+61 | |     ) -> Result<usize, system_error::SystemError> {
+62 | |         let fd = args[0] as i32;
+63 | |
+64 | |         // Get the file descriptor table
+65 | |         let binding = ProcessManager::current_pcb().fd_table();
+66 | |         let fd_table_guard = binding.read();
+67 | |
+68 | |         // Validate that the fd exists
+69 | |         let file = fd_table_guard
+70 | |             .get_file_by_fd(fd)
+71 | |             .ok_or(SystemError::EBADF)?;
+72 | |
+73 | |         // drop guard 以避免无法调度的问题
+74 | |         drop(fd_table_guard);
+75 | |
+76 | |         // Check if the file descriptor was opened with O_PATH
+77 | |         if file.flags().contains(FileFlags::O_PATH) {
+78 | |             return Err(SystemError::EBADF);
+79 | |         }
+80 | |
+81 | |         // TODO: now, we ignore the fd and sync all filesystems.
+82 | |         // In the future, we should sync only the filesystem of the given fd.
+83 | |         page_reclaimer_lock_irqsave().flush_dirty_pages();
+84 | |         Ok(0)
+85 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_sync.rs line 57.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_sync.rs:74) and _9(binding, src/filesystem/vfs/syscall/sys_sync.rs:65) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_sync.rs:74) is dropped at BB13(src/filesystem/vfs/syscall/sys_sync.rs:74); _9(binding, src/filesystem/vfs/syscall/sys_sync.rs:65) is dropped at BB34(src/filesystem/vfs/syscall/sys_sync.rs:85).
+   |
+render dot for DefId(0:20867 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_sync::{impl#1}::handle)

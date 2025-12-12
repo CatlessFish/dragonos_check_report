@@ -1,0 +1,32 @@
+22:08:19|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/time/syscall/sys_clock_nanosleep.rs:193:1
+    |
+193 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+194 | |         vec![
+195 | |             FormattedSyscallParam::new("which_clock", format!("{}", Self::which_clock(args))),
+196 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+197 | |             FormattedSyscallParam::new("rqtp", format!("{:#x}", Self::rqtp(args) as usize)),
+198 | |             FormattedSyscallParam::new("rmtp", format!("{:#x}", Self::rmtp(args) as usize)),
+199 | |         ]
+200 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/syscall/sys_clock_nanosleep.rs line 193.
+    | MIR detail: Value _24(_, src/time/syscall/sys_clock_nanosleep.rs:196) and _9(_, src/time/syscall/sys_clock_nanosleep.rs:195) are alias.
+    | MIR detail: _24(_, src/time/syscall/sys_clock_nanosleep.rs:196) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/time/syscall/sys_clock_nanosleep.rs:195) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --> src/time/syscall/sys_clock_nanosleep.rs:193:1
+    |
+193 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+194 | |         vec![
+195 | |             FormattedSyscallParam::new("which_clock", format!("{}", Self::which_clock(args))),
+196 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+197 | |             FormattedSyscallParam::new("rqtp", format!("{:#x}", Self::rqtp(args) as usize)),
+198 | |             FormattedSyscallParam::new("rmtp", format!("{:#x}", Self::rmtp(args) as usize)),
+199 | |         ]
+200 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/syscall/sys_clock_nanosleep.rs line 193.
+    | MIR detail: Value _48(_, src/time/syscall/sys_clock_nanosleep.rs:197) and _24(_, src/time/syscall/sys_clock_nanosleep.rs:196) are alias.
+    | MIR detail: _48(_, src/time/syscall/sys_clock_nanosleep.rs:197) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _24(_, src/time/syscall/sys_clock_nanosleep.rs:196) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:31254 ~ dragonos_kernel[9e38]::time::syscall::sys_clock_nanosleep::{impl#1}::entry_format)

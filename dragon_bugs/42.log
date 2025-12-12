@@ -1,0 +1,79 @@
+22:08:04|RAP|WARN|: Dangling pointer detected in function "wake_up_and_wait_for_irq_thread_ready"
+22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function "wake_up_and_wait_for_irq_thread_ready"
+warning: Dangling pointer detected.
+   --> src/exception/manage.rs:711:1
+    |
+711 | / fn wake_up_and_wait_for_irq_thread_ready(
+712 | |         &self,
+713 | |         desc: &Arc<IrqDesc>,
+714 | |         action: Option<Arc<IrqAction>>,
+715 | |     ) {
+716 | |         if action.is_none() {
+717 | |             return;
+718 | |         }
+719 | |
+720 | |         let action = action.unwrap();
+721 | |
+722 | |         let action_guard = action.inner();
+723 | |         if action_guard.thread().is_none() {
+724 | |             return;
+725 | |         }
+726 | |
+727 | |         ProcessManager::wakeup(&action_guard.thread().unwrap()).ok();
+728 | |         drop(action_guard);
+729 | |         action
+730 | |             .thread_completion()
+731 | |             .wait_for_completion()
+732 | |             .map_err(|e| {
+733 | |                 warn!(
+734 | |                     "Failed to wait for irq thread ready for {} (irq {:?}), error {:?}",
+735 | |                     action.inner().name(),
+736 | |                     desc.irq_data().irq(),
+737 | |                     e
+738 | |                 );
+739 | |             })
+740 | |             .ok();
+741 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 711.
+    | MIR detail: Value _8(action, src/exception/manage.rs:720) and _2(desc, src/exception/manage.rs:713) are alias.
+    | MIR detail: _8(action, src/exception/manage.rs:720) is dropped at BB25(src/exception/manage.rs:741); _2(desc, src/exception/manage.rs:713) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/exception/manage.rs:711:1
+    |
+711 | / fn wake_up_and_wait_for_irq_thread_ready(
+712 | |         &self,
+713 | |         desc: &Arc<IrqDesc>,
+714 | |         action: Option<Arc<IrqAction>>,
+715 | |     ) {
+716 | |         if action.is_none() {
+717 | |             return;
+718 | |         }
+719 | |
+720 | |         let action = action.unwrap();
+721 | |
+722 | |         let action_guard = action.inner();
+723 | |         if action_guard.thread().is_none() {
+724 | |             return;
+725 | |         }
+726 | |
+727 | |         ProcessManager::wakeup(&action_guard.thread().unwrap()).ok();
+728 | |         drop(action_guard);
+729 | |         action
+730 | |             .thread_completion()
+731 | |             .wait_for_completion()
+732 | |             .map_err(|e| {
+733 | |                 warn!(
+734 | |                     "Failed to wait for irq thread ready for {} (irq {:?}), error {:?}",
+735 | |                     action.inner().name(),
+736 | |                     desc.irq_data().irq(),
+737 | |                     e
+738 | |                 );
+739 | |             })
+740 | |             .ok();
+741 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/exception/manage.rs line 711.
+    | MIR detail: Value _8(action, src/exception/manage.rs:720) and _2(desc, src/exception/manage.rs:713) are alias.
+    | MIR detail: _8(action, src/exception/manage.rs:720) is dropped at BB25(src/exception/manage.rs:741); _2(desc, src/exception/manage.rs:713) became dangling.
+    |
+render dot for DefId(0:16718 ~ dragonos_kernel[9e38]::exception::manage::{impl#0}::wake_up_and_wait_for_irq_thread_ready)

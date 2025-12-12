@@ -1,0 +1,458 @@
+bb0 at src/net/socket/unix/stream/mod.rs:191:13: 191:20
+bb1 at src/net/socket/unix/stream/mod.rs:191:47: 191:48
+bb2 at src/net/socket/unix/stream/mod.rs:191:62: 191:63
+bb3 at src/net/socket/unix/stream/mod.rs:193:43: 193:44
+bb4 at src/net/socket/unix/stream/mod.rs:195:34: 195:40
+bb5 at src/net/socket/unix/stream/mod.rs:195:46: 195:47
+bb6 at src/net/socket/unix/stream/mod.rs:195:87: 195:88
+bb8 at src/net/socket/unix/stream/mod.rs:206:30: 206:39
+bb9 at src/net/socket/unix/stream/mod.rs:202:29: 202:37
+bb10 at src/net/socket/unix/stream/mod.rs:196:25: 196:29
+bb11 at src/net/socket/unix/stream/mod.rs:197:85: 197:86
+bb12 at src/net/socket/unix/stream/mod.rs:197:86: 197:87
+bb13 at src/net/socket/unix/stream/mod.rs:199:26: 199:29
+bb14 at src/net/socket/unix/stream/mod.rs:198:24: 198:32
+bb15 at src/net/socket/unix/stream/mod.rs:201:13: 201:14
+bb16 at src/net/socket/unix/stream/mod.rs:203:40: 203:41
+bb17 at src/net/socket/unix/stream/mod.rs:195:14: 195:19
+bb18 at src/net/socket/unix/stream/mod.rs:209:9: 209:15
+bb19 at src/net/socket/unix/stream/mod.rs:209:29: 209:30
+bb20 at src/net/socket/unix/stream/mod.rs:209:30: 209:31
+bb21 at src/net/socket/unix/stream/mod.rs:210:20: 210:21
+bb22 at src/net/socket/unix/stream/mod.rs:212:21: 212:24
+bb23 at src/net/socket/unix/stream/mod.rs:214:10: 214:10
+bb24 at src/net/socket/unix/stream/mod.rs:217:5: 217:6
+bb27 at src/net/socket/unix/stream/mod.rs:201:13: 201:14
+bb28 at src/net/socket/unix/stream/mod.rs:201:13: 201:14
+bb33 at src/net/socket/unix/stream/mod.rs:207:10: 207:11
+fn <net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket>::listen
+_0:  @ core::result::Result<(), system_error::SystemError> 
+_1:  @ &'{erased} net::socket::unix::stream::UnixStreamSocket 
+_2:  @ usize 
+_3:  @ ! 
+_4:  @ usize 
+_5:  @ usize 
+_6:  @ usize 
+_7:  @ libs::rwlock::RwLockWriteGuard<'{erased}, core::option::Option<net::socket::unix::stream::inner::Inner>> 
+_8:  @ &'{erased} libs::rwlock::RwLock<core::option::Option<net::socket::unix::stream::inner::Inner>> 
+_9:  @ net::socket::unix::stream::inner::Inner 
+_10:  @ core::option::Option<system_error::SystemError> 
+_11:  @ (net::socket::unix::stream::inner::Inner, core::option::Option<system_error::SystemError>) 
+_12:  @ net::socket::unix::stream::inner::Inner 
+_13:  @ core::option::Option<net::socket::unix::stream::inner::Inner> 
+_14:  @ &'{erased} mut core::option::Option<net::socket::unix::stream::inner::Inner> 
+_15:  @ &'{erased} mut core::option::Option<net::socket::unix::stream::inner::Inner> 
+_16:  @ &'{erased} mut libs::rwlock::RwLockWriteGuard<'{erased}, core::option::Option<net::socket::unix::stream::inner::Inner>> 
+_17:  @ &'{erased} str 
+_18:  @ &'{erased} str 
+_19:  @ isize 
+_20:  @ net::socket::unix::stream::inner::Init 
+_21:  @ core::result::Result<net::socket::unix::stream::inner::Listener, (system_error::SystemError, net::socket::unix::stream::inner::Init)> 
+_22:  @ net::socket::unix::stream::inner::Init 
+_23:  @ usize 
+_24:  @ bool 
+_25:  @ alloc::sync::Arc<libs::wait_queue::WaitQueue, alloc::alloc::Global> 
+_26:  @ &'{erased} alloc::sync::Arc<libs::wait_queue::WaitQueue, alloc::alloc::Global> 
+_27:  @ isize 
+_28:  @ net::socket::unix::stream::inner::Listener 
+_29:  @ net::socket::unix::stream::inner::Inner 
+_30:  @ net::socket::unix::stream::inner::Listener 
+_31:  @ core::option::Option<system_error::SystemError> 
+_32:  @ system_error::SystemError 
+_33:  @ net::socket::unix::stream::inner::Init 
+_34:  @ net::socket::unix::stream::inner::Inner 
+_35:  @ net::socket::unix::stream::inner::Init 
+_36:  @ core::option::Option<system_error::SystemError> 
+_37:  @ system_error::SystemError 
+_38:  @ net::socket::unix::stream::inner::Listener 
+_39:  @ () 
+_40:  @ &'{erased} net::socket::unix::stream::inner::Listener 
+_41:  @ usize 
+_42:  @ net::socket::unix::stream::inner::Inner 
+_43:  @ net::socket::unix::stream::inner::Listener 
+_44:  @ core::option::Option<system_error::SystemError> 
+_45:  @ net::socket::unix::stream::inner::Connected 
+_46:  @ net::socket::unix::stream::inner::Inner 
+_47:  @ net::socket::unix::stream::inner::Connected 
+_48:  @ core::option::Option<system_error::SystemError> 
+_49:  @ system_error::SystemError 
+_50:  @ core::option::Option<net::socket::unix::stream::inner::Inner> 
+_51:  @ &'{erased} mut core::option::Option<net::socket::unix::stream::inner::Inner> 
+_52:  @ &'{erased} mut core::option::Option<net::socket::unix::stream::inner::Inner> 
+_53:  @ &'{erased} mut libs::rwlock::RwLockWriteGuard<'{erased}, core::option::Option<net::socket::unix::stream::inner::Inner>> 
+_54:  @ net::socket::unix::stream::inner::Inner 
+_55:  @ () 
+_56:  @ libs::rwlock::RwLockWriteGuard<'{erased}, core::option::Option<net::socket::unix::stream::inner::Inner>> 
+_57:  @ () 
+_58:  @ isize 
+_59:  @ system_error::SystemError 
+_60:  @ ! 
+_61:  @ system_error::SystemError 
+_62:  @ () 
+_63:  @ bool 
+_64:  @ bool 
+_65:  @ bool 
+_66:  @ bool 
+_67:  @ bool 
+_68:  @ bool 
+_69:  @ bool 
+_70:  @ bool 
+_71:  @ bool 
+_72:  @ isize 
+_73:  @ isize 
+_74:  @ isize 
+_75:  @ isize 
+_76:  @ isize 
+_77:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_71, const false)) @ _71=const false @ Use
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((_70, const false)) @ _70=const false @ Use
+    Assign((_68, const false)) @ _68=const false @ Use
+    Assign((_67, const false)) @ _67=const false @ Use
+    Assign((_66, const false)) @ _66=const false @ Use
+    Assign((_64, const false)) @ _64=const false @ Use
+    Assign((_65, const false)) @ _65=const false @ Use
+    Assign((_63, const false)) @ _63=const false @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, copy _2)) @ _6=copy _2 @ Use
+    _5 = core::num::<impl usize>::saturating_add(move _6, const 1_usize) -> [return: bb1, unwind continue] @ Call: FnDid: 35639
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    _4 = <usize as core::cmp::Ord>::min(move _5, const <net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket>::listen::SOMAXCONN) -> [return: bb2, unwind continue] @ Call: FnDid: 3208
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &((*_1).0: libs::rwlock::RwLock<core::option::Option<net::socket::unix::stream::inner::Inner>>))) @ _8=&((*_1).0: libs::rwlock::RwLock<core::option::Option<net::socket::unix::stream::inner::Inner>>) @ Ref
+    Assign((_71, const true)) @ _71=const true @ Use
+    _7 = libs::rwlock::RwLock::<core::option::Option<net::socket::unix::stream::inner::Inner>>::write(move _8) -> [return: bb3, unwind continue] @ Call: FnDid: 5165
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &mut _7)) @ _16=&mut _7 @ Ref
+    _15 = <libs::rwlock::RwLockWriteGuard<'_, core::option::Option<net::socket::unix::stream::inner::Inner>> as core::ops::DerefMut>::deref_mut(move _16) -> [return: bb4, unwind: bb35] @ Call: FnDid: 3915
+}
+bb 4 {
+CleanUp: false
+    Assign((_14, &mut (*_15))) @ _14=&mut (*_15) @ Ref
+    StorageDead(_16) @ StorageDead
+    _13 = core::option::Option::<net::socket::unix::stream::inner::Inner>::take(move _14) -> [return: bb5, unwind: bb35] @ Call: FnDid: 10206
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, const "UnixStreamSocket inner is None")) @ _18=const "UnixStreamSocket inner is None" @ Use
+    Assign((_17, &(*_18))) @ _17=&(*_18) @ Ref
+    _12 = core::option::Option::<net::socket::unix::stream::inner::Inner>::expect(move _13, move _17) -> [return: bb6, unwind: bb35] @ Call: FnDid: 10156
+}
+bb 6 {
+CleanUp: false
+    Assign((_66, const true)) @ _66=const true @ Use
+    Assign((_67, const true)) @ _67=const true @ Use
+    Assign((_68, const true)) @ _68=const true @ Use
+    StorageDead(_17) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_19, discriminant(_12))) @ _19=discriminant(_12) @ Discriminant
+    switchInt(move _19) -> [0: bb10, 1: bb8, 2: bb9, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 8 {
+CleanUp: false
+    StorageLive(_45) @ StorageLive
+    Assign((_45, move ((_12 as Connected).0: net::socket::unix::stream::inner::Connected))) @ _45=move ((_12 as Connected).0: net::socket::unix::stream::inner::Connected) @ Use
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, move _45)) @ _47=move _45 @ Use
+    Assign((_46, net::socket::unix::stream::inner::Inner::Connected(move _47))) @ _46=net::socket::unix::stream::inner::Inner::Connected(move _47) @ Aggregate
+    StorageDead(_47) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, system_error::SystemError::EINVAL)) @ _49=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_48, core::option::Option::<system_error::SystemError>::Some(move _49))) @ _48=core::option::Option::<system_error::SystemError>::Some(move _49) @ Aggregate
+    StorageDead(_49) @ StorageDead
+    Assign((_11, (move _46, move _48))) @ _11=(move _46, move _48) @ Aggregate
+    StorageDead(_48) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    goto -> bb17 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_38) @ StorageLive
+    Assign((_38, move ((_12 as Listener).0: net::socket::unix::stream::inner::Listener))) @ _38=move ((_12 as Listener).0: net::socket::unix::stream::inner::Listener) @ Use
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &_38)) @ _40=&_38 @ Ref
+    StorageLive(_41) @ StorageLive
+    Assign((_41, copy _4)) @ _41=copy _4 @ Use
+    _39 = net::socket::unix::stream::inner::Listener::listen(move _40, move _41) -> [return: bb16, unwind: bb25] @ Call: FnDid: 27062
+}
+bb 10 {
+CleanUp: false
+    StorageLive(_20) @ StorageLive
+    Assign((_20, move ((_12 as Init).0: net::socket::unix::stream::inner::Init))) @ _20=move ((_12 as Init).0: net::socket::unix::stream::inner::Init) @ Use
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_70, const true)) @ _70=const true @ Use
+    Assign((_22, move _20)) @ _22=move _20 @ Use
+    StorageLive(_23) @ StorageLive
+    Assign((_23, copy _4)) @ _23=copy _4 @ Use
+    StorageLive(_24) @ StorageLive
+    Assign((_24, copy ((*_1).6: bool))) @ _24=copy ((*_1).6: bool) @ Use
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &((*_1).3: alloc::sync::Arc<libs::wait_queue::WaitQueue>))) @ _26=&((*_1).3: alloc::sync::Arc<libs::wait_queue::WaitQueue>) @ Ref
+    _25 = <alloc::sync::Arc<libs::wait_queue::WaitQueue> as core::clone::Clone>::clone(move _26) -> [return: bb11, unwind: bb32] @ Call: FnDid: 3116
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    Assign((_70, const false)) @ _70=const false @ Use
+    _21 = net::socket::unix::stream::inner::Init::listen(move _22, move _23, move _24, move _25) -> [return: bb12, unwind: bb32] @ Call: FnDid: 27047
+}
+bb 12 {
+CleanUp: false
+    Assign((_63, const true)) @ _63=const true @ Use
+    Assign((_64, const true)) @ _64=const true @ Use
+    Assign((_65, const true)) @ _65=const true @ Use
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    Assign((_70, const false)) @ _70=const false @ Use
+    StorageDead(_22) @ StorageDead
+    Assign((_27, discriminant(_21))) @ _27=discriminant(_21) @ Discriminant
+    switchInt(move _27) -> [0: bb14, 1: bb13, otherwise: bb7] @ SwitchInt
+}
+bb 13 {
+CleanUp: false
+    StorageLive(_32) @ StorageLive
+    Assign((_32, move (((_21 as Err).0: (system_error::SystemError, net::socket::unix::stream::inner::Init)).0: system_error::SystemError))) @ _32=move (((_21 as Err).0: (system_error::SystemError, net::socket::unix::stream::inner::Init)).0: system_error::SystemError) @ Use
+    StorageLive(_33) @ StorageLive
+    Assign((_33, move (((_21 as Err).0: (system_error::SystemError, net::socket::unix::stream::inner::Init)).1: net::socket::unix::stream::inner::Init))) @ _33=move (((_21 as Err).0: (system_error::SystemError, net::socket::unix::stream::inner::Init)).1: net::socket::unix::stream::inner::Init) @ Use
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, move _33)) @ _35=move _33 @ Use
+    Assign((_34, net::socket::unix::stream::inner::Inner::Init(move _35))) @ _34=net::socket::unix::stream::inner::Inner::Init(move _35) @ Aggregate
+    StorageDead(_35) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, move _32)) @ _37=move _32 @ Use
+    Assign((_36, core::option::Option::<system_error::SystemError>::Some(move _37))) @ _36=core::option::Option::<system_error::SystemError>::Some(move _37) @ Aggregate
+    StorageDead(_37) @ StorageDead
+    Assign((_11, (move _34, move _36))) @ _11=(move _34, move _36) @ Aggregate
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    goto -> bb15 @ Goto
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_28) @ StorageLive
+    Assign((_28, move ((_21 as Ok).0: net::socket::unix::stream::inner::Listener))) @ _28=move ((_21 as Ok).0: net::socket::unix::stream::inner::Listener) @ Use
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, move _28)) @ _30=move _28 @ Use
+    Assign((_29, net::socket::unix::stream::inner::Inner::Listener(move _30))) @ _29=net::socket::unix::stream::inner::Inner::Listener(move _30) @ Aggregate
+    StorageDead(_30) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, core::option::Option::<system_error::SystemError>::None)) @ _31=core::option::Option::<system_error::SystemError>::None @ Aggregate
+    Assign((_11, (move _29, move _31))) @ _11=(move _29, move _31) @ Aggregate
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -> bb15 @ Goto
+}
+bb 15 {
+CleanUp: false
+    Assign((_72, discriminant(_21))) @ _72=discriminant(_21) @ Discriminant
+    switchInt(move _72) -> [0: bb27, otherwise: bb28] @ SwitchInt
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, move _38)) @ _43=move _38 @ Use
+    Assign((_42, net::socket::unix::stream::inner::Inner::Listener(move _43))) @ _42=net::socket::unix::stream::inner::Inner::Listener(move _43) @ Aggregate
+    StorageDead(_43) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    Assign((_44, core::option::Option::<system_error::SystemError>::None)) @ _44=core::option::Option::<system_error::SystemError>::None @ Aggregate
+    Assign((_11, (move _42, move _44))) @ _11=(move _42, move _44) @ Aggregate
+    StorageDead(_44) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    goto -> bb17 @ Goto
+}
+bb 17 {
+CleanUp: false
+    StorageLive(_9) @ StorageLive
+    Assign((_69, const true)) @ _69=const true @ Use
+    Assign((_9, move (_11.0: net::socket::unix::stream::inner::Inner))) @ _9=move (_11.0: net::socket::unix::stream::inner::Inner) @ Use
+    StorageLive(_10) @ StorageLive
+    Assign((_10, move (_11.1: core::option::Option<system_error::SystemError>))) @ _10=move (_11.1: core::option::Option<system_error::SystemError>) @ Use
+    Assign((_74, discriminant(_12))) @ _74=discriminant(_12) @ Discriminant
+    StorageDead(_18) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    Assign((_66, const false)) @ _66=const false @ Use
+    Assign((_67, const false)) @ _67=const false @ Use
+    Assign((_68, const false)) @ _68=const false @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, &mut _7)) @ _53=&mut _7 @ Ref
+    _52 = <libs::rwlock::RwLockWriteGuard<'_, core::option::Option<net::socket::unix::stream::inner::Inner>> as core::ops::DerefMut>::deref_mut(move _53) -> [return: bb18, unwind: bb30] @ Call: FnDid: 3915
+}
+bb 18 {
+CleanUp: false
+    Assign((_51, &mut (*_52))) @ _51=&mut (*_52) @ Ref
+    StorageDead(_53) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((_54, move _9)) @ _54=move _9 @ Use
+    _50 = core::option::Option::<net::socket::unix::stream::inner::Inner>::replace(move _51, move _54) -> [return: bb19, unwind: bb30] @ Call: FnDid: 10209
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    drop(_50) -> [return: bb20, unwind: bb30] @ Drop
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_52) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_71, const false)) @ _71=const false @ Use
+    Assign((_56, move _7)) @ _56=move _7 @ Use
+    _55 = core::mem::drop::<libs::rwlock::RwLockWriteGuard<'_, core::option::Option<net::socket::unix::stream::inner::Inner>>>(move _56) -> [return: bb21, unwind: bb30] @ Call: FnDid: 2323
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    Assign((_58, discriminant(_10))) @ _58=discriminant(_10) @ Discriminant
+    switchInt(move _58) -> [1: bb22, otherwise: bb23] @ SwitchInt
+}
+bb 22 {
+CleanUp: false
+    StorageLive(_59) @ StorageLive
+    Assign((_59, move ((_10 as Some).0: system_error::SystemError))) @ _59=move ((_10 as Some).0: system_error::SystemError) @ Use
+    StorageLive(_61) @ StorageLive
+    Assign((_61, move _59)) @ _61=move _59 @ Use
+    Assign((_0, core::result::Result::<(), system_error::SystemError>::Err(move _61))) @ _0=core::result::Result::<(), system_error::SystemError>::Err(move _61) @ Aggregate
+    StorageDead(_61) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    goto -> bb24 @ Goto
+}
+bb 23 {
+CleanUp: false
+    Assign((_57, const ())) @ _57=const () @ Use
+    StorageDead(_57) @ StorageDead
+    StorageLive(_62) @ StorageLive
+    Assign((_62, ())) @ _62=() @ Aggregate
+    Assign((_0, core::result::Result::<(), system_error::SystemError>::Ok(move _62))) @ _0=core::result::Result::<(), system_error::SystemError>::Ok(move _62) @ Aggregate
+    StorageDead(_62) @ StorageDead
+    goto -> bb24 @ Goto
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    Assign((_69, const false)) @ _69=const false @ Use
+    StorageDead(_9) @ StorageDead
+    Assign((_71, const false)) @ _71=const false @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 25 {
+CleanUp: true
+    drop(_38) -> [return: bb33, unwind terminate(cleanup)] @ Drop
+}
+bb 26 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 27 {
+CleanUp: false
+    Assign((_63, const false)) @ _63=const false @ Use
+    Assign((_64, const false)) @ _64=const false @ Use
+    Assign((_65, const false)) @ _65=const false @ Use
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    goto -> bb17 @ Goto
+}
+bb 28 {
+CleanUp: false
+    Assign((_65, const false)) @ _65=const false @ Use
+    goto -> bb27 @ Goto
+}
+bb 29 {
+CleanUp: true
+    drop(_9) -> [return: bb35, unwind terminate(cleanup)] @ Drop
+}
+bb 30 {
+CleanUp: true
+    switchInt(copy _69) -> [0: bb35, otherwise: bb29] @ SwitchInt
+}
+bb 31 {
+CleanUp: true
+    drop(_22) -> [return: bb33, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    switchInt(copy _70) -> [0: bb33, otherwise: bb31] @ SwitchInt
+}
+bb 33 {
+CleanUp: true
+    Assign((_77, discriminant(_12))) @ _77=discriminant(_12) @ Discriminant
+    goto -> bb35 @ Goto
+}
+bb 34 {
+CleanUp: true
+    drop(_7) -> [return: bb26, unwind terminate(cleanup)] @ Drop
+}
+bb 35 {
+CleanUp: true
+    switchInt(copy _71) -> [0: bb26, otherwise: bb34] @ SwitchInt
+}
+
+bb0 at src/net/socket/unix/stream/mod.rs:190:34: 190:38
+fn <net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket>::listen::SOMAXCONN
+_0:  @ usize 
+
+bb 0 {
+CleanUp: false
+    Assign((_0, const 4096_usize)) @ _0=const 4096_usize @ Use
+    return @ Return
+}
+

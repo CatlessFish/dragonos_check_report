@@ -1,0 +1,48 @@
+bb0 at src/arch/x86_64/driver/hpet.rs:327:25: 327:56
+bb1 at src/arch/x86_64/driver/hpet.rs:327:53: 327:54
+bb2 at src/arch/x86_64/driver/hpet.rs:327:56: 327:57
+bb3 at src/arch/x86_64/driver/hpet.rs:328:49: 328:50
+fn arch::x86_64::driver::hpet::Hpet::reset_counter
+_0:  @ () 
+_1:  @ &'{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ &'{erased} mut driver::timers::hpet::HpetRegisters 
+_3:  @ (libs::rwlock::RwLockWriteGuard<'{erased}, arch::x86_64::driver::hpet::InnerHpet>, &'{erased} mut driver::timers::hpet::HpetRegisters) 
+_4:  @ &'{erased} arch::x86_64::driver::hpet::Hpet 
+_5:  @ () 
+_6:  @ &'{erased} mut driver::timers::hpet::HpetRegisters 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &(*_1))) @ _4=&(*_1) @ Ref
+    _3 = arch::x86_64::driver::hpet::Hpet::hpet_regs_mut(move _4) -> [return: bb1, unwind continue] @ Call: FnDid: 608
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_2) @ StorageLive
+    Assign((_2, move (_3.1: &mut driver::timers::hpet::HpetRegisters))) @ _2=move (_3.1: &mut driver::timers::hpet::HpetRegisters) @ Use
+    drop(_3) -> [return: bb2, unwind: bb4] @ Drop
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &mut (*_2))) @ _6=&mut (*_2) @ Ref
+    _5 = driver::timers::hpet::HpetRegisters::write_main_counter_value(move _6, const 0_u64) -> [return: bb3, unwind continue] @ Call: FnDid: 13448
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 4 {
+CleanUp: true
+    resume @ UnwindResume
+}
+

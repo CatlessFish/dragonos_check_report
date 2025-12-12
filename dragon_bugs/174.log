@@ -1,0 +1,123 @@
+22:08:15|RAP|WARN|: Dangling pointer detected in function "fscmp"
+warning: Dangling pointer detected.
+   --> src/process/cred.rs:143:1
+    |
+143 | / pub fn fscmp(&self, other: Arc<Cred>) -> CredFsCmp {
+144 | |         if Arc::ptr_eq(&self.self_ref.upgrade().unwrap(), &other) {
+145 | |             return CredFsCmp::Equal;
+146 | |         }
+147 | |
+148 | |         if self.fsuid < other.fsuid {
+149 | |             return CredFsCmp::Less;
+150 | |         }
+151 | |         if self.fsuid > other.fsuid {
+152 | |             return CredFsCmp::Greater;
+153 | |         }
+154 | |
+155 | |         if self.fsgid < other.fsgid {
+156 | |             return CredFsCmp::Less;
+157 | |         }
+158 | |         if self.fsgid > other.fsgid {
+159 | |             return CredFsCmp::Greater;
+160 | |         }
+161 | |
+162 | |         if self.group_info == other.group_info {
+163 | |             return CredFsCmp::Equal;
+164 | |         }
+165 | |
+166 | |         if let (Some(ga), Some(gb)) = (&self.group_info, &other.group_info) {
+167 | |             let ga_count = ga.gids.len();
+168 | |             let gb_count = gb.gids.len();
+169 | |
+170 | |             if ga_count < gb_count {
+171 | |                 return CredFsCmp::Less;
+172 | |             }
+173 | |             if ga_count > gb_count {
+174 | |                 return CredFsCmp::Greater;
+175 | |             }
+176 | |
+177 | |             for i in 0..ga_count {
+178 | |                 if ga.gids[i] < gb.gids[i] {
+179 | |                     return CredFsCmp::Less;
+180 | |                 }
+181 | |                 if ga.gids[i] > gb.gids[i] {
+182 | |                     return CredFsCmp::Greater;
+183 | |                 }
+184 | |             }
+185 | |         } else {
+186 | |             if self.group_info.is_none() {
+187 | |                 return CredFsCmp::Less;
+188 | |             }
+189 | |             if other.group_info.is_none() {
+190 | |                 return CredFsCmp::Greater;
+191 | |             }
+192 | |         }
+193 | |
+194 | |         return CredFsCmp::Equal;
+195 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/process/cred.rs line 143.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in fscmp and _1(self, src/process/cred.rs:143) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in fscmp is dropped at BB18446744073709551615(src/process/cred.rs:143); _1(self, src/process/cred.rs:143) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function "fscmp"
+warning: Dangling pointer detected during unwinding.
+   --> src/process/cred.rs:143:1
+    |
+143 | / pub fn fscmp(&self, other: Arc<Cred>) -> CredFsCmp {
+144 | |         if Arc::ptr_eq(&self.self_ref.upgrade().unwrap(), &other) {
+145 | |             return CredFsCmp::Equal;
+146 | |         }
+147 | |
+148 | |         if self.fsuid < other.fsuid {
+149 | |             return CredFsCmp::Less;
+150 | |         }
+151 | |         if self.fsuid > other.fsuid {
+152 | |             return CredFsCmp::Greater;
+153 | |         }
+154 | |
+155 | |         if self.fsgid < other.fsgid {
+156 | |             return CredFsCmp::Less;
+157 | |         }
+158 | |         if self.fsgid > other.fsgid {
+159 | |             return CredFsCmp::Greater;
+160 | |         }
+161 | |
+162 | |         if self.group_info == other.group_info {
+163 | |             return CredFsCmp::Equal;
+164 | |         }
+165 | |
+166 | |         if let (Some(ga), Some(gb)) = (&self.group_info, &other.group_info) {
+167 | |             let ga_count = ga.gids.len();
+168 | |             let gb_count = gb.gids.len();
+169 | |
+170 | |             if ga_count < gb_count {
+171 | |                 return CredFsCmp::Less;
+172 | |             }
+173 | |             if ga_count > gb_count {
+174 | |                 return CredFsCmp::Greater;
+175 | |             }
+176 | |
+177 | |             for i in 0..ga_count {
+178 | |                 if ga.gids[i] < gb.gids[i] {
+179 | |                     return CredFsCmp::Less;
+180 | |                 }
+181 | |                 if ga.gids[i] > gb.gids[i] {
+182 | |                     return CredFsCmp::Greater;
+183 | |                 }
+184 | |             }
+185 | |         } else {
+186 | |             if self.group_info.is_none() {
+187 | |                 return CredFsCmp::Less;
+188 | |             }
+189 | |             if other.group_info.is_none() {
+190 | |                 return CredFsCmp::Greater;
+191 | |             }
+192 | |         }
+193 | |
+194 | |         return CredFsCmp::Equal;
+195 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/process/cred.rs line 143.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in fscmp and _1(self, src/process/cred.rs:143) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in fscmp is dropped at BB18446744073709551615(src/process/cred.rs:143); _1(self, src/process/cred.rs:143) became dangling.
+    |
+render dot for DefId(0:27788 ~ dragonos_kernel[9e38]::process::cred::{impl#0}::fscmp)

@@ -1,0 +1,32 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/misc/syscall.rs:46:1
+   |
+46 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+47 | |         vec![
+48 | |             FormattedSyscallParam::new("magic1", Self::magic1(args).to_string()),
+49 | |             FormattedSyscallParam::new("magic2", Self::magic2(args).to_string()),
+50 | |             FormattedSyscallParam::new("cmd", Self::cmd(args).to_string()),
+51 | |             FormattedSyscallParam::new("arg", Self::arg(args).to_string()),
+52 | |         ]
+53 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/misc/syscall.rs line 46.
+    | MIR detail: Value _19(_, src/misc/syscall.rs:50) and _9(_, src/misc/syscall.rs:48) are alias.
+    | MIR detail: _19(_, src/misc/syscall.rs:50) is dropped at BB15(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/misc/syscall.rs:48) is dropped at BB17(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/misc/syscall.rs:46:1
+   |
+46 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+47 | |         vec![
+48 | |             FormattedSyscallParam::new("magic1", Self::magic1(args).to_string()),
+49 | |             FormattedSyscallParam::new("magic2", Self::magic2(args).to_string()),
+50 | |             FormattedSyscallParam::new("cmd", Self::cmd(args).to_string()),
+51 | |             FormattedSyscallParam::new("arg", Self::arg(args).to_string()),
+52 | |         ]
+53 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/misc/syscall.rs line 46.
+    | MIR detail: Value _19(_, src/misc/syscall.rs:50) and _14(_, src/misc/syscall.rs:49) are alias.
+    | MIR detail: _19(_, src/misc/syscall.rs:50) is dropped at BB15(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/misc/syscall.rs:49) is dropped at BB16(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:23538 ~ dragonos_kernel[9e38]::misc::syscall::{impl#1}::entry_format)

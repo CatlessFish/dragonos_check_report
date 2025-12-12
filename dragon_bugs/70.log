@@ -1,0 +1,41 @@
+22:08:07|RAP|WARN|: Double free detected in function "ksys_fchown"
+22:08:07|RAP|WARN|: Double free detected in function "ksys_fchown"
+warning: Double free detected.
+   --> src/filesystem/vfs/open.rs:142:1
+    |
+142 | / pub fn ksys_fchown(fd: i32, uid: usize, gid: usize) -> Result<usize, SystemError> {
+143 | |     let fd_table = &ProcessManager::current_pcb().fd_table();
+144 | |     let fd_table = fd_table.read();
+145 | |
+146 | |     let inode = fd_table.get_file_by_fd(fd).unwrap().inode();
+147 | |
+148 | |     let result = chown_common(inode, uid, gid);
+149 | |
+150 | |     drop(fd_table);
+151 | |
+152 | |     return result;
+153 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/open.rs line 142.
+    | MIR detail: Value _31(_, src/filesystem/vfs/open.rs:150) and _6(_, src/filesystem/vfs/open.rs:143) are alias.
+    | MIR detail: _31(_, src/filesystem/vfs/open.rs:150) is dropped at BB13(src/filesystem/vfs/open.rs:150); _6(_, src/filesystem/vfs/open.rs:143) is dropped at BB14(src/filesystem/vfs/open.rs:153).
+    |
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/open.rs:142:1
+    |
+142 | / pub fn ksys_fchown(fd: i32, uid: usize, gid: usize) -> Result<usize, SystemError> {
+143 | |     let fd_table = &ProcessManager::current_pcb().fd_table();
+144 | |     let fd_table = fd_table.read();
+145 | |
+146 | |     let inode = fd_table.get_file_by_fd(fd).unwrap().inode();
+147 | |
+148 | |     let result = chown_common(inode, uid, gid);
+149 | |
+150 | |     drop(fd_table);
+151 | |
+152 | |     return result;
+153 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/open.rs line 142.
+    | MIR detail: Value _31(_, src/filesystem/vfs/open.rs:150) and _6(_, src/filesystem/vfs/open.rs:143) are alias.
+    | MIR detail: _31(_, src/filesystem/vfs/open.rs:150) is dropped at BB13(src/filesystem/vfs/open.rs:150); _6(_, src/filesystem/vfs/open.rs:143) is dropped at BB17(src/filesystem/vfs/open.rs:153).
+    |
+render dot for DefId(0:19508 ~ dragonos_kernel[9e38]::filesystem::vfs::open::ksys_fchown)

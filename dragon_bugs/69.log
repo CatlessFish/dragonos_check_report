@@ -1,0 +1,119 @@
+22:08:06|RAP|WARN|: Dangling pointer detected in function "file_readahead"
+warning: Dangling pointer detected.
+   --> src/filesystem/vfs/file.rs:516:1
+    |
+516 | / fn file_readahead(&self, offset: usize, len: usize) -> Result<(), SystemError> {
+517 | |         let page_cache = match self.inode.page_cache() {
+518 | |             Some(page_cahce) => page_cahce,
+519 | |             None => return Ok(()),
+520 | |         };
+521 | |
+522 | |         let start_page = offset >> MMArch::PAGE_SHIFT;
+523 | |         let end_page = (offset + len - 1) >> MMArch::PAGE_SHIFT;
+524 | |
+525 | |         let (async_trigger_page, missing_page) = {
+526 | |             let page_cache_guard = page_cache.lock_irqsave();
+527 | |             let mut async_trigger_page = None;
+528 | |             let mut missing_page = None;
+529 | |
+530 | |             for index in start_page..=end_page {
+531 | |                 match page_cache_guard.get_page(index) {
+532 | |                     Some(page)
+533 | |                         if page
+534 | |                             .read_irqsave()
+535 | |                             .flags()
+536 | |                             .contains(PageFlags::PG_READAHEAD) =>
+537 | |                     {
+538 | |                         async_trigger_page = Some((index, page.clone()));
+539 | |                         break;
+540 | |                     }
+541 | |                     None => {
+542 | |                         missing_page = Some(index);
+543 | |                         break;
+544 | |                     }
+545 | |                     _ => {}
+546 | |                 }
+547 | |             }
+548 | |             (async_trigger_page, missing_page)
+549 | |         };
+550 | |
+551 | |         if let Some((index, page)) = async_trigger_page {
+552 | |             let mut ra_state = self.ra_state.lock().clone();
+553 | |             let req_pages = end_page - index + 1;
+554 | |             page.write_irqsave().remove_flags(PageFlags::PG_READAHEAD);
+555 | |
+556 | |             page_cache_async_readahead(&page_cache, &self.inode, &mut ra_state, index, req_pages)?;
+557 | |             *self.ra_state.lock() = ra_state;
+558 | |         } else if let Some(index) = missing_page {
+559 | |             let mut ra_state = self.ra_state.lock().clone();
+560 | |             let req_pages = end_page - index + 1;
+561 | |
+562 | |             page_cache_sync_readahead(&page_cache, &self.inode, &mut ra_state, index, req_pages)?;
+563 | |             *self.ra_state.lock() = ra_state;
+564 | |         }
+565 | |         Ok(())
+566 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/vfs/file.rs line 516.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in file_readahead and _1(self, src/filesystem/vfs/file.rs:516) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in file_readahead is dropped at BB18446744073709551615(src/filesystem/vfs/file.rs:516); _1(self, src/filesystem/vfs/file.rs:516) became dangling.
+    |
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function "file_readahead"
+warning: Dangling pointer detected during unwinding.
+   --> src/filesystem/vfs/file.rs:516:1
+    |
+516 | / fn file_readahead(&self, offset: usize, len: usize) -> Result<(), SystemError> {
+517 | |         let page_cache = match self.inode.page_cache() {
+518 | |             Some(page_cahce) => page_cahce,
+519 | |             None => return Ok(()),
+520 | |         };
+521 | |
+522 | |         let start_page = offset >> MMArch::PAGE_SHIFT;
+523 | |         let end_page = (offset + len - 1) >> MMArch::PAGE_SHIFT;
+524 | |
+525 | |         let (async_trigger_page, missing_page) = {
+526 | |             let page_cache_guard = page_cache.lock_irqsave();
+527 | |             let mut async_trigger_page = None;
+528 | |             let mut missing_page = None;
+529 | |
+530 | |             for index in start_page..=end_page {
+531 | |                 match page_cache_guard.get_page(index) {
+532 | |                     Some(page)
+533 | |                         if page
+534 | |                             .read_irqsave()
+535 | |                             .flags()
+536 | |                             .contains(PageFlags::PG_READAHEAD) =>
+537 | |                     {
+538 | |                         async_trigger_page = Some((index, page.clone()));
+539 | |                         break;
+540 | |                     }
+541 | |                     None => {
+542 | |                         missing_page = Some(index);
+543 | |                         break;
+544 | |                     }
+545 | |                     _ => {}
+546 | |                 }
+547 | |             }
+548 | |             (async_trigger_page, missing_page)
+549 | |         };
+550 | |
+551 | |         if let Some((index, page)) = async_trigger_page {
+552 | |             let mut ra_state = self.ra_state.lock().clone();
+553 | |             let req_pages = end_page - index + 1;
+554 | |             page.write_irqsave().remove_flags(PageFlags::PG_READAHEAD);
+555 | |
+556 | |             page_cache_async_readahead(&page_cache, &self.inode, &mut ra_state, index, req_pages)?;
+557 | |             *self.ra_state.lock() = ra_state;
+558 | |         } else if let Some(index) = missing_page {
+559 | |             let mut ra_state = self.ra_state.lock().clone();
+560 | |             let req_pages = end_page - index + 1;
+561 | |
+562 | |             page_cache_sync_readahead(&page_cache, &self.inode, &mut ra_state, index, req_pages)?;
+563 | |             *self.ra_state.lock() = ra_state;
+564 | |         }
+565 | |         Ok(())
+566 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/vfs/file.rs line 516.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in file_readahead and _1(self, src/filesystem/vfs/file.rs:516) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in file_readahead is dropped at BB18446744073709551615(src/filesystem/vfs/file.rs:516); _1(self, src/filesystem/vfs/file.rs:516) became dangling.
+    |
+render dot for DefId(0:19187 ~ dragonos_kernel[9e38]::filesystem::vfs::file::{impl#5}::file_readahead)

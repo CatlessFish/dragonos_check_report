@@ -1,0 +1,257 @@
+bb0 at src/arch/x86_64/driver/hpet.rs:265:35: 265:62
+bb1 at src/arch/x86_64/driver/hpet.rs:265:59: 265:60
+bb2 at src/arch/x86_64/driver/hpet.rs:266:48: 266:49
+bb4 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb7 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb8 at src/arch/x86_64/driver/hpet.rs:267:31: 267:32
+bb9 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb10 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb16 at src/arch/x86_64/driver/hpet.rs:269:25: 269:26
+fn arch::x86_64::driver::hpet::Hpet::period
+_0:  @ u64 
+_1:  @ &'{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ ! 
+_3:  @ libs::rwlock::RwLockReadGuard<'{erased}, arch::x86_64::driver::hpet::InnerHpet> 
+_4:  @ &'{erased} driver::timers::hpet::HpetRegisters 
+_5:  @ (libs::rwlock::RwLockReadGuard<'{erased}, arch::x86_64::driver::hpet::InnerHpet>, &'{erased} driver::timers::hpet::HpetRegisters) 
+_6:  @ &'{erased} arch::x86_64::driver::hpet::Hpet 
+_7:  @ u64 
+_8:  @ &'{erased} driver::timers::hpet::HpetRegisters 
+_9:  @ () 
+_10:  @ log::Level 
+_11:  @ bool 
+_12:  @ &'{erased} log::Level 
+_13:  @ &'{erased} log::LevelFilter 
+_14:  @ log::LevelFilter 
+_15:  @ bool 
+_16:  @ &'{erased} log::Level 
+_17:  @ &'{erased} log::LevelFilter 
+_18:  @ log::LevelFilter 
+_19:  @ () 
+_20:  @ log::__private_api::GlobalLogger 
+_21:  @ core::fmt::Arguments<'{erased}> 
+_22:  @ [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_23:  @ core::fmt::rt::Argument<'{erased}> 
+_24:  @ &'{erased} u64 
+_25:  @ &'{erased} u64 
+_26:  @ &'{erased} [&'{erased} str; 1_usize] 
+_27:  @ &'{erased} [&'{erased} str; 1_usize] 
+_28:  @ [&'{erased} str; 1_usize] 
+_29:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_30:  @ &'{erased} [core::fmt::rt::Argument<'{erased}>; 1_usize] 
+_31:  @ log::Level 
+_32:  @ &'{erased} (&'{erased} str, &'{erased} str, &'{erased} core::panic::Location<'{erased}>) 
+_33:  @ &'{erased} (&'{erased} str, &'{erased} str, &'{erased} core::panic::Location<'{erased}>) 
+_34:  @ (&'{erased} str, &'{erased} str, &'{erased} core::panic::Location<'{erased}>) 
+_35:  @ &'{erased} str 
+_36:  @ &'{erased} str 
+_37:  @ &'{erased} core::panic::Location<'{erased}> 
+_38:  @ &'{erased} core::panic::Location<'{erased}> 
+_39:  @ () 
+_40:  @ () 
+_41:  @ libs::rwlock::RwLockReadGuard<'{erased}, arch::x86_64::driver::hpet::InnerHpet> 
+_42:  @ &'{erased} [&'{erased} str; 1_usize] 
+_43:  @ &'{erased} log::LevelFilter 
+_44:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &(*_1))) @ _6=&(*_1) @ Ref
+    _5 = arch::x86_64::driver::hpet::Hpet::hpet_regs(move _6) -> [return: bb1, unwind continue] @ Call: FnDid: 607
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_3) @ StorageLive
+    Assign((_44, const true)) @ _44=const true @ Use
+    Assign((_3, move (_5.0: libs::rwlock::RwLockReadGuard<'_, arch::x86_64::driver::hpet::InnerHpet>))) @ _3=move (_5.0: libs::rwlock::RwLockReadGuard<'_, arch::x86_64::driver::hpet::InnerHpet>) @ Use
+    StorageLive(_4) @ StorageLive
+    Assign((_4, copy (_5.1: &driver::timers::hpet::HpetRegisters))) @ _4=copy (_5.1: &driver::timers::hpet::HpetRegisters) @ Use
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &(*_4))) @ _8=&(*_4) @ Ref
+    _7 = driver::timers::hpet::HpetRegisters::counter_clock_period(move _8) -> [return: bb2, unwind: bb19] @ Call: FnDid: 13445
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, log::Level::Debug)) @ _10=log::Level::Debug @ Aggregate
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &_10)) @ _12=&_10 @ Ref
+    StorageLive(_13) @ StorageLive
+    Assign((_43, const arch::x86_64::driver::hpet::Hpet::period::promoted[1])) @ _43=const arch::x86_64::driver::hpet::Hpet::period::promoted[1] @ Use
+    Assign((_13, &(*_43))) @ _13=&(*_43) @ Ref
+    _11 = <log::Level as core::cmp::PartialOrd<log::LevelFilter>>::le(move _12, move _13) -> [return: bb3, unwind: bb19] @ Call: FnDid: 3215
+}
+bb 3 {
+CleanUp: false
+    switchInt(move _11) -> [0: bb13, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &_10)) @ _16=&_10 @ Ref
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    _18 = log::max_level() -> [return: bb5, unwind: bb19] @ Call: FnDid: 134
+}
+bb 5 {
+CleanUp: false
+    Assign((_17, &_18)) @ _17=&_18 @ Ref
+    _15 = <log::Level as core::cmp::PartialOrd<log::LevelFilter>>::le(move _16, move _17) -> [return: bb6, unwind: bb19] @ Call: FnDid: 3215
+}
+bb 6 {
+CleanUp: false
+    switchInt(move _15) -> [0: bb12, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, log::__private_api::GlobalLogger)) @ _20=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &_7)) @ _25=&_7 @ Ref
+    Assign((_24, &(*_25))) @ _24=&(*_25) @ Ref
+    _23 = core::fmt::rt::Argument::<'_>::new_display::<u64>(move _24) -> [return: bb8, unwind: bb19] @ Call: FnDid: 11807
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_22, [move _23])) @ _22=[move _23] @ Aggregate
+    StorageDead(_23) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_42, const arch::x86_64::driver::hpet::Hpet::period::promoted[0])) @ _42=const arch::x86_64::driver::hpet::Hpet::period::promoted[0] @ Use
+    Assign((_27, &(*_42))) @ _27=&(*_42) @ Ref
+    Assign((_26, &(*_27))) @ _26=&(*_27) @ Ref
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &_22)) @ _30=&_22 @ Ref
+    Assign((_29, &(*_30))) @ _29=&(*_30) @ Ref
+    _21 = core::fmt::rt::<impl core::fmt::Arguments<'_>>::new_v1::<1, 1>(move _26, move _29) -> [return: bb9, unwind: bb19] @ Call: FnDid: 11836
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, copy _10)) @ _31=copy _10 @ Use
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, const "dragonos_kernel::arch::x86_64::driver::hpet")) @ _36=const "dragonos_kernel::arch::x86_64::driver::hpet" @ Use
+    Assign((_35, &(*_36))) @ _35=&(*_36) @ Ref
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    _38 = log::__private_api::loc() -> [return: bb10, unwind: bb19] @ Call: FnDid: 184
+}
+bb 10 {
+CleanUp: false
+    Assign((_37, &(*_38))) @ _37=&(*_38) @ Ref
+    Assign((_34, (move _35, const "dragonos_kernel::arch::x86_64::driver::hpet", move _37))) @ _34=(move _35, const "dragonos_kernel::arch::x86_64::driver::hpet", move _37) @ Aggregate
+    StorageDead(_37) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    Assign((_33, &_34)) @ _33=&_34 @ Ref
+    Assign((_32, &(*_33))) @ _32=&(*_33) @ Ref
+    StorageLive(_39) @ StorageLive
+    Assign((_39, ())) @ _39=() @ Aggregate
+    _19 = log::__private_api::log::<'_, (), log::__private_api::GlobalLogger>(move _20, move _21, move _31, move _32, move _39) -> [return: bb11, unwind: bb19] @ Call: FnDid: 178
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    Assign((_9, const ())) @ _9=const () @ Use
+    goto -> bb15 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    goto -> bb14 @ Goto
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    goto -> bb14 @ Goto
+}
+bb 14 {
+CleanUp: false
+    Assign((_9, const ())) @ _9=const () @ Use
+    goto -> bb15 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_41, move _3)) @ _41=move _3 @ Use
+    _40 = core::mem::drop::<libs::rwlock::RwLockReadGuard<'_, arch::x86_64::driver::hpet::InnerHpet>>(move _41) -> [return: bb16, unwind: bb19] @ Call: FnDid: 2323
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_0, copy _7)) @ _0=copy _7 @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 17 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 18 {
+CleanUp: true
+    drop(_3) -> [return: bb17, unwind terminate(cleanup)] @ Drop
+}
+bb 19 {
+CleanUp: true
+    switchInt(copy _44) -> [0: bb17, otherwise: bb18] @ SwitchInt
+}
+

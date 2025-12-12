@@ -1,0 +1,63 @@
+22:08:05|RAP|WARN|: Double free detected in function "eq_name"
+warning: Double free detected during unwinding.
+    --> src/filesystem/fat/entry.rs:1810:1
+     |
+1810 | / pub fn eq_name(&self, name: &str) -> bool {
+1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
+1812 | |         let binding = self.short_name();
+1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
+1814 | |         let binding = self.name();
+1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
+1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
+1817 | |
+1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
+1819 | |         let short_name_matches: bool = short_name.eq(name);
+1820 | |
+1821 | |         return long_name_matches || short_name_matches;
+1822 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
+    | MIR detail: Value _6(short_name, src/filesystem/fat/entry.rs:1813) and _4(binding, src/filesystem/fat/entry.rs:1812) are alias.
+    | MIR detail: _6(short_name, src/filesystem/fat/entry.rs:1813) is dropped at BB28(src/filesystem/fat/entry.rs:1822); _4(binding, src/filesystem/fat/entry.rs:1812) is dropped at BB20(src/filesystem/fat/entry.rs:1822).
+     |
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function "eq_name"
+warning: Double free detected during unwinding.
+    --> src/filesystem/fat/entry.rs:1810:1
+     |
+1810 | / pub fn eq_name(&self, name: &str) -> bool {
+1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
+1812 | |         let binding = self.short_name();
+1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
+1814 | |         let binding = self.name();
+1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
+1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
+1817 | |
+1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
+1819 | |         let short_name_matches: bool = short_name.eq(name);
+1820 | |
+1821 | |         return long_name_matches || short_name_matches;
+1822 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
+    | MIR detail: Value _25(_, src/filesystem/fat/entry.rs:1818) and _12(binding, src/filesystem/fat/entry.rs:1814) are alias.
+    | MIR detail: _25(_, src/filesystem/fat/entry.rs:1818) is dropped at BB22(src/filesystem/fat/entry.rs:1818); _12(binding, src/filesystem/fat/entry.rs:1814) is dropped at BB19(src/filesystem/fat/entry.rs:1822).
+     |
+warning: Dangling pointer detected during unwinding.
+    --> src/filesystem/fat/entry.rs:1810:1
+     |
+1810 | / pub fn eq_name(&self, name: &str) -> bool {
+1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
+1812 | |         let binding = self.short_name();
+1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
+1814 | |         let binding = self.name();
+1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
+1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
+1817 | |
+1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
+1819 | |         let short_name_matches: bool = short_name.eq(name);
+1820 | |
+1821 | |         return long_name_matches || short_name_matches;
+1822 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
+    | MIR detail: Value _20(name, src/filesystem/fat/entry.rs:1816) and _2(name, src/filesystem/fat/entry.rs:1810) are alias.
+    | MIR detail: _20(name, src/filesystem/fat/entry.rs:1816) is dropped at BB24(src/filesystem/fat/entry.rs:1822); _2(name, src/filesystem/fat/entry.rs:1810) became dangling.
+     |
+render dot for DefId(0:17720 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name)

@@ -1,0 +1,121 @@
+22:08:15|RAP|WARN|: Double free detected in function "socketpair"
+warning: Double free detected.
+   --> src/net/syscall.rs:74:1
+    |
+ 74 | / pub fn socketpair(
+ 75 | |         address_family: usize,
+ 76 | |         socket_type: usize,
+ 77 | |         protocol: usize,
+ 78 | |         fds: &mut [i32],
+ 79 | |     ) -> Result<usize, SystemError> {
+ 80 | |         let address_family = AddressFamily::try_from(address_family as u16)?;
+ 81 | |         let socket_type = PosixArgsSocketType::from_bits_truncate(socket_type as u32);
+ 82 | |         let stype = socket::PSOCK::try_from(socket_type)?;
+ 83 | |
+ 84 | |         let binding = ProcessManager::current_pcb().fd_table();
+ 85 | |         let mut fd_table_guard = binding.write();
+ 86 | |
+ 87 | |         // check address family, only support AF_UNIX
+ 88 | |         if address_family != AddressFamily::Unix {
+ 89 | |             log::warn!(
+ 90 | |                 "only support AF_UNIX, {:?} with protocol {:?} is not supported",
+ 91 | |                 address_family,
+ 92 | |                 protocol
+ 93 | |             );
+ 94 | |             return Err(SystemError::EAFNOSUPPORT);
+ 95 | |         }
+ 96 | |
+ 97 | |         let nonblocking = socket_type.contains(PosixArgsSocketType::NONBLOCK);
+ 98 | |
+ 99 | |         let (socket_a, socket_b): (
+100 | |             alloc::sync::Arc<dyn socket::Socket>,
+101 | |             alloc::sync::Arc<dyn socket::Socket>,
+102 | |         ) = match (address_family, stype) {
+103 | |             (AddressFamily::Unix, PSOCK::Stream) => {
+104 | |                 let (a, b) = UnixStreamSocket::new_pair(nonblocking, false);
+105 | |                 (a, b)
+106 | |             }
+107 | |             (AddressFamily::Unix, PSOCK::SeqPacket) => {
+108 | |                 let (a, b) = UnixStreamSocket::new_pair(nonblocking, true);
+109 | |                 (a, b)
+110 | |             }
+111 | |             (AddressFamily::Unix, PSOCK::Datagram) => {
+112 | |                 let (a, b) = UnixDatagramSocket::new_pair(nonblocking);
+113 | |                 (a, b)
+114 | |             }
+115 | |             _ => {
+116 | |                 return Err(SystemError::EAFNOSUPPORT);
+117 | |             }
+118 | |         };
+119 | |
+120 | |         fds[0] = fd_table_guard.alloc_fd(File::new(socket_a, FileFlags::O_RDWR)?, None)?;
+121 | |         fds[1] = fd_table_guard.alloc_fd(File::new(socket_b, FileFlags::O_RDWR)?, None)?;
+122 | |
+123 | |         drop(fd_table_guard);
+124 | |         Ok(0)
+125 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/net/syscall.rs line 74.
+    | MIR detail: Value _167(_, src/net/syscall.rs:123) and _27(binding, src/net/syscall.rs:84) are alias.
+    | MIR detail: _167(_, src/net/syscall.rs:123) is dropped at BB69(src/net/syscall.rs:123); _27(binding, src/net/syscall.rs:84) is dropped at BB70(src/net/syscall.rs:125).
+    |
+22:08:15|RAP|WARN|: Double free detected in function "socketpair"
+warning: Double free detected during unwinding.
+   --> src/net/syscall.rs:74:1
+    |
+ 74 | / pub fn socketpair(
+ 75 | |         address_family: usize,
+ 76 | |         socket_type: usize,
+ 77 | |         protocol: usize,
+ 78 | |         fds: &mut [i32],
+ 79 | |     ) -> Result<usize, SystemError> {
+ 80 | |         let address_family = AddressFamily::try_from(address_family as u16)?;
+ 81 | |         let socket_type = PosixArgsSocketType::from_bits_truncate(socket_type as u32);
+ 82 | |         let stype = socket::PSOCK::try_from(socket_type)?;
+ 83 | |
+ 84 | |         let binding = ProcessManager::current_pcb().fd_table();
+ 85 | |         let mut fd_table_guard = binding.write();
+ 86 | |
+ 87 | |         // check address family, only support AF_UNIX
+ 88 | |         if address_family != AddressFamily::Unix {
+ 89 | |             log::warn!(
+ 90 | |                 "only support AF_UNIX, {:?} with protocol {:?} is not supported",
+ 91 | |                 address_family,
+ 92 | |                 protocol
+ 93 | |             );
+ 94 | |             return Err(SystemError::EAFNOSUPPORT);
+ 95 | |         }
+ 96 | |
+ 97 | |         let nonblocking = socket_type.contains(PosixArgsSocketType::NONBLOCK);
+ 98 | |
+ 99 | |         let (socket_a, socket_b): (
+100 | |             alloc::sync::Arc<dyn socket::Socket>,
+101 | |             alloc::sync::Arc<dyn socket::Socket>,
+102 | |         ) = match (address_family, stype) {
+103 | |             (AddressFamily::Unix, PSOCK::Stream) => {
+104 | |                 let (a, b) = UnixStreamSocket::new_pair(nonblocking, false);
+105 | |                 (a, b)
+106 | |             }
+107 | |             (AddressFamily::Unix, PSOCK::SeqPacket) => {
+108 | |                 let (a, b) = UnixStreamSocket::new_pair(nonblocking, true);
+109 | |                 (a, b)
+110 | |             }
+111 | |             (AddressFamily::Unix, PSOCK::Datagram) => {
+112 | |                 let (a, b) = UnixDatagramSocket::new_pair(nonblocking);
+113 | |                 (a, b)
+114 | |             }
+115 | |             _ => {
+116 | |                 return Err(SystemError::EAFNOSUPPORT);
+117 | |             }
+118 | |         };
+119 | |
+120 | |         fds[0] = fd_table_guard.alloc_fd(File::new(socket_a, FileFlags::O_RDWR)?, None)?;
+121 | |         fds[1] = fd_table_guard.alloc_fd(File::new(socket_b, FileFlags::O_RDWR)?, None)?;
+122 | |
+123 | |         drop(fd_table_guard);
+124 | |         Ok(0)
+125 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/net/syscall.rs line 74.
+    | MIR detail: Value _167(_, src/net/syscall.rs:123) and _27(binding, src/net/syscall.rs:84) are alias.
+    | MIR detail: _167(_, src/net/syscall.rs:123) is dropped at BB69(src/net/syscall.rs:123); _27(binding, src/net/syscall.rs:84) is dropped at BB83(src/net/syscall.rs:125).
+    |
+render dot for DefId(0:27265 ~ dragonos_kernel[9e38]::net::syscall::{impl#0}::socketpair)

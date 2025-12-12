@@ -1,0 +1,32 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_readlinkat.rs:27:1
+   |
+27 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+28 | |         vec![
+29 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", Self::dirfd(args))),
+30 | |             FormattedSyscallParam::new("path", format!("{:#x}", Self::path(args) as usize)),
+31 | |             FormattedSyscallParam::new("buf", format!("{:#x}", Self::user_buf(args) as usize)),
+32 | |             FormattedSyscallParam::new("buf_size", format!("{:#x}", Self::buf_size(args))),
+33 | |         ]
+34 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_readlinkat.rs line 27.
+    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:30) and _9(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:29) are alias.
+    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:30) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:29) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_readlinkat.rs:27:1
+   |
+27 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+28 | |         vec![
+29 | |             FormattedSyscallParam::new("dirfd", format!("{:#x}", Self::dirfd(args))),
+30 | |             FormattedSyscallParam::new("path", format!("{:#x}", Self::path(args) as usize)),
+31 | |             FormattedSyscallParam::new("buf", format!("{:#x}", Self::user_buf(args) as usize)),
+32 | |             FormattedSyscallParam::new("buf_size", format!("{:#x}", Self::buf_size(args))),
+33 | |         ]
+34 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_readlinkat.rs line 27.
+    | MIR detail: Value _58(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:31) and _33(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:30) are alias.
+    | MIR detail: _58(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:31) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/filesystem/vfs/syscall/sys_readlinkat.rs:30) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20337 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_readlinkat::{impl#0}::entry_format)

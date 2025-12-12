@@ -1,0 +1,17 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/ipc/syscall/sys_shmget.rs:103:1
+    |
+103 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+104 | |         vec![
+105 | |             FormattedSyscallParam::new("key", format!("{}", Self::key(args).data())),
+106 | |             // 使用 format! 宏将 usize 类型的 size 转换为 String
+107 | |             FormattedSyscallParam::new("size", format!("{}", Self::size(args))),
+108 | |             FormattedSyscallParam::new("shmflg", format!("{:#x}", Self::shmflg(args).bits())),
+109 | |         ]
+110 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_shmget.rs line 103.
+    | MIR detail: Value _26(_, src/ipc/syscall/sys_shmget.rs:107) and _9(_, src/ipc/syscall/sys_shmget.rs:105) are alias.
+    | MIR detail: _26(_, src/ipc/syscall/sys_shmget.rs:107) is dropped at BB23(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/ipc/syscall/sys_shmget.rs:105) is dropped at BB24(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:23172 ~ dragonos_kernel[9e38]::ipc::syscall::sys_shmget::{impl#1}::entry_format)

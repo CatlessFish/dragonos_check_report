@@ -1,0 +1,67 @@
+22:07:58|RAP|WARN|: Double free detected in function "new"
+warning: Double free detected during unwinding.
+   --> src/driver/net/loopback.rs:288:1
+    |
+288 | / pub fn new(mut driver: LoopbackDriver) -> Arc<Self> {
+289 | |         let iface_id = generate_iface_id();
+290 | |
+291 | |         // let hardware_addr = HardwareAddress::Ethernet(smoltcp::wire::EthernetAddress([
+292 | |         //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+293 | |         // ]));
+294 | |
+295 | |         let hardware_addr = HardwareAddress::Ip;
+296 | |
+297 | |         let mut iface_config = smoltcp::iface::Config::new(hardware_addr);
+298 | |
+299 | |         iface_config.random_seed = rand() as u64;
+300 | |
+301 | |         let mut iface =
+302 | |             smoltcp::iface::Interface::new(iface_config, &mut driver, Instant::now().into());
+303 | |
+304 | |         iface.set_any_ip(true);
+305 | |
+306 | |         let addr = IpAddress::v4(127, 0, 0, 1);
+307 | |         let cidr = IpCidr::new(addr, 8);
+308 | |
+309 | |         //设置网卡地址为127.0.0.1
+310 | |         iface.update_ip_addrs(|ip_addrs| {
+311 | |             ip_addrs.push(cidr).expect("Push ipCidr failed: full");
+312 | |         });
+313 | |
+314 | |         iface.routes_mut().update(|routes_map| {
+315 | |             routes_map
+316 | |                 .push(smoltcp::iface::Route {
+317 | |                     cidr,
+318 | |                     via_router: addr,
+319 | |                     preferred_until: None,
+320 | |                     expires_at: None,
+321 | |                 })
+322 | |                 .expect("Add default ipv4 route failed: full");
+323 | |         });
+324 | |
+325 | |         let flags = InterfaceFlags::LOOPBACK
+326 | |             | InterfaceFlags::UP
+327 | |             | InterfaceFlags::RUNNING
+328 | |             | InterfaceFlags::LOWER_UP;
+329 | |
+330 | |         Arc::new(LoopbackInterface {
+331 | |             driver: LoopbackDriverWapper(UnsafeCell::new(driver)),
+332 | |             common: IfaceCommon::new(
+333 | |                 iface_id,
+334 | |                 super::types::InterfaceType::LOOPBACK,
+335 | |                 flags,
+336 | |                 iface,
+337 | |             ),
+338 | |             inner: SpinLock::new(InnerLoopbackInterface {
+339 | |                 netdevice_common: NetDeviceCommonData::default(),
+340 | |                 device_common: DeviceCommonData::default(),
+341 | |                 kobj_common: KObjectCommonData::default(),
+342 | |             }),
+343 | |             locked_kobj_state: LockedKObjectState::default(),
+344 | |         })
+345 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/loopback.rs line 288.
+    | MIR detail: Value _36(_, src/driver/net/loopback.rs:332) and _36(_, src/driver/net/loopback.rs:332) are alias.
+    | MIR detail: _36(_, src/driver/net/loopback.rs:332) is dropped at BB26(src/driver/net/loopback.rs:344); _36(_, src/driver/net/loopback.rs:332) is dropped at BB26(src/driver/net/loopback.rs:344).
+    |
+render dot for DefId(0:11057 ~ dragonos_kernel[9e38]::driver::net::loopback::{impl#12}::new)

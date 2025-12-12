@@ -1,0 +1,33 @@
+22:07:47|RAP|WARN|: Dangling pointer detected in function "period"
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function "period"
+warning: Dangling pointer detected.
+   --> src/arch/x86_64/driver/hpet.rs:264:1
+    |
+264 | / pub fn period(&self) -> u64 {
+265 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+266 | |         let period = regs.counter_clock_period();
+267 | |         debug!("HPET period: {}", period);
+268 | |
+269 | |         drop(inner_guard);
+270 | |         return period;
+271 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 264.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in period and _1(self, src/arch/x86_64/driver/hpet.rs:264) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in period is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:264); _1(self, src/arch/x86_64/driver/hpet.rs:264) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/arch/x86_64/driver/hpet.rs:264:1
+    |
+264 | / pub fn period(&self) -> u64 {
+265 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+266 | |         let period = regs.counter_clock_period();
+267 | |         debug!("HPET period: {}", period);
+268 | |
+269 | |         drop(inner_guard);
+270 | |         return period;
+271 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 264.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in period and _1(self, src/arch/x86_64/driver/hpet.rs:264) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in period is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:264); _1(self, src/arch/x86_64/driver/hpet.rs:264) became dangling.
+    |
+render dot for DefId(0:610 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::period)

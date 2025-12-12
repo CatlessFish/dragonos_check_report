@@ -1,0 +1,55 @@
+22:08:18|RAP|WARN|: Double free detected in function "clocksource_dequeue"
+22:08:18|RAP|WARN|: Double free detected in function "clocksource_dequeue"
+warning: Double free detected.
+   --> src/time/clocksource.rs:613:1
+    |
+613 | / fn clocksource_dequeue(&self) {
+614 | |         let mut list = CLOCKSOURCE_LIST.lock();
+615 | |         let data = self.clocksource_data();
+616 | |         let mut del_pos: usize = list.len();
+617 | |         for (pos, ele) in list.iter().enumerate() {
+618 | |             let ele_data = ele.clocksource_data();
+619 | |             if ele_data.name.eq(&data.name) && ele_data.rating.eq(&data.rating) {
+620 | |                 // 记录时钟源在链表中的下标
+621 | |                 del_pos = pos;
+622 | |             }
+623 | |         }
+624 | |
+625 | |         // 删除时钟源
+626 | |         if del_pos != list.len() {
+627 | |             let mut temp_list = list.split_off(del_pos);
+628 | |             temp_list.pop_front();
+629 | |             list.append(&mut temp_list);
+630 | |         }
+631 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/clocksource.rs line 613.
+    | MIR detail: Value _49(temp_list, src/time/clocksource.rs:627) and _49(temp_list, src/time/clocksource.rs:627) are alias.
+    | MIR detail: _49(temp_list, src/time/clocksource.rs:627) is dropped at BB34(src/time/clocksource.rs:630); _49(temp_list, src/time/clocksource.rs:627) is dropped at BB34(src/time/clocksource.rs:630).
+    |
+warning: Double free detected during unwinding.
+   --> src/time/clocksource.rs:613:1
+    |
+613 | / fn clocksource_dequeue(&self) {
+614 | |         let mut list = CLOCKSOURCE_LIST.lock();
+615 | |         let data = self.clocksource_data();
+616 | |         let mut del_pos: usize = list.len();
+617 | |         for (pos, ele) in list.iter().enumerate() {
+618 | |             let ele_data = ele.clocksource_data();
+619 | |             if ele_data.name.eq(&data.name) && ele_data.rating.eq(&data.rating) {
+620 | |                 // 记录时钟源在链表中的下标
+621 | |                 del_pos = pos;
+622 | |             }
+623 | |         }
+624 | |
+625 | |         // 删除时钟源
+626 | |         if del_pos != list.len() {
+627 | |             let mut temp_list = list.split_off(del_pos);
+628 | |             temp_list.pop_front();
+629 | |             list.append(&mut temp_list);
+630 | |         }
+631 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/time/clocksource.rs line 613.
+    | MIR detail: Value _49(temp_list, src/time/clocksource.rs:627) and _49(temp_list, src/time/clocksource.rs:627) are alias.
+    | MIR detail: _49(temp_list, src/time/clocksource.rs:627) is dropped at BB40(src/time/clocksource.rs:630); _49(temp_list, src/time/clocksource.rs:627) is dropped at BB40(src/time/clocksource.rs:630).
+    |
+render dot for DefId(0:31075 ~ dragonos_kernel[9e38]::time::clocksource::{impl#6}::clocksource_dequeue)

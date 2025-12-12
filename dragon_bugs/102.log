@@ -1,0 +1,51 @@
+22:08:08|RAP|WARN|: Double free detected in function "do_read"
+22:08:08|RAP|WARN|: Double free detected in function "do_read"
+warning: Double free detected.
+   --> src/filesystem/vfs/syscall/sys_read.rs:93:1
+    |
+ 93 | / pub(super) fn do_read(fd: i32, buf: &mut [u8]) -> Result<usize, SystemError> {
+ 94 | |     let binding = ProcessManager::current_pcb().fd_table();
+ 95 | |     let fd_table_guard = binding.read();
+ 96 | |
+ 97 | |     let file = fd_table_guard
+ 98 | |         .get_file_by_fd(fd)
+ 99 | |         .ok_or(SystemError::EBADF)?;
+100 | |
+101 | |     // drop guard 以避免无法调度的问题
+102 | |     drop(fd_table_guard);
+103 | |
+104 | |     if file.flags().contains(FileFlags::O_PATH) {
+105 | |         return Err(SystemError::EBADF);
+106 | |     }
+107 | |
+108 | |     return file.read(buf.len(), buf);
+109 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_read.rs line 93.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_read.rs:102) and _4(binding, src/filesystem/vfs/syscall/sys_read.rs:94) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_read.rs:102) is dropped at BB12(src/filesystem/vfs/syscall/sys_read.rs:102); _4(binding, src/filesystem/vfs/syscall/sys_read.rs:94) is dropped at BB26(src/filesystem/vfs/syscall/sys_read.rs:109).
+    |
+warning: Double free detected during unwinding.
+   --> src/filesystem/vfs/syscall/sys_read.rs:93:1
+    |
+ 93 | / pub(super) fn do_read(fd: i32, buf: &mut [u8]) -> Result<usize, SystemError> {
+ 94 | |     let binding = ProcessManager::current_pcb().fd_table();
+ 95 | |     let fd_table_guard = binding.read();
+ 96 | |
+ 97 | |     let file = fd_table_guard
+ 98 | |         .get_file_by_fd(fd)
+ 99 | |         .ok_or(SystemError::EBADF)?;
+100 | |
+101 | |     // drop guard 以避免无法调度的问题
+102 | |     drop(fd_table_guard);
+103 | |
+104 | |     if file.flags().contains(FileFlags::O_PATH) {
+105 | |         return Err(SystemError::EBADF);
+106 | |     }
+107 | |
+108 | |     return file.read(buf.len(), buf);
+109 | | }
+    | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_read.rs line 93.
+    | MIR detail: Value _28(_, src/filesystem/vfs/syscall/sys_read.rs:102) and _4(binding, src/filesystem/vfs/syscall/sys_read.rs:94) are alias.
+    | MIR detail: _28(_, src/filesystem/vfs/syscall/sys_read.rs:102) is dropped at BB12(src/filesystem/vfs/syscall/sys_read.rs:102); _4(binding, src/filesystem/vfs/syscall/sys_read.rs:94) is dropped at BB29(src/filesystem/vfs/syscall/sys_read.rs:109).
+    |
+render dot for DefId(0:20321 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_read::do_read)

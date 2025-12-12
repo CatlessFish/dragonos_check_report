@@ -1,0 +1,32 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pwritev.rs:54:1
+   |
+54 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+55 | |         vec![
+56 | |             FormattedSyscallParam::new("fd:", Self::fd(args).to_string()),
+57 | |             FormattedSyscallParam::new("iov:", format!("{:#x}", Self::iov(args) as usize)),
+58 | |             FormattedSyscallParam::new("iov_count:", Self::iov_count(args).to_string()),
+59 | |             FormattedSyscallParam::new("offset:", Self::offset(args).to_string()),
+60 | |         ]
+61 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwritev.rs line 54.
+    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) and _9(_, src/filesystem/vfs/syscall/sys_pwritev.rs:56) are alias.
+    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_pwritev.rs:56) is dropped at BB20(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pwritev.rs:54:1
+   |
+54 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+55 | |         vec![
+56 | |             FormattedSyscallParam::new("fd:", Self::fd(args).to_string()),
+57 | |             FormattedSyscallParam::new("iov:", format!("{:#x}", Self::iov(args) as usize)),
+58 | |             FormattedSyscallParam::new("iov_count:", Self::iov_count(args).to_string()),
+59 | |             FormattedSyscallParam::new("offset:", Self::offset(args).to_string()),
+60 | |         ]
+61 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwritev.rs line 54.
+    | MIR detail: Value _39(_, src/filesystem/vfs/syscall/sys_pwritev.rs:58) and _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) are alias.
+    | MIR detail: _39(_, src/filesystem/vfs/syscall/sys_pwritev.rs:58) is dropped at BB18(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20293 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pwritev::{impl#0}::entry_format)

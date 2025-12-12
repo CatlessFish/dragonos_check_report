@@ -1,0 +1,16 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+   --> src/ipc/syscall/sys_sigaction.rs:203:1
+    |
+203 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+204 | |         vec![
+205 | |             FormattedSyscallParam::new("sig", format!("{}", Self::sig(args))),
+206 | |             FormattedSyscallParam::new("act", format!("{:#x}", Self::act(args))),
+207 | |             FormattedSyscallParam::new("old_act", format!("{:#x}", Self::old_act(args))),
+208 | |         ]
+209 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_sigaction.rs line 203.
+    | MIR detail: Value _24(_, src/ipc/syscall/sys_sigaction.rs:206) and _9(_, src/ipc/syscall/sys_sigaction.rs:205) are alias.
+    | MIR detail: _24(_, src/ipc/syscall/sys_sigaction.rs:206) is dropped at BB21(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/ipc/syscall/sys_sigaction.rs:205) is dropped at BB22(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:23216 ~ dragonos_kernel[9e38]::ipc::syscall::sys_sigaction::{impl#1}::entry_format)

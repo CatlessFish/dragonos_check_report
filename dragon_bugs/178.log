@@ -1,0 +1,59 @@
+22:08:17|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_clone.rs:65:1
+   |
+65 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+66 | |         vec![
+67 | |             FormattedSyscallParam::new(
+68 | |                 "parent_tid",
+69 | |                 format!("{:#x}", Self::parent_tid(args).data()),
+70 | |             ),
+71 | |             FormattedSyscallParam::new("child_tid", format!("{:#x}", Self::child_tid(args).data())),
+72 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+73 | |             FormattedSyscallParam::new("stack", format!("{:#x}", Self::stack(args))),
+74 | |             FormattedSyscallParam::new("tls", format!("{:#x}", Self::tls(args))),
+75 | |         ]
+76 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_clone.rs line 65.
+    | MIR detail: Value _61(_, src/process/syscall/sys_clone.rs:72) and _35(_, src/process/syscall/sys_clone.rs:71) are alias.
+    | MIR detail: _61(_, src/process/syscall/sys_clone.rs:72) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _35(_, src/process/syscall/sys_clone.rs:71) is dropped at BB37(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_clone.rs:65:1
+   |
+65 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+66 | |         vec![
+67 | |             FormattedSyscallParam::new(
+68 | |                 "parent_tid",
+69 | |                 format!("{:#x}", Self::parent_tid(args).data()),
+70 | |             ),
+71 | |             FormattedSyscallParam::new("child_tid", format!("{:#x}", Self::child_tid(args).data())),
+72 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+73 | |             FormattedSyscallParam::new("stack", format!("{:#x}", Self::stack(args))),
+74 | |             FormattedSyscallParam::new("tls", format!("{:#x}", Self::tls(args))),
+75 | |         ]
+76 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_clone.rs line 65.
+    | MIR detail: Value _61(_, src/process/syscall/sys_clone.rs:72) and _9(_, src/process/syscall/sys_clone.rs:67) are alias.
+    | MIR detail: _61(_, src/process/syscall/sys_clone.rs:72) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/process/syscall/sys_clone.rs:67) is dropped at BB38(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/process/syscall/sys_clone.rs:65:1
+   |
+65 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+66 | |         vec![
+67 | |             FormattedSyscallParam::new(
+68 | |                 "parent_tid",
+69 | |                 format!("{:#x}", Self::parent_tid(args).data()),
+70 | |             ),
+71 | |             FormattedSyscallParam::new("child_tid", format!("{:#x}", Self::child_tid(args).data())),
+72 | |             FormattedSyscallParam::new("flags", format!("{:#x}", Self::flags(args))),
+73 | |             FormattedSyscallParam::new("stack", format!("{:#x}", Self::stack(args))),
+74 | |             FormattedSyscallParam::new("tls", format!("{:#x}", Self::tls(args))),
+75 | |         ]
+76 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/process/syscall/sys_clone.rs line 65.
+    | MIR detail: Value _85(_, src/process/syscall/sys_clone.rs:73) and _61(_, src/process/syscall/sys_clone.rs:72) are alias.
+    | MIR detail: _85(_, src/process/syscall/sys_clone.rs:73) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _61(_, src/process/syscall/sys_clone.rs:72) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:28969 ~ dragonos_kernel[9e38]::process::syscall::sys_clone::{impl#1}::entry_format)

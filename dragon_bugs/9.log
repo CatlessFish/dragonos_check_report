@@ -1,0 +1,65 @@
+22:07:53|RAP|WARN|: Dangling pointer detected in function "lock"
+warning: Dangling pointer detected.
+  --> src/libs/mutex.rs:62:1
+   |
+62 | / pub fn lock(&self) -> MutexGuard<'_, T> {
+63 | |         loop {
+64 | |             let mut inner: SpinLockGuard<MutexInner> = self.inner.lock();
+65 | |             // 当前mutex已经上锁
+66 | |             if inner.is_locked {
+67 | |                 // 检查当前进程是否处于等待队列中,如果不在，就加到等待队列内
+68 | |                 if !self.check_pid_in_wait_list(&inner, ProcessManager::current_pcb().raw_pid()) {
+69 | |                     inner.wait_list.push_back(ProcessManager::current_pcb());
+70 | |                 }
+71 | |
+72 | |                 // 加到等待唤醒的队列，然后睡眠
+73 | |                 drop(inner);
+74 | |                 self.__sleep();
+75 | |             } else {
+76 | |                 // 加锁成功
+77 | |                 inner.is_locked = true;
+78 | |                 drop(inner);
+79 | |                 break;
+80 | |             }
+81 | |         }
+82 | |
+83 | |         // 加锁成功，返回一个守卫
+84 | |         return MutexGuard { lock: self };
+85 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/libs/mutex.rs line 62.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in lock and _0(_, src/libs/mutex.rs:62) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in lock is dropped at BB18446744073709551615(src/libs/mutex.rs:62); _0(_, src/libs/mutex.rs:62) became dangling.
+   |
+22:07:53|RAP|WARN|: Dangling pointer detected during unwinding in function "lock"
+warning: Dangling pointer detected during unwinding.
+  --> src/libs/mutex.rs:62:1
+   |
+62 | / pub fn lock(&self) -> MutexGuard<'_, T> {
+63 | |         loop {
+64 | |             let mut inner: SpinLockGuard<MutexInner> = self.inner.lock();
+65 | |             // 当前mutex已经上锁
+66 | |             if inner.is_locked {
+67 | |                 // 检查当前进程是否处于等待队列中,如果不在，就加到等待队列内
+68 | |                 if !self.check_pid_in_wait_list(&inner, ProcessManager::current_pcb().raw_pid()) {
+69 | |                     inner.wait_list.push_back(ProcessManager::current_pcb());
+70 | |                 }
+71 | |
+72 | |                 // 加到等待唤醒的队列，然后睡眠
+73 | |                 drop(inner);
+74 | |                 self.__sleep();
+75 | |             } else {
+76 | |                 // 加锁成功
+77 | |                 inner.is_locked = true;
+78 | |                 drop(inner);
+79 | |                 break;
+80 | |             }
+81 | |         }
+82 | |
+83 | |         // 加锁成功，返回一个守卫
+84 | |         return MutexGuard { lock: self };
+85 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/libs/mutex.rs line 62.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in lock and _1(self, src/libs/mutex.rs:62) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in lock is dropped at BB18446744073709551615(src/libs/mutex.rs:62); _1(self, src/libs/mutex.rs:62) became dangling.
+   |
+render dot for DefId(0:4646 ~ dragonos_kernel[9e38]::libs::mutex::{impl#1}::lock)

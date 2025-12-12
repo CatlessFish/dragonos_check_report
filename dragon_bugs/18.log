@@ -1,0 +1,37 @@
+22:07:54|RAP|WARN|: Dangling pointer detected in function "sleep"
+warning: Dangling pointer detected.
+   --> src/libs/wait_queue.rs:383:1
+    |
+383 | / pub fn sleep(&self, events: u64) {
+384 | |         before_sleep_check(0);
+385 | |         let mut guard = self.wait_list.lock_irqsave();
+386 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+387 | |             panic!("sleep error: {:?}", e);
+388 | |         });
+389 | |         guard.push((events, ProcessManager::current_pcb()));
+390 | |         drop(guard);
+391 | |         schedule(SchedMode::SM_NONE);
+392 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 383.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep and _1(self, src/libs/wait_queue.rs:383) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep is dropped at BB18446744073709551615(src/libs/wait_queue.rs:383); _1(self, src/libs/wait_queue.rs:383) became dangling.
+    |
+22:07:54|RAP|WARN|: Dangling pointer detected during unwinding in function "sleep"
+warning: Dangling pointer detected during unwinding.
+   --> src/libs/wait_queue.rs:383:1
+    |
+383 | / pub fn sleep(&self, events: u64) {
+384 | |         before_sleep_check(0);
+385 | |         let mut guard = self.wait_list.lock_irqsave();
+386 | |         ProcessManager::mark_sleep(true).unwrap_or_else(|e| {
+387 | |             panic!("sleep error: {:?}", e);
+388 | |         });
+389 | |         guard.push((events, ProcessManager::current_pcb()));
+390 | |         drop(guard);
+391 | |         schedule(SchedMode::SM_NONE);
+392 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/wait_queue.rs line 383.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in sleep and _1(self, src/libs/wait_queue.rs:383) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in sleep is dropped at BB18446744073709551615(src/libs/wait_queue.rs:383); _1(self, src/libs/wait_queue.rs:383) became dangling.
+    |
+render dot for DefId(0:5662 ~ dragonos_kernel[9e38]::libs::wait_queue::{impl#3}::sleep)

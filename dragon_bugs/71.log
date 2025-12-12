@@ -1,0 +1,31 @@
+22:08:07|RAP|WARN|: Double free detected in function "do_close"
+22:08:07|RAP|WARN|: Double free detected in function "do_close"
+warning: Double free detected.
+  --> src/filesystem/vfs/syscall/sys_close.rs:48:1
+   |
+48 | / pub(super) fn do_close(fd: i32) -> Result<usize, SystemError> {
+49 | |     let binding = ProcessManager::current_pcb().fd_table();
+50 | |     let mut fd_table_guard = binding.write();
+51 | |     let _file = fd_table_guard.drop_fd(fd)?;
+52 | |     drop(fd_table_guard);
+53 | |     Ok(0)
+54 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_close.rs line 48.
+    | MIR detail: Value _24(_, src/filesystem/vfs/syscall/sys_close.rs:52) and _2(binding, src/filesystem/vfs/syscall/sys_close.rs:49) are alias.
+    | MIR detail: _24(_, src/filesystem/vfs/syscall/sys_close.rs:52) is dropped at BB11(src/filesystem/vfs/syscall/sys_close.rs:52); _2(binding, src/filesystem/vfs/syscall/sys_close.rs:49) is dropped at BB15(src/filesystem/vfs/syscall/sys_close.rs:54).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_close.rs:48:1
+   |
+48 | / pub(super) fn do_close(fd: i32) -> Result<usize, SystemError> {
+49 | |     let binding = ProcessManager::current_pcb().fd_table();
+50 | |     let mut fd_table_guard = binding.write();
+51 | |     let _file = fd_table_guard.drop_fd(fd)?;
+52 | |     drop(fd_table_guard);
+53 | |     Ok(0)
+54 | | }
+   | |_- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_close.rs line 48.
+    | MIR detail: Value _24(_, src/filesystem/vfs/syscall/sys_close.rs:52) and _2(binding, src/filesystem/vfs/syscall/sys_close.rs:49) are alias.
+    | MIR detail: _24(_, src/filesystem/vfs/syscall/sys_close.rs:52) is dropped at BB11(src/filesystem/vfs/syscall/sys_close.rs:52); _2(binding, src/filesystem/vfs/syscall/sys_close.rs:49) is dropped at BB21(src/filesystem/vfs/syscall/sys_close.rs:54).
+   |
+render dot for DefId(0:19699 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_close::do_close)

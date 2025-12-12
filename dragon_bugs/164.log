@@ -1,0 +1,59 @@
+22:08:13|RAP|WARN|: Dangling pointer detected in function "do_listen"
+22:08:13|RAP|WARN|: Dangling pointer detected during unwinding in function "do_listen"
+warning: Dangling pointer detected.
+   --> src/net/socket/inet/stream/mod.rs:98:1
+    |
+ 98 | / pub fn do_listen(&self, backlog: usize) -> Result<(), SystemError> {
+ 99 | |         let mut writer = self.inner.write();
+100 | |         let inner = writer.take().expect("Tcp inner::Inner is None");
+101 | |         let (listening, err) = match inner {
+102 | |             inner::Inner::Init(init) => {
+103 | |                 let listen_result = init.listen(backlog);
+104 | |                 match listen_result {
+105 | |                     Ok(listening) => (inner::Inner::Listening(listening), None),
+106 | |                     Err((init, err)) => (inner::Inner::Init(init), Some(err)),
+107 | |                 }
+108 | |             }
+109 | |             _ => (inner, Some(SystemError::EINVAL)),
+110 | |         };
+111 | |         writer.replace(listening);
+112 | |         drop(writer);
+113 | |
+114 | |         if let Some(err) = err {
+115 | |             return Err(err);
+116 | |         }
+117 | |         return Ok(());
+118 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/stream/mod.rs line 98.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_listen and _1(self, src/net/socket/inet/stream/mod.rs:98) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_listen is dropped at BB18446744073709551615(src/net/socket/inet/stream/mod.rs:98); _1(self, src/net/socket/inet/stream/mod.rs:98) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --> src/net/socket/inet/stream/mod.rs:98:1
+    |
+ 98 | / pub fn do_listen(&self, backlog: usize) -> Result<(), SystemError> {
+ 99 | |         let mut writer = self.inner.write();
+100 | |         let inner = writer.take().expect("Tcp inner::Inner is None");
+101 | |         let (listening, err) = match inner {
+102 | |             inner::Inner::Init(init) => {
+103 | |                 let listen_result = init.listen(backlog);
+104 | |                 match listen_result {
+105 | |                     Ok(listening) => (inner::Inner::Listening(listening), None),
+106 | |                     Err((init, err)) => (inner::Inner::Init(init), Some(err)),
+107 | |                 }
+108 | |             }
+109 | |             _ => (inner, Some(SystemError::EINVAL)),
+110 | |         };
+111 | |         writer.replace(listening);
+112 | |         drop(writer);
+113 | |
+114 | |         if let Some(err) = err {
+115 | |             return Err(err);
+116 | |         }
+117 | |         return Ok(());
+118 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/stream/mod.rs line 98.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_listen and _1(self, src/net/socket/inet/stream/mod.rs:98) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_listen is dropped at BB18446744073709551615(src/net/socket/inet/stream/mod.rs:98); _1(self, src/net/socket/inet/stream/mod.rs:98) became dangling.
+    |
+render dot for DefId(0:25971 ~ dragonos_kernel[9e38]::net::socket::inet::stream::{impl#0}::do_listen)

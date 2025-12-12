@@ -1,0 +1,217 @@
+bb0 at src/libs/mutex.rs:117:13: 117:22
+bb1 at src/libs/mutex.rs:117:68: 117:69
+bb2 at src/libs/mutex.rs:119:21: 119:22
+bb3 at src/libs/mutex.rs:119:32: 119:33
+bb4 at src/libs/mutex.rs:119:32: 119:33
+bb5 at src/libs/mutex.rs:121:13: 121:14
+bb6 at src/libs/mutex.rs:122:16: 122:17
+bb8 at src/libs/mutex.rs:122:37: 122:38
+bb9 at src/libs/mutex.rs:122:37: 122:38
+bb10 at src/libs/mutex.rs:127:55: 127:56
+bb11 at src/libs/mutex.rs:127:77: 127:78
+bb12 at src/libs/mutex.rs:127:86: 127:87
+bb13 at src/libs/mutex.rs:128:19: 128:20
+bb14 at src/libs/mutex.rs:130:42: 130:43
+bb15 at src/libs/mutex.rs:130:47: 130:48
+bb16 at src/libs/mutex.rs:131:5: 131:6
+bb17 at src/libs/mutex.rs:131:5: 131:6
+fn libs::mutex::Mutex::<T>::unlock
+_0:  @ () 
+_1:  @ &'{erased} libs::mutex::Mutex<T/#0> 
+_2:  @ libs::spinlock::SpinLockGuard<'{erased}, libs::mutex::MutexInner> 
+_3:  @ &'{erased} libs::spinlock::SpinLock<libs::mutex::MutexInner> 
+_4:  @ () 
+_5:  @ bool 
+_6:  @ &'{erased} libs::mutex::MutexInner 
+_7:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, libs::mutex::MutexInner> 
+_8:  @ ! 
+_9:  @ &'{erased} mut libs::mutex::MutexInner 
+_10:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, libs::mutex::MutexInner> 
+_11:  @ () 
+_12:  @ bool 
+_13:  @ &'{erased} alloc::collections::LinkedList<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>, alloc::alloc::Global> 
+_14:  @ &'{erased} libs::mutex::MutexInner 
+_15:  @ &'{erased} libs::spinlock::SpinLockGuard<'{erased}, libs::mutex::MutexInner> 
+_16:  @ ! 
+_17:  @ alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_18:  @ core::option::Option<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>> 
+_19:  @ &'{erased} mut alloc::collections::LinkedList<alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global>, alloc::alloc::Global> 
+_20:  @ &'{erased} mut libs::mutex::MutexInner 
+_21:  @ &'{erased} mut libs::spinlock::SpinLockGuard<'{erased}, libs::mutex::MutexInner> 
+_22:  @ () 
+_23:  @ libs::spinlock::SpinLockGuard<'{erased}, libs::mutex::MutexInner> 
+_24:  @ core::option::Option<()> 
+_25:  @ core::result::Result<(), system_error::SystemError> 
+_26:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_27:  @ &'{erased} alloc::sync::Arc<process::ProcessControlBlock, alloc::alloc::Global> 
+_28:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_28, const false)) @ _28=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &((*_1).1: libs::spinlock::SpinLock<libs::mutex::MutexInner>))) @ _3=&((*_1).1: libs::spinlock::SpinLock<libs::mutex::MutexInner>) @ Ref
+    Assign((_28, const true)) @ _28=const true @ Use
+    _2 = libs::spinlock::SpinLock::<libs::mutex::MutexInner>::lock(move _3) -> [return: bb1, unwind continue] @ Call: FnDid: 5261
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &_2)) @ _7=&_2 @ Ref
+    _6 = <libs::spinlock::SpinLockGuard<'_, libs::mutex::MutexInner> as lazy_static::__Deref>::deref(move _7) -> [return: bb2, unwind: bb22] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    Assign((_5, copy ((*_6).0: bool))) @ _5=copy ((*_6).0: bool) @ Use
+    switchInt(move _5) -> [0: bb3, otherwise: bb4] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    _8 = core::panicking::panic(const "assertion failed: inner.is_locked") -> bb22 @ Call: FnDid: 10545
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_4, const ())) @ _4=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &mut _2)) @ _10=&mut _2 @ Ref
+    _9 = <libs::spinlock::SpinLockGuard<'_, libs::mutex::MutexInner> as core::ops::DerefMut>::deref_mut(move _10) -> [return: bb5, unwind: bb22] @ Call: FnDid: 3915
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    Assign((((*_9).0: bool), const false)) @ ((*_9).0: bool)=const false @ Use
+    StorageDead(_9) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &_2)) @ _15=&_2 @ Ref
+    _14 = <libs::spinlock::SpinLockGuard<'_, libs::mutex::MutexInner> as lazy_static::__Deref>::deref(move _15) -> [return: bb6, unwind: bb22] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    Assign((_13, &((*_14).1: alloc::collections::LinkedList<alloc::sync::Arc<process::ProcessControlBlock>>))) @ _13=&((*_14).1: alloc::collections::LinkedList<alloc::sync::Arc<process::ProcessControlBlock>>) @ Ref
+    _12 = alloc::collections::LinkedList::<alloc::sync::Arc<process::ProcessControlBlock>>::is_empty(move _13) -> [return: bb7, unwind: bb22] @ Call: FnDid: 4226
+}
+bb 7 {
+CleanUp: false
+    switchInt(move _12) -> [0: bb9, otherwise: bb8] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    drop(_2) -> [return: bb17, unwind: bb20] @ Drop
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_11, const ())) @ _11=const () @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &mut _2)) @ _21=&mut _2 @ Ref
+    _20 = <libs::spinlock::SpinLockGuard<'_, libs::mutex::MutexInner> as core::ops::DerefMut>::deref_mut(move _21) -> [return: bb10, unwind: bb22] @ Call: FnDid: 3915
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_19, &mut ((*_20).1: alloc::collections::LinkedList<alloc::sync::Arc<process::ProcessControlBlock>>))) @ _19=&mut ((*_20).1: alloc::collections::LinkedList<alloc::sync::Arc<process::ProcessControlBlock>>) @ Ref
+    _18 = alloc::collections::LinkedList::<alloc::sync::Arc<process::ProcessControlBlock>>::pop_front(move _19) -> [return: bb11, unwind: bb22] @ Call: FnDid: 4241
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    _17 = core::option::Option::<alloc::sync::Arc<process::ProcessControlBlock>>::unwrap(move _18) -> [return: bb12, unwind: bb22] @ Call: FnDid: 10157
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_28, const false)) @ _28=const false @ Use
+    Assign((_23, move _2)) @ _23=move _2 @ Use
+    _22 = core::mem::drop::<libs::spinlock::SpinLockGuard<'_, libs::mutex::MutexInner>>(move _23) -> [return: bb13, unwind: bb19] @ Call: FnDid: 2323
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &_17)) @ _27=&_17 @ Ref
+    Assign((_26, &(*_27))) @ _26=&(*_27) @ Ref
+    _25 = process::ProcessManager::wakeup(move _26) -> [return: bb14, unwind: bb19] @ Call: FnDid: 29871
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    _24 = core::result::Result::<(), system_error::SystemError>::ok(move _25) -> [return: bb15, unwind: bb19] @ Call: FnDid: 10993
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_17) -> [return: bb16, unwind: bb22] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_28, const false)) @ _28=const false @ Use
+    StorageDead(_2) @ StorageDead
+    goto -> bb18 @ Goto
+}
+bb 17 {
+CleanUp: false
+    Assign((_28, const false)) @ _28=const false @ Use
+    StorageDead(_2) @ StorageDead
+    goto -> bb18 @ Goto
+}
+bb 18 {
+CleanUp: false
+    return @ Return
+}
+bb 19 {
+CleanUp: true
+    drop(_17) -> [return: bb22, unwind terminate(cleanup)] @ Drop
+}
+bb 20 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 21 {
+CleanUp: true
+    drop(_2) -> [return: bb20, unwind terminate(cleanup)] @ Drop
+}
+bb 22 {
+CleanUp: true
+    switchInt(copy _28) -> [0: bb20, otherwise: bb21] @ SwitchInt
+}
+

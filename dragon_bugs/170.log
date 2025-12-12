@@ -1,0 +1,37 @@
+22:08:15|RAP|WARN|: Dangling pointer detected in function "connect"
+warning: Dangling pointer detected.
+   --> src/net/socket/unix/stream/mod.rs:167:1
+    |
+167 | / fn connect(&self, server_endpoint: Endpoint) -> Result<(), SystemError> {
+168 | |         let remote_addr = UnixEndpoint::try_from(server_endpoint)?.connect()?;
+169 | |         let backlog = get_backlog(&remote_addr)?;
+170 | |
+171 | |         if self.is_nonblocking() {
+172 | |             self.try_connect(&backlog)
+173 | |         } else {
+174 | |             backlog.pause_until(|| self.try_connect(&backlog))
+175 | |         }
+176 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 167.
+    | MIR detail: Value _21(backlog, src/net/socket/unix/stream/mod.rs:169) and _1(self, src/net/socket/unix/stream/mod.rs:167) are alias.
+    | MIR detail: _21(backlog, src/net/socket/unix/stream/mod.rs:169) is dropped at BB23(src/net/socket/unix/stream/mod.rs:176); _1(self, src/net/socket/unix/stream/mod.rs:167) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function "connect"
+warning: Dangling pointer detected during unwinding.
+   --> src/net/socket/unix/stream/mod.rs:167:1
+    |
+167 | / fn connect(&self, server_endpoint: Endpoint) -> Result<(), SystemError> {
+168 | |         let remote_addr = UnixEndpoint::try_from(server_endpoint)?.connect()?;
+169 | |         let backlog = get_backlog(&remote_addr)?;
+170 | |
+171 | |         if self.is_nonblocking() {
+172 | |             self.try_connect(&backlog)
+173 | |         } else {
+174 | |             backlog.pause_until(|| self.try_connect(&backlog))
+175 | |         }
+176 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 167.
+    | MIR detail: Value _21(backlog, src/net/socket/unix/stream/mod.rs:169) and _1(self, src/net/socket/unix/stream/mod.rs:167) are alias.
+    | MIR detail: _21(backlog, src/net/socket/unix/stream/mod.rs:169) is dropped at BB28(src/net/socket/unix/stream/mod.rs:176); _1(self, src/net/socket/unix/stream/mod.rs:167) became dangling.
+    |
+render dot for DefId(0:27103 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect)

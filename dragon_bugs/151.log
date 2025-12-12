@@ -1,0 +1,16 @@
+22:08:11|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/ipc/syscall/sys_tgkill.rs:54:1
+   |
+54 | / fn entry_format(&self, args: &[usize]) -> Vec<FormattedSyscallParam> {
+55 | |         vec![
+56 | |             FormattedSyscallParam::new("tgid", Self::tgid(args).to_string()),
+57 | |             FormattedSyscallParam::new("pid", Self::pid(args).to_string()),
+58 | |             FormattedSyscallParam::new("sig", Self::sig(args).to_string()),
+59 | |         ]
+60 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_tgkill.rs line 54.
+    | MIR detail: Value _14(_, src/ipc/syscall/sys_tgkill.rs:57) and _9(_, src/ipc/syscall/sys_tgkill.rs:56) are alias.
+    | MIR detail: _14(_, src/ipc/syscall/sys_tgkill.rs:57) is dropped at BB12(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/ipc/syscall/sys_tgkill.rs:56) is dropped at BB13(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:23287 ~ dragonos_kernel[9e38]::ipc::syscall::sys_tgkill::{impl#1}::entry_format)

@@ -1,0 +1,70 @@
+22:08:08|RAP|WARN|: Double free detected in function "entry_format"
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pselect6.rs:39:1
+   |
+39 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+40 | |         vec![
+41 | |             FormattedSyscallParam::new("nfds", format!("{}", args[0])),
+42 | |             FormattedSyscallParam::new("readfds", format!("{:#x}", args[1])),
+43 | |             FormattedSyscallParam::new("writefds", format!("{:#x}", args[2])),
+44 | |             FormattedSyscallParam::new("exceptfds", format!("{:#x}", args[3])),
+45 | |             FormattedSyscallParam::new("timeout", format!("{:#x}", args[4])),
+46 | |             FormattedSyscallParam::new("sigmask", format!("{:#x}", args[5])),
+47 | |         ]
+48 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pselect6.rs line 39.
+    | MIR detail: Value _25(_, src/filesystem/vfs/syscall/sys_pselect6.rs:42) and _9(_, src/filesystem/vfs/syscall/sys_pselect6.rs:41) are alias.
+    | MIR detail: _25(_, src/filesystem/vfs/syscall/sys_pselect6.rs:42) is dropped at BB42(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_pselect6.rs:41) is dropped at BB43(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pselect6.rs:39:1
+   |
+39 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+40 | |         vec![
+41 | |             FormattedSyscallParam::new("nfds", format!("{}", args[0])),
+42 | |             FormattedSyscallParam::new("readfds", format!("{:#x}", args[1])),
+43 | |             FormattedSyscallParam::new("writefds", format!("{:#x}", args[2])),
+44 | |             FormattedSyscallParam::new("exceptfds", format!("{:#x}", args[3])),
+45 | |             FormattedSyscallParam::new("timeout", format!("{:#x}", args[4])),
+46 | |             FormattedSyscallParam::new("sigmask", format!("{:#x}", args[5])),
+47 | |         ]
+48 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pselect6.rs line 39.
+    | MIR detail: Value _100(_, src/filesystem/vfs/syscall/sys_pselect6.rs:45) and _75(_, src/filesystem/vfs/syscall/sys_pselect6.rs:44) are alias.
+    | MIR detail: _100(_, src/filesystem/vfs/syscall/sys_pselect6.rs:45) is dropped at BB39(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _75(_, src/filesystem/vfs/syscall/sys_pselect6.rs:44) is dropped at BB40(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pselect6.rs:39:1
+   |
+39 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+40 | |         vec![
+41 | |             FormattedSyscallParam::new("nfds", format!("{}", args[0])),
+42 | |             FormattedSyscallParam::new("readfds", format!("{:#x}", args[1])),
+43 | |             FormattedSyscallParam::new("writefds", format!("{:#x}", args[2])),
+44 | |             FormattedSyscallParam::new("exceptfds", format!("{:#x}", args[3])),
+45 | |             FormattedSyscallParam::new("timeout", format!("{:#x}", args[4])),
+46 | |             FormattedSyscallParam::new("sigmask", format!("{:#x}", args[5])),
+47 | |         ]
+48 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pselect6.rs line 39.
+    | MIR detail: Value _50(_, src/filesystem/vfs/syscall/sys_pselect6.rs:43) and _25(_, src/filesystem/vfs/syscall/sys_pselect6.rs:42) are alias.
+    | MIR detail: _50(_, src/filesystem/vfs/syscall/sys_pselect6.rs:43) is dropped at BB41(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _25(_, src/filesystem/vfs/syscall/sys_pselect6.rs:42) is dropped at BB42(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+warning: Double free detected during unwinding.
+  --> src/filesystem/vfs/syscall/sys_pselect6.rs:39:1
+   |
+39 | / fn entry_format(&self, args: &[usize]) -> Vec<crate::syscall::table::FormattedSyscallParam> {
+40 | |         vec![
+41 | |             FormattedSyscallParam::new("nfds", format!("{}", args[0])),
+42 | |             FormattedSyscallParam::new("readfds", format!("{:#x}", args[1])),
+43 | |             FormattedSyscallParam::new("writefds", format!("{:#x}", args[2])),
+44 | |             FormattedSyscallParam::new("exceptfds", format!("{:#x}", args[3])),
+45 | |             FormattedSyscallParam::new("timeout", format!("{:#x}", args[4])),
+46 | |             FormattedSyscallParam::new("sigmask", format!("{:#x}", args[5])),
+47 | |         ]
+48 | |     }
+   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pselect6.rs line 39.
+    | MIR detail: Value _75(_, src/filesystem/vfs/syscall/sys_pselect6.rs:44) and _50(_, src/filesystem/vfs/syscall/sys_pselect6.rs:43) are alias.
+    | MIR detail: _75(_, src/filesystem/vfs/syscall/sys_pselect6.rs:44) is dropped at BB40(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _50(_, src/filesystem/vfs/syscall/sys_pselect6.rs:43) is dropped at BB41(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+   |
+render dot for DefId(0:20252 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pselect6::{impl#0}::entry_format)

@@ -1,0 +1,324 @@
+bb0 at src/net/socket/netlink/message/segment/mod.rs:68:13: 68:22
+bb2 at src/net/socket/netlink/message/segment/mod.rs:69:49: 69:50
+bb3 at src/net/socket/netlink/message/segment/mod.rs:70:39: 70:40
+bb4 at src/net/socket/netlink/message/segment/mod.rs:70:40: 70:41
+bb6 at src/net/socket/netlink/message/segment/mod.rs:68:25: 70:41
+bb7 at src/net/socket/netlink/message/segment/mod.rs:70:40: 70:41
+bb8 at src/net/socket/netlink/message/segment/mod.rs:70:40: 70:41
+bb9 at src/net/socket/netlink/message/segment/mod.rs:72:20: 72:21
+bb10 at src/net/socket/netlink/message/segment/mod.rs:72:32: 72:33
+bb11 at src/net/socket/netlink/message/segment/mod.rs:72:32: 72:33
+bb12 at src/net/socket/netlink/message/segment/mod.rs:76:33: 76:59
+bb13 at src/net/socket/netlink/message/segment/mod.rs:76:59: 76:60
+bb14 at src/net/socket/netlink/message/segment/mod.rs:77:53: 77:54
+bb15 at src/net/socket/netlink/message/segment/mod.rs:82:24: 82:41
+bb16 at src/net/socket/netlink/message/segment/mod.rs:82:40: 82:41
+bb17 at src/net/socket/netlink/message/segment/mod.rs:82:16: 82:20
+bb19 at src/net/socket/netlink/message/segment/mod.rs:84:10: 84:11
+bb20 at src/net/socket/netlink/message/segment/mod.rs:84:10: 84:11
+bb21 at src/net/socket/netlink/message/segment/mod.rs:86:76: 86:77
+bb22 at src/net/socket/netlink/message/segment/mod.rs:89:5: 89:6
+bb25 at src/net/socket/netlink/message/segment/mod.rs:77:31: 77:77
+bb26 at src/net/socket/netlink/message/segment/mod.rs:77:31: 77:77
+fn net::socket::netlink::message::segment::SegmentBody::read_from_buf
+_0:  @ core::result::Result<(Self/#0, usize, usize), system_error::SystemError> 
+_1:  @ &'{erased} net::socket::netlink::message::segment::header::CMsgSegHdr 
+_2:  @ &'{erased} [u8] 
+_3:  @ usize 
+_4:  @ core::ops::ControlFlow<core::result::Result<core::convert::Infallible, system_error::SystemError>, usize> 
+_5:  @ core::result::Result<usize, system_error::SystemError> 
+_6:  @ core::option::Option<usize> 
+_7:  @ usize 
+_8:  @ u32 
+_9:  @ usize 
+_10:  @ system_error::SystemError 
+_11:  @ isize 
+_12:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_13:  @ ! 
+_14:  @ core::result::Result<core::convert::Infallible, system_error::SystemError> 
+_15:  @ usize 
+_16:  @ () 
+_17:  @ bool 
+_18:  @ usize 
+_19:  @ &'{erased} [u8] 
+_20:  @ usize 
+_21:  @ ! 
+_22:  @ system_error::SystemError 
+_23:  @ &'{erased} [u8] 
+_24:  @ &'{erased} [u8] 
+_25:  @ &'{erased} [u8] 
+_26:  @ core::ops::RangeTo<usize> 
+_27:  @ usize 
+_28:  @ Alias(Projection, AliasTy { args: [Self/#0], def_id: DefId(0:26373 ~ dragonos_kernel[9e38]::net::socket::netlink::message::segment::SegmentBody::CType), .. }) 
+_29:  @ *const Alias(Projection, AliasTy { args: [Self/#0], def_id: DefId(0:26373 ~ dragonos_kernel[9e38]::net::socket::netlink::message::segment::SegmentBody::CType), .. }) 
+_30:  @ *const u8 
+_31:  @ &'{erased} [u8] 
+_32:  @ usize 
+_33:  @ ! 
+_34:  @ system_error::SystemError 
+_35:  @ Self/#0 
+_36:  @ core::result::Result<Self/#0, Alias(Projection, AliasTy { args: [Alias(Projection, AliasTy { args: [Self/#0], def_id: DefId(0:26373 ~ dragonos_kernel[9e38]::net::socket::netlink::message::segment::SegmentBody::CType), .. }), Self/#0], def_id: DefId(1:3393 ~ core[2d8e]::convert::TryInto::Error), .. })> 
+_37:  @ Alias(Projection, AliasTy { args: [Self/#0], def_id: DefId(0:26373 ~ dragonos_kernel[9e38]::net::socket::netlink::message::segment::SegmentBody::CType), .. }) 
+_38:  @ isize 
+_39:  @ usize 
+_40:  @ usize 
+_41:  @ usize 
+_42:  @ (Self/#0, usize, usize) 
+_43:  @ Self/#0 
+_44:  @ usize 
+_45:  @ usize 
+_46:  @ *const () 
+_47:  @ usize 
+_48:  @ usize 
+_49:  @ usize 
+_50:  @ usize 
+_51:  @ bool 
+_52:  @ *const () 
+_53:  @ usize 
+_54:  @ usize 
+_55:  @ bool 
+_56:  @ bool 
+_57:  @ bool 
+_58:  @ bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, copy ((*_1).0: u32))) @ _8=copy ((*_1).0: u32) @ Use
+    Assign((_7, move _8 as usize (IntToInt))) @ _7=move _8 as usize (IntToInt) @ Cast
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    _9 = core::mem::size_of::<net::socket::netlink::message::segment::header::CMsgSegHdr>() -> [return: bb1, unwind continue] @ Call: FnDid: 2294
+}
+bb 1 {
+CleanUp: false
+    _6 = core::num::<impl usize>::checked_sub(move _7, move _9) -> [return: bb2, unwind continue] @ Call: FnDid: 35600
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    Assign((_10, system_error::SystemError::EINVAL)) @ _10=system_error::SystemError::EINVAL @ Aggregate
+    _5 = core::option::Option::<usize>::ok_or::<system_error::SystemError>(move _6, move _10) -> [return: bb3, unwind continue] @ Call: FnDid: 10178
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    _4 = <core::result::Result<usize, system_error::SystemError> as core::ops::Try>::branch(move _5) -> [return: bb4, unwind continue] @ Call: FnDid: 4199
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    Assign((_11, discriminant(_4))) @ _11=discriminant(_4) @ Discriminant
+    switchInt(move _11) -> [0: bb6, 1: bb7, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 6 {
+CleanUp: false
+    StorageLive(_15) @ StorageLive
+    Assign((_15, copy ((_4 as Continue).0: usize))) @ _15=copy ((_4 as Continue).0: usize) @ Use
+    Assign((_3, copy _15)) @ _3=copy _15 @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &(*_2))) @ _19=&(*_2) @ Ref
+    _18 = core::slice::<impl [u8]>::len(move _19) -> [return: bb9, unwind continue] @ Call: FnDid: 13970
+}
+bb 7 {
+CleanUp: false
+    StorageLive(_12) @ StorageLive
+    Assign((_12, move ((_4 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>))) @ _12=move ((_4 as Break).0: core::result::Result<core::convert::Infallible, system_error::SystemError>) @ Use
+    StorageLive(_14) @ StorageLive
+    Assign((_14, move _12)) @ _14=move _12 @ Use
+    _0 = <core::result::Result<(Self, usize, usize), system_error::SystemError> as core::ops::FromResidual<core::result::Result<core::convert::Infallible, system_error::SystemError>>>::from_residual(move _14) -> [return: bb8, unwind continue] @ Call: FnDid: 4202
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -> bb22 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    Assign((_20, copy _3)) @ _20=copy _3 @ Use
+    Assign((_17, Lt(move _18, move _20))) @ _17=Lt(move _18, move _20) @ BinaryOp
+    switchInt(move _17) -> [0: bb11, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    Assign((_22, system_error::SystemError::EINVAL)) @ _22=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::<(Self, usize, usize), system_error::SystemError>::Err(move _22))) @ _0=core::result::Result::<(Self, usize, usize), system_error::SystemError>::Err(move _22) @ Aggregate
+    StorageDead(_22) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    goto -> bb22 @ Goto
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    Assign((_16, const ())) @ _16=const () @ Use
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &(*_2))) @ _25=&(*_2) @ Ref
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    _27 = core::mem::size_of::<<Self as net::socket::netlink::message::segment::SegmentBody>::CType>() -> [return: bb12, unwind continue] @ Call: FnDid: 2294
+}
+bb 12 {
+CleanUp: false
+    Assign((_26, core::ops::RangeTo::<usize> { end: move _27 })) @ _26=core::ops::RangeTo::<usize> { end: move _27 } @ Aggregate
+    StorageDead(_27) @ StorageDead
+    _24 = <[u8] as core::ops::Index<core::ops::RangeTo<usize>>>::index(move _25, move _26) -> [return: bb13, unwind continue] @ Call: FnDid: 45437
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    Assign((_23, &(*_24))) @ _23=&(*_24) @ Ref
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &(*_23))) @ _31=&(*_23) @ Ref
+    _30 = core::slice::<impl [u8]>::as_ptr(move _31) -> [return: bb14, unwind continue] @ Call: FnDid: 14020
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    Assign((_29, move _30 as *const <Self as net::socket::netlink::message::segment::SegmentBody>::CType (PtrToPtr))) @ _29=move _30 as *const <Self as net::socket::netlink::message::segment::SegmentBody>::CType (PtrToPtr) @ Cast
+    StorageDead(_30) @ StorageDead
+    Assign((_46, copy _29 as *const () (PtrToPtr))) @ _46=copy _29 as *const () (PtrToPtr) @ Cast
+    Assign((_47, copy _46 as usize (Transmute))) @ _47=copy _46 as usize (Transmute) @ Cast
+    Assign((_48, AlignOf(<Self as net::socket::netlink::message::segment::SegmentBody>::CType))) @ _48=AlignOf(<Self as net::socket::netlink::message::segment::SegmentBody>::CType) @ NullaryOp
+    Assign((_49, Sub(copy _48, const 1_usize))) @ _49=Sub(copy _48, const 1_usize) @ BinaryOp
+    Assign((_50, BitAnd(copy _47, copy _49))) @ _50=BitAnd(copy _47, copy _49) @ BinaryOp
+    Assign((_51, Eq(copy _50, const 0_usize))) @ _51=Eq(copy _50, const 0_usize) @ BinaryOp
+    assert(copy _51, "misaligned pointer dereference: address must be a multiple of {} but is {}", copy _48, copy _47) -> [success: bb25, unwind unreachable] @ Assert
+}
+bb 15 {
+CleanUp: false
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, copy _28)) @ _37=copy _28 @ Use
+    _36 = <<Self as net::socket::netlink::message::segment::SegmentBody>::CType as core::convert::TryInto<Self>>::try_into(move _37) -> [return: bb16, unwind continue] @ Call: FnDid: 3394
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    Assign((_38, discriminant(_36))) @ _38=discriminant(_36) @ Discriminant
+    switchInt(move _38) -> [0: bb17, otherwise: bb18] @ SwitchInt
+}
+bb 17 {
+CleanUp: false
+    StorageLive(_35) @ StorageLive
+    Assign((_35, copy ((_36 as Ok).0: Self))) @ _35=copy ((_36 as Ok).0: Self) @ Use
+    drop(_36) -> [return: bb20, unwind: bb24] @ Drop
+}
+bb 18 {
+CleanUp: false
+    drop(_36) -> [return: bb19, unwind: bb24] @ Drop
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    Assign((_34, system_error::SystemError::EINVAL)) @ _34=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::<(Self, usize, usize), system_error::SystemError>::Err(move _34))) @ _0=core::result::Result::<(Self, usize, usize), system_error::SystemError>::Err(move _34) @ Aggregate
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    goto -> bb22 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, copy _3)) @ _40=copy _3 @ Use
+    StorageLive(_41) @ StorageLive
+    Assign((_41, copy _32)) @ _41=copy _32 @ Use
+    _39 = core::num::<impl usize>::saturating_sub(move _40, move _41) -> [return: bb21, unwind continue] @ Call: FnDid: 35641
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _35)) @ _43=copy _35 @ Use
+    StorageLive(_44) @ StorageLive
+    Assign((_44, copy _39)) @ _44=copy _39 @ Use
+    StorageLive(_45) @ StorageLive
+    Assign((_45, copy _32)) @ _45=copy _32 @ Use
+    Assign((_42, (move _43, move _44, move _45))) @ _42=(move _43, move _44, move _45) @ Aggregate
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    Assign((_0, core::result::Result::<(Self, usize, usize), system_error::SystemError>::Ok(move _42))) @ _0=core::result::Result::<(Self, usize, usize), system_error::SystemError>::Ok(move _42) @ Aggregate
+    StorageDead(_42) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    goto -> bb23 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    goto -> bb23 @ Goto
+}
+bb 23 {
+CleanUp: false
+    return @ Return
+}
+bb 24 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 25 {
+CleanUp: false
+    Assign((_52, copy _29 as *const () (PtrToPtr))) @ _52=copy _29 as *const () (PtrToPtr) @ Cast
+    Assign((_53, copy _52 as usize (Transmute))) @ _53=copy _52 as usize (Transmute) @ Cast
+    Assign((_54, SizeOf(<Self as net::socket::netlink::message::segment::SegmentBody>::CType))) @ _54=SizeOf(<Self as net::socket::netlink::message::segment::SegmentBody>::CType) @ NullaryOp
+    Assign((_55, Ne(copy _54, const 0_usize))) @ _55=Ne(copy _54, const 0_usize) @ BinaryOp
+    Assign((_56, Eq(copy _53, const 0_usize))) @ _56=Eq(copy _53, const 0_usize) @ BinaryOp
+    Assign((_57, BitAnd(copy _56, copy _55))) @ _57=BitAnd(copy _56, copy _55) @ BinaryOp
+    Assign((_58, Not(copy _57))) @ _58=Not(copy _57) @ UnaryOp
+    assert(copy _58, "null pointer dereference occurred") -> [success: bb26, unwind unreachable] @ Assert
+}
+bb 26 {
+CleanUp: false
+    Assign((_28, copy (*_29))) @ _28=copy (*_29) @ Use
+    StorageDead(_29) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    _32 = <Self as net::socket::netlink::message::segment::SegmentBody>::total_len_with_padding() -> [return: bb15, unwind continue] @ Call: FnDid: 26376
+}
+

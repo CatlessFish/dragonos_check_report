@@ -1,0 +1,139 @@
+22:08:14|RAP|WARN|: Use-after-free detected in function "read_from_buf"
+warning: Use-after-free detected.
+  --> src/net/socket/netlink/message/segment/mod.rs:88:13
+   |
+63 | fn read_from_buf(header: &CMsgSegHdr, buf: &[u8]) -> Result<(Self, usize, usize), SystemError>
+64 |     where
+65 |         Self: Sized,
+66 |     {
+67 |         // log::info!("header: {:?}", header);
+68 |         let total_len = (header.len as usize)
+69 |             .checked_sub(size_of::<CMsgSegHdr>())
+70 |             .ok_or(SystemError::EINVAL)?;
+71 |
+72 |         if buf.len() < total_len {
+73 |             return Err(SystemError::EINVAL);
+74 |         }
+75 |
+76 |         let c_type_bytes = &buf[..size_of::<Self::CType>()];
+77 |         let c_type = unsafe { *(c_type_bytes.as_ptr() as *const Self::CType) };
+78 |         // log::info!("c_type: {:?}", c_type);
+79 |
+80 |         let total_len_with_padding = Self::total_len_with_padding();
+81 |
+82 |         let Ok(body) = c_type.try_into() else {
+83 |             return Err(SystemError::EINVAL);
+84 |         };
+85 |
+86 |         let remaining_len = total_len.saturating_sub(total_len_with_padding);
+87 |
+88 |         Ok((body, remaining_len, total_len_with_padding))
+   |             ---- Use-after-free (confidence 99%): Location in file src/net/socket/netlink/message/segment/mod.rs line 88.
+    | MIR detail: Value _36(_, src/net/socket/netlink/message/segment/mod.rs:82) and _35(body, src/net/socket/netlink/message/segment/mod.rs:82) are alias.
+    | MIR detail: _36(_, src/net/socket/netlink/message/segment/mod.rs:82) is dropped at BB17(src/net/socket/netlink/message/segment/mod.rs:84); _35(body, src/net/socket/netlink/message/segment/mod.rs:82) is used at BB21(src/net/socket/netlink/message/segment/mod.rs:89).
+89 |     }
+   |
+warning: Use-after-free detected.
+  --> src/net/socket/netlink/message/segment/mod.rs:88:12
+   |
+63 | fn read_from_buf(header: &CMsgSegHdr, buf: &[u8]) -> Result<(Self, usize, usize), SystemError>
+64 |     where
+65 |         Self: Sized,
+66 |     {
+67 |         // log::info!("header: {:?}", header);
+68 |         let total_len = (header.len as usize)
+69 |             .checked_sub(size_of::<CMsgSegHdr>())
+70 |             .ok_or(SystemError::EINVAL)?;
+71 |
+72 |         if buf.len() < total_len {
+73 |             return Err(SystemError::EINVAL);
+74 |         }
+75 |
+76 |         let c_type_bytes = &buf[..size_of::<Self::CType>()];
+77 |         let c_type = unsafe { *(c_type_bytes.as_ptr() as *const Self::CType) };
+78 |         // log::info!("c_type: {:?}", c_type);
+79 |
+80 |         let total_len_with_padding = Self::total_len_with_padding();
+81 |
+82 |         let Ok(body) = c_type.try_into() else {
+83 |             return Err(SystemError::EINVAL);
+84 |         };
+85 |
+86 |         let remaining_len = total_len.saturating_sub(total_len_with_padding);
+87 |
+88 |         Ok((body, remaining_len, total_len_with_padding))
+   |            --------------------------------------------- Use-after-free (confidence 99%): Location in file src/net/socket/netlink/message/segment/mod.rs line 88.
+    | MIR detail: Value _36(_, src/net/socket/netlink/message/segment/mod.rs:82) and _43(_, src/net/socket/netlink/message/segment/mod.rs:88) are alias.
+    | MIR detail: _36(_, src/net/socket/netlink/message/segment/mod.rs:82) is dropped at BB17(src/net/socket/netlink/message/segment/mod.rs:84); _43(_, src/net/socket/netlink/message/segment/mod.rs:88) is used at BB21(src/net/socket/netlink/message/segment/mod.rs:89).
+89 |     }
+   |
+22:08:14|RAP|WARN|: Dangling pointer detected in function "read_from_buf"
+warning: Use-after-free detected.
+  --> src/net/socket/netlink/message/segment/mod.rs:88:9
+   |
+63 | fn read_from_buf(header: &CMsgSegHdr, buf: &[u8]) -> Result<(Self, usize, usize), SystemError>
+64 |     where
+65 |         Self: Sized,
+66 |     {
+67 |         // log::info!("header: {:?}", header);
+68 |         let total_len = (header.len as usize)
+69 |             .checked_sub(size_of::<CMsgSegHdr>())
+70 |             .ok_or(SystemError::EINVAL)?;
+71 |
+72 |         if buf.len() < total_len {
+73 |             return Err(SystemError::EINVAL);
+74 |         }
+75 |
+76 |         let c_type_bytes = &buf[..size_of::<Self::CType>()];
+77 |         let c_type = unsafe { *(c_type_bytes.as_ptr() as *const Self::CType) };
+78 |         // log::info!("c_type: {:?}", c_type);
+79 |
+80 |         let total_len_with_padding = Self::total_len_with_padding();
+81 |
+82 |         let Ok(body) = c_type.try_into() else {
+83 |             return Err(SystemError::EINVAL);
+84 |         };
+85 |
+86 |         let remaining_len = total_len.saturating_sub(total_len_with_padding);
+87 |
+88 |         Ok((body, remaining_len, total_len_with_padding))
+   |         ------------------------------------------------- Use-after-free (confidence 99%): Location in file src/net/socket/netlink/message/segment/mod.rs line 88.
+    | MIR detail: Value _36(_, src/net/socket/netlink/message/segment/mod.rs:82) and _42(_, src/net/socket/netlink/message/segment/mod.rs:88) are alias.
+    | MIR detail: _36(_, src/net/socket/netlink/message/segment/mod.rs:82) is dropped at BB17(src/net/socket/netlink/message/segment/mod.rs:84); _42(_, src/net/socket/netlink/message/segment/mod.rs:88) is used at BB21(src/net/socket/netlink/message/segment/mod.rs:89).
+89 |     }
+   |
+warning: Dangling pointer detected.
+  --> src/net/socket/netlink/message/segment/mod.rs:63:1
+   |
+63 | / fn read_from_buf(header: &CMsgSegHdr, buf: &[u8]) -> Result<(Self, usize, usize), SystemError>
+64 | |     where
+65 | |         Self: Sized,
+66 | |     {
+67 | |         // log::info!("header: {:?}", header);
+68 | |         let total_len = (header.len as usize)
+69 | |             .checked_sub(size_of::<CMsgSegHdr>())
+70 | |             .ok_or(SystemError::EINVAL)?;
+71 | |
+72 | |         if buf.len() < total_len {
+73 | |             return Err(SystemError::EINVAL);
+74 | |         }
+75 | |
+76 | |         let c_type_bytes = &buf[..size_of::<Self::CType>()];
+77 | |         let c_type = unsafe { *(c_type_bytes.as_ptr() as *const Self::CType) };
+78 | |         // log::info!("c_type: {:?}", c_type);
+79 | |
+80 | |         let total_len_with_padding = Self::total_len_with_padding();
+81 | |
+82 | |         let Ok(body) = c_type.try_into() else {
+83 | |             return Err(SystemError::EINVAL);
+84 | |         };
+85 | |
+86 | |         let remaining_len = total_len.saturating_sub(total_len_with_padding);
+87 | |
+88 | |         Ok((body, remaining_len, total_len_with_padding))
+89 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/netlink/message/segment/mod.rs line 63.
+    | MIR detail: Value _36(_, src/net/socket/netlink/message/segment/mod.rs:82) and _0(_, src/net/socket/netlink/message/segment/mod.rs:63) are alias.
+    | MIR detail: _36(_, src/net/socket/netlink/message/segment/mod.rs:82) is dropped at BB17(src/net/socket/netlink/message/segment/mod.rs:84); _0(_, src/net/socket/netlink/message/segment/mod.rs:63) became dangling.
+   |
+render dot for DefId(0:26374 ~ dragonos_kernel[9e38]::net::socket::netlink::message::segment::SegmentBody::read_from_buf)
