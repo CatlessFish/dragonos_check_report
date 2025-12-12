@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #69: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #69
+            
+                 <span class="func-name">filesystem::vfs::file::{impl#5}::file_readahead</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:06|RAP|WARN|: Dangling pointer detected in function &#34;file_readahead&#34;
+warning: Dangling pointer detected.
+   --&gt; src/filesystem/vfs/file.rs:516:1
+    |
+516 | / fn file_readahead(&amp;self, offset: usize, len: usize) -&gt; Result&lt;(), SystemError&gt; {
+517 | |         let page_cache = match self.inode.page_cache() {
+518 | |             Some(page_cahce) =&gt; page_cahce,
+519 | |             None =&gt; return Ok(()),
+520 | |         };
+521 | |
+522 | |         let start_page = offset &gt;&gt; MMArch::PAGE_SHIFT;
+523 | |         let end_page = (offset + len - 1) &gt;&gt; MMArch::PAGE_SHIFT;
+524 | |
+525 | |         let (async_trigger_page, missing_page) = {
+526 | |             let page_cache_guard = page_cache.lock_irqsave();
+527 | |             let mut async_trigger_page = None;
+528 | |             let mut missing_page = None;
+529 | |
+530 | |             for index in start_page..=end_page {
+531 | |                 match page_cache_guard.get_page(index) {
+532 | |                     Some(page)
+533 | |                         if page
+534 | |                             .read_irqsave()
+535 | |                             .flags()
+536 | |                             .contains(PageFlags::PG_READAHEAD) =&gt;
+537 | |                     {
+538 | |                         async_trigger_page = Some((index, page.clone()));
+539 | |                         break;
+540 | |                     }
+541 | |                     None =&gt; {
+542 | |                         missing_page = Some(index);
+543 | |                         break;
+544 | |                     }
+545 | |                     _ =&gt; {}
+546 | |                 }
+547 | |             }
+548 | |             (async_trigger_page, missing_page)
+549 | |         };
+550 | |
+551 | |         if let Some((index, page)) = async_trigger_page {
+552 | |             let mut ra_state = self.ra_state.lock().clone();
+553 | |             let req_pages = end_page - index + 1;
+554 | |             page.write_irqsave().remove_flags(PageFlags::PG_READAHEAD);
+555 | |
+556 | |             page_cache_async_readahead(&amp;page_cache, &amp;self.inode, &amp;mut ra_state, index, req_pages)?;
+557 | |             *self.ra_state.lock() = ra_state;
+558 | |         } else if let Some(index) = missing_page {
+559 | |             let mut ra_state = self.ra_state.lock().clone();
+560 | |             let req_pages = end_page - index + 1;
+561 | |
+562 | |             page_cache_sync_readahead(&amp;page_cache, &amp;self.inode, &amp;mut ra_state, index, req_pages)?;
+563 | |             *self.ra_state.lock() = ra_state;
+564 | |         }
+565 | |         Ok(())
+566 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/vfs/file.rs line 516.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in file_readahead and _1(self, src/filesystem/vfs/file.rs:516) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in file_readahead is dropped at BB18446744073709551615(src/filesystem/vfs/file.rs:516); _1(self, src/filesystem/vfs/file.rs:516) became dangling.
+    |
+22:08:06|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;file_readahead&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/filesystem/vfs/file.rs:516:1
+    |
+516 | / fn file_readahead(&amp;self, offset: usize, len: usize) -&gt; Result&lt;(), SystemError&gt; {
+517 | |         let page_cache = match self.inode.page_cache() {
+518 | |             Some(page_cahce) =&gt; page_cahce,
+519 | |             None =&gt; return Ok(()),
+520 | |         };
+521 | |
+522 | |         let start_page = offset &gt;&gt; MMArch::PAGE_SHIFT;
+523 | |         let end_page = (offset + len - 1) &gt;&gt; MMArch::PAGE_SHIFT;
+524 | |
+525 | |         let (async_trigger_page, missing_page) = {
+526 | |             let page_cache_guard = page_cache.lock_irqsave();
+527 | |             let mut async_trigger_page = None;
+528 | |             let mut missing_page = None;
+529 | |
+530 | |             for index in start_page..=end_page {
+531 | |                 match page_cache_guard.get_page(index) {
+532 | |                     Some(page)
+533 | |                         if page
+534 | |                             .read_irqsave()
+535 | |                             .flags()
+536 | |                             .contains(PageFlags::PG_READAHEAD) =&gt;
+537 | |                     {
+538 | |                         async_trigger_page = Some((index, page.clone()));
+539 | |                         break;
+540 | |                     }
+541 | |                     None =&gt; {
+542 | |                         missing_page = Some(index);
+543 | |                         break;
+544 | |                     }
+545 | |                     _ =&gt; {}
+546 | |                 }
+547 | |             }
+548 | |             (async_trigger_page, missing_page)
+549 | |         };
+550 | |
+551 | |         if let Some((index, page)) = async_trigger_page {
+552 | |             let mut ra_state = self.ra_state.lock().clone();
+553 | |             let req_pages = end_page - index + 1;
+554 | |             page.write_irqsave().remove_flags(PageFlags::PG_READAHEAD);
+555 | |
+556 | |             page_cache_async_readahead(&amp;page_cache, &amp;self.inode, &amp;mut ra_state, index, req_pages)?;
+557 | |             *self.ra_state.lock() = ra_state;
+558 | |         } else if let Some(index) = missing_page {
+559 | |             let mut ra_state = self.ra_state.lock().clone();
+560 | |             let req_pages = end_page - index + 1;
+561 | |
+562 | |             page_cache_sync_readahead(&amp;page_cache, &amp;self.inode, &amp;mut ra_state, index, req_pages)?;
+563 | |             *self.ra_state.lock() = ra_state;
+564 | |         }
+565 | |         Ok(())
+566 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/vfs/file.rs line 516.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in file_readahead and _1(self, src/filesystem/vfs/file.rs:516) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in file_readahead is dropped at BB18446744073709551615(src/filesystem/vfs/file.rs:516); _1(self, src/filesystem/vfs/file.rs:516) became dangling.
+    |
+render dot for DefId(0:19187 ~ dragonos_kernel[9e38]::filesystem::vfs::file::{impl#5}::file_readahead)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/vfs/file.rs:517:13: 517:23
+bb1 at src/filesystem/vfs/file.rs:517:32: 517:42
+bb2 at src/filesystem/vfs/file.rs:517:54: 517:55
+bb4 at src/filesystem/vfs/file.rs:519:31: 519:33
+bb5 at src/filesystem/vfs/file.rs:518:18: 518:28
+bb6 at src/filesystem/vfs/file.rs:522:26: 522:54
+bb7 at src/filesystem/vfs/file.rs:523:25: 523:37
+bb8 at src/filesystem/vfs/file.rs:523:24: 523:42
+bb9 at src/filesystem/vfs/file.rs:523:24: 523:64
+bb10 at src/filesystem/vfs/file.rs:526:36: 526:46
+bb11 at src/filesystem/vfs/file.rs:526:60: 526:61
+bb12 at src/filesystem/vfs/file.rs:530:46: 530:47
+bb13 at src/filesystem/vfs/file.rs:530:46: 530:47
+bb14 at src/filesystem/vfs/file.rs:530:26: 530:47
+bb15 at src/filesystem/vfs/file.rs:530:46: 530:47
+bb16 at src/filesystem/vfs/file.rs:530:17: 530:22
+bb17 at src/filesystem/vfs/file.rs:530:13: 547:14
+bb18 at src/filesystem/vfs/file.rs:531:23: 531:39
+bb19 at src/filesystem/vfs/file.rs:531:54: 531:55
+bb20 at src/filesystem/vfs/file.rs:545:26: 545:28
+bb21 at src/filesystem/vfs/file.rs:542:40: 542:51
+bb22 at src/filesystem/vfs/file.rs:532:26: 532:30
+bb23 at src/filesystem/vfs/file.rs:533:28: 533:32
+bb24 at src/filesystem/vfs/file.rs:533:28: 534:44
+bb25 at src/filesystem/vfs/file.rs:533:28: 534:44
+bb26 at src/filesystem/vfs/file.rs:533:28: 535:37
+bb29 at src/filesystem/vfs/file.rs:536:62: 536:63
+bb31 at src/filesystem/vfs/file.rs:536:62: 536:63
+bb32 at src/filesystem/vfs/file.rs:538:70: 538:71
+bb33 at src/filesystem/vfs/file.rs:538:25: 538:43
+bb34 at src/filesystem/vfs/file.rs:538:25: 538:43
+bb35 at src/filesystem/vfs/file.rs:540:21: 540:22
+bb36 at src/filesystem/vfs/file.rs:547:13: 547:14
+bb37 at src/filesystem/vfs/file.rs:549:9: 549:10
+bb38 at src/filesystem/vfs/file.rs:551:22: 551:27
+bb39 at src/filesystem/vfs/file.rs:552:32: 552:52
+bb40 at src/filesystem/vfs/file.rs:552:32: 552:52
+bb41 at src/filesystem/vfs/file.rs:552:59: 552:60
+bb42 at src/filesystem/vfs/file.rs:552:60: 552:61
+bb43 at src/filesystem/vfs/file.rs:553:29: 553:45
+bb44 at src/filesystem/vfs/file.rs:553:29: 553:49
+bb45 at src/filesystem/vfs/file.rs:554:13: 554:17
+bb46 at src/filesystem/vfs/file.rs:554:13: 554:33
+bb47 at src/filesystem/vfs/file.rs:554:13: 554:33
+bb48 at src/filesystem/vfs/file.rs:554:70: 554:71
+bb49 at src/filesystem/vfs/file.rs:554:71: 554:72
+bb50 at src/filesystem/vfs/file.rs:556:97: 556:98
+bb51 at src/filesystem/vfs/file.rs:556:98: 556:99
+bb52 at src/filesystem/vfs/file.rs:556:13: 556:99
+bb53 at src/filesystem/vfs/file.rs:556:98: 556:99
+bb54 at src/filesystem/vfs/file.rs:556:98: 556:99
+bb55 at src/filesystem/vfs/file.rs:557:14: 557:34
+bb56 at src/filesystem/vfs/file.rs:557:33: 557:34
+bb57 at src/filesystem/vfs/file.rs:557:45: 557:46
+bb58 at src/filesystem/vfs/file.rs:558:37: 558:49
+bb59 at src/filesystem/vfs/file.rs:558:9: 558:10
+bb60 at src/filesystem/vfs/file.rs:558:28: 558:33
+bb61 at src/filesystem/vfs/file.rs:559:32: 559:52
+bb62 at src/filesystem/vfs/file.rs:559:32: 559:52
+bb63 at src/filesystem/vfs/file.rs:559:59: 559:60
+bb64 at src/filesystem/vfs/file.rs:559:60: 559:61
+bb65 at src/filesystem/vfs/file.rs:560:29: 560:45
+bb66 at src/filesystem/vfs/file.rs:560:29: 560:49
+bb67 at src/filesystem/vfs/file.rs:562:96: 562:97
+bb68 at src/filesystem/vfs/file.rs:562:97: 562:98
+bb69 at src/filesystem/vfs/file.rs:562:13: 562:98
+bb70 at src/filesystem/vfs/file.rs:562:97: 562:98
+bb71 at src/filesystem/vfs/file.rs:562:97: 562:98
+bb72 at src/filesystem/vfs/file.rs:563:14: 563:34
+bb73 at src/filesystem/vfs/file.rs:563:33: 563:34
+bb74 at src/filesystem/vfs/file.rs:563:45: 563:46
+bb75 at src/filesystem/vfs/file.rs:564:10: 564:10
+bb76 at src/filesystem/vfs/file.rs:564:9: 564:10
+bb77 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb78 at src/filesystem/vfs/file.rs:558:9: 558:10
+bb79 at src/filesystem/vfs/file.rs:564:9: 564:10
+bb80 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb94 at src/filesystem/vfs/file.rs:547:13: 547:14
+bb97 at src/filesystem/vfs/file.rs:547:13: 547:14
+bb98 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb99 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb100 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb101 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb104 at src/filesystem/vfs/file.rs:566:5: 566:6
+bb107 at src/filesystem/vfs/file.rs:547:13: 547:14
+fn filesystem::vfs::file::File::file_readahead
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_2:  @ usize 
+_3:  @ usize 
+_4:  @ alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_5:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt;&gt; 
+_6:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased} 
+_7:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased} 
+_8:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_9:  @ isize 
+_10:  @ alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_11:  @ ! 
+_12:  @ () 
+_13:  @ usize 
+_14:  @ usize 
+_15:  @ bool 
+_16:  @ usize 
+_17:  @ usize 
+_18:  @ usize 
+_19:  @ usize 
+_20:  @ usize 
+_21:  @ (usize, bool) 
+_22:  @ (usize, bool) 
+_23:  @ bool 
+_24:  @ core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;)&gt; 
+_25:  @ core::option::Option&lt;usize&gt; 
+_26:  @ (core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;)&gt;, core::option::Option&lt;usize&gt;) 
+_27:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::page_cache::InnerPageCache&gt; 
+_28:  @ &amp;&#39;{erased} filesystem::page_cache::PageCache 
+_29:  @ &amp;&#39;{erased} filesystem::page_cache::PageCache 
+_30:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_31:  @ core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;)&gt; 
+_32:  @ core::option::Option&lt;usize&gt; 
+_33:  @ () 
+_34:  @ core::ops::RangeInclusive&lt;usize&gt; 
+_35:  @ core::ops::RangeInclusive&lt;usize&gt; 
+_36:  @ usize 
+_37:  @ usize 
+_38:  @ core::ops::RangeInclusive&lt;usize&gt; 
+_39:  @ () 
+_40:  @ () 
+_41:  @ core::option::Option&lt;usize&gt; 
+_42:  @ &amp;&#39;{erased} mut core::ops::RangeInclusive&lt;usize&gt; 
+_43:  @ &amp;&#39;{erased} mut core::ops::RangeInclusive&lt;usize&gt; 
+_44:  @ isize 
+_45:  @ ! 
+_46:  @ usize 
+_47:  @ core::option::Option&lt;alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;&gt; 
+_48:  @ &amp;&#39;{erased} filesystem::page_cache::InnerPageCache 
+_49:  @ &amp;&#39;{erased} filesystem::page_cache::InnerPageCache 
+_50:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::page_cache::InnerPageCache&gt; 
+_51:  @ usize 
+_52:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;&gt; 
+_53:  @ isize 
+_54:  @ alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_55:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_56:  @ bool 
+_57:  @ &amp;&#39;{erased} mm::page::PageFlags 
+_58:  @ &amp;&#39;{erased} mm::page::PageFlags 
+_59:  @ &amp;&#39;{erased} mm::page::InnerPage 
+_60:  @ &amp;&#39;{erased} mm::page::InnerPage 
+_61:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, mm::page::InnerPage&gt; 
+_62:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, mm::page::InnerPage&gt; 
+_63:  @ &amp;&#39;{erased} mm::page::Page 
+_64:  @ &amp;&#39;{erased} mm::page::Page 
+_65:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_66:  @ ! 
+_67:  @ core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;)&gt; 
+_68:  @ (usize, alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;) 
+_69:  @ usize 
+_70:  @ alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_71:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_72:  @ ! 
+_73:  @ core::option::Option&lt;usize&gt; 
+_74:  @ usize 
+_75:  @ core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt;)&gt; 
+_76:  @ core::option::Option&lt;usize&gt; 
+_77:  @ () 
+_78:  @ isize 
+_79:  @ usize 
+_80:  @ alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_81:  @ mm::readahead::FileReadaheadState 
+_82:  @ &amp;&#39;{erased} mm::readahead::FileReadaheadState 
+_83:  @ &amp;&#39;{erased} mm::readahead::FileReadaheadState 
+_84:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_85:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_86:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt; 
+_87:  @ usize 
+_88:  @ usize 
+_89:  @ usize 
+_90:  @ usize 
+_91:  @ (usize, bool) 
+_92:  @ (usize, bool) 
+_93:  @ () 
+_94:  @ &amp;&#39;{erased} mut mm::page::InnerPage 
+_95:  @ &amp;&#39;{erased} mut mm::page::InnerPage 
+_96:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, mm::page::InnerPage&gt; 
+_97:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, mm::page::InnerPage&gt; 
+_98:  @ &amp;&#39;{erased} mm::page::Page 
+_99:  @ &amp;&#39;{erased} mm::page::Page 
+_100:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;mm::page::Page, alloc::alloc::Global&gt; 
+_101:  @ usize 
+_102:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
+_103:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_104:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_105:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_106:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_107:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_108:  @ &amp;&#39;{erased} mut mm::readahead::FileReadaheadState 
+_109:  @ &amp;&#39;{erased} mut mm::readahead::FileReadaheadState 
+_110:  @ usize 
+_111:  @ usize 
+_112:  @ isize 
+_113:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_114:  @ ! 
+_115:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_116:  @ usize 
+_117:  @ mm::readahead::FileReadaheadState 
+_118:  @ &amp;&#39;{erased} mut mm::readahead::FileReadaheadState 
+_119:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_120:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_121:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt; 
+_122:  @ isize 
+_123:  @ usize 
+_124:  @ mm::readahead::FileReadaheadState 
+_125:  @ &amp;&#39;{erased} mm::readahead::FileReadaheadState 
+_126:  @ &amp;&#39;{erased} mm::readahead::FileReadaheadState 
+_127:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_128:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_129:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt; 
+_130:  @ usize 
+_131:  @ usize 
+_132:  @ usize 
+_133:  @ usize 
+_134:  @ (usize, bool) 
+_135:  @ (usize, bool) 
+_136:  @ usize 
+_137:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
+_138:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_139:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_140:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::page_cache::PageCache, alloc::alloc::Global&gt; 
+_141:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_142:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_143:  @ &amp;&#39;{erased} mut mm::readahead::FileReadaheadState 
+_144:  @ &amp;&#39;{erased} mut mm::readahead::FileReadaheadState 
+_145:  @ usize 
+_146:  @ usize 
+_147:  @ isize 
+_148:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_149:  @ ! 
+_150:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_151:  @ usize 
+_152:  @ mm::readahead::FileReadaheadState 
+_153:  @ &amp;&#39;{erased} mut mm::readahead::FileReadaheadState 
+_154:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_155:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, mm::readahead::FileReadaheadState&gt; 
+_156:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt; 
+_157:  @ () 
+_158:  @ bool 
+_159:  @ bool 
+_160:  @ bool 
+_161:  @ bool 
+_162:  @ bool 
+_163:  @ isize 
+_164:  @ isize 
+_165:  @ isize 
+_166:  @ isize 
+_167:  @ isize 
+_168:  @ isize 
+_169:  @ isize 
+_170:  @ isize 
+_171:  @ isize 
+_172:  @ isize 
+_173:  @ isize 
+_174:  @ isize 
+_175:  @ isize 
+_176:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_158, const false)) @ _158=const false @ Use
+    Assign((_159, const false)) @ _159=const false @ Use
+    Assign((_160, const false)) @ _160=const false @ Use
+    Assign((_161, const false)) @ _161=const false @ Use
+    Assign((_162, const false)) @ _162=const false @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;((*_1).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;))) @ _8=&amp;((*_1).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;) @ Ref
+    _7 = &lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt; as lazy_static::__Deref&gt;::deref(move _8) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
+    StorageDead(_8) @ StorageDead
+    _5 = &lt;dyn filesystem::vfs::IndexNode as filesystem::vfs::IndexNode&gt;::page_cache(move _6) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 21791
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    Assign((_9, discriminant(_5))) @ _9=discriminant(_5) @ Discriminant
+    switchInt(move _9) -&gt; [0: bb4, 1: bb5, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 4 {
+CleanUp: false
+    StorageLive(_12) @ StorageLive
+    Assign((_12, ())) @ _12=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _12))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _12) @ Aggregate
+    StorageDead(_12) @ StorageDead
+    Assign((_163, discriminant(_5))) @ _163=discriminant(_5) @ Discriminant
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb80 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_10) @ StorageLive
+    Assign((_10, move ((_5 as Some).0: alloc::sync::Arc&lt;filesystem::page_cache::PageCache&gt;))) @ _10=move ((_5 as Some).0: alloc::sync::Arc&lt;filesystem::page_cache::PageCache&gt;) @ Use
+    Assign((_4, move _10)) @ _4=move _10 @ Use
+    StorageDead(_10) @ StorageDead
+    Assign((_165, discriminant(_5))) @ _165=discriminant(_5) @ Discriminant
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, copy _2)) @ _14=copy _2 @ Use
+    Assign((_15, Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize))) @ _15=Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize) @ BinaryOp
+    assert(move _15, &#34;attempt to shift right by `{}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) -&gt; [success: bb6, unwind: bb92] @ Assert
+}
+bb 6 {
+CleanUp: false
+    Assign((_13, Shr(move _14, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT))) @ _13=Shr(move _14, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) @ BinaryOp
+    StorageDead(_14) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, copy _2)) @ _19=copy _2 @ Use
+    StorageLive(_20) @ StorageLive
+    Assign((_20, copy _3)) @ _20=copy _3 @ Use
+    Assign((_21, AddWithOverflow(copy _19, copy _20))) @ _21=AddWithOverflow(copy _19, copy _20) @ BinaryOp
+    assert(!move (_21.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, move _19, move _20) -&gt; [success: bb7, unwind: bb92] @ Assert
+}
+bb 7 {
+CleanUp: false
+    Assign((_18, move (_21.0: usize))) @ _18=move (_21.0: usize) @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    Assign((_22, SubWithOverflow(copy _18, const 1_usize))) @ _22=SubWithOverflow(copy _18, const 1_usize) @ BinaryOp
+    assert(!move (_22.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, move _18, const 1_usize) -&gt; [success: bb8, unwind: bb92] @ Assert
+}
+bb 8 {
+CleanUp: false
+    Assign((_17, move (_22.0: usize))) @ _17=move (_22.0: usize) @ Use
+    StorageDead(_18) @ StorageDead
+    Assign((_23, Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize))) @ _23=Lt(const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT, const 64_usize) @ BinaryOp
+    assert(move _23, &#34;attempt to shift right by `{}`, which would overflow&#34;, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) -&gt; [success: bb9, unwind: bb92] @ Assert
+}
+bb 9 {
+CleanUp: false
+    Assign((_16, Shr(move _17, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT))) @ _16=Shr(move _17, const &lt;arch::x86_64::mm::X86_64MMArch as mm::MemoryManagementArch&gt;::PAGE_SHIFT) @ BinaryOp
+    StorageDead(_17) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;_4)) @ _30=&amp;_4 @ Ref
+    _29 = &lt;alloc::sync::Arc&lt;filesystem::page_cache::PageCache&gt; as lazy_static::__Deref&gt;::deref(move _30) -&gt; [return: bb10, unwind: bb92] @ Call: FnDid: 3903
+}
+bb 10 {
+CleanUp: false
+    Assign((_28, &amp;(*_29))) @ _28=&amp;(*_29) @ Ref
+    StorageDead(_30) @ StorageDead
+    _27 = filesystem::page_cache::PageCache::lock_irqsave(move _28) -&gt; [return: bb11, unwind: bb92] @ Call: FnDid: 18365
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, core::option::Option::&lt;(usize, alloc::sync::Arc&lt;mm::page::Page&gt;)&gt;::None)) @ _31=core::option::Option::&lt;(usize, alloc::sync::Arc&lt;mm::page::Page&gt;)&gt;::None @ Aggregate
+    StorageLive(_32) @ StorageLive
+    Assign((_32, core::option::Option::&lt;usize&gt;::None)) @ _32=core::option::Option::&lt;usize&gt;::None @ Aggregate
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, copy _13)) @ _36=copy _13 @ Use
+    StorageLive(_37) @ StorageLive
+    Assign((_37, copy _16)) @ _37=copy _16 @ Use
+    _35 = core::ops::RangeInclusive::&lt;usize&gt;::new(move _36, move _37) -&gt; [return: bb12, unwind: bb90] @ Call: FnDid: 4053
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    _34 = &lt;core::ops::RangeInclusive&lt;usize&gt; as core::iter::IntoIterator&gt;::into_iter(move _35) -&gt; [return: bb13, unwind: bb90] @ Call: FnDid: 9224
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    Assign((_38, move _34)) @ _38=move _34 @ Use
+    goto -&gt; bb14 @ Goto
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, &amp;mut _38)) @ _43=&amp;mut _38 @ Ref
+    Assign((_42, &amp;mut (*_43))) @ _42=&amp;mut (*_43) @ Ref
+    _41 = &lt;core::ops::RangeInclusive&lt;usize&gt; as core::iter::Iterator&gt;::next(move _42) -&gt; [return: bb15, unwind: bb90] @ Call: FnDid: 9356
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    Assign((_44, discriminant(_41))) @ _44=discriminant(_41) @ Discriminant
+    switchInt(move _44) -&gt; [0: bb17, 1: bb16, otherwise: bb3] @ SwitchInt
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_46) @ StorageLive
+    Assign((_46, copy ((_41 as Some).0: usize))) @ _46=copy ((_41 as Some).0: usize) @ Use
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    Assign((_50, &amp;_27)) @ _50=&amp;_27 @ Ref
+    _49 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::page_cache::InnerPageCache&gt; as lazy_static::__Deref&gt;::deref(move _50) -&gt; [return: bb18, unwind: bb90] @ Call: FnDid: 3903
+}
+bb 17 {
+CleanUp: false
+    Assign((_33, const ())) @ _33=const () @ Use
+    goto -&gt; bb36 @ Goto
+}
+bb 18 {
+CleanUp: false
+    Assign((_48, &amp;(*_49))) @ _48=&amp;(*_49) @ Ref
+    StorageDead(_50) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    Assign((_51, copy _46)) @ _51=copy _46 @ Use
+    _47 = filesystem::page_cache::InnerPageCache::get_page(move _48, move _51) -&gt; [return: bb19, unwind: bb90] @ Call: FnDid: 18348
+}
+bb 19 {
+CleanUp: false
+    Assign((_158, const true)) @ _158=const true @ Use
+    Assign((_159, const true)) @ _159=const true @ Use
+    StorageDead(_51) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    Assign((_53, discriminant(_47))) @ _53=discriminant(_47) @ Discriminant
+    switchInt(move _53) -&gt; [0: bb21, 1: bb22, otherwise: bb20] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    Assign((_40, const ())) @ _40=const () @ Use
+    Assign((_167, discriminant(_47))) @ _167=discriminant(_47) @ Discriminant
+    switchInt(move _167) -&gt; [1: bb95, otherwise: bb94] @ SwitchInt
+}
+bb 21 {
+CleanUp: false
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    Assign((_74, copy _46)) @ _74=copy _46 @ Use
+    Assign((_73, core::option::Option::&lt;usize&gt;::Some(move _74))) @ _73=core::option::Option::&lt;usize&gt;::Some(move _74) @ Aggregate
+    StorageDead(_74) @ StorageDead
+    Assign((_32, move _73)) @ _32=move _73 @ Use
+    StorageDead(_73) @ StorageDead
+    Assign((_33, const ())) @ _33=const () @ Use
+    goto -&gt; bb97 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;((_47 as Some).0: alloc::sync::Arc&lt;mm::page::Page&gt;))) @ _55=&amp;((_47 as Some).0: alloc::sync::Arc&lt;mm::page::Page&gt;) @ Ref
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;(*_55))) @ _65=&amp;(*_55) @ Ref
+    _64 = &lt;alloc::sync::Arc&lt;mm::page::Page&gt; as lazy_static::__Deref&gt;::deref(move _65) -&gt; [return: bb23, unwind: bb107] @ Call: FnDid: 3903
+}
+bb 23 {
+CleanUp: false
+    Assign((_63, &amp;(*_64))) @ _63=&amp;(*_64) @ Ref
+    StorageDead(_65) @ StorageDead
+    _62 = mm::page::Page::read_irqsave(move _63) -&gt; [return: bb24, unwind: bb107] @ Call: FnDid: 24336
+}
+bb 24 {
+CleanUp: false
+    Assign((_61, &amp;_62)) @ _61=&amp;_62 @ Ref
+    _60 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, mm::page::InnerPage&gt; as lazy_static::__Deref&gt;::deref(move _61) -&gt; [return: bb25, unwind: bb89] @ Call: FnDid: 3903
+}
+bb 25 {
+CleanUp: false
+    Assign((_59, &amp;(*_60))) @ _59=&amp;(*_60) @ Ref
+    StorageDead(_63) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    _58 = mm::page::InnerPage::flags(move _59) -&gt; [return: bb26, unwind: bb89] @ Call: FnDid: 24349
+}
+bb 26 {
+CleanUp: false
+    Assign((_57, &amp;(*_58))) @ _57=&amp;(*_58) @ Ref
+    StorageDead(_59) @ StorageDead
+    _56 = mm::page::PageFlags::contains(move _57, const mm::page::PageFlags::PG_READAHEAD) -&gt; [return: bb27, unwind: bb89] @ Call: FnDid: 59043
+}
+bb 27 {
+CleanUp: false
+    switchInt(move _56) -&gt; [0: bb30, otherwise: bb28] @ SwitchInt
+}
+bb 28 {
+CleanUp: false
+    drop(_62) -&gt; [return: bb29, unwind: bb107] @ Drop
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    Assign((_159, const false)) @ _159=const false @ Use
+    Assign((_54, move ((_47 as Some).0: alloc::sync::Arc&lt;mm::page::Page&gt;))) @ _54=move ((_47 as Some).0: alloc::sync::Arc&lt;mm::page::Page&gt;) @ Use
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, copy _46)) @ _69=copy _46 @ Use
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    Assign((_71, &amp;_54)) @ _71=&amp;_54 @ Ref
+    _70 = &lt;alloc::sync::Arc&lt;mm::page::Page&gt; as core::clone::Clone&gt;::clone(move _71) -&gt; [return: bb32, unwind: bb88] @ Call: FnDid: 3116
+}
+bb 30 {
+CleanUp: false
+    drop(_62) -&gt; [return: bb31, unwind: bb107] @ Drop
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    goto -&gt; bb20 @ Goto
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    Assign((_68, (move _69, move _70))) @ _68=(move _69, move _70) @ Aggregate
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    Assign((_67, core::option::Option::&lt;(usize, alloc::sync::Arc&lt;mm::page::Page&gt;)&gt;::Some(move _68))) @ _67=core::option::Option::&lt;(usize, alloc::sync::Arc&lt;mm::page::Page&gt;)&gt;::Some(move _68) @ Aggregate
+    StorageDead(_68) @ StorageDead
+    drop(_31) -&gt; [return: bb33, unwind: bb34] @ Drop
+}
+bb 33 {
+CleanUp: false
+    Assign((_31, move _67)) @ _31=move _67 @ Use
+    StorageDead(_67) @ StorageDead
+    Assign((_33, const ())) @ _33=const () @ Use
+    drop(_54) -&gt; [return: bb35, unwind: bb107] @ Drop
+}
+bb 34 {
+CleanUp: true
+    Assign((_31, move _67)) @ _31=move _67 @ Use
+    goto -&gt; bb88 @ Goto
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    goto -&gt; bb97 @ Goto
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageLive(_75) @ StorageLive
+    Assign((_75, move _31)) @ _75=move _31 @ Use
+    StorageLive(_76) @ StorageLive
+    Assign((_76, copy _32)) @ _76=copy _32 @ Use
+    Assign((_26, (move _75, move _76))) @ _26=(move _75, move _76) @ Aggregate
+    StorageDead(_76) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    drop(_27) -&gt; [return: bb37, unwind: bb92] @ Drop
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    Assign((_160, const true)) @ _160=const true @ Use
+    Assign((_161, const true)) @ _161=const true @ Use
+    Assign((_162, const true)) @ _162=const true @ Use
+    Assign((_24, move (_26.0: core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page&gt;)&gt;))) @ _24=move (_26.0: core::option::Option&lt;(usize, alloc::sync::Arc&lt;mm::page::Page&gt;)&gt;) @ Use
+    StorageLive(_25) @ StorageLive
+    Assign((_25, copy (_26.1: core::option::Option&lt;usize&gt;))) @ _25=copy (_26.1: core::option::Option&lt;usize&gt;) @ Use
+    StorageDead(_26) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    Assign((_78, discriminant(_24))) @ _78=discriminant(_24) @ Discriminant
+    switchInt(move _78) -&gt; [1: bb38, otherwise: bb58] @ SwitchInt
+}
+bb 38 {
+CleanUp: false
+    StorageLive(_79) @ StorageLive
+    Assign((_79, copy (((_24 as Some).0: (usize, alloc::sync::Arc&lt;mm::page::Page&gt;)).0: usize))) @ _79=copy (((_24 as Some).0: (usize, alloc::sync::Arc&lt;mm::page::Page&gt;)).0: usize) @ Use
+    StorageLive(_80) @ StorageLive
+    Assign((_162, const false)) @ _162=const false @ Use
+    Assign((_80, move (((_24 as Some).0: (usize, alloc::sync::Arc&lt;mm::page::Page&gt;)).1: alloc::sync::Arc&lt;mm::page::Page&gt;))) @ _80=move (((_24 as Some).0: (usize, alloc::sync::Arc&lt;mm::page::Page&gt;)).1: alloc::sync::Arc&lt;mm::page::Page&gt;) @ Use
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    Assign((_86, &amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;))) @ _86=&amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;) @ Ref
+    _85 = libs::spinlock::SpinLock::&lt;mm::readahead::FileReadaheadState&gt;::lock(move _86) -&gt; [return: bb39, unwind: bb87] @ Call: FnDid: 5261
+}
+bb 39 {
+CleanUp: false
+    Assign((_84, &amp;_85)) @ _84=&amp;_85 @ Ref
+    _83 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::readahead::FileReadaheadState&gt; as lazy_static::__Deref&gt;::deref(move _84) -&gt; [return: bb40, unwind: bb86] @ Call: FnDid: 3903
+}
+bb 40 {
+CleanUp: false
+    Assign((_82, &amp;(*_83))) @ _82=&amp;(*_83) @ Ref
+    StorageDead(_86) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    _81 = &lt;mm::readahead::FileReadaheadState as core::clone::Clone&gt;::clone(move _82) -&gt; [return: bb41, unwind: bb86] @ Call: FnDid: 3116
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    drop(_85) -&gt; [return: bb42, unwind: bb87] @ Drop
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    Assign((_89, copy _16)) @ _89=copy _16 @ Use
+    StorageLive(_90) @ StorageLive
+    Assign((_90, copy _79)) @ _90=copy _79 @ Use
+    Assign((_91, SubWithOverflow(copy _89, copy _90))) @ _91=SubWithOverflow(copy _89, copy _90) @ BinaryOp
+    assert(!move (_91.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, move _89, move _90) -&gt; [success: bb43, unwind: bb87] @ Assert
+}
+bb 43 {
+CleanUp: false
+    Assign((_88, move (_91.0: usize))) @ _88=move (_91.0: usize) @ Use
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    Assign((_92, AddWithOverflow(copy _88, const 1_usize))) @ _92=AddWithOverflow(copy _88, const 1_usize) @ BinaryOp
+    assert(!move (_92.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, move _88, const 1_usize) -&gt; [success: bb44, unwind: bb87] @ Assert
+}
+bb 44 {
+CleanUp: false
+    Assign((_87, move (_92.0: usize))) @ _87=move (_92.0: usize) @ Use
+    StorageDead(_88) @ StorageDead
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    Assign((_100, &amp;_80)) @ _100=&amp;_80 @ Ref
+    _99 = &lt;alloc::sync::Arc&lt;mm::page::Page&gt; as lazy_static::__Deref&gt;::deref(move _100) -&gt; [return: bb45, unwind: bb87] @ Call: FnDid: 3903
+}
+bb 45 {
+CleanUp: false
+    Assign((_98, &amp;(*_99))) @ _98=&amp;(*_99) @ Ref
+    StorageDead(_100) @ StorageDead
+    _97 = mm::page::Page::write_irqsave(move _98) -&gt; [return: bb46, unwind: bb87] @ Call: FnDid: 24337
+}
+bb 46 {
+CleanUp: false
+    Assign((_96, &amp;mut _97)) @ _96=&amp;mut _97 @ Ref
+    _95 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, mm::page::InnerPage&gt; as core::ops::DerefMut&gt;::deref_mut(move _96) -&gt; [return: bb47, unwind: bb85] @ Call: FnDid: 3915
+}
+bb 47 {
+CleanUp: false
+    Assign((_94, &amp;mut (*_95))) @ _94=&amp;mut (*_95) @ Ref
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    _93 = mm::page::InnerPage::remove_flags(move _94, const mm::page::PageFlags::PG_READAHEAD) -&gt; [return: bb48, unwind: bb85] @ Call: FnDid: 24352
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    drop(_97) -&gt; [return: bb49, unwind: bb87] @ Drop
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageDead(_95) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    StorageLive(_105) @ StorageLive
+    Assign((_105, &amp;_4)) @ _105=&amp;_4 @ Ref
+    Assign((_104, &amp;(*_105))) @ _104=&amp;(*_105) @ Ref
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    Assign((_107, &amp;((*_1).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;))) @ _107=&amp;((*_1).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;) @ Ref
+    Assign((_106, &amp;(*_107))) @ _106=&amp;(*_107) @ Ref
+    StorageLive(_108) @ StorageLive
+    StorageLive(_109) @ StorageLive
+    Assign((_109, &amp;mut _81)) @ _109=&amp;mut _81 @ Ref
+    Assign((_108, &amp;mut (*_109))) @ _108=&amp;mut (*_109) @ Ref
+    StorageLive(_110) @ StorageLive
+    Assign((_110, copy _79)) @ _110=copy _79 @ Use
+    StorageLive(_111) @ StorageLive
+    Assign((_111, copy _87)) @ _111=copy _87 @ Use
+    _103 = mm::readahead::page_cache_async_readahead(move _104, move _106, move _108, move _110, move _111) -&gt; [return: bb50, unwind: bb87] @ Call: FnDid: 24569
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_111) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    StorageDead(_108) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageDead(_104) @ StorageDead
+    _102 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _103) -&gt; [return: bb51, unwind: bb87] @ Call: FnDid: 4199
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_103) @ StorageDead
+    Assign((_112, discriminant(_102))) @ _112=discriminant(_102) @ Discriminant
+    switchInt(move _112) -&gt; [0: bb52, 1: bb53, otherwise: bb3] @ SwitchInt
+}
+bb 52 {
+CleanUp: false
+    StorageLive(_116) @ StorageLive
+    Assign((_116, copy ((_102 as Continue).0: usize))) @ _116=copy ((_102 as Continue).0: usize) @ Use
+    Assign((_101, copy _116)) @ _101=copy _116 @ Use
+    StorageDead(_116) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    StorageLive(_117) @ StorageLive
+    Assign((_117, move _81)) @ _117=move _81 @ Use
+    StorageLive(_118) @ StorageLive
+    StorageLive(_119) @ StorageLive
+    StorageLive(_120) @ StorageLive
+    StorageLive(_121) @ StorageLive
+    Assign((_121, &amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;))) @ _121=&amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;) @ Ref
+    _120 = libs::spinlock::SpinLock::&lt;mm::readahead::FileReadaheadState&gt;::lock(move _121) -&gt; [return: bb55, unwind: bb87] @ Call: FnDid: 5261
+}
+bb 53 {
+CleanUp: false
+    StorageLive(_113) @ StorageLive
+    Assign((_113, move ((_102 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _113=move ((_102 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_115) @ StorageLive
+    Assign((_115, move _113)) @ _115=move _113 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _115) -&gt; [return: bb54, unwind: bb87] @ Call: FnDid: 4202
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_115) @ StorageDead
+    StorageDead(_113) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    drop(_80) -&gt; [return: bb78, unwind: bb104] @ Drop
+}
+bb 55 {
+CleanUp: false
+    Assign((_119, &amp;mut _120)) @ _119=&amp;mut _120 @ Ref
+    StorageDead(_121) @ StorageDead
+    _118 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::readahead::FileReadaheadState&gt; as core::ops::DerefMut&gt;::deref_mut(move _119) -&gt; [return: bb56, unwind: bb84] @ Call: FnDid: 3915
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_119) @ StorageDead
+    Assign(((*_118), move _117)) @ (*_118)=move _117 @ Use
+    StorageDead(_117) @ StorageDead
+    drop(_120) -&gt; [return: bb57, unwind: bb87] @ Drop
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_120) @ StorageDead
+    StorageDead(_118) @ StorageDead
+    Assign((_77, const ())) @ _77=const () @ Use
+    StorageDead(_87) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    drop(_80) -&gt; [return: bb59, unwind: bb104] @ Drop
+}
+bb 58 {
+CleanUp: false
+    Assign((_122, discriminant(_25))) @ _122=discriminant(_25) @ Discriminant
+    switchInt(move _122) -&gt; [1: bb60, otherwise: bb75] @ SwitchInt
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    goto -&gt; bb76 @ Goto
+}
+bb 60 {
+CleanUp: false
+    StorageLive(_123) @ StorageLive
+    Assign((_123, copy ((_25 as Some).0: usize))) @ _123=copy ((_25 as Some).0: usize) @ Use
+    StorageLive(_124) @ StorageLive
+    StorageLive(_125) @ StorageLive
+    StorageLive(_126) @ StorageLive
+    StorageLive(_127) @ StorageLive
+    StorageLive(_128) @ StorageLive
+    StorageLive(_129) @ StorageLive
+    Assign((_129, &amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;))) @ _129=&amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;) @ Ref
+    _128 = libs::spinlock::SpinLock::&lt;mm::readahead::FileReadaheadState&gt;::lock(move _129) -&gt; [return: bb61, unwind: bb104] @ Call: FnDid: 5261
+}
+bb 61 {
+CleanUp: false
+    Assign((_127, &amp;_128)) @ _127=&amp;_128 @ Ref
+    _126 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::readahead::FileReadaheadState&gt; as lazy_static::__Deref&gt;::deref(move _127) -&gt; [return: bb62, unwind: bb83] @ Call: FnDid: 3903
+}
+bb 62 {
+CleanUp: false
+    Assign((_125, &amp;(*_126))) @ _125=&amp;(*_126) @ Ref
+    StorageDead(_129) @ StorageDead
+    StorageDead(_127) @ StorageDead
+    _124 = &lt;mm::readahead::FileReadaheadState as core::clone::Clone&gt;::clone(move _125) -&gt; [return: bb63, unwind: bb83] @ Call: FnDid: 3116
+}
+bb 63 {
+CleanUp: false
+    StorageDead(_125) @ StorageDead
+    drop(_128) -&gt; [return: bb64, unwind: bb104] @ Drop
+}
+bb 64 {
+CleanUp: false
+    StorageDead(_128) @ StorageDead
+    StorageDead(_126) @ StorageDead
+    StorageLive(_130) @ StorageLive
+    StorageLive(_131) @ StorageLive
+    StorageLive(_132) @ StorageLive
+    Assign((_132, copy _16)) @ _132=copy _16 @ Use
+    StorageLive(_133) @ StorageLive
+    Assign((_133, copy _123)) @ _133=copy _123 @ Use
+    Assign((_134, SubWithOverflow(copy _132, copy _133))) @ _134=SubWithOverflow(copy _132, copy _133) @ BinaryOp
+    assert(!move (_134.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, move _132, move _133) -&gt; [success: bb65, unwind: bb104] @ Assert
+}
+bb 65 {
+CleanUp: false
+    Assign((_131, move (_134.0: usize))) @ _131=move (_134.0: usize) @ Use
+    StorageDead(_133) @ StorageDead
+    StorageDead(_132) @ StorageDead
+    Assign((_135, AddWithOverflow(copy _131, const 1_usize))) @ _135=AddWithOverflow(copy _131, const 1_usize) @ BinaryOp
+    assert(!move (_135.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, move _131, const 1_usize) -&gt; [success: bb66, unwind: bb104] @ Assert
+}
+bb 66 {
+CleanUp: false
+    Assign((_130, move (_135.0: usize))) @ _130=move (_135.0: usize) @ Use
+    StorageDead(_131) @ StorageDead
+    StorageLive(_136) @ StorageLive
+    StorageLive(_137) @ StorageLive
+    StorageLive(_138) @ StorageLive
+    StorageLive(_139) @ StorageLive
+    StorageLive(_140) @ StorageLive
+    Assign((_140, &amp;_4)) @ _140=&amp;_4 @ Ref
+    Assign((_139, &amp;(*_140))) @ _139=&amp;(*_140) @ Ref
+    StorageLive(_141) @ StorageLive
+    StorageLive(_142) @ StorageLive
+    Assign((_142, &amp;((*_1).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;))) @ _142=&amp;((*_1).0: alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;) @ Ref
+    Assign((_141, &amp;(*_142))) @ _141=&amp;(*_142) @ Ref
+    StorageLive(_143) @ StorageLive
+    StorageLive(_144) @ StorageLive
+    Assign((_144, &amp;mut _124)) @ _144=&amp;mut _124 @ Ref
+    Assign((_143, &amp;mut (*_144))) @ _143=&amp;mut (*_144) @ Ref
+    StorageLive(_145) @ StorageLive
+    Assign((_145, copy _123)) @ _145=copy _123 @ Use
+    StorageLive(_146) @ StorageLive
+    Assign((_146, copy _130)) @ _146=copy _130 @ Use
+    _138 = mm::readahead::page_cache_sync_readahead(move _139, move _141, move _143, move _145, move _146) -&gt; [return: bb67, unwind: bb104] @ Call: FnDid: 24568
+}
+bb 67 {
+CleanUp: false
+    StorageDead(_146) @ StorageDead
+    StorageDead(_145) @ StorageDead
+    StorageDead(_143) @ StorageDead
+    StorageDead(_141) @ StorageDead
+    StorageDead(_139) @ StorageDead
+    _137 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _138) -&gt; [return: bb68, unwind: bb104] @ Call: FnDid: 4199
+}
+bb 68 {
+CleanUp: false
+    StorageDead(_138) @ StorageDead
+    Assign((_147, discriminant(_137))) @ _147=discriminant(_137) @ Discriminant
+    switchInt(move _147) -&gt; [0: bb69, 1: bb70, otherwise: bb3] @ SwitchInt
+}
+bb 69 {
+CleanUp: false
+    StorageLive(_151) @ StorageLive
+    Assign((_151, copy ((_137 as Continue).0: usize))) @ _151=copy ((_137 as Continue).0: usize) @ Use
+    Assign((_136, copy _151)) @ _136=copy _151 @ Use
+    StorageDead(_151) @ StorageDead
+    StorageDead(_144) @ StorageDead
+    StorageDead(_142) @ StorageDead
+    StorageDead(_140) @ StorageDead
+    StorageDead(_137) @ StorageDead
+    StorageDead(_136) @ StorageDead
+    StorageLive(_152) @ StorageLive
+    Assign((_152, move _124)) @ _152=move _124 @ Use
+    StorageLive(_153) @ StorageLive
+    StorageLive(_154) @ StorageLive
+    StorageLive(_155) @ StorageLive
+    StorageLive(_156) @ StorageLive
+    Assign((_156, &amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;))) @ _156=&amp;((*_1).10: libs::spinlock::SpinLock&lt;mm::readahead::FileReadaheadState&gt;) @ Ref
+    _155 = libs::spinlock::SpinLock::&lt;mm::readahead::FileReadaheadState&gt;::lock(move _156) -&gt; [return: bb72, unwind: bb104] @ Call: FnDid: 5261
+}
+bb 70 {
+CleanUp: false
+    StorageLive(_148) @ StorageLive
+    Assign((_148, move ((_137 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _148=move ((_137 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_150) @ StorageLive
+    Assign((_150, move _148)) @ _150=move _148 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _150) -&gt; [return: bb71, unwind: bb104] @ Call: FnDid: 4202
+}
+bb 71 {
+CleanUp: false
+    StorageDead(_150) @ StorageDead
+    StorageDead(_148) @ StorageDead
+    StorageDead(_144) @ StorageDead
+    StorageDead(_142) @ StorageDead
+    StorageDead(_140) @ StorageDead
+    StorageDead(_137) @ StorageDead
+    StorageDead(_136) @ StorageDead
+    StorageDead(_130) @ StorageDead
+    StorageDead(_124) @ StorageDead
+    StorageDead(_123) @ StorageDead
+    goto -&gt; bb79 @ Goto
+}
+bb 72 {
+CleanUp: false
+    Assign((_154, &amp;mut _155)) @ _154=&amp;mut _155 @ Ref
+    StorageDead(_156) @ StorageDead
+    _153 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, mm::readahead::FileReadaheadState&gt; as core::ops::DerefMut&gt;::deref_mut(move _154) -&gt; [return: bb73, unwind: bb82] @ Call: FnDid: 3915
+}
+bb 73 {
+CleanUp: false
+    StorageDead(_154) @ StorageDead
+    Assign(((*_153), move _152)) @ (*_153)=move _152 @ Use
+    StorageDead(_152) @ StorageDead
+    drop(_155) -&gt; [return: bb74, unwind: bb104] @ Drop
+}
+bb 74 {
+CleanUp: false
+    StorageDead(_155) @ StorageDead
+    StorageDead(_153) @ StorageDead
+    Assign((_77, const ())) @ _77=const () @ Use
+    StorageDead(_130) @ StorageDead
+    StorageDead(_124) @ StorageDead
+    StorageDead(_123) @ StorageDead
+    goto -&gt; bb76 @ Goto
+}
+bb 75 {
+CleanUp: false
+    Assign((_77, const ())) @ _77=const () @ Use
+    goto -&gt; bb76 @ Goto
+}
+bb 76 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    StorageLive(_157) @ StorageLive
+    Assign((_157, ())) @ _157=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _157))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _157) @ Aggregate
+    StorageDead(_157) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    Assign((_171, discriminant(_24))) @ _171=discriminant(_24) @ Discriminant
+    switchInt(move _171) -&gt; [1: bb99, otherwise: bb98] @ SwitchInt
+}
+bb 77 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb81 @ Goto
+}
+bb 78 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    goto -&gt; bb79 @ Goto
+}
+bb 79 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    Assign((_173, discriminant(_24))) @ _173=discriminant(_24) @ Discriminant
+    switchInt(move _173) -&gt; [1: bb101, otherwise: bb100] @ SwitchInt
+}
+bb 80 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb81 @ Goto
+}
+bb 81 {
+CleanUp: false
+    return @ Return
+}
+bb 82 {
+CleanUp: true
+    drop(_155) -&gt; [return: bb104, unwind terminate(cleanup)] @ Drop
+}
+bb 83 {
+CleanUp: true
+    drop(_128) -&gt; [return: bb104, unwind terminate(cleanup)] @ Drop
+}
+bb 84 {
+CleanUp: true
+    drop(_120) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 85 {
+CleanUp: true
+    drop(_97) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 86 {
+CleanUp: true
+    drop(_85) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 87 {
+CleanUp: true
+    drop(_80) -&gt; [return: bb104, unwind terminate(cleanup)] @ Drop
+}
+bb 88 {
+CleanUp: true
+    drop(_54) -&gt; [return: bb107, unwind terminate(cleanup)] @ Drop
+}
+bb 89 {
+CleanUp: true
+    drop(_62) -&gt; [return: bb107, unwind terminate(cleanup)] @ Drop
+}
+bb 90 {
+CleanUp: true
+    drop(_31) -&gt; [return: bb91, unwind terminate(cleanup)] @ Drop
+}
+bb 91 {
+CleanUp: true
+    drop(_27) -&gt; [return: bb92, unwind terminate(cleanup)] @ Drop
+}
+bb 92 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb93, unwind terminate(cleanup)] @ Drop
+}
+bb 93 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 94 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    Assign((_158, const false)) @ _158=const false @ Use
+    Assign((_159, const false)) @ _159=const false @ Use
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_39, const ())) @ _39=const () @ Use
+    goto -&gt; bb14 @ Goto
+}
+bb 95 {
+CleanUp: false
+    switchInt(copy _159) -&gt; [0: bb94, otherwise: bb96] @ SwitchInt
+}
+bb 96 {
+CleanUp: false
+    drop(((_47 as Some).0: alloc::sync::Arc&lt;mm::page::Page&gt;)) -&gt; [return: bb94, unwind: bb90] @ Drop
+}
+bb 97 {
+CleanUp: false
+    Assign((_169, discriminant(_47))) @ _169=discriminant(_47) @ Discriminant
+    StorageDead(_49) @ StorageDead
+    Assign((_158, const false)) @ _158=const false @ Use
+    Assign((_159, const false)) @ _159=const false @ Use
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb36 @ Goto
+}
+bb 98 {
+CleanUp: false
+    Assign((_160, const false)) @ _160=const false @ Use
+    Assign((_161, const false)) @ _161=const false @ Use
+    Assign((_162, const false)) @ _162=const false @ Use
+    StorageDead(_24) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    drop(_4) -&gt; [return: bb77, unwind: bb93] @ Drop
+}
+bb 99 {
+CleanUp: false
+    Assign((_161, const false)) @ _161=const false @ Use
+    goto -&gt; bb98 @ Goto
+}
+bb 100 {
+CleanUp: false
+    Assign((_160, const false)) @ _160=const false @ Use
+    Assign((_161, const false)) @ _161=const false @ Use
+    Assign((_162, const false)) @ _162=const false @ Use
+    StorageDead(_24) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    drop(_4) -&gt; [return: bb80, unwind: bb93] @ Drop
+}
+bb 101 {
+CleanUp: false
+    Assign((_161, const false)) @ _161=const false @ Use
+    goto -&gt; bb100 @ Goto
+}
+bb 102 {
+CleanUp: true
+    switchInt(copy _162) -&gt; [0: bb92, otherwise: bb103] @ SwitchInt
+}
+bb 103 {
+CleanUp: true
+    drop((((_24 as Some).0: (usize, alloc::sync::Arc&lt;mm::page::Page&gt;)).1: alloc::sync::Arc&lt;mm::page::Page&gt;)) -&gt; [return: bb92, unwind terminate(cleanup)] @ Drop
+}
+bb 104 {
+CleanUp: true
+    Assign((_175, discriminant(_24))) @ _175=discriminant(_24) @ Discriminant
+    switchInt(move _175) -&gt; [1: bb102, otherwise: bb92] @ SwitchInt
+}
+bb 105 {
+CleanUp: true
+    switchInt(copy _159) -&gt; [0: bb90, otherwise: bb106] @ SwitchInt
+}
+bb 106 {
+CleanUp: true
+    drop(((_47 as Some).0: alloc::sync::Arc&lt;mm::page::Page&gt;)) -&gt; [return: bb90, unwind terminate(cleanup)] @ Drop
+}
+bb 107 {
+CleanUp: true
+    Assign((_176, discriminant(_47))) @ _176=discriminant(_47) @ Discriminant
+    switchInt(move _176) -&gt; [1: bb105, otherwise: bb90] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

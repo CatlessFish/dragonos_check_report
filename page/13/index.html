@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #13: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #13
+            
+                 <span class="func-name">libs::rwlock::{impl#7}::downgrade</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:53|RAP|WARN|: Use-after-free detected in function &#34;downgrade&#34;
+warning: Use-after-free detected.
+   --&gt; src/libs/rwlock.rs:516:16
+    |
+506 |   pub fn downgrade(mut self) -&gt; RwLockReadGuard&lt;&#39;rwlock, T&gt; {
+507 |           while self.inner.current_reader().is_err() {
+508 |               spin_loop();
+509 |           }
+510 |           //本质上来说绝对保证没有任何读者
+511 |
+512 |           let inner = self.inner;
+513 |           let irq_guard = self.irq_guard.take();
+514 |           mem::drop(self);
+515 |
+516 |           return RwLockReadGuard {
+    |  ________________-
+517 | |             data: unsafe { &amp;*inner.data.get() },
+518 | |             lock: &amp;inner.lock,
+519 | |             irq_guard,
+520 | |         };
+    | |_________- Use-after-free (confidence 99%): Location in file src/libs/rwlock.rs line 516.
+    | MIR detail: Value _17(_, src/libs/rwlock.rs:514) and _24(_, src/libs/rwlock.rs:519) are alias.
+    | MIR detail: _17(_, src/libs/rwlock.rs:514) is dropped at BB7(src/libs/rwlock.rs:514); _24(_, src/libs/rwlock.rs:519) is used at BB15(src/libs/rwlock.rs:521).
+521 |       }
+    |
+warning: Use-after-free detected.
+   --&gt; src/libs/rwlock.rs:519:13
+    |
+506 | pub fn downgrade(mut self) -&gt; RwLockReadGuard&lt;&#39;rwlock, T&gt; {
+507 |         while self.inner.current_reader().is_err() {
+508 |             spin_loop();
+509 |         }
+510 |         //本质上来说绝对保证没有任何读者
+511 |
+512 |         let inner = self.inner;
+513 |         let irq_guard = self.irq_guard.take();
+514 |         mem::drop(self);
+515 |
+516 |         return RwLockReadGuard {
+517 |             data: unsafe { &amp;*inner.data.get() },
+518 |             lock: &amp;inner.lock,
+519 |             irq_guard,
+    |             --------- Use-after-free (confidence 99%): Location in file src/libs/rwlock.rs line 519.
+    | MIR detail: Value _17(_, src/libs/rwlock.rs:514) and _14(irq_guard, src/libs/rwlock.rs:513) are alias.
+    | MIR detail: _17(_, src/libs/rwlock.rs:514) is dropped at BB7(src/libs/rwlock.rs:514); _14(irq_guard, src/libs/rwlock.rs:513) is used at BB15(src/libs/rwlock.rs:521).
+520 |         };
+521 |     }
+    |
+22:07:53|RAP|WARN|: Dangling pointer detected in function &#34;downgrade&#34;
+warning: Dangling pointer detected.
+   --&gt; src/libs/rwlock.rs:506:1
+    |
+506 | / pub fn downgrade(mut self) -&gt; RwLockReadGuard&lt;&#39;rwlock, T&gt; {
+507 | |         while self.inner.current_reader().is_err() {
+508 | |             spin_loop();
+509 | |         }
+510 | |         //本质上来说绝对保证没有任何读者
+511 | |
+512 | |         let inner = self.inner;
+513 | |         let irq_guard = self.irq_guard.take();
+514 | |         mem::drop(self);
+515 | |
+516 | |         return RwLockReadGuard {
+517 | |             data: unsafe { &amp;*inner.data.get() },
+518 | |             lock: &amp;inner.lock,
+519 | |             irq_guard,
+520 | |         };
+521 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/rwlock.rs line 506.
+    | MIR detail: Value _17(_, src/libs/rwlock.rs:514) and _0(_, src/libs/rwlock.rs:506) are alias.
+    | MIR detail: _17(_, src/libs/rwlock.rs:514) is dropped at BB7(src/libs/rwlock.rs:514); _0(_, src/libs/rwlock.rs:506) became dangling.
+    |
+render dot for DefId(0:5197 ~ dragonos_kernel[9e38]::libs::rwlock::{impl#7}::downgrade)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/libs/rwlock.rs:507:9: 509:10
+bb1 at src/libs/rwlock.rs:507:15: 507:51
+bb2 at src/libs/rwlock.rs:507:15: 507:42
+bb4 at src/libs/rwlock.rs:507:50: 507:51
+bb5 at src/libs/rwlock.rs:508:24: 508:25
+bb6 at src/libs/rwlock.rs:507:50: 507:51
+bb7 at src/libs/rwlock.rs:513:45: 513:46
+bb8 at src/libs/rwlock.rs:514:23: 514:24
+bb9 at src/libs/rwlock.rs:517:45: 517:46
+bb14 at src/libs/rwlock.rs:517:28: 517:46
+bb15 at src/libs/rwlock.rs:517:28: 517:46
+fn libs::rwlock::RwLockWriteGuard::&lt;&#39;rwlock, T&gt;::downgrade
+_0:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, T/#1&gt; 
+_1:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, T/#1&gt; 
+_2:  @ ! 
+_3:  @ () 
+_4:  @ () 
+_5:  @ bool 
+_6:  @ &amp;&#39;{erased} core::result::Result&lt;u32, system_error::SystemError&gt; 
+_7:  @ core::result::Result&lt;u32, system_error::SystemError&gt; 
+_8:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_9:  @ () 
+_10:  @ ! 
+_11:  @ () 
+_12:  @ ! 
+_13:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_14:  @ core::option::Option&lt;exception::IrqFlagsGuard&gt; 
+_15:  @ &amp;&#39;{erased} mut core::option::Option&lt;exception::IrqFlagsGuard&gt; 
+_16:  @ () 
+_17:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, T/#1&gt; 
+_18:  @ *const T/#1 
+_19:  @ &amp;&#39;{erased} T/#1 
+_20:  @ *mut T/#1 
+_21:  @ &amp;&#39;{erased} core::cell::UnsafeCell&lt;T/#1&gt; 
+_22:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU32 
+_23:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU32 
+_24:  @ core::option::Option&lt;exception::IrqFlagsGuard&gt; 
+_25:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_26:  @ bool 
+_27:  @ *const () 
+_28:  @ usize 
+_29:  @ usize 
+_30:  @ usize 
+_31:  @ usize 
+_32:  @ bool 
+_33:  @ *const () 
+_34:  @ usize 
+_35:  @ bool 
+_36:  @ bool 
+_37:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_26, const false)) @ _26=const false @ Use
+    Assign((_26, const true)) @ _26=const true @ Use
+    StorageLive(_3) @ StorageLive
+    goto -&gt; bb1 @ Goto
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_25, deref_copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;))) @ _25=deref_copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;) @ CopyForDeref
+    Assign((_8, &amp;(*_25))) @ _8=&amp;(*_25) @ Ref
+    _7 = libs::rwlock::RwLock::&lt;T&gt;::current_reader(move _8) -&gt; [return: bb2, unwind: bb13] @ Call: FnDid: 5152
+}
+bb 2 {
+CleanUp: false
+    Assign((_6, &amp;_7)) @ _6=&amp;_7 @ Ref
+    StorageDead(_8) @ StorageDead
+    _5 = core::result::Result::&lt;u32, system_error::SystemError&gt;::is_err(move _6) -&gt; [return: bb3, unwind: bb13] @ Call: FnDid: 10990
+}
+bb 3 {
+CleanUp: false
+    switchInt(move _5) -&gt; [0: bb6, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    _9 = core::hint::spin_loop() -&gt; [return: bb5, unwind: bb13] @ Call: FnDid: 1452
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_4, const ())) @ _4=const () @ Use
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb1 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_3, const ())) @ _3=const () @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    Assign((_13, copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;))) @ _13=copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;) @ Use
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;mut (_1.2: core::option::Option&lt;exception::IrqFlagsGuard&gt;))) @ _15=&amp;mut (_1.2: core::option::Option&lt;exception::IrqFlagsGuard&gt;) @ Ref
+    _14 = core::option::Option::&lt;exception::IrqFlagsGuard&gt;::take(move _15) -&gt; [return: bb7, unwind: bb13] @ Call: FnDid: 10206
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_26, const false)) @ _26=const false @ Use
+    Assign((_17, move _1)) @ _17=move _1 @ Use
+    _16 = core::mem::drop::&lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, T&gt;&gt;(move _17) -&gt; [return: bb8, unwind: bb10] @ Call: FnDid: 2323
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;((*_13).1: core::cell::UnsafeCell&lt;T&gt;))) @ _21=&amp;((*_13).1: core::cell::UnsafeCell&lt;T&gt;) @ Ref
+    _20 = core::cell::UnsafeCell::&lt;T&gt;::get(move _21) -&gt; [return: bb9, unwind: bb10] @ Call: FnDid: 5687
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_27, copy _20 as *const () (PtrToPtr))) @ _27=copy _20 as *const () (PtrToPtr) @ Cast
+    Assign((_28, copy _27 as usize (Transmute))) @ _28=copy _27 as usize (Transmute) @ Cast
+    Assign((_29, AlignOf(T))) @ _29=AlignOf(T) @ NullaryOp
+    Assign((_30, Sub(copy _29, const 1_usize))) @ _30=Sub(copy _29, const 1_usize) @ BinaryOp
+    Assign((_31, BitAnd(copy _28, copy _30))) @ _31=BitAnd(copy _28, copy _30) @ BinaryOp
+    Assign((_32, Eq(copy _31, const 0_usize))) @ _32=Eq(copy _31, const 0_usize) @ BinaryOp
+    assert(copy _32, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _29, copy _28) -&gt; [success: bb14, unwind unreachable] @ Assert
+}
+bb 10 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb13, unwind terminate(cleanup)] @ Drop
+}
+bb 11 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 12 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb11, unwind terminate(cleanup)] @ Drop
+}
+bb 13 {
+CleanUp: true
+    switchInt(copy _26) -&gt; [0: bb11, otherwise: bb12] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    Assign((_33, copy _20 as *const () (PtrToPtr))) @ _33=copy _20 as *const () (PtrToPtr) @ Cast
+    Assign((_34, copy _33 as usize (Transmute))) @ _34=copy _33 as usize (Transmute) @ Cast
+    Assign((_35, Eq(copy _34, const 0_usize))) @ _35=Eq(copy _34, const 0_usize) @ BinaryOp
+    Assign((_36, BitAnd(copy _35, const true))) @ _36=BitAnd(copy _35, const true) @ BinaryOp
+    Assign((_37, Not(copy _36))) @ _37=Not(copy _36) @ UnaryOp
+    assert(copy _37, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb15, unwind unreachable] @ Assert
+}
+bb 15 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    Assign((_18, &amp;raw const (*_19))) @ _18=&amp;raw const (*_19) @ RawPtr
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &amp;((*_13).0: core::sync::atomic::AtomicU32))) @ _23=&amp;((*_13).0: core::sync::atomic::AtomicU32) @ Ref
+    Assign((_22, &amp;(*_23))) @ _22=&amp;(*_23) @ Ref
+    StorageLive(_24) @ StorageLive
+    Assign((_24, move _14)) @ _24=move _14 @ Use
+    Assign((_0, libs::rwlock::RwLockReadGuard::&lt;&#39;_, T&gt; { data: move _18, lock: move _22, irq_guard: move _24 })) @ _0=libs::rwlock::RwLockReadGuard::&lt;&#39;_, T&gt; { data: move _18, lock: move _22, irq_guard: move _24 } @ Aggregate
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    return @ Return
+}
+
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:323:9: 325:10
+bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:44:9: 54:10
+bb2 at src/libs/rwlock.rs:528:51: 528:52
+bb3 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:46:45: 46:46
+bb4 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:46:45: 46:46
+bb5 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:325:10: 325:10
+bb6 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:325:9: 325:10
+bb7 at src/libs/rwlock.rs:532:58: 532:59
+bb8 at src/libs/rwlock.rs:536:45: 536:46
+bb9 at src/libs/rwlock.rs:537:25: 537:26
+bb10 at src/libs/rwlock.rs:541:45: 541:46
+bb15 at src/libs/rwlock.rs:541:28: 541:46
+bb16 at src/libs/rwlock.rs:541:28: 541:46
+fn libs::rwlock::RwLockWriteGuard::&lt;&#39;rwlock, T&gt;::downgrade_to_upgradeable
+_0:  @ libs::rwlock::RwLockUpgradableGuard&lt;&#39;{erased}, T/#1&gt; 
+_1:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, T/#1&gt; 
+_2:  @ ! 
+_3:  @ () 
+_4:  @ bool 
+_5:  @ () 
+_6:  @ (&amp;&#39;{erased} u32, &amp;&#39;{erased} u32) 
+_7:  @ &amp;&#39;{erased} u32 
+_8:  @ u32 
+_9:  @ u32 
+_10:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU32 
+_11:  @ core::sync::atomic::Ordering 
+_12:  @ u32 
+_13:  @ &amp;&#39;{erased} u32 
+_14:  @ u32 
+_15:  @ &amp;&#39;{erased} u32 
+_16:  @ &amp;&#39;{erased} u32 
+_17:  @ bool 
+_18:  @ u32 
+_19:  @ u32 
+_20:  @ ! 
+_21:  @ core::panicking::AssertKind 
+_22:  @ ! 
+_23:  @ core::panicking::AssertKind 
+_24:  @ &amp;&#39;{erased} u32 
+_25:  @ &amp;&#39;{erased} u32 
+_26:  @ &amp;&#39;{erased} u32 
+_27:  @ &amp;&#39;{erased} u32 
+_28:  @ core::option::Option&lt;core::fmt::Arguments&lt;&#39;{erased}&gt;&gt; 
+_29:  @ () 
+_30:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU32 
+_31:  @ core::sync::atomic::Ordering 
+_32:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_33:  @ core::option::Option&lt;exception::IrqFlagsGuard&gt; 
+_34:  @ &amp;&#39;{erased} mut core::option::Option&lt;exception::IrqFlagsGuard&gt; 
+_35:  @ () 
+_36:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, T/#1&gt; 
+_37:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_38:  @ *const T/#1 
+_39:  @ &amp;&#39;{erased} T/#1 
+_40:  @ *mut T/#1 
+_41:  @ &amp;&#39;{erased} core::cell::UnsafeCell&lt;T/#1&gt; 
+_42:  @ core::option::Option&lt;exception::IrqFlagsGuard&gt; 
+_43:  @ &amp;&#39;{erased} u32 
+_44:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_45:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;T/#1&gt; 
+_46:  @ bool 
+_47:  @ *const () 
+_48:  @ usize 
+_49:  @ usize 
+_50:  @ usize 
+_51:  @ usize 
+_52:  @ bool 
+_53:  @ *const () 
+_54:  @ usize 
+_55:  @ bool 
+_56:  @ bool 
+_57:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_46, const false)) @ _46=const false @ Use
+    Assign((_46, const true)) @ _46=const true @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, const true)) @ _4=const true @ Use
+    switchInt(move _4) -&gt; [0: bb5, otherwise: bb1] @ SwitchInt
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_44, deref_copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;))) @ _44=deref_copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;) @ CopyForDeref
+    Assign((_10, &amp;((*_44).0: core::sync::atomic::AtomicU32))) @ _10=&amp;((*_44).0: core::sync::atomic::AtomicU32) @ Ref
+    StorageLive(_11) @ StorageLive
+    Assign((_11, core::sync::atomic::Ordering::Acquire)) @ _11=core::sync::atomic::Ordering::Acquire @ Aggregate
+    _9 = core::sync::atomic::AtomicU32::load(move _10, move _11) -&gt; [return: bb2, unwind: bb14] @ Call: FnDid: 50210
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    Assign((_12, BitOr(const libs::rwlock::WRITER, const libs::rwlock::UPGRADED))) @ _12=BitOr(const libs::rwlock::WRITER, const libs::rwlock::UPGRADED) @ BinaryOp
+    Assign((_8, BitAnd(move _9, move _12))) @ _8=BitAnd(move _9, move _12) @ BinaryOp
+    StorageDead(_12) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_7, &amp;_8)) @ _7=&amp;_8 @ Ref
+    StorageLive(_13) @ StorageLive
+    Assign((_43, const libs::rwlock::RwLockWriteGuard::&lt;&#39;_, T&gt;::downgrade_to_upgradeable::promoted[0])) @ _43=const libs::rwlock::RwLockWriteGuard::&lt;&#39;_, T&gt;::downgrade_to_upgradeable::promoted[0] @ Use
+    Assign((_13, &amp;(*_43))) @ _13=&amp;(*_43) @ Ref
+    Assign((_6, (move _7, move _13))) @ _6=(move _7, move _13) @ Aggregate
+    StorageDead(_13) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    Assign((_15, copy (_6.0: &amp;u32))) @ _15=copy (_6.0: &amp;u32) @ Use
+    StorageLive(_16) @ StorageLive
+    Assign((_16, copy (_6.1: &amp;u32))) @ _16=copy (_6.1: &amp;u32) @ Use
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, copy (*_15))) @ _18=copy (*_15) @ Use
+    StorageLive(_19) @ StorageLive
+    Assign((_19, copy (*_16))) @ _19=copy (*_16) @ Use
+    Assign((_17, Eq(move _18, move _19))) @ _17=Eq(move _18, move _19) @ BinaryOp
+    switchInt(move _17) -&gt; [0: bb4, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    Assign((_5, const ())) @ _5=const () @ Use
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb6 @ Goto
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    Assign((_21, core::panicking::AssertKind::Eq)) @ _21=core::panicking::AssertKind::Eq @ Aggregate
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_23, move _21)) @ _23=move _21 @ Use
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;(*_15))) @ _25=&amp;(*_15) @ Ref
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &amp;(*_16))) @ _27=&amp;(*_16) @ Ref
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
+    StorageLive(_28) @ StorageLive
+    Assign((_28, core::option::Option::&lt;core::fmt::Arguments&lt;&#39;_&gt;&gt;::None)) @ _28=core::option::Option::&lt;core::fmt::Arguments&lt;&#39;_&gt;&gt;::None @ Aggregate
+    _22 = core::panicking::assert_failed::&lt;u32, u32&gt;(move _23, move _24, move _26, move _28) -&gt; bb14 @ Call: FnDid: 10564
+}
+bb 5 {
+CleanUp: false
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb6 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_45, deref_copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;))) @ _45=deref_copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;) @ CopyForDeref
+    Assign((_30, &amp;((*_45).0: core::sync::atomic::AtomicU32))) @ _30=&amp;((*_45).0: core::sync::atomic::AtomicU32) @ Ref
+    StorageLive(_31) @ StorageLive
+    Assign((_31, core::sync::atomic::Ordering::Release)) @ _31=core::sync::atomic::Ordering::Release @ Aggregate
+    _29 = core::sync::atomic::AtomicU32::store(move _30, const libs::rwlock::UPGRADED, move _31) -&gt; [return: bb7, unwind: bb14] @ Call: FnDid: 50211
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    Assign((_32, copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;))) @ _32=copy (_1.1: &amp;libs::rwlock::RwLock&lt;T&gt;) @ Use
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &amp;mut (_1.2: core::option::Option&lt;exception::IrqFlagsGuard&gt;))) @ _34=&amp;mut (_1.2: core::option::Option&lt;exception::IrqFlagsGuard&gt;) @ Ref
+    _33 = core::option::Option::&lt;exception::IrqFlagsGuard&gt;::take(move _34) -&gt; [return: bb8, unwind: bb14] @ Call: FnDid: 10206
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_46, const false)) @ _46=const false @ Use
+    Assign((_36, move _1)) @ _36=move _1 @ Use
+    _35 = core::mem::forget::&lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, T&gt;&gt;(move _36) -&gt; [return: bb9, unwind: bb11] @ Call: FnDid: 2290
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;(*_32))) @ _37=&amp;(*_32) @ Ref
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;((*_32).1: core::cell::UnsafeCell&lt;T&gt;))) @ _41=&amp;((*_32).1: core::cell::UnsafeCell&lt;T&gt;) @ Ref
+    _40 = core::cell::UnsafeCell::&lt;T&gt;::get(move _41) -&gt; [return: bb10, unwind: bb11] @ Call: FnDid: 5687
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_47, copy _40 as *const () (PtrToPtr))) @ _47=copy _40 as *const () (PtrToPtr) @ Cast
+    Assign((_48, copy _47 as usize (Transmute))) @ _48=copy _47 as usize (Transmute) @ Cast
+    Assign((_49, AlignOf(T))) @ _49=AlignOf(T) @ NullaryOp
+    Assign((_50, Sub(copy _49, const 1_usize))) @ _50=Sub(copy _49, const 1_usize) @ BinaryOp
+    Assign((_51, BitAnd(copy _48, copy _50))) @ _51=BitAnd(copy _48, copy _50) @ BinaryOp
+    Assign((_52, Eq(copy _51, const 0_usize))) @ _52=Eq(copy _51, const 0_usize) @ BinaryOp
+    assert(copy _52, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _49, copy _48) -&gt; [success: bb15, unwind unreachable] @ Assert
+}
+bb 11 {
+CleanUp: true
+    drop(_33) -&gt; [return: bb14, unwind terminate(cleanup)] @ Drop
+}
+bb 12 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 13 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb12, unwind terminate(cleanup)] @ Drop
+}
+bb 14 {
+CleanUp: true
+    switchInt(copy _46) -&gt; [0: bb12, otherwise: bb13] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    Assign((_53, copy _40 as *const () (PtrToPtr))) @ _53=copy _40 as *const () (PtrToPtr) @ Cast
+    Assign((_54, copy _53 as usize (Transmute))) @ _54=copy _53 as usize (Transmute) @ Cast
+    Assign((_55, Eq(copy _54, const 0_usize))) @ _55=Eq(copy _54, const 0_usize) @ BinaryOp
+    Assign((_56, BitAnd(copy _55, const true))) @ _56=BitAnd(copy _55, const true) @ BinaryOp
+    Assign((_57, Not(copy _56))) @ _57=Not(copy _56) @ UnaryOp
+    assert(copy _57, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb16, unwind unreachable] @ Assert
+}
+bb 16 {
+CleanUp: false
+    Assign((_39, &amp;(*_40))) @ _39=&amp;(*_40) @ Ref
+    Assign((_38, &amp;raw const (*_39))) @ _38=&amp;raw const (*_39) @ RawPtr
+    StorageLive(_42) @ StorageLive
+    Assign((_42, move _33)) @ _42=move _33 @ Use
+    Assign((_0, libs::rwlock::RwLockUpgradableGuard::&lt;&#39;_, T&gt; { data: move _38, inner: move _37, irq_guard: move _42 })) @ _0=libs::rwlock::RwLockUpgradableGuard::&lt;&#39;_, T&gt; { data: move _38, inner: move _37, irq_guard: move _42 } @ Aggregate
+    StorageDead(_42) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

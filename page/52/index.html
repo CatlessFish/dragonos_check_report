@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #52: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #52
+            
+                 <span class="func-name">filesystem::fat::fs::{impl#12}::truncate</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:05|RAP|WARN|: Dangling pointer detected in function &#34;truncate&#34;
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;truncate&#34;
+warning: Dangling pointer detected.
+    --&gt; src/filesystem/fat/fs.rs:1789:1
+     |
+1789 | / fn truncate(&amp;self, len: usize) -&gt; Result&lt;(), SystemError&gt; {
+1790 | |         let guard: SpinLockGuard&lt;FATInode&gt; = self.0.lock();
+1791 | |         let old_size = guard.metadata.size as usize;
+1792 | |         if len &lt; old_size {
+1793 | |             drop(guard);
+1794 | |             self.resize(len)
+1795 | |         } else {
+1796 | |             Ok(())
+1797 | |         }
+1798 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1789.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in truncate and _1(self, src/filesystem/fat/fs.rs:1789) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in truncate is dropped at BB18446744073709551615(src/filesystem/fat/fs.rs:1789); _1(self, src/filesystem/fat/fs.rs:1789) became dangling.
+     |
+warning: Dangling pointer detected during unwinding.
+    --&gt; src/filesystem/fat/fs.rs:1789:1
+     |
+1789 | / fn truncate(&amp;self, len: usize) -&gt; Result&lt;(), SystemError&gt; {
+1790 | |         let guard: SpinLockGuard&lt;FATInode&gt; = self.0.lock();
+1791 | |         let old_size = guard.metadata.size as usize;
+1792 | |         if len &lt; old_size {
+1793 | |             drop(guard);
+1794 | |             self.resize(len)
+1795 | |         } else {
+1796 | |             Ok(())
+1797 | |         }
+1798 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1789.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in truncate and _1(self, src/filesystem/fat/fs.rs:1789) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in truncate is dropped at BB18446744073709551615(src/filesystem/fat/fs.rs:1789); _1(self, src/filesystem/fat/fs.rs:1789) became dangling.
+     |
+render dot for DefId(0:17957 ~ dragonos_kernel[9e38]::filesystem::fat::fs::{impl#12}::truncate)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/fat/fs.rs:1790:13: 1790:18
+bb1 at src/filesystem/fat/fs.rs:1790:58: 1790:59
+bb2 at src/filesystem/fat/fs.rs:1791:28: 1791:29
+bb3 at src/filesystem/fat/fs.rs:1792:25: 1792:26
+bb4 at src/filesystem/fat/fs.rs:1793:23: 1793:24
+bb5 at src/filesystem/fat/fs.rs:1794:28: 1794:29
+bb6 at src/filesystem/fat/fs.rs:1792:25: 1792:26
+bb7 at src/filesystem/fat/fs.rs:1797:9: 1797:10
+bb8 at src/filesystem/fat/fs.rs:1798:5: 1798:6
+fn &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::truncate
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::fat::fs::LockedFATInode 
+_2:  @ usize 
+_3:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_4:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt; 
+_5:  @ usize 
+_6:  @ i64 
+_7:  @ &amp;&#39;{erased} filesystem::fat::fs::FATInode 
+_8:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_9:  @ bool 
+_10:  @ usize 
+_11:  @ usize 
+_12:  @ () 
+_13:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_14:  @ &amp;&#39;{erased} filesystem::fat::fs::LockedFATInode 
+_15:  @ usize 
+_16:  @ () 
+_17:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_17, const false)) @ _17=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt;))) @ _4=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt;) @ Ref
+    Assign((_17, const true)) @ _17=const true @ Use
+    _3 = libs::spinlock::SpinLock::&lt;filesystem::fat::fs::FATInode&gt;::lock(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5261
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;_3)) @ _8=&amp;_3 @ Ref
+    _7 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as lazy_static::__Deref&gt;::deref(move _8) -&gt; [return: bb2, unwind: bb12] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_6, copy (((*_7).3: filesystem::vfs::Metadata).2: i64))) @ _6=copy (((*_7).3: filesystem::vfs::Metadata).2: i64) @ Use
+    Assign((_5, move _6 as usize (IntToInt))) @ _5=move _6 as usize (IntToInt) @ Cast
+    StorageDead(_6) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, copy _2)) @ _10=copy _2 @ Use
+    StorageLive(_11) @ StorageLive
+    Assign((_11, copy _5)) @ _11=copy _5 @ Use
+    Assign((_9, Lt(move _10, move _11))) @ _9=Lt(move _10, move _11) @ BinaryOp
+    switchInt(move _9) -&gt; [0: bb6, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_17, const false)) @ _17=const false @ Use
+    Assign((_13, move _3)) @ _13=move _3 @ Use
+    _12 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt;&gt;(move _13) -&gt; [return: bb4, unwind: bb12] @ Call: FnDid: 2323
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;(*_1))) @ _14=&amp;(*_1) @ Ref
+    StorageLive(_15) @ StorageLive
+    Assign((_15, copy _2)) @ _15=copy _2 @ Use
+    _0 = &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::resize(move _14, move _15) -&gt; [return: bb5, unwind: bb12] @ Call: FnDid: 21765
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb7 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    Assign((_16, ())) @ _16=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _16))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _16) @ Aggregate
+    StorageDead(_16) @ StorageDead
+    goto -&gt; bb7 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    switchInt(copy _17) -&gt; [0: bb8, otherwise: bb10] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    Assign((_17, const false)) @ _17=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 9 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 10 {
+CleanUp: false
+    drop(_3) -&gt; [return: bb8, unwind: bb9] @ Drop
+}
+bb 11 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb9, unwind terminate(cleanup)] @ Drop
+}
+bb 12 {
+CleanUp: true
+    switchInt(copy _17) -&gt; [0: bb9, otherwise: bb11] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

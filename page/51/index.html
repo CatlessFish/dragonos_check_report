@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #51: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #51
+            
+                 <span class="func-name">filesystem::fat::entry::{impl#8}::eq_name</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:05|RAP|WARN|: Double free detected in function &#34;eq_name&#34;
+warning: Double free detected during unwinding.
+    --&gt; src/filesystem/fat/entry.rs:1810:1
+     |
+1810 | / pub fn eq_name(&amp;self, name: &amp;str) -&gt; bool {
+1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
+1812 | |         let binding = self.short_name();
+1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
+1814 | |         let binding = self.name();
+1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
+1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
+1817 | |
+1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
+1819 | |         let short_name_matches: bool = short_name.eq(name);
+1820 | |
+1821 | |         return long_name_matches || short_name_matches;
+1822 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
+    | MIR detail: Value _6(short_name, src/filesystem/fat/entry.rs:1813) and _4(binding, src/filesystem/fat/entry.rs:1812) are alias.
+    | MIR detail: _6(short_name, src/filesystem/fat/entry.rs:1813) is dropped at BB28(src/filesystem/fat/entry.rs:1822); _4(binding, src/filesystem/fat/entry.rs:1812) is dropped at BB20(src/filesystem/fat/entry.rs:1822).
+     |
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;eq_name&#34;
+warning: Double free detected during unwinding.
+    --&gt; src/filesystem/fat/entry.rs:1810:1
+     |
+1810 | / pub fn eq_name(&amp;self, name: &amp;str) -&gt; bool {
+1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
+1812 | |         let binding = self.short_name();
+1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
+1814 | |         let binding = self.name();
+1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
+1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
+1817 | |
+1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
+1819 | |         let short_name_matches: bool = short_name.eq(name);
+1820 | |
+1821 | |         return long_name_matches || short_name_matches;
+1822 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
+    | MIR detail: Value _25(_, src/filesystem/fat/entry.rs:1818) and _12(binding, src/filesystem/fat/entry.rs:1814) are alias.
+    | MIR detail: _25(_, src/filesystem/fat/entry.rs:1818) is dropped at BB22(src/filesystem/fat/entry.rs:1818); _12(binding, src/filesystem/fat/entry.rs:1814) is dropped at BB19(src/filesystem/fat/entry.rs:1822).
+     |
+warning: Dangling pointer detected during unwinding.
+    --&gt; src/filesystem/fat/entry.rs:1810:1
+     |
+1810 | / pub fn eq_name(&amp;self, name: &amp;str) -&gt; bool {
+1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
+1812 | |         let binding = self.short_name();
+1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
+1814 | |         let binding = self.name();
+1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
+1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
+1817 | |
+1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
+1819 | |         let short_name_matches: bool = short_name.eq(name);
+1820 | |
+1821 | |         return long_name_matches || short_name_matches;
+1822 | |     }
+     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
+    | MIR detail: Value _20(name, src/filesystem/fat/entry.rs:1816) and _2(name, src/filesystem/fat/entry.rs:1810) are alias.
+    | MIR detail: _20(name, src/filesystem/fat/entry.rs:1816) is dropped at BB24(src/filesystem/fat/entry.rs:1822); _2(name, src/filesystem/fat/entry.rs:1810) became dangling.
+     |
+render dot for DefId(0:17720 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/fat/entry.rs:1812:13: 1812:20
+bb1 at src/filesystem/fat/entry.rs:1812:39: 1812:40
+bb2 at src/filesystem/fat/entry.rs:1813:26: 1813:33
+bb3 at src/filesystem/fat/entry.rs:1813:40: 1813:41
+bb4 at src/filesystem/fat/entry.rs:1813:71: 1813:72
+bb5 at src/filesystem/fat/entry.rs:1814:33: 1814:34
+bb6 at src/filesystem/fat/entry.rs:1815:25: 1815:32
+bb7 at src/filesystem/fat/entry.rs:1815:39: 1815:40
+bb8 at src/filesystem/fat/entry.rs:1815:70: 1815:71
+bb9 at src/filesystem/fat/entry.rs:1816:31: 1816:32
+bb10 at src/filesystem/fat/entry.rs:1816:62: 1816:63
+bb11 at src/filesystem/fat/entry.rs:1818:63: 1818:64
+bb12 at src/filesystem/fat/entry.rs:1818:64: 1818:65
+bb13 at src/filesystem/fat/entry.rs:1819:58: 1819:59
+bb14 at src/filesystem/fat/entry.rs:1821:16: 1821:55
+bb15 at src/filesystem/fat/entry.rs:1821:37: 1821:55
+bb16 at src/filesystem/fat/entry.rs:1821:54: 1821:55
+bb17 at src/filesystem/fat/entry.rs:1822:5: 1822:6
+bb18 at src/filesystem/fat/entry.rs:1822:5: 1822:6
+fn filesystem::fat::entry::FATDirEntry::eq_name
+_0:  @ bool 
+_1:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
+_2:  @ &amp;&#39;{erased} str 
+_3:  @ ! 
+_4:  @ alloc::string::String 
+_5:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
+_6:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_7:  @ core::str::Chars&lt;&#39;{erased}&gt; 
+_8:  @ &amp;&#39;{erased} str 
+_9:  @ &amp;&#39;{erased} str 
+_10:  @ &amp;&#39;{erased} alloc::string::String 
+_11:  @ Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
+_12:  @ alloc::string::String 
+_13:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
+_14:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_15:  @ core::str::Chars&lt;&#39;{erased}&gt; 
+_16:  @ &amp;&#39;{erased} str 
+_17:  @ &amp;&#39;{erased} str 
+_18:  @ &amp;&#39;{erased} alloc::string::String 
+_19:  @ Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
+_20:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_21:  @ core::str::Chars&lt;&#39;{erased}&gt; 
+_22:  @ &amp;&#39;{erased} str 
+_23:  @ Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
+_24:  @ bool 
+_25:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_26:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_27:  @ &amp;&#39;{erased} core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_28:  @ bool 
+_29:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_30:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_31:  @ bool 
+_32:  @ bool 
+_33:  @ bool 
+_34:  @ bool 
+_35:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_35, const false)) @ _35=const false @ Use
+    Assign((_34, const false)) @ _34=const false @ Use
+    Assign((_33, const false)) @ _33=const false @ Use
+    Assign((_32, const false)) @ _32=const false @ Use
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;(*_1))) @ _5=&amp;(*_1) @ Ref
+    _4 = filesystem::fat::entry::FATDirEntry::short_name(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 17709
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_4)) @ _10=&amp;_4 @ Ref
+    _9 = &lt;alloc::string::String as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb2, unwind: bb20] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = core::str::&lt;impl str&gt;::chars(move _8) -&gt; [return: bb3, unwind: bb20] @ Call: FnDid: 15113
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_11, {closure@src/filesystem/fat/entry.rs:1813:51: 1813:54})) @ _11={closure@src/filesystem/fat/entry.rs:1813:51: 1813:54} @ Aggregate
+    _6 = &lt;core::str::Chars&lt;&#39;_&gt; as core::iter::Iterator&gt;::flat_map::&lt;core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1813:51: 1813:54}&gt;(move _7, move _11) -&gt; [return: bb4, unwind: bb20] @ Call: FnDid: 9415
+}
+bb 4 {
+CleanUp: false
+    Assign((_35, const true)) @ _35=const true @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;(*_1))) @ _13=&amp;(*_1) @ Ref
+    _12 = filesystem::fat::entry::FATDirEntry::name(move _13) -&gt; [return: bb5, unwind: bb29] @ Call: FnDid: 17716
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_18, &amp;_12)) @ _18=&amp;_12 @ Ref
+    _17 = &lt;alloc::string::String as lazy_static::__Deref&gt;::deref(move _18) -&gt; [return: bb6, unwind: bb19] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_16, &amp;(*_17))) @ _16=&amp;(*_17) @ Ref
+    StorageDead(_18) @ StorageDead
+    _15 = core::str::&lt;impl str&gt;::chars(move _16) -&gt; [return: bb7, unwind: bb19] @ Call: FnDid: 15113
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    Assign((_19, {closure@src/filesystem/fat/entry.rs:1815:50: 1815:53})) @ _19={closure@src/filesystem/fat/entry.rs:1815:50: 1815:53} @ Aggregate
+    _14 = &lt;core::str::Chars&lt;&#39;_&gt; as core::iter::Iterator&gt;::flat_map::&lt;core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1815:50: 1815:53}&gt;(move _15, move _19) -&gt; [return: bb8, unwind: bb19] @ Call: FnDid: 9415
+}
+bb 8 {
+CleanUp: false
+    Assign((_34, const true)) @ _34=const true @ Use
+    StorageDead(_19) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;(*_2))) @ _22=&amp;(*_2) @ Ref
+    _21 = core::str::&lt;impl str&gt;::chars(move _22) -&gt; [return: bb9, unwind: bb27] @ Call: FnDid: 15113
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45})) @ _23={closure@src/filesystem/fat/entry.rs:1816:42: 1816:45} @ Aggregate
+    _20 = &lt;core::str::Chars&lt;&#39;_&gt; as core::iter::Iterator&gt;::flat_map::&lt;core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt;(move _21, move _23) -&gt; [return: bb10, unwind: bb27] @ Call: FnDid: 9415
+}
+bb 10 {
+CleanUp: false
+    Assign((_33, const true)) @ _33=const true @ Use
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_34, const false)) @ _34=const false @ Use
+    Assign((_32, const true)) @ _32=const true @ Use
+    Assign((_25, move _14)) @ _25=move _14 @ Use
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &amp;_20)) @ _27=&amp;_20 @ Ref
+    _26 = &lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt; as core::clone::Clone&gt;::clone(move _27) -&gt; [return: bb11, unwind: bb23] @ Call: FnDid: 3116
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    Assign((_32, const false)) @ _32=const false @ Use
+    _24 = &lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1815:50: 1815:53}&gt; as core::iter::Iterator&gt;::eq::&lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt;&gt;(move _25, move _26) -&gt; [return: bb12, unwind: bb23] @ Call: FnDid: 9621
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    Assign((_32, const false)) @ _32=const false @ Use
+    StorageDead(_25) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_35, const false)) @ _35=const false @ Use
+    Assign((_29, move _6)) @ _29=move _6 @ Use
+    StorageLive(_30) @ StorageLive
+    Assign((_33, const false)) @ _33=const false @ Use
+    Assign((_30, move _20)) @ _30=move _20 @ Use
+    _28 = &lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1813:51: 1813:54}&gt; as core::iter::Iterator&gt;::eq::&lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt;&gt;(move _29, move _30) -&gt; [return: bb13, unwind: bb25] @ Call: FnDid: 9621
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, copy _24)) @ _31=copy _24 @ Use
+    switchInt(move _31) -&gt; [0: bb15, otherwise: bb14] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    Assign((_0, const true)) @ _0=const true @ Use
+    goto -&gt; bb16 @ Goto
+}
+bb 15 {
+CleanUp: false
+    Assign((_0, copy _28)) @ _0=copy _28 @ Use
+    goto -&gt; bb16 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    Assign((_33, const false)) @ _33=const false @ Use
+    StorageDead(_20) @ StorageDead
+    Assign((_34, const false)) @ _34=const false @ Use
+    StorageDead(_14) @ StorageDead
+    drop(_12) -&gt; [return: bb17, unwind: bb29] @ Drop
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    Assign((_35, const false)) @ _35=const false @ Use
+    StorageDead(_6) @ StorageDead
+    drop(_4) -&gt; [return: bb18, unwind: bb21] @ Drop
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    return @ Return
+}
+bb 19 {
+CleanUp: true
+    drop(_12) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 20 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb21, unwind terminate(cleanup)] @ Drop
+}
+bb 21 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 22 {
+CleanUp: true
+    drop(_25) -&gt; [return: bb25, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    switchInt(copy _32) -&gt; [0: bb25, otherwise: bb22] @ SwitchInt
+}
+bb 24 {
+CleanUp: true
+    drop(_20) -&gt; [return: bb27, unwind terminate(cleanup)] @ Drop
+}
+bb 25 {
+CleanUp: true
+    switchInt(copy _33) -&gt; [0: bb27, otherwise: bb24] @ SwitchInt
+}
+bb 26 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb19, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    switchInt(copy _34) -&gt; [0: bb19, otherwise: bb26] @ SwitchInt
+}
+bb 28 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    switchInt(copy _35) -&gt; [0: bb20, otherwise: bb28] @ SwitchInt
+}
+
+bb0 at src/filesystem/fat/entry.rs:1813:55: 1813:56
+bb1 at src/filesystem/fat/entry.rs:1813:70: 1813:71
+fn filesystem::fat::entry::FATDirEntry::eq_name::{closure#0}
+_0:  @ core::char::ToUppercase 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
+_2:  @ char 
+_3:  @ char 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, copy _2)) @ _3=copy _2 @ Use
+    _0 = core::char::methods::&lt;impl char&gt;::to_uppercase(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5847
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+bb0 at src/filesystem/fat/entry.rs:1815:54: 1815:55
+bb1 at src/filesystem/fat/entry.rs:1815:69: 1815:70
+fn filesystem::fat::entry::FATDirEntry::eq_name::{closure#1}
+_0:  @ core::char::ToUppercase 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
+_2:  @ char 
+_3:  @ char 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, copy _2)) @ _3=copy _2 @ Use
+    _0 = core::char::methods::&lt;impl char&gt;::to_uppercase(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5847
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+bb0 at src/filesystem/fat/entry.rs:1816:46: 1816:47
+bb1 at src/filesystem/fat/entry.rs:1816:61: 1816:62
+fn filesystem::fat::entry::FATDirEntry::eq_name::{closure#2}
+_0:  @ core::char::ToUppercase 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
+_2:  @ char 
+_3:  @ char 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, copy _2)) @ _3=copy _2 @ Use
+    _0 = core::char::methods::&lt;impl char&gt;::to_uppercase(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5847
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

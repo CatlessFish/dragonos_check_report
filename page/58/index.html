@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #58: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #58
+            
+                 <span class="func-name">filesystem::kernfs::{impl#2}::write_at</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;write_at&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/filesystem/kernfs/mod.rs:390:1
+    |
+390 | / fn write_at(
+391 | |         &amp;self,
+392 | |         offset: usize,
+393 | |         len: usize,
+394 | |         buf: &amp;[u8],
+395 | |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+396 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+397 | |         if self.inode_type != KernInodeType::File {
+398 | |             return Err(SystemError::EISDIR);
+399 | |         }
+400 | |
+401 | |         if self.callback.is_none() {
+402 | |             return Err(SystemError::ENOSYS);
+403 | |         }
+404 | |
+405 | |         // release the private data lock before calling the callback
+406 | |         drop(data);
+407 | |
+408 | |         let callback_data =
+409 | |             KernCallbackData::new(self.self_ref.upgrade().unwrap(), self.private_data.lock());
+410 | |         return self
+411 | |             .callback
+412 | |             .as_ref()
+413 | |             .unwrap()
+414 | |             .write(callback_data, &amp;buf[..len], offset);
+415 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/kernfs/mod.rs line 390.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in write_at and _1(self, src/filesystem/kernfs/mod.rs:391) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in write_at is dropped at BB18446744073709551615(src/filesystem/kernfs/mod.rs:390); _1(self, src/filesystem/kernfs/mod.rs:391) became dangling.
+    |
+render dot for DefId(0:18156 ~ dragonos_kernel[9e38]::filesystem::kernfs::{impl#2}::write_at)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/kernfs/mod.rs:397:9: 399:10
+bb2 at src/filesystem/kernfs/mod.rs:397:49: 397:50
+bb3 at src/filesystem/kernfs/mod.rs:397:49: 397:50
+bb5 at src/filesystem/kernfs/mod.rs:401:34: 401:35
+bb6 at src/filesystem/kernfs/mod.rs:401:34: 401:35
+bb7 at src/filesystem/kernfs/mod.rs:406:18: 406:19
+bb8 at src/filesystem/kernfs/mod.rs:409:57: 409:58
+bb9 at src/filesystem/kernfs/mod.rs:409:66: 409:67
+bb10 at src/filesystem/kernfs/mod.rs:409:92: 409:93
+bb11 at src/filesystem/kernfs/mod.rs:409:93: 409:94
+bb12 at src/filesystem/kernfs/mod.rs:412:21: 412:22
+bb13 at src/filesystem/kernfs/mod.rs:410:16: 413:22
+bb14 at src/filesystem/kernfs/mod.rs:414:45: 414:46
+bb15 at src/filesystem/kernfs/mod.rs:414:54: 414:55
+fn &lt;filesystem::kernfs::KernFSInode as filesystem::vfs::IndexNode&gt;::write_at
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::kernfs::KernFSInode 
+_2:  @ usize 
+_3:  @ usize 
+_4:  @ &amp;&#39;{erased} [u8] 
+_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_6:  @ ! 
+_7:  @ () 
+_8:  @ bool 
+_9:  @ &amp;&#39;{erased} filesystem::kernfs::KernInodeType 
+_10:  @ &amp;&#39;{erased} filesystem::kernfs::KernInodeType 
+_11:  @ filesystem::kernfs::KernInodeType 
+_12:  @ ! 
+_13:  @ system_error::SystemError 
+_14:  @ () 
+_15:  @ bool 
+_16:  @ &amp;&#39;{erased} core::option::Option&lt;&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased}&gt; 
+_17:  @ ! 
+_18:  @ system_error::SystemError 
+_19:  @ () 
+_20:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_21:  @ filesystem::kernfs::callback::KernCallbackData&lt;&#39;{erased}&gt; 
+_22:  @ alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_23:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt;&gt; 
+_24:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;filesystem::kernfs::KernFSInode, alloc::alloc::Global&gt; 
+_25:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, core::option::Option&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;&gt; 
+_26:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;core::option::Option&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;&gt; 
+_27:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased} 
+_28:  @ &amp;&#39;{erased} &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased} 
+_29:  @ core::option::Option&lt;&amp;&#39;{erased} &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased}&gt; 
+_30:  @ &amp;&#39;{erased} core::option::Option&lt;&amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased}&gt; 
+_31:  @ filesystem::kernfs::callback::KernCallbackData&lt;&#39;{erased}&gt; 
+_32:  @ &amp;&#39;{erased} [u8] 
+_33:  @ &amp;&#39;{erased} [u8] 
+_34:  @ &amp;&#39;{erased} [u8] 
+_35:  @ &amp;&#39;{erased} [u8] 
+_36:  @ core::ops::RangeTo&lt;usize&gt; 
+_37:  @ usize 
+_38:  @ usize 
+_39:  @ &amp;&#39;{erased} filesystem::kernfs::KernInodeType 
+_40:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(filesystem::kernfs::callback::KernFSCallback), bound_vars: [] }] + &#39;{erased} 
+_41:  @ bool 
+_42:  @ bool 
+_43:  @ bool 
+_44:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_41, const false)) @ _41=const false @ Use
+    Assign((_43, const false)) @ _43=const false @ Use
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_42, const false)) @ _42=const false @ Use
+    Assign((_41, const true)) @ _41=const true @ Use
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;((*_1).6: filesystem::kernfs::KernInodeType))) @ _9=&amp;((*_1).6: filesystem::kernfs::KernInodeType) @ Ref
+    StorageLive(_10) @ StorageLive
+    Assign((_39, const &lt;filesystem::kernfs::KernFSInode as filesystem::vfs::IndexNode&gt;::write_at::promoted[0])) @ _39=const &lt;filesystem::kernfs::KernFSInode as filesystem::vfs::IndexNode&gt;::write_at::promoted[0] @ Use
+    Assign((_10, &amp;(*_39))) @ _10=&amp;(*_39) @ Ref
+    _8 = &lt;filesystem::kernfs::KernInodeType as core::cmp::PartialEq&gt;::ne(move _9, move _10) -&gt; [return: bb1, unwind: bb27] @ Call: FnDid: 3171
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _8) -&gt; [0: bb3, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    Assign((_13, system_error::SystemError::EISDIR)) @ _13=system_error::SystemError::EISDIR @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _13))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _13) @ Aggregate
+    StorageDead(_13) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb19 @ Goto
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_7, const ())) @ _7=const () @ Use
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;((*_1).4: core::option::Option&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;))) @ _16=&amp;((*_1).4: core::option::Option&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;) @ Ref
+    _15 = core::option::Option::&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;::is_none(move _16) -&gt; [return: bb4, unwind: bb27] @ Call: FnDid: 10146
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _15) -&gt; [0: bb6, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    Assign((_18, system_error::SystemError::ENOSYS)) @ _18=system_error::SystemError::ENOSYS @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _18))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _18) @ Aggregate
+    StorageDead(_18) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb19 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    Assign((_14, const ())) @ _14=const () @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_41, const false)) @ _41=const false @ Use
+    Assign((_20, move _5)) @ _20=move _5 @ Use
+    _19 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt;&gt;(move _20) -&gt; [return: bb7, unwind: bb27] @ Call: FnDid: 2323
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, &amp;((*_1).2: alloc::sync::Weak&lt;filesystem::kernfs::KernFSInode&gt;))) @ _24=&amp;((*_1).2: alloc::sync::Weak&lt;filesystem::kernfs::KernFSInode&gt;) @ Ref
+    _23 = alloc::sync::Weak::&lt;filesystem::kernfs::KernFSInode&gt;::upgrade(move _24) -&gt; [return: bb8, unwind: bb27] @ Call: FnDid: 7077
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    _22 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::kernfs::KernFSInode&gt;&gt;::unwrap(move _23) -&gt; [return: bb9, unwind: bb27] @ Call: FnDid: 10157
+}
+bb 9 {
+CleanUp: false
+    Assign((_44, const true)) @ _44=const true @ Use
+    StorageDead(_23) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &amp;((*_1).3: libs::spinlock::SpinLock&lt;core::option::Option&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;&gt;))) @ _26=&amp;((*_1).3: libs::spinlock::SpinLock&lt;core::option::Option&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;&gt;) @ Ref
+    _25 = libs::spinlock::SpinLock::&lt;core::option::Option&lt;filesystem::kernfs::callback::KernInodePrivateData&gt;&gt;::lock(move _26) -&gt; [return: bb10, unwind: bb25] @ Call: FnDid: 5261
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    _21 = filesystem::kernfs::callback::KernCallbackData::&lt;&#39;_&gt;::new(move _22, move _25) -&gt; [return: bb11, unwind: bb25] @ Call: FnDid: 18105
+}
+bb 11 {
+CleanUp: false
+    Assign((_43, const true)) @ _43=const true @ Use
+    StorageDead(_25) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_22) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;((*_1).4: core::option::Option&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;))) @ _30=&amp;((*_1).4: core::option::Option&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;) @ Ref
+    _29 = core::option::Option::&lt;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;::as_ref(move _30) -&gt; [return: bb12, unwind: bb23] @ Call: FnDid: 10149
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    _28 = core::option::Option::&lt;&amp;&amp;dyn filesystem::kernfs::callback::KernFSCallback&gt;::unwrap(move _29) -&gt; [return: bb13, unwind: bb23] @ Call: FnDid: 10157
+}
+bb 13 {
+CleanUp: false
+    Assign((_40, deref_copy (*_28))) @ _40=deref_copy (*_28) @ CopyForDeref
+    Assign((_27, &amp;(*_40))) @ _27=&amp;(*_40) @ Ref
+    StorageDead(_29) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_43, const false)) @ _43=const false @ Use
+    Assign((_42, const true)) @ _42=const true @ Use
+    Assign((_31, move _21)) @ _31=move _21 @ Use
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;(*_4))) @ _35=&amp;(*_4) @ Ref
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, copy _3)) @ _37=copy _3 @ Use
+    Assign((_36, core::ops::RangeTo::&lt;usize&gt; { end: move _37 })) @ _36=core::ops::RangeTo::&lt;usize&gt; { end: move _37 } @ Aggregate
+    StorageDead(_37) @ StorageDead
+    _34 = &lt;[u8] as core::ops::Index&lt;core::ops::RangeTo&lt;usize&gt;&gt;&gt;::index(move _35, move _36) -&gt; [return: bb14, unwind: bb21] @ Call: FnDid: 45437
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    Assign((_32, &amp;(*_33))) @ _32=&amp;(*_33) @ Ref
+    StorageLive(_38) @ StorageLive
+    Assign((_38, copy _2)) @ _38=copy _2 @ Use
+    Assign((_42, const false)) @ _42=const false @ Use
+    _0 = &lt;dyn filesystem::kernfs::callback::KernFSCallback as filesystem::kernfs::callback::KernFSCallback&gt;::write(move _27, move _31, move _32, move _38) -&gt; [return: bb15, unwind: bb21] @ Call: FnDid: 18101
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    Assign((_42, const false)) @ _42=const false @ Use
+    StorageDead(_31) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    Assign((_43, const false)) @ _43=const false @ Use
+    StorageDead(_21) @ StorageDead
+    goto -&gt; bb19 @ Goto
+}
+bb 16 {
+CleanUp: false
+    return @ Return
+}
+bb 17 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 18 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb16, unwind: bb17] @ Drop
+}
+bb 19 {
+CleanUp: false
+    switchInt(copy _41) -&gt; [0: bb16, otherwise: bb18] @ SwitchInt
+}
+bb 20 {
+CleanUp: true
+    drop(_31) -&gt; [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 21 {
+CleanUp: true
+    switchInt(copy _42) -&gt; [0: bb23, otherwise: bb20] @ SwitchInt
+}
+bb 22 {
+CleanUp: true
+    drop(_21) -&gt; [return: bb27, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    switchInt(copy _43) -&gt; [0: bb27, otherwise: bb22] @ SwitchInt
+}
+bb 24 {
+CleanUp: true
+    drop(_22) -&gt; [return: bb27, unwind terminate(cleanup)] @ Drop
+}
+bb 25 {
+CleanUp: true
+    switchInt(copy _44) -&gt; [0: bb27, otherwise: bb24] @ SwitchInt
+}
+bb 26 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb17, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    switchInt(copy _41) -&gt; [0: bb17, otherwise: bb26] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

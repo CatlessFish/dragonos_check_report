@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #1: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #1
+            
+                 <span class="func-name">arch::x86_64::driver::hpet::{impl#0}::main_counter_value</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:47|RAP|WARN|: Dangling pointer detected in function &#34;main_counter_value&#34;
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;main_counter_value&#34;
+warning: Dangling pointer detected.
+   --&gt; src/arch/x86_64/driver/hpet.rs:256:1
+    |
+256 | / pub fn main_counter_value(&amp;self) -&gt; u64 {
+257 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+258 | |         let value = regs.main_counter_value();
+259 | |
+260 | |         drop(inner_guard);
+261 | |         return value;
+262 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 256.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in main_counter_value and _1(self, src/arch/x86_64/driver/hpet.rs:256) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in main_counter_value is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:256); _1(self, src/arch/x86_64/driver/hpet.rs:256) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/arch/x86_64/driver/hpet.rs:256:1
+    |
+256 | / pub fn main_counter_value(&amp;self) -&gt; u64 {
+257 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+258 | |         let value = regs.main_counter_value();
+259 | |
+260 | |         drop(inner_guard);
+261 | |         return value;
+262 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 256.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in main_counter_value and _1(self, src/arch/x86_64/driver/hpet.rs:256) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in main_counter_value is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:256); _1(self, src/arch/x86_64/driver/hpet.rs:256) became dangling.
+    |
+render dot for DefId(0:609 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::main_counter_value)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/arch/x86_64/driver/hpet.rs:257:35: 257:62
+bb1 at src/arch/x86_64/driver/hpet.rs:257:59: 257:60
+bb2 at src/arch/x86_64/driver/hpet.rs:258:45: 258:46
+bb3 at src/arch/x86_64/driver/hpet.rs:260:25: 260:26
+fn arch::x86_64::driver::hpet::Hpet::main_counter_value
+_0:  @ u64 
+_1:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ ! 
+_3:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt; 
+_4:  @ &amp;&#39;{erased} driver::timers::hpet::HpetRegisters 
+_5:  @ (libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt;, &amp;&#39;{erased} driver::timers::hpet::HpetRegisters) 
+_6:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_7:  @ u64 
+_8:  @ &amp;&#39;{erased} driver::timers::hpet::HpetRegisters 
+_9:  @ () 
+_10:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt; 
+_11:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_11, const false)) @ _11=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_1))) @ _6=&amp;(*_1) @ Ref
+    _5 = arch::x86_64::driver::hpet::Hpet::hpet_regs(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 607
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_3) @ StorageLive
+    Assign((_11, const true)) @ _11=const true @ Use
+    Assign((_3, move (_5.0: libs::rwlock::RwLockReadGuard&lt;&#39;_, arch::x86_64::driver::hpet::InnerHpet&gt;))) @ _3=move (_5.0: libs::rwlock::RwLockReadGuard&lt;&#39;_, arch::x86_64::driver::hpet::InnerHpet&gt;) @ Use
+    StorageLive(_4) @ StorageLive
+    Assign((_4, copy (_5.1: &amp;driver::timers::hpet::HpetRegisters))) @ _4=copy (_5.1: &amp;driver::timers::hpet::HpetRegisters) @ Use
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;(*_4))) @ _8=&amp;(*_4) @ Ref
+    _7 = driver::timers::hpet::HpetRegisters::main_counter_value(move _8) -&gt; [return: bb2, unwind: bb6] @ Call: FnDid: 13447
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_11, const false)) @ _11=const false @ Use
+    Assign((_10, move _3)) @ _10=move _3 @ Use
+    _9 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, arch::x86_64::driver::hpet::InnerHpet&gt;&gt;(move _10) -&gt; [return: bb3, unwind: bb6] @ Call: FnDid: 2323
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_0, copy _7)) @ _0=copy _7 @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    Assign((_11, const false)) @ _11=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 4 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 5 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb4, unwind terminate(cleanup)] @ Drop
+}
+bb 6 {
+CleanUp: true
+    switchInt(copy _11) -&gt; [0: bb4, otherwise: bb5] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

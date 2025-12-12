@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #46: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #46
+            
+                 <span class="func-name">filesystem::epoll::event_poll::{impl#0}::epoll_ctl_with_epfile</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:04|RAP|WARN|: Double free detected in function &#34;epoll_ctl_with_epfile&#34;
+warning: Double free detected.
+   --&gt; src/filesystem/epoll/event_poll.rs:275:1
+    |
+275 | / pub fn epoll_ctl_with_epfile(
+276 | |         ep_file: Arc&lt;File&gt;,
+277 | |         op: EPollCtlOption,
+278 | |         dstfd: i32,
+279 | |         epds: EPollEvent,
+280 | |         nonblock: bool,
+281 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+282 | |         let current_pcb = ProcessManager::current_pcb();
+283 | |         let fd_table = current_pcb.fd_table();
+284 | |         let fd_table_guard = fd_table.read();
+285 | |         let dst_file = fd_table_guard
+286 | |             .get_file_by_fd(dstfd)
+287 | |             .ok_or(SystemError::EBADF)?;
+288 | |
+289 | |         drop(fd_table_guard);
+290 | |
+291 | |         Self::do_epoll_ctl(ep_file, op, dstfd, dst_file, epds, nonblock)
+292 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 275.
+    | MIR detail: Value _30(_, src/filesystem/epoll/event_poll.rs:289) and _7(fd_table, src/filesystem/epoll/event_poll.rs:283) are alias.
+    | MIR detail: _30(_, src/filesystem/epoll/event_poll.rs:289) is dropped at BB11(src/filesystem/epoll/event_poll.rs:289); _7(fd_table, src/filesystem/epoll/event_poll.rs:283) is dropped at BB15(src/filesystem/epoll/event_poll.rs:292).
+    |
+22:08:04|RAP|WARN|: Double free detected in function &#34;epoll_ctl_with_epfile&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/filesystem/epoll/event_poll.rs:275:1
+    |
+275 | / pub fn epoll_ctl_with_epfile(
+276 | |         ep_file: Arc&lt;File&gt;,
+277 | |         op: EPollCtlOption,
+278 | |         dstfd: i32,
+279 | |         epds: EPollEvent,
+280 | |         nonblock: bool,
+281 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+282 | |         let current_pcb = ProcessManager::current_pcb();
+283 | |         let fd_table = current_pcb.fd_table();
+284 | |         let fd_table_guard = fd_table.read();
+285 | |         let dst_file = fd_table_guard
+286 | |             .get_file_by_fd(dstfd)
+287 | |             .ok_or(SystemError::EBADF)?;
+288 | |
+289 | |         drop(fd_table_guard);
+290 | |
+291 | |         Self::do_epoll_ctl(ep_file, op, dstfd, dst_file, epds, nonblock)
+292 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 275.
+    | MIR detail: Value _30(_, src/filesystem/epoll/event_poll.rs:289) and _7(fd_table, src/filesystem/epoll/event_poll.rs:283) are alias.
+    | MIR detail: _30(_, src/filesystem/epoll/event_poll.rs:289) is dropped at BB11(src/filesystem/epoll/event_poll.rs:289); _7(fd_table, src/filesystem/epoll/event_poll.rs:283) is dropped at BB22(src/filesystem/epoll/event_poll.rs:292).
+    |
+render dot for DefId(0:17299 ~ dragonos_kernel[9e38]::filesystem::epoll::event_poll::{impl#0}::epoll_ctl_with_epfile)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/epoll/event_poll.rs:282:13: 282:24
+bb1 at src/filesystem/epoll/event_poll.rs:283:13: 283:21
+bb2 at src/filesystem/epoll/event_poll.rs:283:24: 283:35
+bb3 at src/filesystem/epoll/event_poll.rs:283:45: 283:46
+bb4 at src/filesystem/epoll/event_poll.rs:284:30: 284:38
+bb5 at src/filesystem/epoll/event_poll.rs:284:44: 284:45
+bb6 at src/filesystem/epoll/event_poll.rs:285:24: 285:38
+bb7 at src/filesystem/epoll/event_poll.rs:286:34: 286:35
+bb8 at src/filesystem/epoll/event_poll.rs:287:38: 287:39
+bb9 at src/filesystem/epoll/event_poll.rs:287:39: 287:40
+bb11 at src/filesystem/epoll/event_poll.rs:285:24: 287:40
+bb12 at src/filesystem/epoll/event_poll.rs:287:39: 287:40
+bb13 at src/filesystem/epoll/event_poll.rs:287:39: 287:40
+bb14 at src/filesystem/epoll/event_poll.rs:289:28: 289:29
+bb15 at src/filesystem/epoll/event_poll.rs:291:72: 291:73
+bb16 at src/filesystem/epoll/event_poll.rs:292:5: 292:6
+bb17 at src/filesystem/epoll/event_poll.rs:292:5: 292:6
+bb18 at src/filesystem/epoll/event_poll.rs:292:5: 292:6
+bb19 at src/filesystem/epoll/event_poll.rs:292:5: 292:6
+bb20 at src/filesystem/epoll/event_poll.rs:292:5: 292:6
+bb27 at src/filesystem/epoll/event_poll.rs:287:40: 287:41
+fn filesystem::epoll::event_poll::EventPoll::epoll_ctl_with_epfile
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_2:  @ filesystem::epoll::EPollCtlOption 
+_3:  @ i32 
+_4:  @ filesystem::epoll::EPollEvent 
+_5:  @ bool 
+_6:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_7:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_8:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_9:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_11:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_12:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_13:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_14:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_15:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_16:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_17:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_18:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_19:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_20:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_21:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_22:  @ i32 
+_23:  @ system_error::SystemError 
+_24:  @ isize 
+_25:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_26:  @ ! 
+_27:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_28:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_29:  @ () 
+_30:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_31:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_32:  @ filesystem::epoll::EPollCtlOption 
+_33:  @ i32 
+_34:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_35:  @ filesystem::epoll::EPollEvent 
+_36:  @ bool 
+_37:  @ bool 
+_38:  @ bool 
+_39:  @ bool 
+_40:  @ isize 
+_41:  @ isize 
+_42:  @ isize 
+_43:  @ isize 
+_44:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_39, const false)) @ _39=const false @ Use
+    Assign((_38, const false)) @ _38=const false @ Use
+    Assign((_37, const false)) @ _37=const false @ Use
+    Assign((_39, const true)) @ _39=const true @ Use
+    StorageLive(_6) @ StorageLive
+    _6 = process::ProcessManager::current_pcb() -&gt; [return: bb1, unwind: bb31] @ Call: FnDid: 29866
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_6)) @ _10=&amp;_6 @ Ref
+    _9 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb2, unwind: bb23] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = process::ProcessControlBlock::fd_table(move _8) -&gt; [return: bb3, unwind: bb23] @ Call: FnDid: 29947
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;_7)) @ _14=&amp;_7 @ Ref
+    _13 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _14) -&gt; [return: bb4, unwind: bb22] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_12, &amp;(*_13))) @ _12=&amp;(*_13) @ Ref
+    StorageDead(_14) @ StorageDead
+    _11 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _12) -&gt; [return: bb5, unwind: bb22] @ Call: FnDid: 5156
+}
+bb 5 {
+CleanUp: false
+    Assign((_38, const true)) @ _38=const true @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;_11)) @ _21=&amp;_11 @ Ref
+    _20 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb6, unwind: bb29] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    StorageDead(_21) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    Assign((_22, copy _3)) @ _22=copy _3 @ Use
+    _18 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _19, move _22) -&gt; [return: bb7, unwind: bb29] @ Call: FnDid: 19231
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, system_error::SystemError::EBADF)) @ _23=system_error::SystemError::EBADF @ Aggregate
+    _17 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _18, move _23) -&gt; [return: bb8, unwind: bb29] @ Call: FnDid: 10178
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    _16 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _17) -&gt; [return: bb9, unwind: bb29] @ Call: FnDid: 4199
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_24, discriminant(_16))) @ _24=discriminant(_16) @ Discriminant
+    switchInt(move _24) -&gt; [0: bb11, 1: bb12, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 11 {
+CleanUp: false
+    StorageLive(_28) @ StorageLive
+    Assign((_28, move ((_16 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _28=move ((_16 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
+    Assign((_37, const true)) @ _37=const true @ Use
+    Assign((_15, move _28)) @ _15=move _28 @ Use
+    StorageDead(_28) @ StorageDead
+    Assign((_42, discriminant(_16))) @ _42=discriminant(_16) @ Discriminant
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_38, const false)) @ _38=const false @ Use
+    Assign((_30, move _11)) @ _30=move _11 @ Use
+    _29 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _30) -&gt; [return: bb14, unwind: bb26] @ Call: FnDid: 2323
+}
+bb 12 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move ((_16 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _25=move ((_16 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move _25)) @ _27=move _25 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _27) -&gt; [return: bb13, unwind: bb27] @ Call: FnDid: 4202
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    Assign((_40, discriminant(_16))) @ _40=discriminant(_16) @ Discriminant
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    Assign((_37, const false)) @ _37=const false @ Use
+    StorageDead(_15) @ StorageDead
+    drop(_11) -&gt; [return: bb18, unwind: bb22] @ Drop
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_39, const false)) @ _39=const false @ Use
+    Assign((_31, move _1)) @ _31=move _1 @ Use
+    StorageLive(_32) @ StorageLive
+    Assign((_32, move _2)) @ _32=move _2 @ Use
+    StorageLive(_33) @ StorageLive
+    Assign((_33, copy _3)) @ _33=copy _3 @ Use
+    StorageLive(_34) @ StorageLive
+    Assign((_37, const false)) @ _37=const false @ Use
+    Assign((_34, move _15)) @ _34=move _15 @ Use
+    StorageLive(_35) @ StorageLive
+    Assign((_35, copy _4)) @ _35=copy _4 @ Use
+    StorageLive(_36) @ StorageLive
+    Assign((_36, copy _5)) @ _36=copy _5 @ Use
+    _0 = filesystem::epoll::event_poll::EventPoll::do_epoll_ctl(move _31, move _32, move _33, move _34, move _35, move _36) -&gt; [return: bb15, unwind: bb26] @ Call: FnDid: 17297
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_37, const false)) @ _37=const false @ Use
+    StorageDead(_15) @ StorageDead
+    Assign((_38, const false)) @ _38=const false @ Use
+    StorageDead(_11) @ StorageDead
+    drop(_7) -&gt; [return: bb16, unwind: bb23] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    drop(_6) -&gt; [return: bb17, unwind: bb31] @ Drop
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 18 {
+CleanUp: false
+    Assign((_38, const false)) @ _38=const false @ Use
+    StorageDead(_11) @ StorageDead
+    drop(_7) -&gt; [return: bb19, unwind: bb23] @ Drop
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    drop(_6) -&gt; [return: bb20, unwind: bb31] @ Drop
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    drop(_1) -&gt; [return: bb21, unwind: bb24] @ Drop
+}
+bb 21 {
+CleanUp: false
+    return @ Return
+}
+bb 22 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 24 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 25 {
+CleanUp: true
+    drop(_15) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 26 {
+CleanUp: true
+    switchInt(copy _37) -&gt; [0: bb29, otherwise: bb25] @ SwitchInt
+}
+bb 27 {
+CleanUp: true
+    Assign((_44, discriminant(_16))) @ _44=discriminant(_16) @ Discriminant
+    goto -&gt; bb29 @ Goto
+}
+bb 28 {
+CleanUp: true
+    drop(_11) -&gt; [return: bb22, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    switchInt(copy _38) -&gt; [0: bb22, otherwise: bb28] @ SwitchInt
+}
+bb 30 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb24, unwind terminate(cleanup)] @ Drop
+}
+bb 31 {
+CleanUp: true
+    switchInt(copy _39) -&gt; [0: bb24, otherwise: bb30] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

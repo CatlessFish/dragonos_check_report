@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #43: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #43
+            
+                 <span class="func-name">filesystem::devfs::{impl#1}::new</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:04|RAP|WARN|: Use-after-free detected in function &#34;new&#34;
+warning: Use-after-free detected.
+   --&gt; src/filesystem/devfs/mod.rs:97:44
+    |
+ 68 | pub fn new() -&gt; Arc&lt;Self&gt; {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc&lt;LockedDevFSInode&gt; = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!(&#34;devfs root inode id: {:?}&#34;, root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc&lt;DevFS&gt; = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard&lt;DevFSInode&gt; = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&amp;devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&amp;devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&amp;devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &amp;Arc&lt;LockedDevFSInode&gt; = &amp;devfs.root_inode;
+    |                                            ----------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 97.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _18(_, src/filesystem/devfs/mod.rs:89) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _18(_, src/filesystem/devfs/mod.rs:89) is used at BB25(src/filesystem/devfs/mod.rs:98).
+ 98 |         root.add_dir(&#34;char&#34;)
+ 99 |             .expect(&#34;DevFS: Failed to create /dev/char&#34;);
+100 |
+101 |         root.add_dir(&#34;block&#34;)
+102 |             .expect(&#34;DevFS: Failed to create /dev/block&#34;);
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!(&#34;ls /dev: {:?}&#34;, root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/devfs/mod.rs:98:9
+    |
+ 68 | pub fn new() -&gt; Arc&lt;Self&gt; {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc&lt;LockedDevFSInode&gt; = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!(&#34;devfs root inode id: {:?}&#34;, root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc&lt;DevFS&gt; = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard&lt;DevFSInode&gt; = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&amp;devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&amp;devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&amp;devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &amp;Arc&lt;LockedDevFSInode&gt; = &amp;devfs.root_inode;
+ 98 |         root.add_dir(&#34;char&#34;)
+    |         -------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 98.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _47(_, src/filesystem/devfs/mod.rs:98) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _47(_, src/filesystem/devfs/mod.rs:98) is used at BB26(src/filesystem/devfs/mod.rs:98).
+ 99 |             .expect(&#34;DevFS: Failed to create /dev/char&#34;);
+100 |
+101 |         root.add_dir(&#34;block&#34;)
+102 |             .expect(&#34;DevFS: Failed to create /dev/block&#34;);
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!(&#34;ls /dev: {:?}&#34;, root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/devfs/mod.rs:98:9
+    |
+ 68 | pub fn new() -&gt; Arc&lt;Self&gt; {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc&lt;LockedDevFSInode&gt; = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!(&#34;devfs root inode id: {:?}&#34;, root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc&lt;DevFS&gt; = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard&lt;DevFSInode&gt; = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&amp;devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&amp;devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&amp;devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &amp;Arc&lt;LockedDevFSInode&gt; = &amp;devfs.root_inode;
+ 98 |         root.add_dir(&#34;char&#34;)
+    |         -------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 98.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _49(_, src/filesystem/devfs/mod.rs:98) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _49(_, src/filesystem/devfs/mod.rs:98) is used at BB25(src/filesystem/devfs/mod.rs:98).
+ 99 |             .expect(&#34;DevFS: Failed to create /dev/char&#34;);
+100 |
+101 |         root.add_dir(&#34;block&#34;)
+102 |             .expect(&#34;DevFS: Failed to create /dev/block&#34;);
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!(&#34;ls /dev: {:?}&#34;, root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/devfs/mod.rs:101:9
+    |
+ 68 | pub fn new() -&gt; Arc&lt;Self&gt; {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc&lt;LockedDevFSInode&gt; = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!(&#34;devfs root inode id: {:?}&#34;, root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc&lt;DevFS&gt; = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard&lt;DevFSInode&gt; = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&amp;devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&amp;devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&amp;devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &amp;Arc&lt;LockedDevFSInode&gt; = &amp;devfs.root_inode;
+ 98 |         root.add_dir(&#34;char&#34;)
+ 99 |             .expect(&#34;DevFS: Failed to create /dev/char&#34;);
+100 |
+101 |         root.add_dir(&#34;block&#34;)
+    |         ---- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 101.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _14(root_guard, src/filesystem/devfs/mod.rs:89) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _14(root_guard, src/filesystem/devfs/mod.rs:89) is used at BB28(src/filesystem/devfs/mod.rs:101).
+102 |             .expect(&#34;DevFS: Failed to create /dev/block&#34;);
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!(&#34;ls /dev: {:?}&#34;, root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/devfs/mod.rs:101:9
+    |
+ 68 | pub fn new() -&gt; Arc&lt;Self&gt; {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc&lt;LockedDevFSInode&gt; = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!(&#34;devfs root inode id: {:?}&#34;, root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc&lt;DevFS&gt; = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard&lt;DevFSInode&gt; = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&amp;devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&amp;devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&amp;devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &amp;Arc&lt;LockedDevFSInode&gt; = &amp;devfs.root_inode;
+ 98 |         root.add_dir(&#34;char&#34;)
+ 99 |             .expect(&#34;DevFS: Failed to create /dev/char&#34;);
+100 |
+101 |         root.add_dir(&#34;block&#34;)
+    |         --------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 101.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _58(_, src/filesystem/devfs/mod.rs:101) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _58(_, src/filesystem/devfs/mod.rs:101) is used at BB28(src/filesystem/devfs/mod.rs:101).
+102 |             .expect(&#34;DevFS: Failed to create /dev/block&#34;);
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!(&#34;ls /dev: {:?}&#34;, root.list());
+106 |         return devfs;
+107 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/devfs/mod.rs:101:9
+    |
+ 68 | pub fn new() -&gt; Arc&lt;Self&gt; {
+ 69 |         let super_block = SuperBlock::new(
+ 70 |             Magic::DEVFS_MAGIC,
+ 71 |             DEVFS_BLOCK_SIZE,
+ 72 |             DEVFS_MAX_NAMELEN as u64,
+ 73 |         );
+ 74 |         // 初始化root inode
+ 75 |         let root: Arc&lt;LockedDevFSInode&gt; = Arc::new(LockedDevFSInode(SpinLock::new(
+ 76 |             // /dev 的权限设置为 读+执行，root 可以读写
+ 77 |             // root 的 parent 是空指针
+ 78 |             DevFSInode::new(FileType::Dir, InodeMode::from_bits_truncate(0o755), 0),
+ 79 |         )));
+ 80 |
+ 81 |         // panic!(&#34;devfs root inode id: {:?}&#34;, root.0.lock().metadata.inode_id);
+ 82 |
+ 83 |         let devfs: Arc&lt;DevFS&gt; = Arc::new(DevFS {
+ 84 |             root_inode: root,
+ 85 |             super_block,
+ 86 |         });
+ 87 |
+ 88 |         // 对root inode加锁，并继续完成初始化工作
+ 89 |         let mut root_guard: SpinLockGuard&lt;DevFSInode&gt; = devfs.root_inode.0.lock();
+ 90 |         root_guard.parent = Arc::downgrade(&amp;devfs.root_inode);
+ 91 |         root_guard.self_ref = Arc::downgrade(&amp;devfs.root_inode);
+ 92 |         root_guard.fs = Arc::downgrade(&amp;devfs);
+ 93 |         // 释放锁
+ 94 |         drop(root_guard);
+ 95 |
+ 96 |         // 创建文件夹
+ 97 |         let root: &amp;Arc&lt;LockedDevFSInode&gt; = &amp;devfs.root_inode;
+ 98 |         root.add_dir(&#34;char&#34;)
+ 99 |             .expect(&#34;DevFS: Failed to create /dev/char&#34;);
+100 |
+101 |         root.add_dir(&#34;block&#34;)
+    |         --------------------- Use-after-free (confidence 99%): Location in file src/filesystem/devfs/mod.rs line 101.
+    | MIR detail: Value _40(_, src/filesystem/devfs/mod.rs:94) and _56(_, src/filesystem/devfs/mod.rs:101) are alias.
+    | MIR detail: _40(_, src/filesystem/devfs/mod.rs:94) is dropped at BB22(src/filesystem/devfs/mod.rs:94); _56(_, src/filesystem/devfs/mod.rs:101) is used at BB29(src/filesystem/devfs/mod.rs:101).
+102 |             .expect(&#34;DevFS: Failed to create /dev/block&#34;);
+103 |         devfs.register_bultinin_device();
+104 |
+105 |         // debug!(&#34;ls /dev: {:?}&#34;, root.list());
+106 |         return devfs;
+107 |     }
+    |
+render dot for DefId(0:17111 ~ dragonos_kernel[9e38]::filesystem::devfs::{impl#1}::new)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/devfs/mod.rs:69:13: 69:24
+bb1 at src/filesystem/devfs/mod.rs:73:9: 73:10
+bb3 at src/filesystem/devfs/mod.rs:78:83: 78:84
+bb4 at src/filesystem/devfs/mod.rs:79:9: 79:10
+bb5 at src/filesystem/devfs/mod.rs:79:11: 79:12
+bb6 at src/filesystem/devfs/mod.rs:86:10: 86:11
+bb7 at src/filesystem/devfs/mod.rs:89:61: 89:62
+bb8 at src/filesystem/devfs/mod.rs:89:72: 89:73
+bb9 at src/filesystem/devfs/mod.rs:89:81: 89:82
+bb10 at src/filesystem/devfs/mod.rs:90:49: 90:50
+bb11 at src/filesystem/devfs/mod.rs:90:61: 90:62
+bb12 at src/filesystem/devfs/mod.rs:90:18: 90:19
+bb13 at src/filesystem/devfs/mod.rs:90:9: 90:26
+bb14 at src/filesystem/devfs/mod.rs:90:9: 90:26
+bb15 at src/filesystem/devfs/mod.rs:91:51: 91:52
+bb16 at src/filesystem/devfs/mod.rs:91:63: 91:64
+bb17 at src/filesystem/devfs/mod.rs:91:18: 91:19
+bb18 at src/filesystem/devfs/mod.rs:91:9: 91:28
+bb19 at src/filesystem/devfs/mod.rs:91:9: 91:28
+bb20 at src/filesystem/devfs/mod.rs:92:46: 92:47
+bb21 at src/filesystem/devfs/mod.rs:92:18: 92:19
+bb22 at src/filesystem/devfs/mod.rs:92:9: 92:22
+bb23 at src/filesystem/devfs/mod.rs:92:9: 92:22
+bb24 at src/filesystem/devfs/mod.rs:94:24: 94:25
+bb25 at src/filesystem/devfs/mod.rs:97:49: 97:50
+bb26 at src/filesystem/devfs/mod.rs:98:9: 98:13
+bb27 at src/filesystem/devfs/mod.rs:98:28: 98:29
+bb28 at src/filesystem/devfs/mod.rs:99:56: 99:57
+bb29 at src/filesystem/devfs/mod.rs:101:9: 101:13
+bb30 at src/filesystem/devfs/mod.rs:101:29: 101:30
+bb31 at src/filesystem/devfs/mod.rs:102:57: 102:58
+bb32 at src/filesystem/devfs/mod.rs:103:9: 103:14
+bb33 at src/filesystem/devfs/mod.rs:103:40: 103:41
+fn filesystem::devfs::DevFS::new
+_0:  @ alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_1:  @ ! 
+_2:  @ filesystem::vfs::SuperBlock 
+_3:  @ u64 
+_4:  @ alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_5:  @ filesystem::devfs::LockedDevFSInode 
+_6:  @ libs::spinlock::SpinLock&lt;filesystem::devfs::DevFSInode&gt; 
+_7:  @ filesystem::devfs::DevFSInode 
+_8:  @ filesystem::vfs::FileType 
+_9:  @ filesystem::vfs::InodeMode 
+_10:  @ alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_11:  @ filesystem::devfs::DevFS 
+_12:  @ alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_13:  @ filesystem::vfs::SuperBlock 
+_14:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::devfs::DevFSInode&gt; 
+_15:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::devfs::DevFSInode&gt; 
+_16:  @ &amp;&#39;{erased} filesystem::devfs::LockedDevFSInode 
+_17:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_18:  @ &amp;&#39;{erased} filesystem::devfs::DevFS 
+_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_20:  @ alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_21:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_22:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_23:  @ &amp;&#39;{erased} filesystem::devfs::DevFS 
+_24:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_25:  @ &amp;&#39;{erased} mut filesystem::devfs::DevFSInode 
+_26:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::devfs::DevFSInode&gt; 
+_27:  @ alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_28:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_29:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_30:  @ &amp;&#39;{erased} filesystem::devfs::DevFS 
+_31:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_32:  @ &amp;&#39;{erased} mut filesystem::devfs::DevFSInode 
+_33:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::devfs::DevFSInode&gt; 
+_34:  @ alloc::sync::Weak&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_36:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_37:  @ &amp;&#39;{erased} mut filesystem::devfs::DevFSInode 
+_38:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::devfs::DevFSInode&gt; 
+_39:  @ () 
+_40:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::devfs::DevFSInode&gt; 
+_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_42:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_43:  @ &amp;&#39;{erased} filesystem::devfs::DevFS 
+_44:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_45:  @ () 
+_46:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_47:  @ &amp;&#39;{erased} filesystem::devfs::LockedDevFSInode 
+_48:  @ &amp;&#39;{erased} filesystem::devfs::LockedDevFSInode 
+_49:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_50:  @ &amp;&#39;{erased} str 
+_51:  @ &amp;&#39;{erased} str 
+_52:  @ &amp;&#39;{erased} str 
+_53:  @ &amp;&#39;{erased} str 
+_54:  @ () 
+_55:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_56:  @ &amp;&#39;{erased} filesystem::devfs::LockedDevFSInode 
+_57:  @ &amp;&#39;{erased} filesystem::devfs::LockedDevFSInode 
+_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode, alloc::alloc::Global&gt; 
+_59:  @ &amp;&#39;{erased} str 
+_60:  @ &amp;&#39;{erased} str 
+_61:  @ &amp;&#39;{erased} str 
+_62:  @ &amp;&#39;{erased} str 
+_63:  @ () 
+_64:  @ &amp;&#39;{erased} filesystem::devfs::DevFS 
+_65:  @ &amp;&#39;{erased} filesystem::devfs::DevFS 
+_66:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::devfs::DevFS, alloc::alloc::Global&gt; 
+_67:  @ bool 
+_68:  @ bool 
+_69:  @ bool 
+_70:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_70, const false)) @ _70=const false @ Use
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((_68, const false)) @ _68=const false @ Use
+    Assign((_67, const false)) @ _67=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    Assign((_3, const filesystem::devfs::DEVFS_MAX_NAMELEN as u64 (IntToInt))) @ _3=const filesystem::devfs::DEVFS_MAX_NAMELEN as u64 (IntToInt) @ Cast
+    _2 = filesystem::vfs::SuperBlock::new(const filesystem::vfs::Magic::DEVFS_MAGIC, const filesystem::devfs::DEVFS_BLOCK_SIZE, move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 21810
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, filesystem::vfs::FileType::Dir)) @ _8=filesystem::vfs::FileType::Dir @ Aggregate
+    StorageLive(_9) @ StorageLive
+    _9 = filesystem::vfs::InodeMode::from_bits_truncate(const 493_u32) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 55665
+}
+bb 2 {
+CleanUp: false
+    _7 = filesystem::devfs::DevFSInode::new(move _8, move _9, const 0_usize) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 17121
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    _6 = libs::spinlock::SpinLock::&lt;filesystem::devfs::DevFSInode&gt;::new(move _7) -&gt; [return: bb4, unwind: bb35] @ Call: FnDid: 5260
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    Assign((_5, filesystem::devfs::LockedDevFSInode(move _6))) @ _5=filesystem::devfs::LockedDevFSInode(move _6) @ Aggregate
+    StorageDead(_6) @ StorageDead
+    _4 = alloc::sync::Arc::&lt;filesystem::devfs::LockedDevFSInode&gt;::new(move _5) -&gt; [return: bb5, unwind: bb35] @ Call: FnDid: 6875
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, move _4)) @ _12=move _4 @ Use
+    StorageLive(_13) @ StorageLive
+    Assign((_13, move _2)) @ _13=move _2 @ Use
+    Assign((_11, filesystem::devfs::DevFS { root_inode: move _12, super_block: move _13 })) @ _11=filesystem::devfs::DevFS { root_inode: move _12, super_block: move _13 } @ Aggregate
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    _10 = alloc::sync::Arc::&lt;filesystem::devfs::DevFS&gt;::new(move _11) -&gt; [return: bb6, unwind: bb35] @ Call: FnDid: 6875
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, &amp;_10)) @ _19=&amp;_10 @ Ref
+    _18 = &lt;alloc::sync::Arc&lt;filesystem::devfs::DevFS&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb7, unwind: bb34] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_17, &amp;((*_18).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;))) @ _17=&amp;((*_18).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;) @ Ref
+    _16 = &lt;alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt; as lazy_static::__Deref&gt;::deref(move _17) -&gt; [return: bb8, unwind: bb34] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_15, &amp;((*_16).0: libs::spinlock::SpinLock&lt;filesystem::devfs::DevFSInode&gt;))) @ _15=&amp;((*_16).0: libs::spinlock::SpinLock&lt;filesystem::devfs::DevFSInode&gt;) @ Ref
+    _14 = libs::spinlock::SpinLock::&lt;filesystem::devfs::DevFSInode&gt;::lock(move _15) -&gt; [return: bb9, unwind: bb34] @ Call: FnDid: 5261
+}
+bb 9 {
+CleanUp: false
+    Assign((_70, const true)) @ _70=const true @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, &amp;_10)) @ _24=&amp;_10 @ Ref
+    _23 = &lt;alloc::sync::Arc&lt;filesystem::devfs::DevFS&gt; as lazy_static::__Deref&gt;::deref(move _24) -&gt; [return: bb10, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_22, &amp;((*_23).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;))) @ _22=&amp;((*_23).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;) @ Ref
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    _20 = alloc::sync::Arc::&lt;filesystem::devfs::LockedDevFSInode&gt;::downgrade(move _21) -&gt; [return: bb11, unwind: bb43] @ Call: FnDid: 6946
+}
+bb 11 {
+CleanUp: false
+    Assign((_69, const true)) @ _69=const true @ Use
+    StorageDead(_21) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &amp;mut _14)) @ _26=&amp;mut _14 @ Ref
+    _25 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::devfs::DevFSInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _26) -&gt; [return: bb12, unwind: bb41] @ Call: FnDid: 3915
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    drop(((*_25).0: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;)) -&gt; [return: bb13, unwind: bb14] @ Drop
+}
+bb 13 {
+CleanUp: false
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((((*_25).0: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;), move _20)) @ ((*_25).0: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;)=move _20 @ Use
+    Assign((_69, const false)) @ _69=const false @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &amp;_10)) @ _31=&amp;_10 @ Ref
+    _30 = &lt;alloc::sync::Arc&lt;filesystem::devfs::DevFS&gt; as lazy_static::__Deref&gt;::deref(move _31) -&gt; [return: bb15, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 14 {
+CleanUp: true
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((((*_25).0: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;), move _20)) @ ((*_25).0: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;)=move _20 @ Use
+    goto -&gt; bb41 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    Assign((_29, &amp;((*_30).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;))) @ _29=&amp;((*_30).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;) @ Ref
+    Assign((_28, &amp;(*_29))) @ _28=&amp;(*_29) @ Ref
+    _27 = alloc::sync::Arc::&lt;filesystem::devfs::LockedDevFSInode&gt;::downgrade(move _28) -&gt; [return: bb16, unwind: bb43] @ Call: FnDid: 6946
+}
+bb 16 {
+CleanUp: false
+    Assign((_68, const true)) @ _68=const true @ Use
+    StorageDead(_28) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;mut _14)) @ _33=&amp;mut _14 @ Ref
+    _32 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::devfs::DevFSInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _33) -&gt; [return: bb17, unwind: bb39] @ Call: FnDid: 3915
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    drop(((*_32).1: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;)) -&gt; [return: bb18, unwind: bb19] @ Drop
+}
+bb 18 {
+CleanUp: false
+    Assign((_68, const false)) @ _68=const false @ Use
+    Assign((((*_32).1: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;), move _27)) @ ((*_32).1: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;)=move _27 @ Use
+    Assign((_68, const false)) @ _68=const false @ Use
+    StorageDead(_27) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, &amp;_10)) @ _36=&amp;_10 @ Ref
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    _34 = alloc::sync::Arc::&lt;filesystem::devfs::DevFS&gt;::downgrade(move _35) -&gt; [return: bb20, unwind: bb43] @ Call: FnDid: 6946
+}
+bb 19 {
+CleanUp: true
+    Assign((_68, const false)) @ _68=const false @ Use
+    Assign((((*_32).1: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;), move _27)) @ ((*_32).1: alloc::sync::Weak&lt;filesystem::devfs::LockedDevFSInode&gt;)=move _27 @ Use
+    goto -&gt; bb39 @ Goto
+}
+bb 20 {
+CleanUp: false
+    Assign((_67, const true)) @ _67=const true @ Use
+    StorageDead(_35) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;mut _14)) @ _38=&amp;mut _14 @ Ref
+    _37 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::devfs::DevFSInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _38) -&gt; [return: bb21, unwind: bb37] @ Call: FnDid: 3915
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    drop(((*_37).3: alloc::sync::Weak&lt;filesystem::devfs::DevFS&gt;)) -&gt; [return: bb22, unwind: bb23] @ Drop
+}
+bb 22 {
+CleanUp: false
+    Assign((_67, const false)) @ _67=const false @ Use
+    Assign((((*_37).3: alloc::sync::Weak&lt;filesystem::devfs::DevFS&gt;), move _34)) @ ((*_37).3: alloc::sync::Weak&lt;filesystem::devfs::DevFS&gt;)=move _34 @ Use
+    Assign((_67, const false)) @ _67=const false @ Use
+    StorageDead(_34) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_70, const false)) @ _70=const false @ Use
+    Assign((_40, move _14)) @ _40=move _14 @ Use
+    _39 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::devfs::DevFSInode&gt;&gt;(move _40) -&gt; [return: bb24, unwind: bb43] @ Call: FnDid: 2323
+}
+bb 23 {
+CleanUp: true
+    Assign((_67, const false)) @ _67=const false @ Use
+    Assign((((*_37).3: alloc::sync::Weak&lt;filesystem::devfs::DevFS&gt;), move _34)) @ ((*_37).3: alloc::sync::Weak&lt;filesystem::devfs::DevFS&gt;)=move _34 @ Use
+    goto -&gt; bb37 @ Goto
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_44, &amp;_10)) @ _44=&amp;_10 @ Ref
+    _43 = &lt;alloc::sync::Arc&lt;filesystem::devfs::DevFS&gt; as lazy_static::__Deref&gt;::deref(move _44) -&gt; [return: bb25, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    Assign((_42, &amp;((*_43).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;))) @ _42=&amp;((*_43).0: alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt;) @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    StorageDead(_42) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &amp;(*_41))) @ _49=&amp;(*_41) @ Ref
+    _48 = &lt;alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt; as lazy_static::__Deref&gt;::deref(move _49) -&gt; [return: bb26, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 26 {
+CleanUp: false
+    Assign((_47, &amp;(*_48))) @ _47=&amp;(*_48) @ Ref
+    StorageDead(_49) @ StorageDead
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, const &#34;char&#34;)) @ _51=const &#34;char&#34; @ Use
+    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
+    _46 = filesystem::devfs::LockedDevFSInode::add_dir(move _47, move _50) -&gt; [return: bb27, unwind: bb43] @ Call: FnDid: 17124
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, const &#34;DevFS: Failed to create /dev/char&#34;)) @ _53=const &#34;DevFS: Failed to create /dev/char&#34; @ Use
+    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
+    _45 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _46, move _52) -&gt; [return: bb28, unwind: bb43] @ Call: FnDid: 11023
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_52) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &amp;(*_41))) @ _58=&amp;(*_41) @ Ref
+    _57 = &lt;alloc::sync::Arc&lt;filesystem::devfs::LockedDevFSInode&gt; as lazy_static::__Deref&gt;::deref(move _58) -&gt; [return: bb29, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 29 {
+CleanUp: false
+    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    StorageDead(_58) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, const &#34;block&#34;)) @ _60=const &#34;block&#34; @ Use
+    Assign((_59, &amp;(*_60))) @ _59=&amp;(*_60) @ Ref
+    _55 = filesystem::devfs::LockedDevFSInode::add_dir(move _56, move _59) -&gt; [return: bb30, unwind: bb43] @ Call: FnDid: 17124
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_62, const &#34;DevFS: Failed to create /dev/block&#34;)) @ _62=const &#34;DevFS: Failed to create /dev/block&#34; @ Use
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    _54 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _55, move _61) -&gt; [return: bb31, unwind: bb43] @ Call: FnDid: 11023
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_66, &amp;_10)) @ _66=&amp;_10 @ Ref
+    _65 = &lt;alloc::sync::Arc&lt;filesystem::devfs::DevFS&gt; as lazy_static::__Deref&gt;::deref(move _66) -&gt; [return: bb32, unwind: bb43] @ Call: FnDid: 3903
+}
+bb 32 {
+CleanUp: false
+    Assign((_64, &amp;(*_65))) @ _64=&amp;(*_65) @ Ref
+    StorageDead(_66) @ StorageDead
+    _63 = filesystem::devfs::DevFS::register_bultinin_device(move _64) -&gt; [return: bb33, unwind: bb43] @ Call: FnDid: 17112
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    Assign((_0, move _10)) @ _0=move _10 @ Use
+    StorageDead(_43) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    Assign((_70, const false)) @ _70=const false @ Use
+    StorageDead(_14) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 34 {
+CleanUp: true
+    drop(_10) -&gt; [return: bb35, unwind terminate(cleanup)] @ Drop
+}
+bb 35 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 36 {
+CleanUp: true
+    drop(_34) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    switchInt(copy _67) -&gt; [0: bb43, otherwise: bb36] @ SwitchInt
+}
+bb 38 {
+CleanUp: true
+    drop(_27) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 39 {
+CleanUp: true
+    switchInt(copy _68) -&gt; [0: bb43, otherwise: bb38] @ SwitchInt
+}
+bb 40 {
+CleanUp: true
+    drop(_20) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 41 {
+CleanUp: true
+    switchInt(copy _69) -&gt; [0: bb43, otherwise: bb40] @ SwitchInt
+}
+bb 42 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb34, unwind terminate(cleanup)] @ Drop
+}
+bb 43 {
+CleanUp: true
+    switchInt(copy _70) -&gt; [0: bb34, otherwise: bb42] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

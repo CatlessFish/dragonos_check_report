@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #14: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #14
+            
+                 <span class="func-name">libs::futex::futex::{impl#1}::remove</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:54|RAP|WARN|: Dangling pointer detected in function &#34;remove&#34;
+warning: Dangling pointer detected.
+   --&gt; src/libs/futex/futex.rs:141:1
+    |
+141 | / pub fn remove(&amp;mut self, futex: Arc&lt;FutexObj&gt;) {
+142 | |         self.chain
+143 | |             .extract_if(|x| Arc::ptr_eq(x, &amp;futex))
+144 | |             .for_each(drop);
+145 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/futex/futex.rs line 141.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in remove and _1(self, src/libs/futex/futex.rs:141) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in remove is dropped at BB18446744073709551615(src/libs/futex/futex.rs:141); _1(self, src/libs/futex/futex.rs:141) became dangling.
+    |
+22:07:54|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;remove&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/libs/futex/futex.rs:141:1
+    |
+141 | / pub fn remove(&amp;mut self, futex: Arc&lt;FutexObj&gt;) {
+142 | |         self.chain
+143 | |             .extract_if(|x| Arc::ptr_eq(x, &amp;futex))
+144 | |             .for_each(drop);
+145 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/libs/futex/futex.rs line 141.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in remove and _1(self, src/libs/futex/futex.rs:141) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in remove is dropped at BB18446744073709551615(src/libs/futex/futex.rs:141); _1(self, src/libs/futex/futex.rs:141) became dangling.
+    |
+render dot for DefId(0:5415 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/libs/futex/futex.rs:142:9: 144:28
+bb1 at src/libs/futex/futex.rs:143:51: 143:52
+bb2 at src/libs/futex/futex.rs:144:27: 144:28
+fn libs::futex::futex::FutexHashBucket::remove
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} mut libs::futex::futex::FutexHashBucket 
+_2:  @ alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+_3:  @ () 
+_4:  @ alloc::collections::linked_list::ExtractIf&lt;&#39;{erased}, alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;, Closure(DefId(0:5416 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;,)]), alloc::alloc::Global&gt; 
+_5:  @ &amp;&#39;{erased} mut alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_6:  @ Closure(DefId(0:5416 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;,)]) 
+_7:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;mut ((*_1).0: alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;&gt;))) @ _5=&amp;mut ((*_1).0: alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;&gt;) @ Ref
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;_2)) @ _7=&amp;_2 @ Ref
+    Assign((_6, {closure@src/libs/futex/futex.rs:143:25: 143:28} { futex: move _7 })) @ _6={closure@src/libs/futex/futex.rs:143:25: 143:28} { futex: move _7 } @ Aggregate
+    StorageDead(_7) @ StorageDead
+    _4 = alloc::collections::LinkedList::&lt;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;&gt;::extract_if::&lt;{closure@src/libs/futex/futex.rs:143:25: 143:28}&gt;(move _5, move _6) -&gt; [return: bb1, unwind: bb4] @ Call: FnDid: 4249
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    _3 = &lt;alloc::collections::linked_list::ExtractIf&lt;&#39;_, alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;, {closure@src/libs/futex/futex.rs:143:25: 143:28}&gt; as core::iter::Iterator&gt;::for_each::&lt;fn(alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;) {core::mem::drop::&lt;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;&gt;}&gt;(move _4, core::mem::drop::&lt;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;&gt;) -&gt; [return: bb2, unwind: bb4] @ Call: FnDid: 9388
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    drop(_2) -&gt; [return: bb3, unwind: bb5] @ Drop
+}
+bb 3 {
+CleanUp: false
+    return @ Return
+}
+bb 4 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb5, unwind terminate(cleanup)] @ Drop
+}
+bb 5 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+bb0 at src/libs/futex/futex.rs:143:41: 143:42
+bb1 at src/libs/futex/futex.rs:143:50: 143:51
+fn libs::futex::futex::FutexHashBucket::remove::{closure#0}
+_0:  @ bool 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:5416 ~ dragonos_kernel[9e38]::libs::futex::futex::{impl#1}::remove::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;,)) -&gt; bool, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt;,)]) 
+_2:  @ &amp;&#39;{erased} mut alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+_3:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+_4:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+_5:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::futex::futex::FutexObj, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &amp;(*_2))) @ _3=&amp;(*_2) @ Ref
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_6, deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;))) @ _6=deref_copy ((*_1).0: &amp;alloc::sync::Arc&lt;libs::futex::futex::FutexObj&gt;) @ CopyForDeref
+    Assign((_5, &amp;(*_6))) @ _5=&amp;(*_6) @ Ref
+    Assign((_4, &amp;(*_5))) @ _4=&amp;(*_5) @ Ref
+    _0 = alloc::sync::Arc::&lt;libs::futex::futex::FutexObj&gt;::ptr_eq(move _3, move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 6953
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

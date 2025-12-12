@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #5: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #5
+            
+                 <span class="func-name">arch::x86_64::driver::hpet::{impl#0}::reset_counter</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:47|RAP|WARN|: Dangling pointer detected in function &#34;reset_counter&#34;
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;reset_counter&#34;
+warning: Dangling pointer detected.
+   --&gt; src/arch/x86_64/driver/hpet.rs:326:1
+    |
+326 | / fn reset_counter(&amp;self) {
+327 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+328 | |         unsafe { regs.write_main_counter_value(0) };
+329 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 326.
+    | MIR detail: Value _3(_, src/arch/x86_64/driver/hpet.rs:327) and _1(self, src/arch/x86_64/driver/hpet.rs:326) are alias.
+    | MIR detail: _3(_, src/arch/x86_64/driver/hpet.rs:327) is dropped at BB1(src/arch/x86_64/driver/hpet.rs:327); _1(self, src/arch/x86_64/driver/hpet.rs:326) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/arch/x86_64/driver/hpet.rs:326:1
+    |
+326 | / fn reset_counter(&amp;self) {
+327 | |         let (_, regs) = unsafe { self.hpet_regs_mut() };
+328 | |         unsafe { regs.write_main_counter_value(0) };
+329 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 326.
+    | MIR detail: Value _3(_, src/arch/x86_64/driver/hpet.rs:327) and _1(self, src/arch/x86_64/driver/hpet.rs:326) are alias.
+    | MIR detail: _3(_, src/arch/x86_64/driver/hpet.rs:327) is dropped at BB1(src/arch/x86_64/driver/hpet.rs:327); _1(self, src/arch/x86_64/driver/hpet.rs:326) became dangling.
+    |
+render dot for DefId(0:615 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::reset_counter)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/arch/x86_64/driver/hpet.rs:327:25: 327:56
+bb1 at src/arch/x86_64/driver/hpet.rs:327:53: 327:54
+bb2 at src/arch/x86_64/driver/hpet.rs:327:56: 327:57
+bb3 at src/arch/x86_64/driver/hpet.rs:328:49: 328:50
+fn arch::x86_64::driver::hpet::Hpet::reset_counter
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ &amp;&#39;{erased} mut driver::timers::hpet::HpetRegisters 
+_3:  @ (libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt;, &amp;&#39;{erased} mut driver::timers::hpet::HpetRegisters) 
+_4:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_5:  @ () 
+_6:  @ &amp;&#39;{erased} mut driver::timers::hpet::HpetRegisters 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;(*_1))) @ _4=&amp;(*_1) @ Ref
+    _3 = arch::x86_64::driver::hpet::Hpet::hpet_regs_mut(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 608
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_2) @ StorageLive
+    Assign((_2, move (_3.1: &amp;mut driver::timers::hpet::HpetRegisters))) @ _2=move (_3.1: &amp;mut driver::timers::hpet::HpetRegisters) @ Use
+    drop(_3) -&gt; [return: bb2, unwind: bb4] @ Drop
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;mut (*_2))) @ _6=&amp;mut (*_2) @ Ref
+    _5 = driver::timers::hpet::HpetRegisters::write_main_counter_value(move _6, const 0_u64) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 13448
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_2) @ StorageDead
+    return @ Return
+}
+bb 4 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

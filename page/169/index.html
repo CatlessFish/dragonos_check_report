@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #169: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #169
+            
+                 <span class="func-name">net::socket::unix::stream::inner::{impl#6}::pop_incoming</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:15|RAP|WARN|: Dangling pointer detected in function &#34;pop_incoming&#34;
+warning: Dangling pointer detected.
+   --&gt; src/net/socket/unix/stream/inner.rs:384:1
+    |
+384 | / fn pop_incoming(&amp;self) -&gt; Result&lt;Connected, SystemError&gt; {
+385 | |         let mut guard = self.incoming_conns.lock();
+386 | |
+387 | |         let Some(incoming_conns) = &amp;mut *guard else {
+388 | |             return Err(SystemError::EINVAL);
+389 | |         };
+390 | |         let conn = incoming_conns.pop_front();
+391 | |         drop(guard);
+392 | |
+393 | |         conn.ok_or(SystemError::EAGAIN_OR_EWOULDBLOCK)
+394 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/inner.rs line 384.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in pop_incoming and _1(self, src/net/socket/unix/stream/inner.rs:384) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in pop_incoming is dropped at BB18446744073709551615(src/net/socket/unix/stream/inner.rs:384); _1(self, src/net/socket/unix/stream/inner.rs:384) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;pop_incoming&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/net/socket/unix/stream/inner.rs:384:1
+    |
+384 | / fn pop_incoming(&amp;self) -&gt; Result&lt;Connected, SystemError&gt; {
+385 | |         let mut guard = self.incoming_conns.lock();
+386 | |
+387 | |         let Some(incoming_conns) = &amp;mut *guard else {
+388 | |             return Err(SystemError::EINVAL);
+389 | |         };
+390 | |         let conn = incoming_conns.pop_front();
+391 | |         drop(guard);
+392 | |
+393 | |         conn.ok_or(SystemError::EAGAIN_OR_EWOULDBLOCK)
+394 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/inner.rs line 384.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in pop_incoming and _1(self, src/net/socket/unix/stream/inner.rs:384) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in pop_incoming is dropped at BB18446744073709551615(src/net/socket/unix/stream/inner.rs:384); _1(self, src/net/socket/unix/stream/inner.rs:384) became dangling.
+    |
+render dot for DefId(0:27079 ~ dragonos_kernel[9e38]::net::socket::unix::stream::inner::{impl#6}::pop_incoming)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/net/socket/unix/stream/inner.rs:385:13: 385:22
+bb1 at src/net/socket/unix/stream/inner.rs:385:50: 385:51
+bb2 at src/net/socket/unix/stream/inner.rs:387:46: 387:47
+bb3 at src/net/socket/unix/stream/inner.rs:387:18: 387:32
+bb4 at src/net/socket/unix/stream/inner.rs:389:10: 389:11
+bb5 at src/net/socket/unix/stream/inner.rs:390:45: 390:46
+bb6 at src/net/socket/unix/stream/inner.rs:391:19: 391:20
+bb7 at src/net/socket/unix/stream/inner.rs:393:54: 393:55
+bb8 at src/net/socket/unix/stream/inner.rs:394:5: 394:6
+fn net::socket::unix::stream::inner::Backlog::pop_incoming
+_0:  @ core::result::Result&lt;net::socket::unix::stream::inner::Connected, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} net::socket::unix::stream::inner::Backlog 
+_2:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt;&gt;&gt; 
+_3:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt;&gt;&gt; 
+_4:  @ ! 
+_5:  @ system_error::SystemError 
+_6:  @ &amp;&#39;{erased} mut alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt; 
+_7:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt;&gt; 
+_8:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt;&gt; 
+_9:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt;&gt;&gt; 
+_10:  @ isize 
+_11:  @ core::option::Option&lt;net::socket::unix::stream::inner::Connected&gt; 
+_12:  @ &amp;&#39;{erased} mut alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt; 
+_13:  @ () 
+_14:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected, alloc::alloc::Global&gt;&gt;&gt; 
+_15:  @ core::option::Option&lt;net::socket::unix::stream::inner::Connected&gt; 
+_16:  @ system_error::SystemError 
+_17:  @ bool 
+_18:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_18, const false)) @ _18=const false @ Use
+    Assign((_17, const false)) @ _17=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    Assign((_3, &amp;((*_1).2: libs::spinlock::SpinLock&lt;core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;&gt;&gt;))) @ _3=&amp;((*_1).2: libs::spinlock::SpinLock&lt;core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;&gt;&gt;) @ Ref
+    Assign((_18, const true)) @ _18=const true @ Use
+    _2 = libs::spinlock::SpinLock::&lt;core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;&gt;&gt;::lock(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5261
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;mut _2)) @ _9=&amp;mut _2 @ Ref
+    _8 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _9) -&gt; [return: bb2, unwind: bb14] @ Call: FnDid: 3915
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, &amp;mut (*_8))) @ _7=&amp;mut (*_8) @ Ref
+    Assign((_10, discriminant((*_7)))) @ _10=discriminant((*_7)) @ Discriminant
+    switchInt(move _10) -&gt; [1: bb3, otherwise: bb4] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;mut (((*_7) as Some).0: alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;))) @ _6=&amp;mut (((*_7) as Some).0: alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;) @ Ref
+    StorageDead(_7) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;mut (*_6))) @ _12=&amp;mut (*_6) @ Ref
+    _11 = alloc::collections::VecDeque::&lt;net::socket::unix::stream::inner::Connected&gt;::pop_front(move _12) -&gt; [return: bb5, unwind: bb14] @ Call: FnDid: 5086
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    Assign((_5, system_error::SystemError::EINVAL)) @ _5=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;net::socket::unix::stream::inner::Connected, system_error::SystemError&gt;::Err(move _5))) @ _0=core::result::Result::&lt;net::socket::unix::stream::inner::Connected, system_error::SystemError&gt;::Err(move _5) @ Aggregate
+    StorageDead(_5) @ StorageDead
+    drop(_2) -&gt; [return: bb8, unwind: bb10] @ Drop
+}
+bb 5 {
+CleanUp: false
+    Assign((_17, const true)) @ _17=const true @ Use
+    StorageDead(_12) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_18, const false)) @ _18=const false @ Use
+    Assign((_14, move _2)) @ _14=move _2 @ Use
+    _13 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, core::option::Option&lt;alloc::collections::VecDeque&lt;net::socket::unix::stream::inner::Connected&gt;&gt;&gt;&gt;(move _14) -&gt; [return: bb6, unwind: bb12] @ Call: FnDid: 2323
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    Assign((_17, const false)) @ _17=const false @ Use
+    Assign((_15, move _11)) @ _15=move _11 @ Use
+    StorageLive(_16) @ StorageLive
+    Assign((_16, system_error::SystemError::EAGAIN_OR_EWOULDBLOCK)) @ _16=system_error::SystemError::EAGAIN_OR_EWOULDBLOCK @ Aggregate
+    _0 = core::option::Option::&lt;net::socket::unix::stream::inner::Connected&gt;::ok_or::&lt;system_error::SystemError&gt;(move _15, move _16) -&gt; [return: bb7, unwind: bb12] @ Call: FnDid: 10178
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    Assign((_17, const false)) @ _17=const false @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    Assign((_18, const false)) @ _18=const false @ Use
+    StorageDead(_2) @ StorageDead
+    goto -&gt; bb9 @ Goto
+}
+bb 8 {
+CleanUp: false
+    Assign((_18, const false)) @ _18=const false @ Use
+    StorageDead(_2) @ StorageDead
+    goto -&gt; bb9 @ Goto
+}
+bb 9 {
+CleanUp: false
+    return @ Return
+}
+bb 10 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 11 {
+CleanUp: true
+    drop(_11) -&gt; [return: bb14, unwind terminate(cleanup)] @ Drop
+}
+bb 12 {
+CleanUp: true
+    switchInt(copy _17) -&gt; [0: bb14, otherwise: bb11] @ SwitchInt
+}
+bb 13 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb10, unwind terminate(cleanup)] @ Drop
+}
+bb 14 {
+CleanUp: true
+    switchInt(copy _18) -&gt; [0: bb10, otherwise: bb13] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

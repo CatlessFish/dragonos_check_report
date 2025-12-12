@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #34: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #34
+            
+                 <span class="func-name">driver::net::virtio_net::{impl#31}::probe</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:59|RAP|WARN|: Double free detected in function &#34;probe&#34;
+warning: Double free detected.
+   --&gt; src/driver/net/virtio_net.rs:943:1
+    |
+943 | / fn probe(&amp;self, device: &amp;Arc&lt;dyn VirtIODevice&gt;) -&gt; Result&lt;(), SystemError&gt; {
+944 | |         log::debug!(&#34;VirtIONetDriver::probe()&#34;);
+945 | |         let virtio_net_device = device
+946 | |             .clone()
+947 | |             .arc_any()
+948 | |             .downcast::&lt;VirtIONetDevice&gt;()
+949 | |             .map_err(|_| {
+950 | |                 error!(
+951 | |                     &#34;VirtIONetDriver::probe() failed: device is not a VirtIODevice. Device: &#39;{:?}&#39;&#34;,
+952 | |                     device.name()
+953 | |                 );
+954 | |                 SystemError::EINVAL
+955 | |             })?;
+956 | |
+957 | |         let iface: Arc&lt;VirtioInterface&gt; =
+958 | |             VirtioInterface::new(virtio_net_device.inner().device_inner.clone());
+959 | |         // 标识网络设备已经启动
+960 | |         iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+961 | |         // 设置iface的父设备为virtio_net_device
+962 | |         iface.set_dev_parent(Some(Arc::downgrade(&amp;virtio_net_device) as Weak&lt;dyn Device&gt;));
+963 | |         // 在sysfs中注册iface
+964 | |         register_netdevice(iface.clone() as Arc&lt;dyn Iface&gt;)?;
+965 | |
+966 | |         // 将virtio_net_device和iface关联起来
+967 | |         virtio_net_device.set_iface(&amp;iface);
+968 | |
+969 | |         // 将网卡的接口信息注册到全局的网卡接口信息表中
+970 | |         // NET_DEVICES
+971 | |         //     .write_irqsave()
+972 | |         //     .insert(iface.nic_id(), iface.clone());
+973 | |         INIT_NET_NAMESPACE.add_device(iface.clone());
+974 | |         iface
+975 | |             .iface_common
+976 | |             .set_net_namespace(INIT_NET_NAMESPACE.clone());
+977 | |         INIT_NET_NAMESPACE.set_default_iface(iface.clone());
+978 | |
+979 | |         virtio_irq_manager()
+980 | |             .register_device(device.clone())
+981 | |             .expect(&#34;Register virtio net irq failed&#34;);
+982 | |
+983 | |         return Ok(());
+984 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 943.
+    | MIR detail: Value _43(iface, src/driver/net/virtio_net.rs:957) and _43(iface, src/driver/net/virtio_net.rs:957) are alias.
+    | MIR detail: _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB57(src/driver/net/virtio_net.rs:984); _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB57(src/driver/net/virtio_net.rs:984).
+    |
+22:07:59|RAP|WARN|: Double free detected in function &#34;probe&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/net/virtio_net.rs:943:1
+    |
+943 | / fn probe(&amp;self, device: &amp;Arc&lt;dyn VirtIODevice&gt;) -&gt; Result&lt;(), SystemError&gt; {
+944 | |         log::debug!(&#34;VirtIONetDriver::probe()&#34;);
+945 | |         let virtio_net_device = device
+946 | |             .clone()
+947 | |             .arc_any()
+948 | |             .downcast::&lt;VirtIONetDevice&gt;()
+949 | |             .map_err(|_| {
+950 | |                 error!(
+951 | |                     &#34;VirtIONetDriver::probe() failed: device is not a VirtIODevice. Device: &#39;{:?}&#39;&#34;,
+952 | |                     device.name()
+953 | |                 );
+954 | |                 SystemError::EINVAL
+955 | |             })?;
+956 | |
+957 | |         let iface: Arc&lt;VirtioInterface&gt; =
+958 | |             VirtioInterface::new(virtio_net_device.inner().device_inner.clone());
+959 | |         // 标识网络设备已经启动
+960 | |         iface.set_net_state(NetDeivceState::__LINK_STATE_START);
+961 | |         // 设置iface的父设备为virtio_net_device
+962 | |         iface.set_dev_parent(Some(Arc::downgrade(&amp;virtio_net_device) as Weak&lt;dyn Device&gt;));
+963 | |         // 在sysfs中注册iface
+964 | |         register_netdevice(iface.clone() as Arc&lt;dyn Iface&gt;)?;
+965 | |
+966 | |         // 将virtio_net_device和iface关联起来
+967 | |         virtio_net_device.set_iface(&amp;iface);
+968 | |
+969 | |         // 将网卡的接口信息注册到全局的网卡接口信息表中
+970 | |         // NET_DEVICES
+971 | |         //     .write_irqsave()
+972 | |         //     .insert(iface.nic_id(), iface.clone());
+973 | |         INIT_NET_NAMESPACE.add_device(iface.clone());
+974 | |         iface
+975 | |             .iface_common
+976 | |             .set_net_namespace(INIT_NET_NAMESPACE.clone());
+977 | |         INIT_NET_NAMESPACE.set_default_iface(iface.clone());
+978 | |
+979 | |         virtio_irq_manager()
+980 | |             .register_device(device.clone())
+981 | |             .expect(&#34;Register virtio net irq failed&#34;);
+982 | |
+983 | |         return Ok(());
+984 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 943.
+    | MIR detail: Value _43(iface, src/driver/net/virtio_net.rs:957) and _43(iface, src/driver/net/virtio_net.rs:957) are alias.
+    | MIR detail: _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB60(src/driver/net/virtio_net.rs:984); _43(iface, src/driver/net/virtio_net.rs:957) is dropped at BB60(src/driver/net/virtio_net.rs:984).
+    |
+render dot for DefId(0:11748 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{impl#31}::probe)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:107:34: 114:6
+bb2 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb3 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb6 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb7 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb8 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb9 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb10 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb13 at src/driver/net/virtio_net.rs:946:20: 946:21
+bb14 at src/driver/net/virtio_net.rs:947:22: 947:23
+bb15 at src/driver/net/virtio_net.rs:948:42: 948:43
+bb16 at src/driver/net/virtio_net.rs:955:14: 955:15
+bb17 at src/driver/net/virtio_net.rs:955:15: 955:16
+bb19 at src/driver/net/virtio_net.rs:945:33: 955:16
+bb20 at src/driver/net/virtio_net.rs:955:15: 955:16
+bb21 at src/driver/net/virtio_net.rs:955:15: 955:16
+bb22 at src/driver/net/virtio_net.rs:958:34: 958:51
+bb23 at src/driver/net/virtio_net.rs:958:34: 958:59
+bb24 at src/driver/net/virtio_net.rs:958:58: 958:59
+bb25 at src/driver/net/virtio_net.rs:958:79: 958:80
+bb26 at src/driver/net/virtio_net.rs:958:80: 958:81
+bb27 at src/driver/net/virtio_net.rs:958:81: 958:82
+bb28 at src/driver/net/virtio_net.rs:960:9: 960:14
+bb29 at src/driver/net/virtio_net.rs:960:63: 960:64
+bb30 at src/driver/net/virtio_net.rs:962:9: 962:14
+bb31 at src/driver/net/virtio_net.rs:962:35: 962:89
+bb32 at src/driver/net/virtio_net.rs:962:90: 962:91
+bb33 at src/driver/net/virtio_net.rs:964:28: 964:59
+bb34 at src/driver/net/virtio_net.rs:964:59: 964:60
+bb35 at src/driver/net/virtio_net.rs:964:60: 964:61
+bb36 at src/driver/net/virtio_net.rs:964:9: 964:61
+bb37 at src/driver/net/virtio_net.rs:964:60: 964:61
+bb38 at src/driver/net/virtio_net.rs:964:60: 964:61
+bb39 at src/driver/net/virtio_net.rs:967:9: 967:26
+bb40 at src/driver/net/virtio_net.rs:967:43: 967:44
+bb41 at src/driver/net/virtio_net.rs:973:9: 973:27
+bb42 at src/driver/net/virtio_net.rs:973:9: 973:27
+bb43 at src/driver/net/virtio_net.rs:973:39: 973:52
+bb44 at src/driver/net/virtio_net.rs:973:52: 973:53
+bb45 at src/driver/net/virtio_net.rs:974:13: 974:14
+bb46 at src/driver/net/virtio_net.rs:976:32: 976:50
+bb47 at src/driver/net/virtio_net.rs:976:57: 976:58
+bb48 at src/driver/net/virtio_net.rs:976:58: 976:59
+bb49 at src/driver/net/virtio_net.rs:977:9: 977:27
+bb50 at src/driver/net/virtio_net.rs:977:9: 977:27
+bb51 at src/driver/net/virtio_net.rs:977:46: 977:59
+bb52 at src/driver/net/virtio_net.rs:977:59: 977:60
+bb53 at src/driver/net/virtio_net.rs:979:9: 979:29
+bb54 at src/driver/net/virtio_net.rs:980:30: 980:44
+bb55 at src/driver/net/virtio_net.rs:980:44: 980:45
+bb56 at src/driver/net/virtio_net.rs:981:53: 981:54
+bb58 at src/driver/net/virtio_net.rs:984:5: 984:6
+bb59 at src/driver/net/virtio_net.rs:984:5: 984:6
+bb64 at src/driver/net/virtio_net.rs:955:16: 955:17
+fn &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIONetDriver 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ ! 
+_4:  @ () 
+_5:  @ log::Level 
+_6:  @ bool 
+_7:  @ &amp;&#39;{erased} log::Level 
+_8:  @ &amp;&#39;{erased} log::LevelFilter 
+_9:  @ log::LevelFilter 
+_10:  @ bool 
+_11:  @ &amp;&#39;{erased} log::Level 
+_12:  @ &amp;&#39;{erased} log::LevelFilter 
+_13:  @ log::LevelFilter 
+_14:  @ () 
+_15:  @ log::__private_api::GlobalLogger 
+_16:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_17:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_18:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_19:  @ [&amp;&#39;{erased} str; 1_usize] 
+_20:  @ log::Level 
+_21:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_22:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_23:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_24:  @ &amp;&#39;{erased} str 
+_25:  @ &amp;&#39;{erased} str 
+_26:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_27:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_28:  @ () 
+_29:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_30:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt;&gt; 
+_31:  @ core::result::Result&lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_32:  @ core::result::Result&lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt;, alloc::sync::Arc&lt;dyn [Binder { value: Trait(core::any::Any), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_33:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(core::any::Any), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_34:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_36:  @ Closure(DefId(0:11749 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{impl#31}::probe::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((alloc::sync::Arc&lt;dyn [Binder { value: Trait(core::any::Any), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; system_error::SystemError, bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]) 
+_37:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_38:  @ isize 
+_39:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_40:  @ ! 
+_41:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_42:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_43:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_44:  @ driver::net::virtio_net::VirtIONicDeviceInner 
+_45:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIONicDeviceInner 
+_46:  @ &amp;&#39;{erased} driver::net::virtio_net::InnerVirtIONetDevice 
+_47:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::virtio_net::InnerVirtIONetDevice&gt; 
+_48:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::virtio_net::InnerVirtIONetDevice&gt; 
+_49:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIONetDevice 
+_50:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIONetDevice 
+_51:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_52:  @ () 
+_53:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
+_54:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
+_55:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_56:  @ () 
+_57:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
+_58:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
+_59:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_60:  @ core::option::Option&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_61:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_62:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_63:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::device::Device), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_64:  @ alloc::sync::Weak&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_65:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_66:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_67:  @ () 
+_68:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_69:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_70:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_71:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_72:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_73:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_74:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_75:  @ isize 
+_76:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_77:  @ ! 
+_78:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_79:  @ () 
+_80:  @ () 
+_81:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIONetDevice 
+_82:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIONetDevice 
+_83:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice, alloc::alloc::Global&gt; 
+_84:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_85:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_86:  @ () 
+_87:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
+_88:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
+_89:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_90:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_91:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_92:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_93:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_94:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_95:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_96:  @ () 
+_97:  @ &amp;&#39;{erased} driver::net::IfaceCommon 
+_98:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
+_99:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_100:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_101:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_102:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_103:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_104:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_105:  @ () 
+_106:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
+_107:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
+_108:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_109:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_110:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_111:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_112:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_113:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_114:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
+_115:  @ () 
+_116:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_117:  @ &amp;&#39;{erased} driver::virtio::irq::VirtIOIrqManager 
+_118:  @ &amp;&#39;{erased} driver::virtio::irq::VirtIOIrqManager 
+_119:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_120:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_121:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_122:  @ &amp;&#39;{erased} str 
+_123:  @ &amp;&#39;{erased} str 
+_124:  @ () 
+_125:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_126:  @ &amp;&#39;{erased} log::LevelFilter 
+_127:  @ isize 
+_128:  @ isize 
+_129:  @ isize 
+_130:  @ isize 
+_131:  @ isize 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, log::Level::Debug)) @ _5=log::Level::Debug @ Aggregate
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;_5)) @ _7=&amp;_5 @ Ref
+    StorageLive(_8) @ StorageLive
+    Assign((_126, const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::promoted[1])) @ _126=const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::promoted[1] @ Use
+    Assign((_8, &amp;(*_126))) @ _8=&amp;(*_126) @ Ref
+    _6 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _7, move _8) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3215
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _6) -&gt; [0: bb10, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &amp;_5)) @ _11=&amp;_5 @ Ref
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    _13 = log::max_level() -&gt; [return: bb3, unwind continue] @ Call: FnDid: 134
+}
+bb 3 {
+CleanUp: false
+    Assign((_12, &amp;_13)) @ _12=&amp;_13 @ Ref
+    _10 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _11, move _12) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 3215
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _10) -&gt; [0: bb9, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, log::__private_api::GlobalLogger)) @ _15=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_125, const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::promoted[0])) @ _125=const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::promoted[0] @ Use
+    Assign((_18, &amp;(*_125))) @ _18=&amp;(*_125) @ Ref
+    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
+    _16 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _17) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 11832
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    Assign((_20, copy _5)) @ _20=copy _5 @ Use
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, const &#34;dragonos_kernel::driver::net::virtio_net&#34;)) @ _25=const &#34;dragonos_kernel::driver::net::virtio_net&#34; @ Use
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    _27 = log::__private_api::loc() -&gt; [return: bb7, unwind continue] @ Call: FnDid: 184
+}
+bb 7 {
+CleanUp: false
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
+    Assign((_23, (move _24, const &#34;dragonos_kernel::driver::net::virtio_net&#34;, move _26))) @ _23=(move _24, const &#34;dragonos_kernel::driver::net::virtio_net&#34;, move _26) @ Aggregate
+    StorageDead(_26) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    Assign((_22, &amp;_23)) @ _22=&amp;_23 @ Ref
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    StorageLive(_28) @ StorageLive
+    Assign((_28, ())) @ _28=() @ Aggregate
+    _14 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _15, move _16, move _20, move _21, move _28) -&gt; [return: bb8, unwind continue] @ Call: FnDid: 178
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    Assign((_4, const ())) @ _4=const () @ Use
+    goto -&gt; bb12 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    goto -&gt; bb11 @ Goto
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb11 @ Goto
+}
+bb 11 {
+CleanUp: false
+    Assign((_4, const ())) @ _4=const () @ Use
+    goto -&gt; bb12 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;(*_2))) @ _35=&amp;(*_2) @ Ref
+    _34 = &lt;alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt; as core::clone::Clone&gt;::clone(move _35) -&gt; [return: bb13, unwind continue] @ Call: FnDid: 3116
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    _33 = &lt;dyn driver::virtio::VirtIODevice as intertrait::CastFromSync&gt;::arc_any(move _34) -&gt; [return: bb14, unwind: bb63] @ Call: FnDid: 130
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    _32 = alloc::sync::Arc::&lt;(dyn core::any::Any + core::marker::Send + core::marker::Sync + &#39;static)&gt;::downcast::&lt;driver::net::virtio_net::VirtIONetDevice&gt;(move _33) -&gt; [return: bb15, unwind: bb63] @ Call: FnDid: 7048
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;(*_2))) @ _37=&amp;(*_2) @ Ref
+    Assign((_36, {closure@src/driver/net/virtio_net.rs:949:22: 949:25} { device: move _37 })) @ _36={closure@src/driver/net/virtio_net.rs:949:22: 949:25} { device: move _37 } @ Aggregate
+    StorageDead(_37) @ StorageDead
+    _31 = core::result::Result::&lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice&gt;, alloc::sync::Arc&lt;dyn core::any::Any + core::marker::Send + core::marker::Sync&gt;&gt;::map_err::&lt;system_error::SystemError, {closure@src/driver/net/virtio_net.rs:949:22: 949:25}&gt;(move _32, move _36) -&gt; [return: bb16, unwind: bb63] @ Call: FnDid: 11010
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    _30 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _31) -&gt; [return: bb17, unwind: bb63] @ Call: FnDid: 4199
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    Assign((_38, discriminant(_30))) @ _38=discriminant(_30) @ Discriminant
+    switchInt(move _38) -&gt; [0: bb19, 1: bb20, otherwise: bb18] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 19 {
+CleanUp: false
+    StorageLive(_42) @ StorageLive
+    Assign((_42, move ((_30 as Continue).0: alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice&gt;))) @ _42=move ((_30 as Continue).0: alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice&gt;) @ Use
+    Assign((_29, move _42)) @ _29=move _42 @ Use
+    StorageDead(_42) @ StorageDead
+    Assign((_129, discriminant(_30))) @ _129=discriminant(_30) @ Discriminant
+    StorageDead(_30) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;_29)) @ _51=&amp;_29 @ Ref
+    _50 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice&gt; as lazy_static::__Deref&gt;::deref(move _51) -&gt; [return: bb22, unwind: bb62] @ Call: FnDid: 3903
+}
+bb 20 {
+CleanUp: false
+    StorageLive(_39) @ StorageLive
+    Assign((_39, move ((_30 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _39=move ((_30 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_41) @ StorageLive
+    Assign((_41, move _39)) @ _41=move _39 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _41) -&gt; [return: bb21, unwind: bb64] @ Call: FnDid: 4202
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    Assign((_127, discriminant(_30))) @ _127=discriminant(_30) @ Discriminant
+    StorageDead(_30) @ StorageDead
+    goto -&gt; bb59 @ Goto
+}
+bb 22 {
+CleanUp: false
+    Assign((_49, &amp;(*_50))) @ _49=&amp;(*_50) @ Ref
+    StorageDead(_51) @ StorageDead
+    _48 = driver::net::virtio_net::VirtIONetDevice::inner(move _49) -&gt; [return: bb23, unwind: bb62] @ Call: FnDid: 11595
+}
+bb 23 {
+CleanUp: false
+    Assign((_47, &amp;_48)) @ _47=&amp;_48 @ Ref
+    _46 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::net::virtio_net::InnerVirtIONetDevice&gt; as lazy_static::__Deref&gt;::deref(move _47) -&gt; [return: bb24, unwind: bb61] @ Call: FnDid: 3903
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    Assign((_45, &amp;((*_46).0: driver::net::virtio_net::VirtIONicDeviceInner))) @ _45=&amp;((*_46).0: driver::net::virtio_net::VirtIONicDeviceInner) @ Ref
+    _44 = &lt;driver::net::virtio_net::VirtIONicDeviceInner as core::clone::Clone&gt;::clone(move _45) -&gt; [return: bb25, unwind: bb61] @ Call: FnDid: 3116
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    _43 = driver::net::virtio_net::VirtioInterface::new(move _44) -&gt; [return: bb26, unwind: bb61] @ Call: FnDid: 11670
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    drop(_48) -&gt; [return: bb27, unwind: bb60] @ Drop
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;_43)) @ _55=&amp;_43 @ Ref
+    _54 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as lazy_static::__Deref&gt;::deref(move _55) -&gt; [return: bb28, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 28 {
+CleanUp: false
+    Assign((_53, &amp;(*_54))) @ _53=&amp;(*_54) @ Ref
+    StorageDead(_55) @ StorageDead
+    _52 = &lt;driver::net::virtio_net::VirtioInterface as driver::net::Iface&gt;::set_net_state(move _53, const driver::net::NetDeivceState::__LINK_STATE_START) -&gt; [return: bb29, unwind: bb60] @ Call: FnDid: 11788
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    Assign((_59, &amp;_43)) @ _59=&amp;_43 @ Ref
+    _58 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as lazy_static::__Deref&gt;::deref(move _59) -&gt; [return: bb30, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 30 {
+CleanUp: false
+    Assign((_57, &amp;(*_58))) @ _57=&amp;(*_58) @ Ref
+    StorageDead(_59) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_66, &amp;_29)) @ _66=&amp;_29 @ Ref
+    Assign((_65, &amp;(*_66))) @ _65=&amp;(*_66) @ Ref
+    _64 = alloc::sync::Arc::&lt;driver::net::virtio_net::VirtIONetDevice&gt;::downgrade(move _65) -&gt; [return: bb31, unwind: bb60] @ Call: FnDid: 6946
+}
+bb 31 {
+CleanUp: false
+    Assign((_63, move _64 as alloc::sync::Weak&lt;dyn driver::base::device::Device&gt; (PointerCoercion(Unsize, AsCast)))) @ _63=move _64 as alloc::sync::Weak&lt;dyn driver::base::device::Device&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
+    StorageDead(_65) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    Assign((_62, move _63)) @ _62=move _63 @ Use
+    Assign((_61, move _62 as alloc::sync::Weak&lt;dyn driver::base::device::Device&gt; (PointerCoercion(Unsize, Implicit)))) @ _61=move _62 as alloc::sync::Weak&lt;dyn driver::base::device::Device&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_62) @ StorageDead
+    Assign((_60, core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::device::Device&gt;&gt;::Some(move _61))) @ _60=core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::device::Device&gt;&gt;::Some(move _61) @ Aggregate
+    StorageDead(_61) @ StorageDead
+    _56 = &lt;driver::net::virtio_net::VirtioInterface as driver::base::device::Device&gt;::set_dev_parent(move _57, move _60) -&gt; [return: bb32, unwind: bb60] @ Call: FnDid: 8145
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    Assign((_74, &amp;_43)) @ _74=&amp;_43 @ Ref
+    _73 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as core::clone::Clone&gt;::clone(move _74) -&gt; [return: bb33, unwind: bb60] @ Call: FnDid: 3116
+}
+bb 33 {
+CleanUp: false
+    Assign((_72, move _73 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, AsCast)))) @ _72=move _73 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
+    StorageDead(_74) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    Assign((_71, move _72)) @ _71=move _72 @ Use
+    Assign((_70, move _71 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _70=move _71 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_71) @ StorageDead
+    _69 = driver::net::register_netdevice(move _70) -&gt; [return: bb34, unwind: bb60] @ Call: FnDid: 11800
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    _68 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _69) -&gt; [return: bb35, unwind: bb60] @ Call: FnDid: 4199
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    Assign((_75, discriminant(_68))) @ _75=discriminant(_68) @ Discriminant
+    switchInt(move _75) -&gt; [0: bb36, 1: bb37, otherwise: bb18] @ SwitchInt
+}
+bb 36 {
+CleanUp: false
+    StorageLive(_79) @ StorageLive
+    Assign((_79, copy ((_68 as Continue).0: ()))) @ _79=copy ((_68 as Continue).0: ()) @ Use
+    Assign((_67, copy _79)) @ _67=copy _79 @ Use
+    StorageDead(_79) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;_29)) @ _83=&amp;_29 @ Ref
+    _82 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtIONetDevice&gt; as lazy_static::__Deref&gt;::deref(move _83) -&gt; [return: bb39, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 37 {
+CleanUp: false
+    StorageLive(_76) @ StorageLive
+    Assign((_76, move ((_68 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _76=move ((_68 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_78) @ StorageLive
+    Assign((_78, move _76)) @ _78=move _76 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _78) -&gt; [return: bb38, unwind: bb60] @ Call: FnDid: 4202
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_78) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    goto -&gt; bb57 @ Goto
+}
+bb 39 {
+CleanUp: false
+    Assign((_81, &amp;(*_82))) @ _81=&amp;(*_82) @ Ref
+    StorageDead(_83) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;_43)) @ _85=&amp;_43 @ Ref
+    Assign((_84, &amp;(*_85))) @ _84=&amp;(*_85) @ Ref
+    _80 = driver::net::virtio_net::VirtIONetDevice::set_iface(move _81, move _84) -&gt; [return: bb40, unwind: bb60] @ Call: FnDid: 11596
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    Assign((_92, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _92=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
+    Assign((_91, &amp;(*_92))) @ _91=&amp;(*_92) @ Ref
+    _90 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _91) -&gt; [return: bb41, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 41 {
+CleanUp: false
+    Assign((_89, &amp;(*_90))) @ _89=&amp;(*_90) @ Ref
+    _88 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as lazy_static::__Deref&gt;::deref(move _89) -&gt; [return: bb42, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 42 {
+CleanUp: false
+    Assign((_87, &amp;(*_88))) @ _87=&amp;(*_88) @ Ref
+    StorageDead(_91) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    Assign((_95, &amp;_43)) @ _95=&amp;_43 @ Ref
+    _94 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as core::clone::Clone&gt;::clone(move _95) -&gt; [return: bb43, unwind: bb60] @ Call: FnDid: 3116
+}
+bb 43 {
+CleanUp: false
+    Assign((_93, move _94 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _93=move _94 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_95) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    _86 = process::namespace::net_namespace::NetNamespace::add_device(move _87, move _93) -&gt; [return: bb44, unwind: bb60] @ Call: FnDid: 28324
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_93) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    Assign((_99, &amp;_43)) @ _99=&amp;_43 @ Ref
+    _98 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as lazy_static::__Deref&gt;::deref(move _99) -&gt; [return: bb45, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    Assign((_97, &amp;((*_98).2: driver::net::IfaceCommon))) @ _97=&amp;((*_98).2: driver::net::IfaceCommon) @ Ref
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    Assign((_104, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _104=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
+    Assign((_103, &amp;(*_104))) @ _103=&amp;(*_104) @ Ref
+    _102 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _103) -&gt; [return: bb46, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 46 {
+CleanUp: false
+    Assign((_101, &amp;(*_102))) @ _101=&amp;(*_102) @ Ref
+    StorageDead(_103) @ StorageDead
+    _100 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as core::clone::Clone&gt;::clone(move _101) -&gt; [return: bb47, unwind: bb60] @ Call: FnDid: 3116
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    _96 = driver::net::IfaceCommon::set_net_namespace(move _97, move _100) -&gt; [return: bb48, unwind: bb60] @ Call: FnDid: 11831
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_100) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageDead(_104) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageLive(_105) @ StorageLive
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    StorageLive(_109) @ StorageLive
+    StorageLive(_110) @ StorageLive
+    StorageLive(_111) @ StorageLive
+    Assign((_111, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _111=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
+    Assign((_110, &amp;(*_111))) @ _110=&amp;(*_111) @ Ref
+    _109 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _110) -&gt; [return: bb49, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 49 {
+CleanUp: false
+    Assign((_108, &amp;(*_109))) @ _108=&amp;(*_109) @ Ref
+    _107 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as lazy_static::__Deref&gt;::deref(move _108) -&gt; [return: bb50, unwind: bb60] @ Call: FnDid: 3903
+}
+bb 50 {
+CleanUp: false
+    Assign((_106, &amp;(*_107))) @ _106=&amp;(*_107) @ Ref
+    StorageDead(_110) @ StorageDead
+    StorageDead(_108) @ StorageDead
+    StorageLive(_112) @ StorageLive
+    StorageLive(_113) @ StorageLive
+    StorageLive(_114) @ StorageLive
+    Assign((_114, &amp;_43)) @ _114=&amp;_43 @ Ref
+    _113 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as core::clone::Clone&gt;::clone(move _114) -&gt; [return: bb51, unwind: bb60] @ Call: FnDid: 3116
+}
+bb 51 {
+CleanUp: false
+    Assign((_112, move _113 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _112=move _113 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_114) @ StorageDead
+    StorageDead(_113) @ StorageDead
+    _105 = process::namespace::net_namespace::NetNamespace::set_default_iface(move _106, move _112) -&gt; [return: bb52, unwind: bb60] @ Call: FnDid: 28319
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_112) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageDead(_111) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    StorageLive(_115) @ StorageLive
+    StorageLive(_116) @ StorageLive
+    StorageLive(_117) @ StorageLive
+    StorageLive(_118) @ StorageLive
+    _118 = driver::virtio::irq::virtio_irq_manager() -&gt; [return: bb53, unwind: bb60] @ Call: FnDid: 15495
+}
+bb 53 {
+CleanUp: false
+    Assign((_117, &amp;(*_118))) @ _117=&amp;(*_118) @ Ref
+    StorageLive(_119) @ StorageLive
+    StorageLive(_120) @ StorageLive
+    StorageLive(_121) @ StorageLive
+    Assign((_121, &amp;(*_2))) @ _121=&amp;(*_2) @ Ref
+    _120 = &lt;alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt; as core::clone::Clone&gt;::clone(move _121) -&gt; [return: bb54, unwind: bb60] @ Call: FnDid: 3116
+}
+bb 54 {
+CleanUp: false
+    Assign((_119, move _120 as alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt; (PointerCoercion(Unsize, Implicit)))) @ _119=move _120 as alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_121) @ StorageDead
+    StorageDead(_120) @ StorageDead
+    _116 = driver::virtio::irq::VirtIOIrqManager::register_device(move _117, move _119) -&gt; [return: bb55, unwind: bb60] @ Call: FnDid: 15500
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_119) @ StorageDead
+    StorageDead(_117) @ StorageDead
+    StorageLive(_122) @ StorageLive
+    StorageLive(_123) @ StorageLive
+    Assign((_123, const &#34;Register virtio net irq failed&#34;)) @ _123=const &#34;Register virtio net irq failed&#34; @ Use
+    Assign((_122, &amp;(*_123))) @ _122=&amp;(*_123) @ Ref
+    _115 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _116, move _122) -&gt; [return: bb56, unwind: bb60] @ Call: FnDid: 11023
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_122) @ StorageDead
+    StorageDead(_116) @ StorageDead
+    StorageDead(_123) @ StorageDead
+    StorageDead(_118) @ StorageDead
+    StorageDead(_115) @ StorageDead
+    StorageLive(_124) @ StorageLive
+    Assign((_124, ())) @ _124=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _124))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _124) @ Aggregate
+    StorageDead(_124) @ StorageDead
+    goto -&gt; bb57 @ Goto
+}
+bb 57 {
+CleanUp: false
+    drop(_43) -&gt; [return: bb58, unwind: bb62] @ Drop
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    drop(_29) -&gt; [return: bb59, unwind: bb63] @ Drop
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    return @ Return
+}
+bb 60 {
+CleanUp: true
+    drop(_43) -&gt; [return: bb62, unwind terminate(cleanup)] @ Drop
+}
+bb 61 {
+CleanUp: true
+    drop(_48) -&gt; [return: bb62, unwind terminate(cleanup)] @ Drop
+}
+bb 62 {
+CleanUp: true
+    drop(_29) -&gt; [return: bb63, unwind terminate(cleanup)] @ Drop
+}
+bb 63 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 64 {
+CleanUp: true
+    Assign((_131, discriminant(_30))) @ _131=discriminant(_30) @ Discriminant
+    goto -&gt; bb63 @ Goto
+}
+
+bb0 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:107:34: 114:6
+bb2 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb3 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb6 at src/driver/net/virtio_net.rs:952:21: 952:27
+bb7 at src/driver/net/virtio_net.rs:952:33: 952:34
+bb8 at src/driver/net/virtio_net.rs:951:97: 951:98
+bb9 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb10 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:14: 144:15
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+fn &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::{closure#0}
+_0:  @ system_error::SystemError 
+_1:  @ Closure(DefId(0:11749 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{impl#31}::probe::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((alloc::sync::Arc&lt;dyn [Binder { value: Trait(core::any::Any), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)) -&gt; system_error::SystemError, bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)]) 
+_2:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(core::any::Any), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:3671 ~ core[2d8e]::marker::Sync)), bound_vars: [] }, Binder { value: AutoTrait(DefId(1:38098 ~ core[2d8e]::marker::Send)), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ () 
+_4:  @ log::Level 
+_5:  @ bool 
+_6:  @ &amp;&#39;{erased} log::Level 
+_7:  @ &amp;&#39;{erased} log::LevelFilter 
+_8:  @ log::LevelFilter 
+_9:  @ bool 
+_10:  @ &amp;&#39;{erased} log::Level 
+_11:  @ &amp;&#39;{erased} log::LevelFilter 
+_12:  @ log::LevelFilter 
+_13:  @ () 
+_14:  @ log::__private_api::GlobalLogger 
+_15:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_16:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_17:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_18:  @ &amp;&#39;{erased} alloc::string::String 
+_19:  @ &amp;&#39;{erased} alloc::string::String 
+_20:  @ alloc::string::String 
+_21:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased} 
+_22:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased} 
+_23:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_24:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_25:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_26:  @ [&amp;&#39;{erased} str; 2_usize] 
+_27:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_28:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_29:  @ log::Level 
+_30:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_31:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_32:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_33:  @ &amp;&#39;{erased} str 
+_34:  @ &amp;&#39;{erased} str 
+_35:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_36:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_37:  @ () 
+_38:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_39:  @ &amp;&#39;{erased} log::LevelFilter 
+_40:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::virtio::VirtIODevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, log::Level::Error)) @ _4=log::Level::Error @ Aggregate
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;_4)) @ _6=&amp;_4 @ Ref
+    StorageLive(_7) @ StorageLive
+    Assign((_39, const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::{closure#0}::promoted[1])) @ _39=const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::{closure#0}::promoted[1] @ Use
+    Assign((_7, &amp;(*_39))) @ _7=&amp;(*_39) @ Ref
+    _5 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _6, move _7) -&gt; [return: bb1, unwind: bb19] @ Call: FnDid: 3215
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _5) -&gt; [0: bb14, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_4)) @ _10=&amp;_4 @ Ref
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    _12 = log::max_level() -&gt; [return: bb3, unwind: bb19] @ Call: FnDid: 134
+}
+bb 3 {
+CleanUp: false
+    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
+    _9 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _10, move _11) -&gt; [return: bb4, unwind: bb19] @ Call: FnDid: 3215
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _9) -&gt; [0: bb13, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, log::__private_api::GlobalLogger)) @ _14=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    Assign((_40, deref_copy (_1.0: &amp;alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt;))) @ _40=deref_copy (_1.0: &amp;alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt;) @ CopyForDeref
+    Assign((_23, &amp;(*_40))) @ _23=&amp;(*_40) @ Ref
+    _22 = &lt;alloc::sync::Arc&lt;dyn driver::virtio::VirtIODevice&gt; as lazy_static::__Deref&gt;::deref(move _23) -&gt; [return: bb6, unwind: bb19] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    StorageDead(_23) @ StorageDead
+    _20 = &lt;dyn driver::virtio::VirtIODevice as driver::base::kobject::KObject&gt;::name(move _21) -&gt; [return: bb7, unwind: bb19] @ Call: FnDid: 8338
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_19, &amp;_20)) @ _19=&amp;_20 @ Ref
+    Assign((_18, &amp;(*_19))) @ _18=&amp;(*_19) @ Ref
+    _17 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;alloc::string::String&gt;(move _18) -&gt; [return: bb8, unwind: bb18] @ Call: FnDid: 11809
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    Assign((_16, [move _17])) @ _16=[move _17] @ Aggregate
+    StorageDead(_17) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_38, const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::{closure#0}::promoted[0])) @ _38=const &lt;driver::net::virtio_net::VirtIONetDriver as driver::virtio::VirtIODriver&gt;::probe::{closure#0}::promoted[0] @ Use
+    Assign((_25, &amp;(*_38))) @ _25=&amp;(*_38) @ Ref
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;_16)) @ _28=&amp;_16 @ Ref
+    Assign((_27, &amp;(*_28))) @ _27=&amp;(*_28) @ Ref
+    _15 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 1&gt;(move _24, move _27) -&gt; [return: bb9, unwind: bb18] @ Call: FnDid: 11836
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    Assign((_29, copy _4)) @ _29=copy _4 @ Use
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, const &#34;dragonos_kernel::driver::net::virtio_net&#34;)) @ _34=const &#34;dragonos_kernel::driver::net::virtio_net&#34; @ Use
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    _36 = log::__private_api::loc() -&gt; [return: bb10, unwind: bb18] @ Call: FnDid: 184
+}
+bb 10 {
+CleanUp: false
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    Assign((_32, (move _33, const &#34;dragonos_kernel::driver::net::virtio_net&#34;, move _35))) @ _32=(move _33, const &#34;dragonos_kernel::driver::net::virtio_net&#34;, move _35) @ Aggregate
+    StorageDead(_35) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    Assign((_31, &amp;_32)) @ _31=&amp;_32 @ Ref
+    Assign((_30, &amp;(*_31))) @ _30=&amp;(*_31) @ Ref
+    StorageLive(_37) @ StorageLive
+    Assign((_37, ())) @ _37=() @ Aggregate
+    _13 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _14, move _15, move _29, move _30, move _37) -&gt; [return: bb11, unwind: bb18] @ Call: FnDid: 178
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    drop(_20) -&gt; [return: bb12, unwind: bb19] @ Drop
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb16 @ Goto
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb15 @ Goto
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb15 @ Goto
+}
+bb 15 {
+CleanUp: false
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb16 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, system_error::SystemError::EINVAL)) @ _0=system_error::SystemError::EINVAL @ Aggregate
+    drop(_2) -&gt; [return: bb17, unwind: bb20] @ Drop
+}
+bb 17 {
+CleanUp: false
+    return @ Return
+}
+bb 18 {
+CleanUp: true
+    drop(_20) -&gt; [return: bb19, unwind terminate(cleanup)] @ Drop
+}
+bb 19 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
+}
+bb 20 {
+CleanUp: true
+    resume @ UnwindResume
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

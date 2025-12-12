@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #172: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #172
+            
+                 <span class="func-name">net::socket::utils::datagram_common::select_remote_and_bind</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:15|RAP|WARN|: Use-after-free detected in function &#34;select_remote_and_bind&#34;
+warning: Use-after-free detected.
+   --&gt; src/net/socket/utils/datagram_common.rs:188:17
+    |
+164 | pub fn select_remote_and_bind&lt;UnboundSocket, BoundSocket, B, F, R&gt;(
+165 |     inner_lock: &amp;RwLock&lt;Inner&lt;UnboundSocket, BoundSocket&gt;&gt;,
+166 |     remote: Option&lt;UnboundSocket::Endpoint&gt;,
+167 |     bind_ephemeral: B,
+168 |     op: F,
+169 | ) -&gt; Result&lt;R, SystemError&gt;
+170 | where
+171 |     UnboundSocket: Unbound&lt;Endpoint = BoundSocket::Endpoint, Bound = BoundSocket&gt;,
+172 |     BoundSocket: Bound,
+173 |     B: FnOnce() -&gt; Result&lt;(), SystemError&gt;,
+174 |     F: FnOnce(&amp;BoundSocket, UnboundSocket::Endpoint) -&gt; Result&lt;R, SystemError&gt;,
+175 | {
+176 |     let mut inner = inner_lock.read();
+177 |
+178 |     // 这里用 loop 只是为了用 break :)
+179 |     #[expect(clippy::never_loop)]
+180 |     let bound = loop {
+181 |         if let Inner::Bound(bound) = &amp;*inner {
+182 |             break bound;
+183 |         }
+184 |
+185 |         drop(inner);
+186 |         bind_ephemeral()?;
+187 |
+188 |         inner = inner_lock.read();
+    |                 ----------------- Use-after-free (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 188.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _30(_, src/net/socket/utils/datagram_common.rs:188) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _30(_, src/net/socket/utils/datagram_common.rs:188) is used at BB9(src/net/socket/utils/datagram_common.rs:188).
+189 |
+190 |         if let Inner::Bound(bound_datagram) = &amp;*inner {
+191 |             break bound_datagram;
+192 |         }
+193 |
+194 |         panic!(&#34;Socket binding state inconsistent after bind_ephemeral&#34;);
+195 |     };
+196 |
+197 |     let remote_endpoint = match remote {
+198 |         Some(r) =&gt; r.clone(),
+199 |         None =&gt; bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 |     };
+201 |
+202 |     op(bound, remote_endpoint)
+203 | }
+    |
+warning: Use-after-free detected.
+   --&gt; src/net/socket/utils/datagram_common.rs:188:9
+    |
+164 | pub fn select_remote_and_bind&lt;UnboundSocket, BoundSocket, B, F, R&gt;(
+165 |     inner_lock: &amp;RwLock&lt;Inner&lt;UnboundSocket, BoundSocket&gt;&gt;,
+166 |     remote: Option&lt;UnboundSocket::Endpoint&gt;,
+167 |     bind_ephemeral: B,
+168 |     op: F,
+169 | ) -&gt; Result&lt;R, SystemError&gt;
+170 | where
+171 |     UnboundSocket: Unbound&lt;Endpoint = BoundSocket::Endpoint, Bound = BoundSocket&gt;,
+172 |     BoundSocket: Bound,
+173 |     B: FnOnce() -&gt; Result&lt;(), SystemError&gt;,
+174 |     F: FnOnce(&amp;BoundSocket, UnboundSocket::Endpoint) -&gt; Result&lt;R, SystemError&gt;,
+175 | {
+176 |     let mut inner = inner_lock.read();
+177 |
+178 |     // 这里用 loop 只是为了用 break :)
+179 |     #[expect(clippy::never_loop)]
+180 |     let bound = loop {
+181 |         if let Inner::Bound(bound) = &amp;*inner {
+182 |             break bound;
+183 |         }
+184 |
+185 |         drop(inner);
+186 |         bind_ephemeral()?;
+187 |
+188 |         inner = inner_lock.read();
+    |         ----- Use-after-free (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 188.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _29(_, src/net/socket/utils/datagram_common.rs:188) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _29(_, src/net/socket/utils/datagram_common.rs:188) is used at BB12(src/net/socket/utils/datagram_common.rs:190).
+189 |
+190 |         if let Inner::Bound(bound_datagram) = &amp;*inner {
+191 |             break bound_datagram;
+192 |         }
+193 |
+194 |         panic!(&#34;Socket binding state inconsistent after bind_ephemeral&#34;);
+195 |     };
+196 |
+197 |     let remote_endpoint = match remote {
+198 |         Some(r) =&gt; r.clone(),
+199 |         None =&gt; bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 |     };
+201 |
+202 |     op(bound, remote_endpoint)
+203 | }
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected in function &#34;select_remote_and_bind&#34;
+warning: Dangling pointer detected.
+   --&gt; src/net/socket/utils/datagram_common.rs:164:1
+    |
+164 | / pub fn select_remote_and_bind&lt;UnboundSocket, BoundSocket, B, F, R&gt;(
+165 | |     inner_lock: &amp;RwLock&lt;Inner&lt;UnboundSocket, BoundSocket&gt;&gt;,
+166 | |     remote: Option&lt;UnboundSocket::Endpoint&gt;,
+167 | |     bind_ephemeral: B,
+168 | |     op: F,
+169 | | ) -&gt; Result&lt;R, SystemError&gt;
+170 | | where
+171 | |     UnboundSocket: Unbound&lt;Endpoint = BoundSocket::Endpoint, Bound = BoundSocket&gt;,
+172 | |     BoundSocket: Bound,
+173 | |     B: FnOnce() -&gt; Result&lt;(), SystemError&gt;,
+174 | |     F: FnOnce(&amp;BoundSocket, UnboundSocket::Endpoint) -&gt; Result&lt;R, SystemError&gt;,
+175 | | {
+176 | |     let mut inner = inner_lock.read();
+177 | |
+178 | |     // 这里用 loop 只是为了用 break :)
+179 | |     #[expect(clippy::never_loop)]
+180 | |     let bound = loop {
+181 | |         if let Inner::Bound(bound) = &amp;*inner {
+182 | |             break bound;
+183 | |         }
+184 | |
+185 | |         drop(inner);
+186 | |         bind_ephemeral()?;
+187 | |
+188 | |         inner = inner_lock.read();
+189 | |
+190 | |         if let Inner::Bound(bound_datagram) = &amp;*inner {
+191 | |             break bound_datagram;
+192 | |         }
+193 | |
+194 | |         panic!(&#34;Socket binding state inconsistent after bind_ephemeral&#34;);
+195 | |     };
+196 | |
+197 | |     let remote_endpoint = match remote {
+198 | |         Some(r) =&gt; r.clone(),
+199 | |         None =&gt; bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 | |     };
+201 | |
+202 | |     op(bound, remote_endpoint)
+203 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 164.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;select_remote_and_bind&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/net/socket/utils/datagram_common.rs:164:1
+    |
+164 | / pub fn select_remote_and_bind&lt;UnboundSocket, BoundSocket, B, F, R&gt;(
+165 | |     inner_lock: &amp;RwLock&lt;Inner&lt;UnboundSocket, BoundSocket&gt;&gt;,
+166 | |     remote: Option&lt;UnboundSocket::Endpoint&gt;,
+167 | |     bind_ephemeral: B,
+168 | |     op: F,
+169 | | ) -&gt; Result&lt;R, SystemError&gt;
+170 | | where
+171 | |     UnboundSocket: Unbound&lt;Endpoint = BoundSocket::Endpoint, Bound = BoundSocket&gt;,
+172 | |     BoundSocket: Bound,
+173 | |     B: FnOnce() -&gt; Result&lt;(), SystemError&gt;,
+174 | |     F: FnOnce(&amp;BoundSocket, UnboundSocket::Endpoint) -&gt; Result&lt;R, SystemError&gt;,
+175 | | {
+176 | |     let mut inner = inner_lock.read();
+177 | |
+178 | |     // 这里用 loop 只是为了用 break :)
+179 | |     #[expect(clippy::never_loop)]
+180 | |     let bound = loop {
+181 | |         if let Inner::Bound(bound) = &amp;*inner {
+182 | |             break bound;
+183 | |         }
+184 | |
+185 | |         drop(inner);
+186 | |         bind_ephemeral()?;
+187 | |
+188 | |         inner = inner_lock.read();
+189 | |
+190 | |         if let Inner::Bound(bound_datagram) = &amp;*inner {
+191 | |             break bound_datagram;
+192 | |         }
+193 | |
+194 | |         panic!(&#34;Socket binding state inconsistent after bind_ephemeral&#34;);
+195 | |     };
+196 | |
+197 | |     let remote_endpoint = match remote {
+198 | |         Some(r) =&gt; r.clone(),
+199 | |         None =&gt; bound.remote_endpoint().ok_or(SystemError::EDESTADDRREQ)?,
+200 | |     };
+201 | |
+202 | |     op(bound, remote_endpoint)
+203 | | }
+    | |_- Dangling pointer (confidence 99%): Location in file src/net/socket/utils/datagram_common.rs line 164.
+    | MIR detail: Value _18(_, src/net/socket/utils/datagram_common.rs:185) and _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) are alias.
+    | MIR detail: _18(_, src/net/socket/utils/datagram_common.rs:185) is dropped at BB4(src/net/socket/utils/datagram_common.rs:185); _1(inner_lock, src/net/socket/utils/datagram_common.rs:165) became dangling.
+    |
+render dot for DefId(0:27212 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::select_remote_and_bind)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/net/socket/utils/datagram_common.rs:176:9: 176:18
+bb1 at src/net/socket/utils/datagram_common.rs:176:37: 176:38
+bb2 at src/net/socket/utils/datagram_common.rs:181:44: 181:45
+bb3 at src/net/socket/utils/datagram_common.rs:181:29: 181:34
+bb4 at src/net/socket/utils/datagram_common.rs:183:10: 183:10
+bb5 at src/net/socket/utils/datagram_common.rs:185:19: 185:20
+bb6 at src/net/socket/utils/datagram_common.rs:186:24: 186:25
+bb7 at src/net/socket/utils/datagram_common.rs:186:25: 186:26
+bb9 at src/net/socket/utils/datagram_common.rs:186:9: 186:26
+bb10 at src/net/socket/utils/datagram_common.rs:186:25: 186:26
+bb11 at src/net/socket/utils/datagram_common.rs:186:25: 186:26
+bb12 at src/net/socket/utils/datagram_common.rs:188:33: 188:34
+bb13 at src/net/socket/utils/datagram_common.rs:190:53: 190:54
+bb14 at src/net/socket/utils/datagram_common.rs:190:29: 190:43
+bb15 at src/net/socket/utils/datagram_common.rs:192:10: 192:10
+bb16 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+bb17 at src/net/socket/utils/datagram_common.rs:180:17: 195:6
+bb18 at src/net/socket/utils/datagram_common.rs:199:17: 199:74
+bb19 at src/net/socket/utils/datagram_common.rs:198:14: 198:15
+bb20 at src/net/socket/utils/datagram_common.rs:198:28: 198:29
+bb21 at src/net/socket/utils/datagram_common.rs:198:28: 198:29
+bb22 at src/net/socket/utils/datagram_common.rs:199:39: 199:40
+bb23 at src/net/socket/utils/datagram_common.rs:199:72: 199:73
+bb24 at src/net/socket/utils/datagram_common.rs:199:73: 199:74
+bb25 at src/net/socket/utils/datagram_common.rs:199:17: 199:74
+bb26 at src/net/socket/utils/datagram_common.rs:199:73: 199:74
+bb27 at src/net/socket/utils/datagram_common.rs:199:73: 199:74
+bb28 at src/net/socket/utils/datagram_common.rs:202:5: 202:7
+bb29 at src/net/socket/utils/datagram_common.rs:202:30: 202:31
+bb30 at src/net/socket/utils/datagram_common.rs:203:1: 203:2
+bb31 at src/net/socket/utils/datagram_common.rs:203:1: 203:2
+bb32 at src/net/socket/utils/datagram_common.rs:203:1: 203:2
+bb33 at src/net/socket/utils/datagram_common.rs:203:1: 203:2
+bb34 at src/net/socket/utils/datagram_common.rs:203:1: 203:2
+bb37 at src/net/socket/utils/datagram_common.rs:203:1: 203:2
+bb45 at src/net/socket/utils/datagram_common.rs:199:73: 199:74
+fn net::socket::utils::datagram_common::select_remote_and_bind
+_0:  @ core::result::Result&lt;R/#4, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_2:  @ core::option::Option&lt;Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. })&gt; 
+_3:  @ B/#2 
+_4:  @ F/#3 
+_5:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_6:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_7:  @ &amp;&#39;{erased} BoundSocket/#1 
+_8:  @ &amp;&#39;{erased} BoundSocket/#1 
+_9:  @ () 
+_10:  @ () 
+_11:  @ &amp;&#39;{erased} net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt; 
+_12:  @ &amp;&#39;{erased} net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt; 
+_13:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_14:  @ isize 
+_15:  @ &amp;&#39;{erased} BoundSocket/#1 
+_16:  @ ! 
+_17:  @ () 
+_18:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_19:  @ () 
+_20:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_21:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_22:  @ B/#2 
+_23:  @ () 
+_24:  @ isize 
+_25:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_26:  @ ! 
+_27:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_28:  @ () 
+_29:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_30:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_31:  @ () 
+_32:  @ &amp;&#39;{erased} net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt; 
+_33:  @ &amp;&#39;{erased} net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt; 
+_34:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, net::socket::utils::datagram_common::Inner&lt;UnboundSocket/#0, BoundSocket/#1&gt;&gt; 
+_35:  @ isize 
+_36:  @ &amp;&#39;{erased} BoundSocket/#1 
+_37:  @ ! 
+_38:  @ ! 
+_39:  @ ! 
+_40:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_41:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_42:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_43:  @ [&amp;&#39;{erased} str; 1_usize] 
+_44:  @ Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. }) 
+_45:  @ isize 
+_46:  @ Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. }) 
+_47:  @ &amp;&#39;{erased} Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. }) 
+_48:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. })&gt; 
+_49:  @ core::result::Result&lt;Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. }), system_error::SystemError&gt; 
+_50:  @ core::option::Option&lt;Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. })&gt; 
+_51:  @ &amp;&#39;{erased} BoundSocket/#1 
+_52:  @ system_error::SystemError 
+_53:  @ isize 
+_54:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_55:  @ ! 
+_56:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_57:  @ Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. }) 
+_58:  @ F/#3 
+_59:  @ (&amp;&#39;{erased} BoundSocket/#1, Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. })) 
+_60:  @ &amp;&#39;{erased} BoundSocket/#1 
+_61:  @ Alias(Projection, AliasTy { args: [BoundSocket/#1], def_id: DefId(0:27194 ~ dragonos_kernel[9e38]::net::socket::utils::datagram_common::Bound::Endpoint), .. }) 
+_62:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_63:  @ bool 
+_64:  @ bool 
+_65:  @ bool 
+_66:  @ bool 
+_67:  @ bool 
+_68:  @ isize 
+_69:  @ isize 
+_70:  @ isize 
+_71:  @ isize 
+_72:  @ isize 
+_73:  @ isize 
+_74:  @ isize 
+_75:  @ isize 
+_76:  @ isize 
+_77:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_63, const false)) @ _63=const false @ Use
+    Assign((_67, const false)) @ _67=const false @ Use
+    Assign((_65, const false)) @ _65=const false @ Use
+    Assign((_64, const false)) @ _64=const false @ Use
+    Assign((_66, const false)) @ _66=const false @ Use
+    Assign((_64, const true)) @ _64=const true @ Use
+    Assign((_66, const true)) @ _66=const true @ Use
+    Assign((_63, const true)) @ _63=const true @ Use
+    Assign((_67, const true)) @ _67=const true @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_1))) @ _6=&amp;(*_1) @ Ref
+    _5 = libs::rwlock::RwLock::&lt;net::socket::utils::datagram_common::Inner&lt;UnboundSocket, BoundSocket&gt;&gt;::read(move _6) -&gt; [return: bb1, unwind: bb49] @ Call: FnDid: 5156
+}
+bb 1 {
+CleanUp: false
+    Assign((_65, const true)) @ _65=const true @ Use
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;_5)) @ _13=&amp;_5 @ Ref
+    _12 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, net::socket::utils::datagram_common::Inner&lt;UnboundSocket, BoundSocket&gt;&gt; as lazy_static::__Deref&gt;::deref(move _13) -&gt; [return: bb2, unwind: bb47] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    Assign((_14, discriminant((*_11)))) @ _14=discriminant((*_11)) @ Discriminant
+    switchInt(move _14) -&gt; [1: bb3, otherwise: bb4] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;(((*_11) as Bound).0: BoundSocket))) @ _15=&amp;(((*_11) as Bound).0: BoundSocket) @ Ref
+    Assign((_8, copy _15)) @ _8=copy _15 @ Use
+    StorageDead(_15) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb17 @ Goto
+}
+bb 4 {
+CleanUp: false
+    Assign((_10, const ())) @ _10=const () @ Use
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    Assign((_65, const false)) @ _65=const false @ Use
+    Assign((_18, move _5)) @ _18=move _5 @ Use
+    _17 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, net::socket::utils::datagram_common::Inner&lt;UnboundSocket, BoundSocket&gt;&gt;&gt;(move _18) -&gt; [return: bb5, unwind: bb47] @ Call: FnDid: 2323
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_63, const false)) @ _63=const false @ Use
+    Assign((_22, move _3)) @ _22=move _3 @ Use
+    StorageLive(_23) @ StorageLive
+    Assign((_23, ())) @ _23=() @ Aggregate
+    _21 = &lt;B as core::ops::FnOnce&lt;()&gt;&gt;::call_once(move _22, move _23) -&gt; [return: bb6, unwind: bb47] @ Call: FnDid: 3949
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    _20 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _21) -&gt; [return: bb7, unwind: bb47] @ Call: FnDid: 4199
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_24, discriminant(_20))) @ _24=discriminant(_20) @ Discriminant
+    switchInt(move _24) -&gt; [0: bb9, 1: bb10, otherwise: bb8] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_28) @ StorageLive
+    Assign((_28, copy ((_20 as Continue).0: ()))) @ _28=copy ((_20 as Continue).0: ()) @ Use
+    Assign((_19, copy _28)) @ _19=copy _28 @ Use
+    StorageDead(_28) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;(*_1))) @ _30=&amp;(*_1) @ Ref
+    _29 = libs::rwlock::RwLock::&lt;net::socket::utils::datagram_common::Inner&lt;UnboundSocket, BoundSocket&gt;&gt;::read(move _30) -&gt; [return: bb12, unwind: bb47] @ Call: FnDid: 5156
+}
+bb 10 {
+CleanUp: false
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move ((_20 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _25=move ((_20 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move _25)) @ _27=move _25 @ Use
+    _0 = &lt;core::result::Result&lt;R, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _27) -&gt; [return: bb11, unwind: bb47] @ Call: FnDid: 4202
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    goto -&gt; bb32 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    Assign((_65, const true)) @ _65=const true @ Use
+    Assign((_5, move _29)) @ _5=move _29 @ Use
+    StorageDead(_29) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &amp;_5)) @ _34=&amp;_5 @ Ref
+    _33 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, net::socket::utils::datagram_common::Inner&lt;UnboundSocket, BoundSocket&gt;&gt; as lazy_static::__Deref&gt;::deref(move _34) -&gt; [return: bb13, unwind: bb47] @ Call: FnDid: 3903
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_32, &amp;(*_33))) @ _32=&amp;(*_33) @ Ref
+    Assign((_35, discriminant((*_32)))) @ _35=discriminant((*_32)) @ Discriminant
+    switchInt(move _35) -&gt; [1: bb14, otherwise: bb15] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_36) @ StorageLive
+    Assign((_36, &amp;(((*_32) as Bound).0: BoundSocket))) @ _36=&amp;(((*_32) as Bound).0: BoundSocket) @ Ref
+    Assign((_8, &amp;(*_36))) @ _8=&amp;(*_36) @ Ref
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    goto -&gt; bb17 @ Goto
+}
+bb 15 {
+CleanUp: false
+    Assign((_31, const ())) @ _31=const () @ Use
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_62, const net::socket::utils::datagram_common::select_remote_and_bind::&lt;UnboundSocket, BoundSocket, B, F, R&gt;::promoted[0])) @ _62=const net::socket::utils::datagram_common::select_remote_and_bind::&lt;UnboundSocket, BoundSocket, B, F, R&gt;::promoted[0] @ Use
+    Assign((_42, &amp;(*_62))) @ _42=&amp;(*_62) @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    _40 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _41) -&gt; [return: bb16, unwind: bb47] @ Call: FnDid: 11832
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    _39 = core::panicking::panic_fmt(move _40) -&gt; bb47 @ Call: FnDid: 10541
+}
+bb 17 {
+CleanUp: false
+    Assign((_7, &amp;(*_8))) @ _7=&amp;(*_8) @ Ref
+    StorageDead(_8) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    Assign((_45, discriminant(_2))) @ _45=discriminant(_2) @ Discriminant
+    switchInt(move _45) -&gt; [0: bb18, 1: bb19, otherwise: bb8] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;(*_7))) @ _51=&amp;(*_7) @ Ref
+    _50 = &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::remote_endpoint(move _51) -&gt; [return: bb22, unwind: bb47] @ Call: FnDid: 27197
+}
+bb 19 {
+CleanUp: false
+    StorageLive(_46) @ StorageLive
+    Assign((_66, const false)) @ _66=const false @ Use
+    Assign((_46, move ((_2 as Some).0: &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint))) @ _46=move ((_2 as Some).0: &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint) @ Use
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;_46)) @ _47=&amp;_46 @ Ref
+    _44 = &lt;&lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint as core::clone::Clone&gt;::clone(move _47) -&gt; [return: bb20, unwind: bb36] @ Call: FnDid: 3116
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_47) @ StorageDead
+    drop(_46) -&gt; [return: bb21, unwind: bb47] @ Drop
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb28 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    Assign((_52, system_error::SystemError::EDESTADDRREQ)) @ _52=system_error::SystemError::EDESTADDRREQ @ Aggregate
+    _49 = core::option::Option::&lt;&lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint&gt;::ok_or::&lt;system_error::SystemError&gt;(move _50, move _52) -&gt; [return: bb23, unwind: bb47] @ Call: FnDid: 10178
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_52) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    _48 = &lt;core::result::Result&lt;&lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _49) -&gt; [return: bb24, unwind: bb47] @ Call: FnDid: 4199
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    Assign((_53, discriminant(_48))) @ _53=discriminant(_48) @ Discriminant
+    switchInt(move _53) -&gt; [0: bb25, 1: bb26, otherwise: bb8] @ SwitchInt
+}
+bb 25 {
+CleanUp: false
+    StorageLive(_57) @ StorageLive
+    Assign((_57, move ((_48 as Continue).0: &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint))) @ _57=move ((_48 as Continue).0: &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint) @ Use
+    Assign((_44, move _57)) @ _44=move _57 @ Use
+    StorageDead(_57) @ StorageDead
+    Assign((_70, discriminant(_48))) @ _70=discriminant(_48) @ Discriminant
+    StorageDead(_48) @ StorageDead
+    goto -&gt; bb28 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_54) @ StorageLive
+    Assign((_54, move ((_48 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _54=move ((_48 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_56) @ StorageLive
+    Assign((_56, move _54)) @ _56=move _54 @ Use
+    _0 = &lt;core::result::Result&lt;R, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _56) -&gt; [return: bb27, unwind: bb45] @ Call: FnDid: 4202
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    Assign((_68, discriminant(_48))) @ _68=discriminant(_48) @ Discriminant
+    StorageDead(_48) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    goto -&gt; bb32 @ Goto
+}
+bb 28 {
+CleanUp: false
+    StorageLive(_58) @ StorageLive
+    Assign((_67, const false)) @ _67=const false @ Use
+    Assign((_58, move _4)) @ _58=move _4 @ Use
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, &amp;(*_7))) @ _60=&amp;(*_7) @ Ref
+    StorageLive(_61) @ StorageLive
+    Assign((_61, move _44)) @ _61=move _44 @ Use
+    Assign((_59, (move _60, move _61))) @ _59=(move _60, move _61) @ Aggregate
+    _0 = &lt;F as core::ops::FnOnce&lt;(&amp;BoundSocket, &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint)&gt;&gt;::call_once(move _58, move _59) -&gt; [return: bb29, unwind: bb47] @ Call: FnDid: 3949
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    drop(_5) -&gt; [return: bb30, unwind: bb49] @ Drop
+}
+bb 30 {
+CleanUp: false
+    Assign((_65, const false)) @ _65=const false @ Use
+    StorageDead(_5) @ StorageDead
+    switchInt(copy _63) -&gt; [0: bb31, otherwise: bb39] @ SwitchInt
+}
+bb 31 {
+CleanUp: false
+    Assign((_72, discriminant(_2))) @ _72=discriminant(_2) @ Discriminant
+    goto -&gt; bb35 @ Goto
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    switchInt(copy _65) -&gt; [0: bb33, otherwise: bb40] @ SwitchInt
+}
+bb 33 {
+CleanUp: false
+    Assign((_65, const false)) @ _65=const false @ Use
+    StorageDead(_5) @ StorageDead
+    drop(_4) -&gt; [return: bb42, unwind: bb51] @ Drop
+}
+bb 34 {
+CleanUp: false
+    Assign((_74, discriminant(_2))) @ _74=discriminant(_2) @ Discriminant
+    switchInt(move _74) -&gt; [1: bb43, otherwise: bb35] @ SwitchInt
+}
+bb 35 {
+CleanUp: false
+    return @ Return
+}
+bb 36 {
+CleanUp: true
+    drop(_46) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+}
+bb 37 {
+CleanUp: true
+    Assign((_77, discriminant(_2))) @ _77=discriminant(_2) @ Discriminant
+    switchInt(move _77) -&gt; [1: bb52, otherwise: bb38] @ SwitchInt
+}
+bb 38 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 39 {
+CleanUp: false
+    drop(_3) -&gt; [return: bb31, unwind: bb37] @ Drop
+}
+bb 40 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb33, unwind: bb49] @ Drop
+}
+bb 41 {
+CleanUp: false
+    drop(_3) -&gt; [return: bb34, unwind: bb37] @ Drop
+}
+bb 42 {
+CleanUp: false
+    switchInt(copy _63) -&gt; [0: bb34, otherwise: bb41] @ SwitchInt
+}
+bb 43 {
+CleanUp: false
+    switchInt(copy _66) -&gt; [0: bb35, otherwise: bb44] @ SwitchInt
+}
+bb 44 {
+CleanUp: false
+    drop(((_2 as Some).0: &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint)) -&gt; [return: bb35, unwind: bb38] @ Drop
+}
+bb 45 {
+CleanUp: true
+    Assign((_76, discriminant(_48))) @ _76=discriminant(_48) @ Discriminant
+    goto -&gt; bb47 @ Goto
+}
+bb 46 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb49, unwind terminate(cleanup)] @ Drop
+}
+bb 47 {
+CleanUp: true
+    switchInt(copy _65) -&gt; [0: bb49, otherwise: bb46] @ SwitchInt
+}
+bb 48 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb51, unwind terminate(cleanup)] @ Drop
+}
+bb 49 {
+CleanUp: true
+    switchInt(copy _67) -&gt; [0: bb51, otherwise: bb48] @ SwitchInt
+}
+bb 50 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 51 {
+CleanUp: true
+    switchInt(copy _63) -&gt; [0: bb37, otherwise: bb50] @ SwitchInt
+}
+bb 52 {
+CleanUp: true
+    switchInt(copy _66) -&gt; [0: bb38, otherwise: bb53] @ SwitchInt
+}
+bb 53 {
+CleanUp: true
+    drop(((_2 as Some).0: &lt;BoundSocket as net::socket::utils::datagram_common::Bound&gt;::Endpoint)) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

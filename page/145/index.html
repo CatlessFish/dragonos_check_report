@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #145: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #145
+            
+                 <span class="func-name">ipc::syscall::sys_rt_sigtimedwait::{impl#1}::entry_format</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:11|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/ipc/syscall/sys_rt_sigtimedwait.rs:274:1
+    |
+274 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+275 | |         let uthese = Self::uthese(args);
+276 | |         let uinfo = Self::uinfo(args);
+277 | |         let uts = Self::uts(args);
+278 | |         let sigsetsize = Self::sigsetsize(args);
+279 | |
+280 | |         vec![
+281 | |             FormattedSyscallParam::new(&#34;uthese&#34;, format!(&#34;{:#x}&#34;, uthese as usize)),
+282 | |             FormattedSyscallParam::new(&#34;uinfo&#34;, format!(&#34;{:#x}&#34;, uinfo as usize)),
+283 | |             FormattedSyscallParam::new(&#34;uts&#34;, format!(&#34;{:#x}&#34;, uts as usize)),
+284 | |             FormattedSyscallParam::new(&#34;sigsetsize&#34;, format!(&#34;{}&#34;, sigsetsize)),
+285 | |         ]
+286 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_sigtimedwait.rs line 274.
+    | MIR detail: Value _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) and _41(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:282) are alias.
+    | MIR detail: _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _41(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:282) is dropped at BB28(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+warning: Double free detected during unwinding.
+   --&gt; src/ipc/syscall/sys_rt_sigtimedwait.rs:274:1
+    |
+274 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
+275 | |         let uthese = Self::uthese(args);
+276 | |         let uinfo = Self::uinfo(args);
+277 | |         let uts = Self::uts(args);
+278 | |         let sigsetsize = Self::sigsetsize(args);
+279 | |
+280 | |         vec![
+281 | |             FormattedSyscallParam::new(&#34;uthese&#34;, format!(&#34;{:#x}&#34;, uthese as usize)),
+282 | |             FormattedSyscallParam::new(&#34;uinfo&#34;, format!(&#34;{:#x}&#34;, uinfo as usize)),
+283 | |             FormattedSyscallParam::new(&#34;uts&#34;, format!(&#34;{:#x}&#34;, uts as usize)),
+284 | |             FormattedSyscallParam::new(&#34;sigsetsize&#34;, format!(&#34;{}&#34;, sigsetsize)),
+285 | |         ]
+286 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/ipc/syscall/sys_rt_sigtimedwait.rs line 274.
+    | MIR detail: Value _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) and _17(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:281) are alias.
+    | MIR detail: _65(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:283) is dropped at BB27(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _17(_, src/ipc/syscall/sys_rt_sigtimedwait.rs:281) is dropped at BB29(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+    |
+render dot for DefId(0:23032 ~ dragonos_kernel[9e38]::ipc::syscall::sys_rt_sigtimedwait::{impl#1}::entry_format)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/ipc/syscall/sys_rt_sigtimedwait.rs:275:13: 275:19
+bb1 at src/ipc/syscall/sys_rt_sigtimedwait.rs:275:39: 275:40
+bb2 at src/ipc/syscall/sys_rt_sigtimedwait.rs:276:37: 276:38
+bb3 at src/ipc/syscall/sys_rt_sigtimedwait.rs:277:33: 277:34
+bb4 at src/ipc/syscall/sys_rt_sigtimedwait.rs:278:47: 278:48
+bb5 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
+bb6 at src/ipc/syscall/sys_rt_sigtimedwait.rs:281:63: 281:64
+bb7 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb10 at src/ipc/syscall/sys_rt_sigtimedwait.rs:281:83: 281:84
+bb11 at src/ipc/syscall/sys_rt_sigtimedwait.rs:282:62: 282:63
+bb12 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb13 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb14 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb15 at src/ipc/syscall/sys_rt_sigtimedwait.rs:282:81: 282:82
+bb16 at src/ipc/syscall/sys_rt_sigtimedwait.rs:283:60: 283:61
+bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb18 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb19 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb20 at src/ipc/syscall/sys_rt_sigtimedwait.rs:283:77: 283:78
+bb21 at src/ipc/syscall/sys_rt_sigtimedwait.rs:284:64: 284:65
+bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb23 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb24 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb25 at src/ipc/syscall/sys_rt_sigtimedwait.rs:284:79: 284:80
+bb26 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
+bb31 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
+bb32 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+bb33 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
+fn &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format
+_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
+_1:  @ &amp;&#39;{erased} ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle 
+_2:  @ &amp;&#39;{erased} [usize] 
+_3:  @ *const ipc::generic_signal::GenericSigSet 
+_4:  @ &amp;&#39;{erased} [usize] 
+_5:  @ *mut ipc::signal_types::PosixSigInfo 
+_6:  @ &amp;&#39;{erased} [usize] 
+_7:  @ *const time::PosixTimeSpec 
+_8:  @ &amp;&#39;{erased} [usize] 
+_9:  @ usize 
+_10:  @ &amp;&#39;{erased} [usize] 
+_11:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
+_12:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
+_13:  @ usize 
+_14:  @ usize 
+_15:  @ *mut u8 
+_16:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
+_17:  @ syscall::table::FormattedSyscallParam 
+_18:  @ alloc::string::String 
+_19:  @ alloc::string::String 
+_20:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_21:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_22:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_23:  @ &amp;&#39;{erased} usize 
+_24:  @ &amp;&#39;{erased} usize 
+_25:  @ usize 
+_26:  @ *const ipc::generic_signal::GenericSigSet 
+_27:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_28:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_29:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_30:  @ [&amp;&#39;{erased} str; 1_usize] 
+_31:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_32:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_33:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_34:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_35:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_36:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_37:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_38:  @ core::fmt::rt::Placeholder 
+_39:  @ core::fmt::rt::Count 
+_40:  @ core::fmt::rt::Count 
+_41:  @ syscall::table::FormattedSyscallParam 
+_42:  @ alloc::string::String 
+_43:  @ alloc::string::String 
+_44:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_45:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_46:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_47:  @ &amp;&#39;{erased} usize 
+_48:  @ &amp;&#39;{erased} usize 
+_49:  @ usize 
+_50:  @ *mut ipc::signal_types::PosixSigInfo 
+_51:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_52:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_53:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_54:  @ [&amp;&#39;{erased} str; 1_usize] 
+_55:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_56:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_57:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_58:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_59:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_60:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_61:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_62:  @ core::fmt::rt::Placeholder 
+_63:  @ core::fmt::rt::Count 
+_64:  @ core::fmt::rt::Count 
+_65:  @ syscall::table::FormattedSyscallParam 
+_66:  @ alloc::string::String 
+_67:  @ alloc::string::String 
+_68:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_69:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_70:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_71:  @ &amp;&#39;{erased} usize 
+_72:  @ &amp;&#39;{erased} usize 
+_73:  @ usize 
+_74:  @ *const time::PosixTimeSpec 
+_75:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
+_76:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_77:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_78:  @ [&amp;&#39;{erased} str; 1_usize] 
+_79:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
+_80:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_81:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_82:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
+_83:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_84:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_85:  @ [core::fmt::rt::Placeholder; 1_usize] 
+_86:  @ core::fmt::rt::Placeholder 
+_87:  @ core::fmt::rt::Count 
+_88:  @ core::fmt::rt::Count 
+_89:  @ syscall::table::FormattedSyscallParam 
+_90:  @ alloc::string::String 
+_91:  @ alloc::string::String 
+_92:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_93:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_94:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_95:  @ &amp;&#39;{erased} usize 
+_96:  @ &amp;&#39;{erased} usize 
+_97:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_98:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_99:  @ [&amp;&#39;{erased} str; 1_usize] 
+_100:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_101:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_102:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_103:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_104:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_105:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_106:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_107:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
+_108:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_109:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
+_110:  @ () 
+_111:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
+_112:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
+_113:  @ *const () 
+_114:  @ usize 
+_115:  @ usize 
+_116:  @ usize 
+_117:  @ usize 
+_118:  @ bool 
+_119:  @ *const () 
+_120:  @ usize 
+_121:  @ usize 
+_122:  @ bool 
+_123:  @ bool 
+_124:  @ bool 
+_125:  @ bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;(*_2))) @ _4=&amp;(*_2) @ Ref
+    _3 = ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle::uthese(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 23026
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
+    _5 = ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle::uinfo(move _6) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 23027
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;(*_2))) @ _8=&amp;(*_2) @ Ref
+    _7 = ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle::uts(move _8) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 23028
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(*_2))) @ _10=&amp;(*_2) @ Ref
+    _9 = ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle::sigsetsize(move _10) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 23029
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_10) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_13, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _13=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    Assign((_14, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _14=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    _15 = alloc::alloc::exchange_malloc(move _13, move _14) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 147
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_16) @ StorageLive
+    Assign((_16, ShallowInitBox(move _15, [syscall::table::FormattedSyscallParam; 4]))) @ _16=ShallowInitBox(move _15, [syscall::table::FormattedSyscallParam; 4]) @ ShallowInitBox
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, copy _3)) @ _26=copy _3 @ Use
+    Assign((_25, move _26 as usize (PointerExposeProvenance))) @ _25=move _26 as usize (PointerExposeProvenance) @ Cast
+    StorageDead(_26) @ StorageDead
+    Assign((_24, &amp;_25)) @ _24=&amp;_25 @ Ref
+    Assign((_23, &amp;(*_24))) @ _23=&amp;(*_24) @ Ref
+    _22 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _23) -&gt; [return: bb6, unwind: bb31] @ Call: FnDid: 11815
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    Assign((_21, [move _22])) @ _21=[move _22] @ Aggregate
+    StorageDead(_22) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_108, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[6])) @ _108=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[6] @ Use
+    Assign((_29, &amp;(*_108))) @ _29=&amp;(*_108) @ Ref
+    Assign((_28, &amp;(*_29))) @ _28=&amp;(*_29) @ Ref
+    Assign((_27, move _28 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _27=move _28 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_28) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;_21)) @ _33=&amp;_21 @ Ref
+    Assign((_32, &amp;(*_33))) @ _32=&amp;(*_33) @ Ref
+    Assign((_31, move _32 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _31=move _32 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_32) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_107, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[5])) @ _107=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[5] @ Use
+    Assign((_36, &amp;(*_107))) @ _36=&amp;(*_107) @ Ref
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    Assign((_34, move _35 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _34=move _35 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_35) @ StorageDead
+    _20 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _27, move _31, move _34) -&gt; [return: bb7, unwind: bb31] @ Call: FnDid: 11842
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    _19 = alloc::fmt::format(move _20) -&gt; [return: bb8, unwind: bb31] @ Call: FnDid: 5475
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    _18 = core::hint::must_use::&lt;alloc::string::String&gt;(move _19) -&gt; [return: bb9, unwind: bb31] @ Call: FnDid: 1455
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    _17 = syscall::table::FormattedSyscallParam::new(const &#34;uthese&#34;, move _18) -&gt; [return: bb10, unwind: bb31] @ Call: FnDid: 30792
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    Assign((_50, copy _5)) @ _50=copy _5 @ Use
+    Assign((_49, move _50 as usize (PointerExposeProvenance))) @ _49=move _50 as usize (PointerExposeProvenance) @ Cast
+    StorageDead(_50) @ StorageDead
+    Assign((_48, &amp;_49)) @ _48=&amp;_49 @ Ref
+    Assign((_47, &amp;(*_48))) @ _47=&amp;(*_48) @ Ref
+    _46 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _47) -&gt; [return: bb11, unwind: bb29] @ Call: FnDid: 11815
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_47) @ StorageDead
+    Assign((_45, [move _46])) @ _45=[move _46] @ Aggregate
+    StorageDead(_46) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_106, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[4])) @ _106=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[4] @ Use
+    Assign((_53, &amp;(*_106))) @ _53=&amp;(*_106) @ Ref
+    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
+    Assign((_51, move _52 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _51=move _52 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_52) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, &amp;_45)) @ _57=&amp;_45 @ Ref
+    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    Assign((_55, move _56 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _55=move _56 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_56) @ StorageDead
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_105, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[3])) @ _105=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[3] @ Use
+    Assign((_60, &amp;(*_105))) @ _60=&amp;(*_105) @ Ref
+    Assign((_59, &amp;(*_60))) @ _59=&amp;(*_60) @ Ref
+    Assign((_58, move _59 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _58=move _59 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_59) @ StorageDead
+    _44 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _51, move _55, move _58) -&gt; [return: bb12, unwind: bb29] @ Call: FnDid: 11842
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    _43 = alloc::fmt::format(move _44) -&gt; [return: bb13, unwind: bb29] @ Call: FnDid: 5475
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    _42 = core::hint::must_use::&lt;alloc::string::String&gt;(move _43) -&gt; [return: bb14, unwind: bb29] @ Call: FnDid: 1455
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    _41 = syscall::table::FormattedSyscallParam::new(const &#34;uinfo&#34;, move _42) -&gt; [return: bb15, unwind: bb29] @ Call: FnDid: 30792
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    Assign((_74, copy _7)) @ _74=copy _7 @ Use
+    Assign((_73, move _74 as usize (PointerExposeProvenance))) @ _73=move _74 as usize (PointerExposeProvenance) @ Cast
+    StorageDead(_74) @ StorageDead
+    Assign((_72, &amp;_73)) @ _72=&amp;_73 @ Ref
+    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
+    _70 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _71) -&gt; [return: bb16, unwind: bb28] @ Call: FnDid: 11815
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    Assign((_69, [move _70])) @ _69=[move _70] @ Aggregate
+    StorageDead(_70) @ StorageDead
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_104, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[2])) @ _104=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[2] @ Use
+    Assign((_77, &amp;(*_104))) @ _77=&amp;(*_104) @ Ref
+    Assign((_76, &amp;(*_77))) @ _76=&amp;(*_77) @ Ref
+    Assign((_75, move _76 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _75=move _76 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_76) @ StorageDead
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &amp;_69)) @ _81=&amp;_69 @ Ref
+    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
+    Assign((_79, move _80 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _79=move _80 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_80) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    Assign((_103, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _103=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
+    Assign((_84, &amp;(*_103))) @ _84=&amp;(*_103) @ Ref
+    Assign((_83, &amp;(*_84))) @ _83=&amp;(*_84) @ Ref
+    Assign((_82, move _83 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _82=move _83 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_83) @ StorageDead
+    _68 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _75, move _79, move _82) -&gt; [return: bb17, unwind: bb28] @ Call: FnDid: 11842
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    _67 = alloc::fmt::format(move _68) -&gt; [return: bb18, unwind: bb28] @ Call: FnDid: 5475
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_73) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    _66 = core::hint::must_use::&lt;alloc::string::String&gt;(move _67) -&gt; [return: bb19, unwind: bb28] @ Call: FnDid: 1455
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    _65 = syscall::table::FormattedSyscallParam::new(const &#34;uts&#34;, move _66) -&gt; [return: bb20, unwind: bb28] @ Call: FnDid: 30792
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    Assign((_96, &amp;_9)) @ _96=&amp;_9 @ Ref
+    Assign((_95, &amp;(*_96))) @ _95=&amp;(*_96) @ Ref
+    _94 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;usize&gt;(move _95) -&gt; [return: bb21, unwind: bb27] @ Call: FnDid: 11807
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_95) @ StorageDead
+    Assign((_93, [move _94])) @ _93=[move _94] @ Aggregate
+    StorageDead(_94) @ StorageDead
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_102, const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _102=const &lt;ipc::syscall::sys_rt_sigtimedwait::SysRtSigtimedwaitHandle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
+    Assign((_98, &amp;(*_102))) @ _98=&amp;(*_102) @ Ref
+    Assign((_97, &amp;(*_98))) @ _97=&amp;(*_98) @ Ref
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    Assign((_101, &amp;_93)) @ _101=&amp;_93 @ Ref
+    Assign((_100, &amp;(*_101))) @ _100=&amp;(*_101) @ Ref
+    _92 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _97, move _100) -&gt; [return: bb22, unwind: bb27] @ Call: FnDid: 11836
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    _91 = alloc::fmt::format(move _92) -&gt; [return: bb23, unwind: bb27] @ Call: FnDid: 5475
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_96) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    _90 = core::hint::must_use::&lt;alloc::string::String&gt;(move _91) -&gt; [return: bb24, unwind: bb27] @ Call: FnDid: 1455
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    _89 = syscall::table::FormattedSyscallParam::new(const &#34;sigsetsize&#34;, move _90) -&gt; [return: bb25, unwind: bb27] @ Call: FnDid: 30792
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    Assign((_112, copy ((_16.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _112=copy ((_16.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
+    Assign((_113, copy _112 as *const () (PtrToPtr))) @ _113=copy _112 as *const () (PtrToPtr) @ Cast
+    Assign((_114, copy _113 as usize (Transmute))) @ _114=copy _113 as usize (Transmute) @ Cast
+    Assign((_115, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _115=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    Assign((_116, Sub(copy _115, const 1_usize))) @ _116=Sub(copy _115, const 1_usize) @ BinaryOp
+    Assign((_117, BitAnd(copy _114, copy _116))) @ _117=BitAnd(copy _114, copy _116) @ BinaryOp
+    Assign((_118, Eq(copy _117, const 0_usize))) @ _118=Eq(copy _117, const 0_usize) @ BinaryOp
+    assert(copy _118, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _115, copy _114) -&gt; [success: bb32, unwind unreachable] @ Assert
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 27 {
+CleanUp: true
+    drop(_65) -&gt; [return: bb28, unwind terminate(cleanup)] @ Drop
+}
+bb 28 {
+CleanUp: true
+    drop(_41) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    drop(_17) -&gt; [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 30 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 31 {
+CleanUp: true
+    Assign((_111, copy ((_16.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _111=copy ((_16.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
+    Assign((_109, &amp;mut _16)) @ _109=&amp;mut _16 @ Ref
+    _110 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4]&gt; as core::ops::Drop&gt;::drop(move _109) -&gt; [return: bb34, unwind terminate(cleanup)] @ Call: FnDid: 3937
+}
+bb 32 {
+CleanUp: false
+    Assign((_119, copy _112 as *const () (PtrToPtr))) @ _119=copy _112 as *const () (PtrToPtr) @ Cast
+    Assign((_120, copy _119 as usize (Transmute))) @ _120=copy _119 as usize (Transmute) @ Cast
+    Assign((_121, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _121=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
+    Assign((_122, Ne(copy _121, const 0_usize))) @ _122=Ne(copy _121, const 0_usize) @ BinaryOp
+    Assign((_123, Eq(copy _120, const 0_usize))) @ _123=Eq(copy _120, const 0_usize) @ BinaryOp
+    Assign((_124, BitAnd(copy _123, copy _122))) @ _124=BitAnd(copy _123, copy _122) @ BinaryOp
+    Assign((_125, Not(copy _124))) @ _125=Not(copy _124) @ UnaryOp
+    assert(copy _125, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb33, unwind unreachable] @ Assert
+}
+bb 33 {
+CleanUp: false
+    Assign(((*_112), [move _17, move _41, move _65, move _89])) @ (*_112)=[move _17, move _41, move _65, move _89] @ Aggregate
+    StorageDead(_89) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_12, move _16)) @ _12=move _16 @ Use
+    Assign((_11, move _12 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _11=move _12 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_16) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _11) -&gt; [return: bb26, unwind: bb30] @ Call: FnDid: 6192
+}
+bb 34 {
+CleanUp: true
+    goto -&gt; bb30 @ Goto
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

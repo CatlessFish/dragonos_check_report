@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #47: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #47
+            
+                 <span class="func-name">filesystem::epoll::event_poll::{impl#0}::epoll_wait</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:04|RAP|WARN|: Double free detected in function &#34;epoll_wait&#34;
+warning: Double free detected.
+   --&gt; src/filesystem/epoll/event_poll.rs:294:1
+    |
+294 | / pub fn epoll_wait(
+295 | |         epfd: i32,
+296 | |         epoll_event: &amp;mut [EPollEvent],
+297 | |         max_events: i32,
+298 | |         timespec: Option&lt;PosixTimeSpec&gt;,
+299 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+300 | |         let current_pcb = ProcessManager::current_pcb();
+301 | |         let fd_table = current_pcb.fd_table();
+302 | |         let fd_table_guard = fd_table.read();
+303 | |
+304 | |         // 获取epoll文件
+305 | |         let ep_file = fd_table_guard
+306 | |             .get_file_by_fd(epfd)
+307 | |             .ok_or(SystemError::EBADF)?;
+308 | |
+309 | |         drop(fd_table_guard);
+310 | |         Self::epoll_wait_with_file(ep_file, epoll_event, max_events, timespec)
+311 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 294.
+    | MIR detail: Value _29(_, src/filesystem/epoll/event_poll.rs:309) and _6(fd_table, src/filesystem/epoll/event_poll.rs:301) are alias.
+    | MIR detail: _29(_, src/filesystem/epoll/event_poll.rs:309) is dropped at BB11(src/filesystem/epoll/event_poll.rs:309); _6(fd_table, src/filesystem/epoll/event_poll.rs:301) is dropped at BB15(src/filesystem/epoll/event_poll.rs:311).
+    |
+22:08:04|RAP|WARN|: Double free detected in function &#34;epoll_wait&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/filesystem/epoll/event_poll.rs:294:1
+    |
+294 | / pub fn epoll_wait(
+295 | |         epfd: i32,
+296 | |         epoll_event: &amp;mut [EPollEvent],
+297 | |         max_events: i32,
+298 | |         timespec: Option&lt;PosixTimeSpec&gt;,
+299 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+300 | |         let current_pcb = ProcessManager::current_pcb();
+301 | |         let fd_table = current_pcb.fd_table();
+302 | |         let fd_table_guard = fd_table.read();
+303 | |
+304 | |         // 获取epoll文件
+305 | |         let ep_file = fd_table_guard
+306 | |             .get_file_by_fd(epfd)
+307 | |             .ok_or(SystemError::EBADF)?;
+308 | |
+309 | |         drop(fd_table_guard);
+310 | |         Self::epoll_wait_with_file(ep_file, epoll_event, max_events, timespec)
+311 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/filesystem/epoll/event_poll.rs line 294.
+    | MIR detail: Value _29(_, src/filesystem/epoll/event_poll.rs:309) and _6(fd_table, src/filesystem/epoll/event_poll.rs:301) are alias.
+    | MIR detail: _29(_, src/filesystem/epoll/event_poll.rs:309) is dropped at BB11(src/filesystem/epoll/event_poll.rs:309); _6(fd_table, src/filesystem/epoll/event_poll.rs:301) is dropped at BB22(src/filesystem/epoll/event_poll.rs:311).
+    |
+render dot for DefId(0:17300 ~ dragonos_kernel[9e38]::filesystem::epoll::event_poll::{impl#0}::epoll_wait)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/epoll/event_poll.rs:300:13: 300:24
+bb1 at src/filesystem/epoll/event_poll.rs:301:13: 301:21
+bb2 at src/filesystem/epoll/event_poll.rs:301:24: 301:35
+bb3 at src/filesystem/epoll/event_poll.rs:301:45: 301:46
+bb4 at src/filesystem/epoll/event_poll.rs:302:30: 302:38
+bb5 at src/filesystem/epoll/event_poll.rs:302:44: 302:45
+bb6 at src/filesystem/epoll/event_poll.rs:305:23: 305:37
+bb7 at src/filesystem/epoll/event_poll.rs:306:33: 306:34
+bb8 at src/filesystem/epoll/event_poll.rs:307:38: 307:39
+bb9 at src/filesystem/epoll/event_poll.rs:307:39: 307:40
+bb11 at src/filesystem/epoll/event_poll.rs:305:23: 307:40
+bb12 at src/filesystem/epoll/event_poll.rs:307:39: 307:40
+bb13 at src/filesystem/epoll/event_poll.rs:307:39: 307:40
+bb14 at src/filesystem/epoll/event_poll.rs:309:28: 309:29
+bb15 at src/filesystem/epoll/event_poll.rs:310:78: 310:79
+bb16 at src/filesystem/epoll/event_poll.rs:311:5: 311:6
+bb17 at src/filesystem/epoll/event_poll.rs:311:5: 311:6
+bb18 at src/filesystem/epoll/event_poll.rs:311:5: 311:6
+bb19 at src/filesystem/epoll/event_poll.rs:311:5: 311:6
+bb20 at src/filesystem/epoll/event_poll.rs:311:5: 311:6
+bb27 at src/filesystem/epoll/event_poll.rs:307:40: 307:41
+fn filesystem::epoll::event_poll::EventPoll::epoll_wait
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ i32 
+_2:  @ &amp;&#39;{erased} mut [filesystem::epoll::EPollEvent] 
+_3:  @ i32 
+_4:  @ core::option::Option&lt;time::PosixTimeSpec&gt; 
+_5:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_6:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_7:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_8:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_9:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_10:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_11:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_12:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
+_13:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
+_14:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_15:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_16:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_17:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
+_18:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_19:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
+_20:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_21:  @ i32 
+_22:  @ system_error::SystemError 
+_23:  @ isize 
+_24:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_25:  @ ! 
+_26:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_27:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_28:  @ () 
+_29:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
+_30:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_31:  @ &amp;&#39;{erased} mut [filesystem::epoll::EPollEvent] 
+_32:  @ i32 
+_33:  @ core::option::Option&lt;time::PosixTimeSpec&gt; 
+_34:  @ bool 
+_35:  @ bool 
+_36:  @ isize 
+_37:  @ isize 
+_38:  @ isize 
+_39:  @ isize 
+_40:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_35, const false)) @ _35=const false @ Use
+    Assign((_34, const false)) @ _34=const false @ Use
+    StorageLive(_5) @ StorageLive
+    _5 = process::ProcessManager::current_pcb() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 29866
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;_5)) @ _9=&amp;_5 @ Ref
+    _8 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _9) -&gt; [return: bb2, unwind: bb23] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_7, &amp;(*_8))) @ _7=&amp;(*_8) @ Ref
+    StorageDead(_9) @ StorageDead
+    _6 = process::ProcessControlBlock::fd_table(move _7) -&gt; [return: bb3, unwind: bb23] @ Call: FnDid: 29947
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;_6)) @ _13=&amp;_6 @ Ref
+    _12 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _13) -&gt; [return: bb4, unwind: bb22] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _11) -&gt; [return: bb5, unwind: bb22] @ Call: FnDid: 5156
+}
+bb 5 {
+CleanUp: false
+    Assign((_35, const true)) @ _35=const true @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &amp;_10)) @ _20=&amp;_10 @ Ref
+    _19 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _20) -&gt; [return: bb6, unwind: bb29] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_18, &amp;(*_19))) @ _18=&amp;(*_19) @ Ref
+    StorageDead(_20) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    Assign((_21, copy _1)) @ _21=copy _1 @ Use
+    _17 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _18, move _21) -&gt; [return: bb7, unwind: bb29] @ Call: FnDid: 19231
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    Assign((_22, system_error::SystemError::EBADF)) @ _22=system_error::SystemError::EBADF @ Aggregate
+    _16 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _17, move _22) -&gt; [return: bb8, unwind: bb29] @ Call: FnDid: 10178
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    _15 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _16) -&gt; [return: bb9, unwind: bb29] @ Call: FnDid: 4199
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    Assign((_23, discriminant(_15))) @ _23=discriminant(_15) @ Discriminant
+    switchInt(move _23) -&gt; [0: bb11, 1: bb12, otherwise: bb10] @ SwitchInt
+}
+bb 10 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 11 {
+CleanUp: false
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move ((_15 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _27=move ((_15 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
+    Assign((_34, const true)) @ _34=const true @ Use
+    Assign((_14, move _27)) @ _14=move _27 @ Use
+    StorageDead(_27) @ StorageDead
+    Assign((_38, discriminant(_15))) @ _38=discriminant(_15) @ Discriminant
+    StorageDead(_19) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_35, const false)) @ _35=const false @ Use
+    Assign((_29, move _10)) @ _29=move _10 @ Use
+    _28 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _29) -&gt; [return: bb14, unwind: bb26] @ Call: FnDid: 2323
+}
+bb 12 {
+CleanUp: false
+    StorageLive(_24) @ StorageLive
+    Assign((_24, move ((_15 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _24=move ((_15 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_26) @ StorageLive
+    Assign((_26, move _24)) @ _26=move _24 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _26) -&gt; [return: bb13, unwind: bb27] @ Call: FnDid: 4202
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    Assign((_36, discriminant(_15))) @ _36=discriminant(_15) @ Discriminant
+    StorageDead(_19) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    Assign((_34, const false)) @ _34=const false @ Use
+    StorageDead(_14) @ StorageDead
+    drop(_10) -&gt; [return: bb18, unwind: bb22] @ Drop
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    Assign((_34, const false)) @ _34=const false @ Use
+    Assign((_30, move _14)) @ _30=move _14 @ Use
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &amp;mut (*_2))) @ _31=&amp;mut (*_2) @ Ref
+    StorageLive(_32) @ StorageLive
+    Assign((_32, copy _3)) @ _32=copy _3 @ Use
+    StorageLive(_33) @ StorageLive
+    Assign((_33, copy _4)) @ _33=copy _4 @ Use
+    _0 = filesystem::epoll::event_poll::EventPoll::epoll_wait_with_file(move _30, move _31, move _32, move _33) -&gt; [return: bb15, unwind: bb26] @ Call: FnDid: 17301
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    Assign((_34, const false)) @ _34=const false @ Use
+    StorageDead(_14) @ StorageDead
+    Assign((_35, const false)) @ _35=const false @ Use
+    StorageDead(_10) @ StorageDead
+    drop(_6) -&gt; [return: bb16, unwind: bb23] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    drop(_5) -&gt; [return: bb17, unwind: bb24] @ Drop
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 18 {
+CleanUp: false
+    Assign((_35, const false)) @ _35=const false @ Use
+    StorageDead(_10) @ StorageDead
+    drop(_6) -&gt; [return: bb19, unwind: bb23] @ Drop
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    drop(_5) -&gt; [return: bb20, unwind: bb24] @ Drop
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 21 {
+CleanUp: false
+    return @ Return
+}
+bb 22 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb23, unwind terminate(cleanup)] @ Drop
+}
+bb 23 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb24, unwind terminate(cleanup)] @ Drop
+}
+bb 24 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 25 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 26 {
+CleanUp: true
+    switchInt(copy _34) -&gt; [0: bb29, otherwise: bb25] @ SwitchInt
+}
+bb 27 {
+CleanUp: true
+    Assign((_40, discriminant(_15))) @ _40=discriminant(_15) @ Discriminant
+    goto -&gt; bb29 @ Goto
+}
+bb 28 {
+CleanUp: true
+    drop(_10) -&gt; [return: bb22, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    switchInt(copy _35) -&gt; [0: bb22, otherwise: bb28] @ SwitchInt
+}
+
+bb0 at src/filesystem/epoll/event_poll.rs:319:13: 319:24
+bb1 at src/filesystem/epoll/event_poll.rs:322:9: 324:10
+bb3 at src/filesystem/epoll/event_poll.rs:322:41: 322:42
+bb4 at src/filesystem/epoll/event_poll.rs:322:41: 322:42
+bb5 at src/filesystem/epoll/event_poll.rs:328:61: 328:62
+bb6 at src/filesystem/epoll/event_poll.rs:328:55: 328:82
+bb7 at src/filesystem/epoll/event_poll.rs:328:81: 328:82
+bb8 at src/filesystem/epoll/event_poll.rs:328:39: 328:49
+bb9 at src/filesystem/epoll/event_poll.rs:329:47: 329:48
+bb10 at src/filesystem/epoll/event_poll.rs:329:13: 329:22
+bb11 at src/filesystem/epoll/event_poll.rs:329:13: 329:22
+bb12 at src/filesystem/epoll/event_poll.rs:330:10: 330:10
+bb14 at src/filesystem/epoll/event_poll.rs:330:9: 330:10
+bb15 at src/filesystem/epoll/event_poll.rs:331:21: 331:31
+bb16 at src/filesystem/epoll/event_poll.rs:332:48: 332:49
+bb17 at src/filesystem/epoll/event_poll.rs:333:31: 333:38
+bb18 at src/filesystem/epoll/event_poll.rs:333:52: 333:53
+bb19 at src/filesystem/epoll/event_poll.rs:336:25: 336:33
+bb20 at src/filesystem/epoll/event_poll.rs:337:40: 337:41
+bb21 at src/filesystem/epoll/event_poll.rs:337:40: 337:41
+bb22 at src/filesystem/epoll/event_poll.rs:337:64: 337:65
+bb23 at src/filesystem/epoll/event_poll.rs:337:64: 337:65
+bb24 at src/filesystem/epoll/event_poll.rs:340:18: 340:18
+bb25 at src/filesystem/epoll/event_poll.rs:340:17: 340:18
+bb26 at src/filesystem/epoll/event_poll.rs:341:23: 341:41
+bb28 at src/filesystem/epoll/event_poll.rs:341:40: 341:41
+bb29 at src/filesystem/epoll/event_poll.rs:341:40: 341:41
+bb30 at src/filesystem/epoll/event_poll.rs:344:13: 344:14
+bb31 at src/filesystem/epoll/event_poll.rs:344:13: 344:14
+bb32 at src/filesystem/epoll/event_poll.rs:346:33: 346:44
+bb33 at src/filesystem/epoll/event_poll.rs:346:65: 346:66
+bb34 at src/filesystem/epoll/event_poll.rs:348:29: 348:30
+bb35 at src/filesystem/epoll/event_poll.rs:350:17: 353:18
+bb36 at src/filesystem/epoll/event_poll.rs:352:49: 352:62
+bb37 at src/filesystem/epoll/event_poll.rs:352:61: 352:62
+bb38 at src/filesystem/epoll/event_poll.rs:352:87: 352:88
+bb39 at src/filesystem/epoll/event_poll.rs:353:18: 353:18
+bb40 at src/filesystem/epoll/event_poll.rs:355:20: 355:27
+bb41 at src/filesystem/epoll/event_poll.rs:355:20: 355:42
+bb42 at src/filesystem/epoll/event_poll.rs:355:41: 355:42
+bb44 at src/filesystem/epoll/event_poll.rs:355:73: 355:74
+bb45 at src/filesystem/epoll/event_poll.rs:355:73: 355:74
+bb46 at src/filesystem/epoll/event_poll.rs:355:73: 355:74
+bb47 at src/filesystem/epoll/event_poll.rs:355:73: 355:74
+bb48 at src/filesystem/epoll/event_poll.rs:362:28: 362:33
+bb49 at src/filesystem/epoll/event_poll.rs:363:18: 363:18
+bb50 at src/filesystem/epoll/event_poll.rs:368:34: 368:35
+bb51 at src/filesystem/epoll/event_poll.rs:368:30: 368:35
+bb52 at src/filesystem/epoll/event_poll.rs:368:34: 368:35
+bb54 at src/filesystem/epoll/event_poll.rs:369:44: 369:70
+bb55 at src/filesystem/epoll/event_poll.rs:368:21: 375:22
+bb56 at src/filesystem/epoll/event_poll.rs:369:44: 369:51
+bb57 at src/filesystem/epoll/event_poll.rs:369:69: 369:70
+bb58 at src/filesystem/epoll/event_poll.rs:369:35: 369:40
+bb59 at src/filesystem/epoll/event_poll.rs:370:32: 370:37
+bb61 at src/filesystem/epoll/event_poll.rs:370:58: 370:59
+bb62 at src/filesystem/epoll/event_poll.rs:370:58: 370:59
+bb63 at src/filesystem/epoll/event_poll.rs:374:26: 374:26
+bb64 at src/filesystem/epoll/event_poll.rs:374:25: 374:26
+bb65 at src/filesystem/epoll/event_poll.rs:374:25: 374:26
+bb66 at src/filesystem/epoll/event_poll.rs:375:21: 375:22
+bb67 at src/filesystem/epoll/event_poll.rs:379:22: 379:22
+bb68 at src/filesystem/epoll/event_poll.rs:378:31: 378:75
+bb69 at src/filesystem/epoll/event_poll.rs:378:31: 378:38
+bb70 at src/filesystem/epoll/event_poll.rs:378:31: 378:53
+bb71 at src/filesystem/epoll/event_poll.rs:378:31: 378:53
+bb72 at src/filesystem/epoll/event_poll.rs:378:74: 378:75
+bb73 at src/filesystem/epoll/event_poll.rs:378:75: 378:76
+bb74 at src/filesystem/epoll/event_poll.rs:379:21: 379:22
+bb75 at src/filesystem/epoll/event_poll.rs:385:18: 385:18
+bb76 at src/filesystem/epoll/event_poll.rs:388:20: 388:31
+bb78 at src/filesystem/epoll/event_poll.rs:388:56: 388:57
+bb79 at src/filesystem/epoll/event_poll.rs:389:24: 389:35
+bb81 at src/filesystem/epoll/event_poll.rs:389:66: 389:67
+bb82 at src/filesystem/epoll/event_poll.rs:389:66: 389:67
+bb83 at src/filesystem/epoll/event_poll.rs:388:56: 388:57
+bb84 at src/filesystem/epoll/event_poll.rs:392:18: 392:18
+bb85 at src/filesystem/epoll/event_poll.rs:405:18: 405:18
+bb86 at src/filesystem/epoll/event_poll.rs:397:29: 397:37
+bb87 at src/filesystem/epoll/event_poll.rs:398:70: 398:71
+bb88 at src/filesystem/epoll/event_poll.rs:398:71: 398:72
+bb89 at src/filesystem/epoll/event_poll.rs:400:26: 400:51
+bb90 at src/filesystem/epoll/event_poll.rs:400:54: 400:77
+bb91 at src/filesystem/epoll/event_poll.rs:400:54: 400:77
+bb92 at src/filesystem/epoll/event_poll.rs:400:25: 400:78
+bb93 at src/filesystem/epoll/event_poll.rs:401:21: 401:22
+bb94 at src/filesystem/epoll/event_poll.rs:402:71: 402:72
+bb95 at src/filesystem/epoll/event_poll.rs:403:21: 403:26
+bb96 at src/filesystem/epoll/event_poll.rs:403:36: 403:37
+bb97 at src/filesystem/epoll/event_poll.rs:404:21: 404:26
+bb98 at src/filesystem/epoll/event_poll.rs:404:21: 404:26
+bb99 at src/filesystem/epoll/event_poll.rs:405:17: 405:18
+bb100 at src/filesystem/epoll/event_poll.rs:406:29: 406:36
+bb101 at src/filesystem/epoll/event_poll.rs:406:50: 406:51
+bb102 at src/filesystem/epoll/event_poll.rs:409:30: 409:31
+bb103 at src/filesystem/epoll/event_poll.rs:409:64: 409:65
+bb104 at src/filesystem/epoll/event_poll.rs:413:18: 413:19
+bb105 at src/filesystem/epoll/event_poll.rs:413:19: 413:20
+bb106 at src/filesystem/epoll/event_poll.rs:409:17: 413:20
+bb107 at src/filesystem/epoll/event_poll.rs:413:19: 413:20
+bb108 at src/filesystem/epoll/event_poll.rs:413:19: 413:20
+bb109 at src/filesystem/epoll/event_poll.rs:414:27: 414:28
+bb110 at src/filesystem/epoll/event_poll.rs:415:45: 415:46
+bb111 at src/filesystem/epoll/event_poll.rs:418:29: 418:36
+bb112 at src/filesystem/epoll/event_poll.rs:418:29: 418:51
+bb113 at src/filesystem/epoll/event_poll.rs:418:29: 418:51
+bb114 at src/filesystem/epoll/event_poll.rs:418:72: 418:73
+bb115 at src/filesystem/epoll/event_poll.rs:418:73: 418:74
+bb116 at src/filesystem/epoll/event_poll.rs:419:29: 419:34
+bb117 at src/filesystem/epoll/event_poll.rs:420:24: 420:38
+bb119 at src/filesystem/epoll/event_poll.rs:420:47: 420:48
+bb120 at src/filesystem/epoll/event_poll.rs:420:47: 420:48
+bb121 at src/filesystem/epoll/event_poll.rs:425:25: 425:30
+bb122 at src/filesystem/epoll/event_poll.rs:425:38: 425:39
+bb123 at src/filesystem/epoll/event_poll.rs:426:21: 426:22
+bb124 at src/filesystem/epoll/event_poll.rs:427:18: 427:18
+bb125 at src/filesystem/epoll/event_poll.rs:427:17: 427:18
+bb126 at src/filesystem/epoll/event_poll.rs:428:13: 428:14
+bb127 at src/filesystem/epoll/event_poll.rs:385:17: 385:18
+bb128 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:9: 107:73
+bb129 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+bb130 at src/filesystem/epoll/event_poll.rs:428:13: 428:14
+bb131 at src/filesystem/epoll/event_poll.rs:428:13: 428:14
+bb132 at src/filesystem/epoll/event_poll.rs:428:13: 428:14
+bb133 at src/filesystem/epoll/event_poll.rs:429:9: 429:10
+bb134 at src/filesystem/epoll/event_poll.rs:429:9: 429:10
+bb136 at src/filesystem/epoll/event_poll.rs:432:5: 432:6
+bb149 at src/filesystem/epoll/event_poll.rs:375:21: 375:22
+bb158 at src/filesystem/epoll/event_poll.rs:428:13: 428:14
+bb159 at src/filesystem/epoll/event_poll.rs:375:21: 375:22
+bb164 at src/filesystem/epoll/event_poll.rs:432:5: 432:6
+fn filesystem::epoll::event_poll::EventPoll::epoll_wait_with_file
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_2:  @ &amp;&#39;{erased} mut [filesystem::epoll::EPollEvent] 
+_3:  @ i32 
+_4:  @ core::option::Option&lt;time::PosixTimeSpec&gt; 
+_5:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_6:  @ () 
+_7:  @ bool 
+_8:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_9:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_10:  @ ! 
+_11:  @ system_error::SystemError 
+_12:  @ core::option::Option&lt;filesystem::epoll::event_poll::EPollPrivateData&gt; 
+_13:  @ () 
+_14:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_15:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_16:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_17:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_18:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::vfs::file::FilePrivateData&gt; 
+_19:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
+_20:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
+_21:  @ isize 
+_22:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EPollPrivateData 
+_23:  @ core::option::Option&lt;filesystem::epoll::event_poll::EPollPrivateData&gt; 
+_24:  @ filesystem::epoll::event_poll::EPollPrivateData 
+_25:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EPollPrivateData 
+_26:  @ isize 
+_27:  @ filesystem::epoll::event_poll::EPollPrivateData 
+_28:  @ filesystem::epoll::event_poll::LockedEventPoll 
+_29:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::LockedEventPoll 
+_30:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_31:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_32:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_33:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;, alloc::alloc::Global&gt; 
+_34:  @ bool 
+_35:  @ () 
+_36:  @ isize 
+_37:  @ time::PosixTimeSpec 
+_38:  @ bool 
+_39:  @ i64 
+_40:  @ bool 
+_41:  @ i64 
+_42:  @ bool 
+_43:  @ &amp;&#39;{erased} core::option::Option&lt;time::PosixTimeSpec&gt; 
+_44:  @ bool 
+_45:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_46:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_47:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_48:  @ () 
+_49:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_50:  @ ! 
+_51:  @ () 
+_52:  @ () 
+_53:  @ bool 
+_54:  @ ! 
+_55:  @ filesystem::epoll::event_poll::LockedEventPoll 
+_56:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::LockedEventPoll 
+_57:  @ &amp;&#39;{erased} mut [filesystem::epoll::EPollEvent] 
+_58:  @ i32 
+_59:  @ () 
+_60:  @ bool 
+_61:  @ &amp;&#39;{erased} core::sync::atomic::AtomicBool 
+_62:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_63:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_64:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_65:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_66:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_67:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;, alloc::alloc::Global&gt; 
+_68:  @ core::sync::atomic::Ordering 
+_69:  @ ! 
+_70:  @ system_error::SystemError 
+_71:  @ () 
+_72:  @ bool 
+_73:  @ ! 
+_74:  @ bool 
+_75:  @ bool 
+_76:  @ () 
+_77:  @ core::ops::Range&lt;i32&gt; 
+_78:  @ core::ops::Range&lt;i32&gt; 
+_79:  @ core::ops::Range&lt;i32&gt; 
+_80:  @ () 
+_81:  @ core::option::Option&lt;i32&gt; 
+_82:  @ &amp;&#39;{erased} mut core::ops::Range&lt;i32&gt; 
+_83:  @ &amp;&#39;{erased} mut core::ops::Range&lt;i32&gt; 
+_84:  @ isize 
+_85:  @ ! 
+_86:  @ core::result::Result&lt;libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt;, system_error::SystemError&gt; 
+_87:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_88:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_89:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;, alloc::alloc::Global&gt; 
+_90:  @ isize 
+_91:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_92:  @ bool 
+_93:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_94:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_95:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_96:  @ ! 
+_97:  @ () 
+_98:  @ bool 
+_99:  @ bool 
+_100:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_101:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_102:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_103:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_104:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_105:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_106:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;, alloc::alloc::Global&gt; 
+_107:  @ () 
+_108:  @ bool 
+_109:  @ ! 
+_110:  @ () 
+_111:  @ bool 
+_112:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_113:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_114:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_115:  @ bool 
+_116:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_117:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_118:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_119:  @ ! 
+_120:  @ system_error::SystemError 
+_121:  @ core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt; 
+_122:  @ () 
+_123:  @ isize 
+_124:  @ time::PosixTimeSpec 
+_125:  @ alloc::boxed::Box&lt;time::timer::WakeUpHelper, alloc::alloc::Global&gt; 
+_126:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_127:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_128:  @ u64 
+_129:  @ u64 
+_130:  @ i64 
+_131:  @ i64 
+_132:  @ i64 
+_133:  @ (i64, bool) 
+_134:  @ i64 
+_135:  @ i64 
+_136:  @ bool 
+_137:  @ bool 
+_138:  @ bool 
+_139:  @ bool 
+_140:  @ (i64, bool) 
+_141:  @ alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_142:  @ alloc::boxed::Box&lt;dyn [Binder { value: Trait(time::timer::TimerFunction), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_143:  @ alloc::boxed::Box&lt;time::timer::WakeUpHelper, alloc::alloc::Global&gt; 
+_144:  @ u64 
+_145:  @ () 
+_146:  @ &amp;&#39;{erased} time::timer::Timer 
+_147:  @ &amp;&#39;{erased} time::timer::Timer 
+_148:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_149:  @ core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt; 
+_150:  @ alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_151:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_152:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_153:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_154:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;, alloc::alloc::Global&gt; 
+_155:  @ () 
+_156:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_157:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_158:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_159:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_160:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_161:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_162:  @ Closure(DefId(0:17302 ~ dragonos_kernel[9e38]::filesystem::epoll::event_poll::{impl#0}::epoll_wait_with_file::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt;,)]) 
+_163:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt; 
+_164:  @ isize 
+_165:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_166:  @ ! 
+_167:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_168:  @ () 
+_169:  @ () 
+_170:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_171:  @ () 
+_172:  @ bool 
+_173:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_174:  @ &amp;&#39;{erased} filesystem::epoll::event_poll::EventPoll 
+_175:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_176:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::epoll::event_poll::EventPoll&gt; 
+_177:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_178:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt; 
+_179:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;, alloc::alloc::Global&gt; 
+_180:  @ isize 
+_181:  @ alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_182:  @ bool 
+_183:  @ &amp;&#39;{erased} time::timer::Timer 
+_184:  @ &amp;&#39;{erased} time::timer::Timer 
+_185:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_186:  @ bool 
+_187:  @ &amp;&#39;{erased} time::timer::Timer 
+_188:  @ &amp;&#39;{erased} time::timer::Timer 
+_189:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_190:  @ ! 
+_191:  @ ! 
+_192:  @ ! 
+_193:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_194:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_195:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_196:  @ [&amp;&#39;{erased} str; 1_usize] 
+_197:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_198:  @ bool 
+_199:  @ bool 
+_200:  @ bool 
+_201:  @ bool 
+_202:  @ bool 
+_203:  @ bool 
+_204:  @ bool 
+_205:  @ bool 
+_206:  @ bool 
+_207:  @ isize 
+_208:  @ isize 
+_209:  @ isize 
+_210:  @ isize 
+_211:  @ isize 
+_212:  @ isize 
+_213:  @ isize 
+_214:  @ isize 
+_215:  @ isize 
+_216:  @ isize 
+_217:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_204, const false)) @ _204=const false @ Use
+    Assign((_202, const false)) @ _202=const false @ Use
+    Assign((_201, const false)) @ _201=const false @ Use
+    Assign((_200, const false)) @ _200=const false @ Use
+    Assign((_205, const false)) @ _205=const false @ Use
+    Assign((_206, const false)) @ _206=const false @ Use
+    Assign((_198, const false)) @ _198=const false @ Use
+    Assign((_199, const false)) @ _199=const false @ Use
+    Assign((_203, const false)) @ _203=const false @ Use
+    StorageLive(_5) @ StorageLive
+    _5 = process::ProcessManager::current_pcb() -&gt; [return: bb1, unwind: bb147] @ Call: FnDid: 29866
+}
+bb 1 {
+CleanUp: false
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, &amp;_1)) @ _9=&amp;_1 @ Ref
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    _7 = filesystem::epoll::event_poll::EventPoll::is_epoll_file(move _8) -&gt; [return: bb2, unwind: bb146] @ Call: FnDid: 17304
+}
+bb 2 {
+CleanUp: false
+    switchInt(move _7) -&gt; [0: bb4, otherwise: bb3] @ SwitchInt
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_6, const ())) @ _6=const () @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    Assign((_205, const true)) @ _205=const true @ Use
+    Assign((_206, const true)) @ _206=const true @ Use
+    Assign((_12, core::option::Option::&lt;filesystem::epoll::event_poll::EPollPrivateData&gt;::None)) @ _12=core::option::Option::&lt;filesystem::epoll::event_poll::EPollPrivateData&gt;::None @ Aggregate
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, &amp;_1)) @ _20=&amp;_1 @ Ref
+    _19 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _20) -&gt; [return: bb5, unwind: bb164] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::EINVAL)) @ _11=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _11))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb135 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    Assign((_18, &amp;((*_19).6: libs::spinlock::SpinLock&lt;filesystem::vfs::file::FilePrivateData&gt;))) @ _18=&amp;((*_19).6: libs::spinlock::SpinLock&lt;filesystem::vfs::file::FilePrivateData&gt;) @ Ref
+    _17 = libs::spinlock::SpinLock::&lt;filesystem::vfs::file::FilePrivateData&gt;::lock(move _18) -&gt; [return: bb6, unwind: bb164] @ Call: FnDid: 5261
+}
+bb 6 {
+CleanUp: false
+    Assign((_16, &amp;_17)) @ _16=&amp;_17 @ Ref
+    StorageDead(_18) @ StorageDead
+    _15 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt; as lazy_static::__Deref&gt;::deref(move _16) -&gt; [return: bb7, unwind: bb145] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    Assign((_14, &amp;(*_15))) @ _14=&amp;(*_15) @ Ref
+    Assign((_21, discriminant((*_14)))) @ _21=discriminant((*_14)) @ Discriminant
+    switchInt(move _21) -&gt; [4: bb8, otherwise: bb12] @ SwitchInt
+}
+bb 8 {
+CleanUp: false
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;(((*_14) as EPoll).0: filesystem::epoll::event_poll::EPollPrivateData))) @ _22=&amp;(((*_14) as EPoll).0: filesystem::epoll::event_poll::EPollPrivateData) @ Ref
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;(*_22))) @ _25=&amp;(*_22) @ Ref
+    _24 = &lt;filesystem::epoll::event_poll::EPollPrivateData as core::clone::Clone&gt;::clone(move _25) -&gt; [return: bb9, unwind: bb145] @ Call: FnDid: 3116
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    Assign((_23, core::option::Option::&lt;filesystem::epoll::event_poll::EPollPrivateData&gt;::Some(move _24))) @ _23=core::option::Option::&lt;filesystem::epoll::event_poll::EPollPrivateData&gt;::Some(move _24) @ Aggregate
+    StorageDead(_24) @ StorageDead
+    drop(_12) -&gt; [return: bb10, unwind: bb11] @ Drop
+}
+bb 10 {
+CleanUp: false
+    Assign((_205, const true)) @ _205=const true @ Use
+    Assign((_206, const true)) @ _206=const true @ Use
+    Assign((_12, move _23)) @ _12=move _23 @ Use
+    Assign((_13, const ())) @ _13=const () @ Use
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    goto -&gt; bb13 @ Goto
+}
+bb 11 {
+CleanUp: true
+    Assign((_205, const true)) @ _205=const true @ Use
+    Assign((_206, const true)) @ _206=const true @ Use
+    Assign((_12, move _23)) @ _12=move _23 @ Use
+    goto -&gt; bb145 @ Goto
+}
+bb 12 {
+CleanUp: false
+    Assign((_13, const ())) @ _13=const () @ Use
+    goto -&gt; bb13 @ Goto
+}
+bb 13 {
+CleanUp: false
+    drop(_17) -&gt; [return: bb14, unwind: bb164] @ Drop
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_26, discriminant(_12))) @ _26=discriminant(_12) @ Discriminant
+    switchInt(move _26) -&gt; [1: bb15, otherwise: bb128] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    StorageLive(_27) @ StorageLive
+    Assign((_206, const false)) @ _206=const false @ Use
+    Assign((_27, move ((_12 as Some).0: filesystem::epoll::event_poll::EPollPrivateData))) @ _27=move ((_12 as Some).0: filesystem::epoll::event_poll::EPollPrivateData) @ Use
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;(_27.0: filesystem::epoll::event_poll::LockedEventPoll))) @ _29=&amp;(_27.0: filesystem::epoll::event_poll::LockedEventPoll) @ Ref
+    _28 = &lt;filesystem::epoll::event_poll::LockedEventPoll as core::clone::Clone&gt;::clone(move _29) -&gt; [return: bb16, unwind: bb144] @ Call: FnDid: 3116
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;))) @ _33=&amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;) @ Ref
+    _32 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt; as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb17, unwind: bb143] @ Call: FnDid: 3903
+}
+bb 17 {
+CleanUp: false
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    StorageDead(_33) @ StorageDead
+    _30 = libs::spinlock::SpinLock::&lt;filesystem::epoll::event_poll::EventPoll&gt;::lock_irqsave(move _31) -&gt; [return: bb18, unwind: bb143] @ Call: FnDid: 5263
+}
+bb 18 {
+CleanUp: false
+    Assign((_204, const true)) @ _204=const true @ Use
+    StorageDead(_31) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    Assign((_34, const false)) @ _34=const false @ Use
+    StorageLive(_35) @ StorageLive
+    Assign((_36, discriminant(_4))) @ _36=discriminant(_4) @ Discriminant
+    switchInt(move _36) -&gt; [1: bb19, otherwise: bb26] @ SwitchInt
+}
+bb 19 {
+CleanUp: false
+    StorageLive(_37) @ StorageLive
+    Assign((_37, copy ((_4 as Some).0: time::PosixTimeSpec))) @ _37=copy ((_4 as Some).0: time::PosixTimeSpec) @ Use
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, copy (_37.0: i64))) @ _39=copy (_37.0: i64) @ Use
+    Assign((_38, Gt(move _39, const 0_i64))) @ _38=Gt(move _39, const 0_i64) @ BinaryOp
+    switchInt(move _38) -&gt; [0: bb21, otherwise: bb20] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    goto -&gt; bb24 @ Goto
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, copy (_37.1: i64))) @ _41=copy (_37.1: i64) @ Use
+    Assign((_40, Gt(move _41, const 0_i64))) @ _40=Gt(move _41, const 0_i64) @ BinaryOp
+    switchInt(move _40) -&gt; [0: bb23, otherwise: bb22] @ SwitchInt
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    goto -&gt; bb24 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_34, const true)) @ _34=const true @ Use
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb25 @ Goto
+}
+bb 24 {
+CleanUp: false
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb25 @ Goto
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    goto -&gt; bb31 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, &amp;_4)) @ _43=&amp;_4 @ Ref
+    _42 = core::option::Option::&lt;time::PosixTimeSpec&gt;::is_none(move _43) -&gt; [return: bb27, unwind: bb161] @ Call: FnDid: 10146
+}
+bb 27 {
+CleanUp: false
+    switchInt(move _42) -&gt; [0: bb29, otherwise: bb28] @ SwitchInt
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    Assign((_34, const false)) @ _34=const false @ Use
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb30 @ Goto
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    Assign((_35, const ())) @ _35=const () @ Use
+    goto -&gt; bb30 @ Goto
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    goto -&gt; bb31 @ Goto
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;_30)) @ _47=&amp;_30 @ Ref
+    _46 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt; as lazy_static::__Deref&gt;::deref(move _47) -&gt; [return: bb32, unwind: bb161] @ Call: FnDid: 3903
+}
+bb 32 {
+CleanUp: false
+    Assign((_45, &amp;(*_46))) @ _45=&amp;(*_46) @ Ref
+    StorageDead(_47) @ StorageDead
+    _44 = filesystem::epoll::event_poll::EventPoll::ep_events_available(move _45) -&gt; [return: bb33, unwind: bb161] @ Call: FnDid: 17309
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_204, const false)) @ _204=const false @ Use
+    Assign((_49, move _30)) @ _49=move _30 @ Use
+    _48 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt;&gt;(move _49) -&gt; [return: bb34, unwind: bb161] @ Call: FnDid: 2323
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageLive(_50) @ StorageLive
+    goto -&gt; bb35 @ Goto
+}
+bb 35 {
+CleanUp: false
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, copy _44)) @ _53=copy _44 @ Use
+    switchInt(move _53) -&gt; [0: bb39, otherwise: bb36] @ SwitchInt
+}
+bb 36 {
+CleanUp: false
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;_28)) @ _56=&amp;_28 @ Ref
+    _55 = &lt;filesystem::epoll::event_poll::LockedEventPoll as core::clone::Clone&gt;::clone(move _56) -&gt; [return: bb37, unwind: bb161] @ Call: FnDid: 3116
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    Assign((_57, &amp;mut (*_2))) @ _57=&amp;mut (*_2) @ Ref
+    StorageLive(_58) @ StorageLive
+    Assign((_58, copy _3)) @ _58=copy _3 @ Use
+    _0 = filesystem::epoll::event_poll::EventPoll::ep_send_events(move _55, move _57, move _58) -&gt; [return: bb38, unwind: bb161] @ Call: FnDid: 17303
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    goto -&gt; bb132 @ Goto
+}
+bb 39 {
+CleanUp: false
+    Assign((_52, const ())) @ _52=const () @ Use
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    Assign((_67, &amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;))) @ _67=&amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;) @ Ref
+    _66 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt; as lazy_static::__Deref&gt;::deref(move _67) -&gt; [return: bb40, unwind: bb161] @ Call: FnDid: 3903
+}
+bb 40 {
+CleanUp: false
+    Assign((_65, &amp;(*_66))) @ _65=&amp;(*_66) @ Ref
+    StorageDead(_67) @ StorageDead
+    _64 = libs::spinlock::SpinLock::&lt;filesystem::epoll::event_poll::EventPoll&gt;::lock_irqsave(move _65) -&gt; [return: bb41, unwind: bb161] @ Call: FnDid: 5263
+}
+bb 41 {
+CleanUp: false
+    Assign((_63, &amp;_64)) @ _63=&amp;_64 @ Ref
+    _62 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt; as lazy_static::__Deref&gt;::deref(move _63) -&gt; [return: bb42, unwind: bb142] @ Call: FnDid: 3903
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    Assign((_61, &amp;((*_62).3: core::sync::atomic::AtomicBool))) @ _61=&amp;((*_62).3: core::sync::atomic::AtomicBool) @ Ref
+    StorageLive(_68) @ StorageLive
+    Assign((_68, core::sync::atomic::Ordering::SeqCst)) @ _68=core::sync::atomic::Ordering::SeqCst @ Aggregate
+    _60 = core::sync::atomic::AtomicBool::load(move _61, move _68) -&gt; [return: bb43, unwind: bb142] @ Call: FnDid: 11207
+}
+bb 43 {
+CleanUp: false
+    switchInt(move _60) -&gt; [0: bb46, otherwise: bb44] @ SwitchInt
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    drop(_64) -&gt; [return: bb45, unwind: bb161] @ Drop
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    Assign((_70, system_error::SystemError::EBADF)) @ _70=system_error::SystemError::EBADF @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _70))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _70) @ Aggregate
+    StorageDead(_70) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    goto -&gt; bb132 @ Goto
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    drop(_64) -&gt; [return: bb47, unwind: bb161] @ Drop
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    Assign((_59, const ())) @ _59=const () @ Use
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_72, copy _34)) @ _72=copy _34 @ Use
+    switchInt(move _72) -&gt; [0: bb49, otherwise: bb48] @ SwitchInt
+}
+bb 48 {
+CleanUp: false
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 0_usize))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 0_usize) @ Aggregate
+    StorageDead(_72) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    goto -&gt; bb132 @ Goto
+}
+bb 49 {
+CleanUp: false
+    Assign((_71, const ())) @ _71=const () @ Use
+    StorageDead(_72) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, const false)) @ _75=const false @ Use
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    Assign((_78, core::ops::Range::&lt;i32&gt; { start: const 0_i32, end: const 50_i32 })) @ _78=core::ops::Range::&lt;i32&gt; { start: const 0_i32, end: const 50_i32 } @ Aggregate
+    _77 = &lt;core::ops::Range&lt;i32&gt; as core::iter::IntoIterator&gt;::into_iter(move _78) -&gt; [return: bb50, unwind: bb161] @ Call: FnDid: 9224
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_78) @ StorageDead
+    StorageLive(_79) @ StorageLive
+    Assign((_79, move _77)) @ _79=move _77 @ Use
+    goto -&gt; bb51 @ Goto
+}
+bb 51 {
+CleanUp: false
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;mut _79)) @ _83=&amp;mut _79 @ Ref
+    Assign((_82, &amp;mut (*_83))) @ _82=&amp;mut (*_83) @ Ref
+    _81 = &lt;core::ops::Range&lt;i32&gt; as core::iter::Iterator&gt;::next(move _82) -&gt; [return: bb52, unwind: bb161] @ Call: FnDid: 9356
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    Assign((_84, discriminant(_81))) @ _84=discriminant(_81) @ Discriminant
+    switchInt(move _84) -&gt; [0: bb55, 1: bb54, otherwise: bb53] @ SwitchInt
+}
+bb 53 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 54 {
+CleanUp: false
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    Assign((_89, &amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;))) @ _89=&amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;) @ Ref
+    _88 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt; as lazy_static::__Deref&gt;::deref(move _89) -&gt; [return: bb56, unwind: bb161] @ Call: FnDid: 3903
+}
+bb 55 {
+CleanUp: false
+    Assign((_76, const ())) @ _76=const () @ Use
+    goto -&gt; bb66 @ Goto
+}
+bb 56 {
+CleanUp: false
+    Assign((_87, &amp;(*_88))) @ _87=&amp;(*_88) @ Ref
+    StorageDead(_89) @ StorageDead
+    _86 = libs::spinlock::SpinLock::&lt;filesystem::epoll::event_poll::EventPoll&gt;::try_lock_irqsave(move _87) -&gt; [return: bb57, unwind: bb161] @ Call: FnDid: 5266
+}
+bb 57 {
+CleanUp: false
+    Assign((_198, const true)) @ _198=const true @ Use
+    StorageDead(_87) @ StorageDead
+    Assign((_90, discriminant(_86))) @ _90=discriminant(_86) @ Discriminant
+    switchInt(move _90) -&gt; [0: bb58, otherwise: bb63] @ SwitchInt
+}
+bb 58 {
+CleanUp: false
+    StorageLive(_91) @ StorageLive
+    Assign((_91, move ((_86 as Ok).0: libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt;))) @ _91=move ((_86 as Ok).0: libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt;) @ Use
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    Assign((_95, &amp;_91)) @ _95=&amp;_91 @ Ref
+    _94 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt; as lazy_static::__Deref&gt;::deref(move _95) -&gt; [return: bb59, unwind: bb141] @ Call: FnDid: 3903
+}
+bb 59 {
+CleanUp: false
+    Assign((_93, &amp;(*_94))) @ _93=&amp;(*_94) @ Ref
+    StorageDead(_95) @ StorageDead
+    _92 = filesystem::epoll::event_poll::EventPoll::ep_events_available(move _93) -&gt; [return: bb60, unwind: bb141] @ Call: FnDid: 17309
+}
+bb 60 {
+CleanUp: false
+    switchInt(move _92) -&gt; [0: bb62, otherwise: bb61] @ SwitchInt
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    Assign((_75, const true)) @ _75=const true @ Use
+    Assign((_76, const ())) @ _76=const () @ Use
+    StorageDead(_92) @ StorageDead
+    drop(_91) -&gt; [return: bb65, unwind: bb159] @ Drop
+}
+bb 62 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    Assign((_80, const ())) @ _80=const () @ Use
+    StorageDead(_92) @ StorageDead
+    drop(_91) -&gt; [return: bb64, unwind: bb159] @ Drop
+}
+bb 63 {
+CleanUp: false
+    Assign((_80, const ())) @ _80=const () @ Use
+    goto -&gt; bb149 @ Goto
+}
+bb 64 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    goto -&gt; bb149 @ Goto
+}
+bb 65 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    Assign((_209, discriminant(_86))) @ _209=discriminant(_86) @ Discriminant
+    StorageDead(_88) @ StorageDead
+    Assign((_198, const false)) @ _198=const false @ Use
+    StorageDead(_86) @ StorageDead
+    goto -&gt; bb66 @ Goto
+}
+bb 66 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_98, copy _75)) @ _98=copy _75 @ Use
+    switchInt(move _98) -&gt; [0: bb68, otherwise: bb67] @ SwitchInt
+}
+bb 67 {
+CleanUp: false
+    Assign((_97, const ())) @ _97=const () @ Use
+    goto -&gt; bb74 @ Goto
+}
+bb 68 {
+CleanUp: false
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    StorageLive(_105) @ StorageLive
+    StorageLive(_106) @ StorageLive
+    Assign((_106, &amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;))) @ _106=&amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;) @ Ref
+    _105 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt; as lazy_static::__Deref&gt;::deref(move _106) -&gt; [return: bb69, unwind: bb161] @ Call: FnDid: 3903
+}
+bb 69 {
+CleanUp: false
+    Assign((_104, &amp;(*_105))) @ _104=&amp;(*_105) @ Ref
+    StorageDead(_106) @ StorageDead
+    _103 = libs::spinlock::SpinLock::&lt;filesystem::epoll::event_poll::EventPoll&gt;::lock_irqsave(move _104) -&gt; [return: bb70, unwind: bb161] @ Call: FnDid: 5263
+}
+bb 70 {
+CleanUp: false
+    Assign((_102, &amp;_103)) @ _102=&amp;_103 @ Ref
+    _101 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt; as lazy_static::__Deref&gt;::deref(move _102) -&gt; [return: bb71, unwind: bb140] @ Call: FnDid: 3903
+}
+bb 71 {
+CleanUp: false
+    Assign((_100, &amp;(*_101))) @ _100=&amp;(*_101) @ Ref
+    StorageDead(_104) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    _99 = filesystem::epoll::event_poll::EventPoll::ep_events_available(move _100) -&gt; [return: bb72, unwind: bb140] @ Call: FnDid: 17309
+}
+bb 72 {
+CleanUp: false
+    StorageDead(_100) @ StorageDead
+    Assign((_75, move _99)) @ _75=move _99 @ Use
+    StorageDead(_99) @ StorageDead
+    drop(_103) -&gt; [return: bb73, unwind: bb161] @ Drop
+}
+bb 73 {
+CleanUp: false
+    StorageDead(_105) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    Assign((_97, const ())) @ _97=const () @ Use
+    goto -&gt; bb74 @ Goto
+}
+bb 74 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    Assign((_74, copy _75)) @ _74=copy _75 @ Use
+    StorageDead(_75) @ StorageDead
+    Assign((_44, move _74)) @ _44=move _74 @ Use
+    StorageDead(_74) @ StorageDead
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    Assign((_108, copy _44)) @ _108=copy _44 @ Use
+    switchInt(move _108) -&gt; [0: bb75, otherwise: bb127] @ SwitchInt
+}
+bb 75 {
+CleanUp: false
+    Assign((_107, const ())) @ _107=const () @ Use
+    StorageDead(_108) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageLive(_110) @ StorageLive
+    StorageLive(_111) @ StorageLive
+    StorageLive(_112) @ StorageLive
+    StorageLive(_113) @ StorageLive
+    StorageLive(_114) @ StorageLive
+    Assign((_114, &amp;_5)) @ _114=&amp;_5 @ Ref
+    _113 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _114) -&gt; [return: bb76, unwind: bb161] @ Call: FnDid: 3903
+}
+bb 76 {
+CleanUp: false
+    Assign((_112, &amp;(*_113))) @ _112=&amp;(*_113) @ Ref
+    StorageDead(_114) @ StorageDead
+    _111 = process::ProcessControlBlock::has_pending_signal_fast(move _112) -&gt; [return: bb77, unwind: bb161] @ Call: FnDid: 29966
+}
+bb 77 {
+CleanUp: false
+    switchInt(move _111) -&gt; [0: bb83, otherwise: bb78] @ SwitchInt
+}
+bb 78 {
+CleanUp: false
+    StorageDead(_113) @ StorageDead
+    StorageDead(_112) @ StorageDead
+    StorageLive(_115) @ StorageLive
+    StorageLive(_116) @ StorageLive
+    StorageLive(_117) @ StorageLive
+    StorageLive(_118) @ StorageLive
+    Assign((_118, &amp;_5)) @ _118=&amp;_5 @ Ref
+    _117 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _118) -&gt; [return: bb79, unwind: bb161] @ Call: FnDid: 3903
+}
+bb 79 {
+CleanUp: false
+    Assign((_116, &amp;(*_117))) @ _116=&amp;(*_117) @ Ref
+    StorageDead(_118) @ StorageDead
+    _115 = process::ProcessControlBlock::has_pending_not_masked_signal(move _116) -&gt; [return: bb80, unwind: bb161] @ Call: FnDid: 29967
+}
+bb 80 {
+CleanUp: false
+    switchInt(move _115) -&gt; [0: bb82, otherwise: bb81] @ SwitchInt
+}
+bb 81 {
+CleanUp: false
+    StorageDead(_117) @ StorageDead
+    StorageDead(_116) @ StorageDead
+    StorageLive(_120) @ StorageLive
+    Assign((_120, system_error::SystemError::ERESTARTSYS)) @ _120=system_error::SystemError::ERESTARTSYS @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _120))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _120) @ Aggregate
+    StorageDead(_120) @ StorageDead
+    StorageDead(_115) @ StorageDead
+    StorageDead(_111) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    goto -&gt; bb132 @ Goto
+}
+bb 82 {
+CleanUp: false
+    StorageDead(_117) @ StorageDead
+    StorageDead(_116) @ StorageDead
+    goto -&gt; bb84 @ Goto
+}
+bb 83 {
+CleanUp: false
+    StorageDead(_113) @ StorageDead
+    StorageDead(_112) @ StorageDead
+    goto -&gt; bb84 @ Goto
+}
+bb 84 {
+CleanUp: false
+    Assign((_110, const ())) @ _110=const () @ Use
+    StorageDead(_115) @ StorageDead
+    StorageDead(_111) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    StorageLive(_121) @ StorageLive
+    Assign((_199, const true)) @ _199=const true @ Use
+    Assign((_203, const true)) @ _203=const true @ Use
+    Assign((_121, core::option::Option::&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;::None)) @ _121=core::option::Option::&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;::None @ Aggregate
+    StorageLive(_122) @ StorageLive
+    Assign((_123, discriminant(_4))) @ _123=discriminant(_4) @ Discriminant
+    switchInt(move _123) -&gt; [1: bb86, otherwise: bb85] @ SwitchInt
+}
+bb 85 {
+CleanUp: false
+    Assign((_122, const ())) @ _122=const () @ Use
+    goto -&gt; bb99 @ Goto
+}
+bb 86 {
+CleanUp: false
+    StorageLive(_124) @ StorageLive
+    Assign((_124, copy ((_4 as Some).0: time::PosixTimeSpec))) @ _124=copy ((_4 as Some).0: time::PosixTimeSpec) @ Use
+    StorageLive(_125) @ StorageLive
+    StorageLive(_126) @ StorageLive
+    StorageLive(_127) @ StorageLive
+    Assign((_127, &amp;_5)) @ _127=&amp;_5 @ Ref
+    _126 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as core::clone::Clone&gt;::clone(move _127) -&gt; [return: bb87, unwind: bb158] @ Call: FnDid: 3116
+}
+bb 87 {
+CleanUp: false
+    StorageDead(_127) @ StorageDead
+    _125 = time::timer::WakeUpHelper::new(move _126) -&gt; [return: bb88, unwind: bb158] @ Call: FnDid: 31553
+}
+bb 88 {
+CleanUp: false
+    Assign((_202, const true)) @ _202=const true @ Use
+    StorageDead(_126) @ StorageDead
+    StorageLive(_128) @ StorageLive
+    StorageLive(_129) @ StorageLive
+    StorageLive(_130) @ StorageLive
+    StorageLive(_131) @ StorageLive
+    StorageLive(_132) @ StorageLive
+    Assign((_132, copy (_124.0: i64))) @ _132=copy (_124.0: i64) @ Use
+    Assign((_133, MulWithOverflow(copy _132, const 1000000_i64))) @ _133=MulWithOverflow(copy _132, const 1000000_i64) @ BinaryOp
+    assert(!move (_133.1: bool), &#34;attempt to compute `{} * {}`, which would overflow&#34;, move _132, const 1000000_i64) -&gt; [success: bb89, unwind: bb155] @ Assert
+}
+bb 89 {
+CleanUp: false
+    Assign((_131, move (_133.0: i64))) @ _131=move (_133.0: i64) @ Use
+    StorageDead(_132) @ StorageDead
+    StorageLive(_134) @ StorageLive
+    StorageLive(_135) @ StorageLive
+    Assign((_135, copy (_124.1: i64))) @ _135=copy (_124.1: i64) @ Use
+    Assign((_136, Eq(const 1000_i64, const 0_i64))) @ _136=Eq(const 1000_i64, const 0_i64) @ BinaryOp
+    assert(!move _136, &#34;attempt to divide `{}` by zero&#34;, copy _135) -&gt; [success: bb90, unwind: bb155] @ Assert
+}
+bb 90 {
+CleanUp: false
+    Assign((_137, Eq(const 1000_i64, const -1_i64))) @ _137=Eq(const 1000_i64, const -1_i64) @ BinaryOp
+    Assign((_138, Eq(copy _135, const i64::MIN))) @ _138=Eq(copy _135, const i64::MIN) @ BinaryOp
+    Assign((_139, BitAnd(move _137, move _138))) @ _139=BitAnd(move _137, move _138) @ BinaryOp
+    assert(!move _139, &#34;attempt to compute `{} / {}`, which would overflow&#34;, copy _135, const 1000_i64) -&gt; [success: bb91, unwind: bb155] @ Assert
+}
+bb 91 {
+CleanUp: false
+    Assign((_134, Div(move _135, const 1000_i64))) @ _134=Div(move _135, const 1000_i64) @ BinaryOp
+    StorageDead(_135) @ StorageDead
+    Assign((_140, AddWithOverflow(copy _131, copy _134))) @ _140=AddWithOverflow(copy _131, copy _134) @ BinaryOp
+    assert(!move (_140.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, move _131, move _134) -&gt; [success: bb92, unwind: bb155] @ Assert
+}
+bb 92 {
+CleanUp: false
+    Assign((_130, move (_140.0: i64))) @ _130=move (_140.0: i64) @ Use
+    StorageDead(_134) @ StorageDead
+    StorageDead(_131) @ StorageDead
+    Assign((_129, move _130 as u64 (IntToInt))) @ _129=move _130 as u64 (IntToInt) @ Cast
+    StorageDead(_130) @ StorageDead
+    _128 = time::timer::next_n_us_timer_jiffies(move _129) -&gt; [return: bb93, unwind: bb155] @ Call: FnDid: 31573
+}
+bb 93 {
+CleanUp: false
+    StorageDead(_129) @ StorageDead
+    StorageLive(_141) @ StorageLive
+    StorageLive(_142) @ StorageLive
+    StorageLive(_143) @ StorageLive
+    Assign((_202, const false)) @ _202=const false @ Use
+    Assign((_143, move _125)) @ _143=move _125 @ Use
+    Assign((_142, move _143 as alloc::boxed::Box&lt;dyn time::timer::TimerFunction&gt; (PointerCoercion(Unsize, Implicit)))) @ _142=move _143 as alloc::boxed::Box&lt;dyn time::timer::TimerFunction&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_143) @ StorageDead
+    StorageLive(_144) @ StorageLive
+    Assign((_144, copy _128)) @ _144=copy _128 @ Use
+    _141 = time::timer::Timer::new(move _142, move _144) -&gt; [return: bb94, unwind: bb155] @ Call: FnDid: 31557
+}
+bb 94 {
+CleanUp: false
+    Assign((_201, const true)) @ _201=const true @ Use
+    StorageDead(_144) @ StorageDead
+    StorageDead(_142) @ StorageDead
+    StorageLive(_145) @ StorageLive
+    StorageLive(_146) @ StorageLive
+    StorageLive(_147) @ StorageLive
+    StorageLive(_148) @ StorageLive
+    Assign((_148, &amp;_141)) @ _148=&amp;_141 @ Ref
+    _147 = &lt;alloc::sync::Arc&lt;time::timer::Timer&gt; as lazy_static::__Deref&gt;::deref(move _148) -&gt; [return: bb95, unwind: bb153] @ Call: FnDid: 3903
+}
+bb 95 {
+CleanUp: false
+    Assign((_146, &amp;(*_147))) @ _146=&amp;(*_147) @ Ref
+    StorageDead(_148) @ StorageDead
+    _145 = time::timer::Timer::activate(move _146) -&gt; [return: bb96, unwind: bb153] @ Call: FnDid: 31559
+}
+bb 96 {
+CleanUp: false
+    StorageDead(_146) @ StorageDead
+    StorageDead(_147) @ StorageDead
+    StorageDead(_145) @ StorageDead
+    StorageLive(_149) @ StorageLive
+    StorageLive(_150) @ StorageLive
+    Assign((_201, const false)) @ _201=const false @ Use
+    Assign((_150, move _141)) @ _150=move _141 @ Use
+    Assign((_149, core::option::Option::&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;::Some(move _150))) @ _149=core::option::Option::&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;::Some(move _150) @ Aggregate
+    StorageDead(_150) @ StorageDead
+    drop(_121) -&gt; [return: bb97, unwind: bb98] @ Drop
+}
+bb 97 {
+CleanUp: false
+    Assign((_199, const true)) @ _199=const true @ Use
+    Assign((_203, const true)) @ _203=const true @ Use
+    Assign((_121, move _149)) @ _121=move _149 @ Use
+    StorageDead(_149) @ StorageDead
+    Assign((_122, const ())) @ _122=const () @ Use
+    Assign((_201, const false)) @ _201=const false @ Use
+    StorageDead(_141) @ StorageDead
+    StorageDead(_128) @ StorageDead
+    Assign((_202, const false)) @ _202=const false @ Use
+    StorageDead(_125) @ StorageDead
+    StorageDead(_124) @ StorageDead
+    goto -&gt; bb99 @ Goto
+}
+bb 98 {
+CleanUp: true
+    Assign((_199, const true)) @ _199=const true @ Use
+    Assign((_203, const true)) @ _203=const true @ Use
+    Assign((_121, move _149)) @ _121=move _149 @ Use
+    goto -&gt; bb153 @ Goto
+}
+bb 99 {
+CleanUp: false
+    StorageDead(_122) @ StorageDead
+    StorageLive(_151) @ StorageLive
+    StorageLive(_152) @ StorageLive
+    StorageLive(_153) @ StorageLive
+    StorageLive(_154) @ StorageLive
+    Assign((_154, &amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;))) @ _154=&amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;) @ Ref
+    _153 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt; as lazy_static::__Deref&gt;::deref(move _154) -&gt; [return: bb100, unwind: bb158] @ Call: FnDid: 3903
+}
+bb 100 {
+CleanUp: false
+    Assign((_152, &amp;(*_153))) @ _152=&amp;(*_153) @ Ref
+    StorageDead(_154) @ StorageDead
+    _151 = libs::spinlock::SpinLock::&lt;filesystem::epoll::event_poll::EventPoll&gt;::lock_irqsave(move _152) -&gt; [return: bb101, unwind: bb158] @ Call: FnDid: 5263
+}
+bb 101 {
+CleanUp: false
+    Assign((_200, const true)) @ _200=const true @ Use
+    StorageDead(_152) @ StorageDead
+    StorageDead(_153) @ StorageDead
+    StorageLive(_155) @ StorageLive
+    StorageLive(_156) @ StorageLive
+    StorageLive(_157) @ StorageLive
+    StorageLive(_158) @ StorageLive
+    StorageLive(_159) @ StorageLive
+    StorageLive(_160) @ StorageLive
+    StorageLive(_161) @ StorageLive
+    Assign((_161, &amp;_151)) @ _161=&amp;_151 @ Ref
+    _160 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt; as lazy_static::__Deref&gt;::deref(move _161) -&gt; [return: bb102, unwind: bb151] @ Call: FnDid: 3903
+}
+bb 102 {
+CleanUp: false
+    StorageDead(_161) @ StorageDead
+    Assign((_159, &amp;((*_160).0: libs::wait_queue::WaitQueue))) @ _159=&amp;((*_160).0: libs::wait_queue::WaitQueue) @ Ref
+    _158 = libs::wait_queue::WaitQueue::sleep_without_schedule(move _159) -&gt; [return: bb103, unwind: bb151] @ Call: FnDid: 5632
+}
+bb 103 {
+CleanUp: false
+    StorageDead(_159) @ StorageDead
+    StorageLive(_162) @ StorageLive
+    StorageLive(_163) @ StorageLive
+    Assign((_163, &amp;_121)) @ _163=&amp;_121 @ Ref
+    Assign((_162, {closure@src/filesystem/epoll/event_poll.rs:409:80: 409:83} { timer: move _163 })) @ _162={closure@src/filesystem/epoll/event_poll.rs:409:80: 409:83} { timer: move _163 } @ Aggregate
+    StorageDead(_163) @ StorageDead
+    _157 = core::result::Result::&lt;(), system_error::SystemError&gt;::inspect_err::&lt;{closure@src/filesystem/epoll/event_poll.rs:409:80: 409:83}&gt;(move _158, move _162) -&gt; [return: bb104, unwind: bb151] @ Call: FnDid: 11015
+}
+bb 104 {
+CleanUp: false
+    StorageDead(_162) @ StorageDead
+    StorageDead(_158) @ StorageDead
+    _156 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _157) -&gt; [return: bb105, unwind: bb151] @ Call: FnDid: 4199
+}
+bb 105 {
+CleanUp: false
+    StorageDead(_157) @ StorageDead
+    Assign((_164, discriminant(_156))) @ _164=discriminant(_156) @ Discriminant
+    switchInt(move _164) -&gt; [0: bb106, 1: bb107, otherwise: bb53] @ SwitchInt
+}
+bb 106 {
+CleanUp: false
+    StorageLive(_168) @ StorageLive
+    Assign((_168, copy ((_156 as Continue).0: ()))) @ _168=copy ((_156 as Continue).0: ()) @ Use
+    Assign((_155, copy _168)) @ _155=copy _168 @ Use
+    StorageDead(_168) @ StorageDead
+    StorageDead(_160) @ StorageDead
+    StorageDead(_156) @ StorageDead
+    StorageDead(_155) @ StorageDead
+    StorageLive(_169) @ StorageLive
+    StorageLive(_170) @ StorageLive
+    Assign((_200, const false)) @ _200=const false @ Use
+    Assign((_170, move _151)) @ _170=move _151 @ Use
+    _169 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt;&gt;(move _170) -&gt; [return: bb109, unwind: bb151] @ Call: FnDid: 2323
+}
+bb 107 {
+CleanUp: false
+    StorageLive(_165) @ StorageLive
+    Assign((_165, move ((_156 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _165=move ((_156 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_167) @ StorageLive
+    Assign((_167, move _165)) @ _167=move _165 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _167) -&gt; [return: bb108, unwind: bb151] @ Call: FnDid: 4202
+}
+bb 108 {
+CleanUp: false
+    StorageDead(_167) @ StorageDead
+    StorageDead(_165) @ StorageDead
+    StorageDead(_160) @ StorageDead
+    StorageDead(_156) @ StorageDead
+    StorageDead(_155) @ StorageDead
+    drop(_151) -&gt; [return: bb130, unwind: bb158] @ Drop
+}
+bb 109 {
+CleanUp: false
+    StorageDead(_170) @ StorageDead
+    StorageDead(_169) @ StorageDead
+    StorageLive(_171) @ StorageLive
+    _171 = sched::schedule(const sched::SchedMode::SM_NONE) -&gt; [return: bb110, unwind: bb151] @ Call: FnDid: 30574
+}
+bb 110 {
+CleanUp: false
+    StorageDead(_171) @ StorageDead
+    StorageLive(_172) @ StorageLive
+    StorageLive(_173) @ StorageLive
+    StorageLive(_174) @ StorageLive
+    StorageLive(_175) @ StorageLive
+    StorageLive(_176) @ StorageLive
+    StorageLive(_177) @ StorageLive
+    StorageLive(_178) @ StorageLive
+    StorageLive(_179) @ StorageLive
+    Assign((_179, &amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;))) @ _179=&amp;(_28.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt;) @ Ref
+    _178 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;filesystem::epoll::event_poll::EventPoll&gt;&gt; as lazy_static::__Deref&gt;::deref(move _179) -&gt; [return: bb111, unwind: bb151] @ Call: FnDid: 3903
+}
+bb 111 {
+CleanUp: false
+    Assign((_177, &amp;(*_178))) @ _177=&amp;(*_178) @ Ref
+    StorageDead(_179) @ StorageDead
+    _176 = libs::spinlock::SpinLock::&lt;filesystem::epoll::event_poll::EventPoll&gt;::lock_irqsave(move _177) -&gt; [return: bb112, unwind: bb151] @ Call: FnDid: 5263
+}
+bb 112 {
+CleanUp: false
+    Assign((_175, &amp;_176)) @ _175=&amp;_176 @ Ref
+    _174 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::epoll::event_poll::EventPoll&gt; as lazy_static::__Deref&gt;::deref(move _175) -&gt; [return: bb113, unwind: bb139] @ Call: FnDid: 3903
+}
+bb 113 {
+CleanUp: false
+    Assign((_173, &amp;(*_174))) @ _173=&amp;(*_174) @ Ref
+    StorageDead(_177) @ StorageDead
+    StorageDead(_175) @ StorageDead
+    _172 = filesystem::epoll::event_poll::EventPoll::ep_events_available(move _173) -&gt; [return: bb114, unwind: bb139] @ Call: FnDid: 17309
+}
+bb 114 {
+CleanUp: false
+    StorageDead(_173) @ StorageDead
+    Assign((_44, move _172)) @ _44=move _172 @ Use
+    StorageDead(_172) @ StorageDead
+    drop(_176) -&gt; [return: bb115, unwind: bb151] @ Drop
+}
+bb 115 {
+CleanUp: false
+    StorageDead(_178) @ StorageDead
+    StorageDead(_176) @ StorageDead
+    StorageDead(_174) @ StorageDead
+    Assign((_180, discriminant(_121))) @ _180=discriminant(_121) @ Discriminant
+    switchInt(move _180) -&gt; [1: bb116, otherwise: bb124] @ SwitchInt
+}
+bb 116 {
+CleanUp: false
+    StorageLive(_181) @ StorageLive
+    Assign((_203, const false)) @ _203=const false @ Use
+    Assign((_181, move ((_121 as Some).0: alloc::sync::Arc&lt;time::timer::Timer&gt;))) @ _181=move ((_121 as Some).0: alloc::sync::Arc&lt;time::timer::Timer&gt;) @ Use
+    StorageLive(_182) @ StorageLive
+    StorageLive(_183) @ StorageLive
+    StorageLive(_184) @ StorageLive
+    StorageLive(_185) @ StorageLive
+    Assign((_185, &amp;_181)) @ _185=&amp;_181 @ Ref
+    _184 = &lt;alloc::sync::Arc&lt;time::timer::Timer&gt; as core::convert::AsRef&lt;time::timer::Timer&gt;&gt;::as_ref(move _185) -&gt; [return: bb117, unwind: bb138] @ Call: FnDid: 3381
+}
+bb 117 {
+CleanUp: false
+    Assign((_183, &amp;(*_184))) @ _183=&amp;(*_184) @ Ref
+    StorageDead(_185) @ StorageDead
+    _182 = time::timer::Timer::timeout(move _183) -&gt; [return: bb118, unwind: bb138] @ Call: FnDid: 31562
+}
+bb 118 {
+CleanUp: false
+    switchInt(move _182) -&gt; [0: bb120, otherwise: bb119] @ SwitchInt
+}
+bb 119 {
+CleanUp: false
+    StorageDead(_184) @ StorageDead
+    StorageDead(_183) @ StorageDead
+    Assign((_34, const true)) @ _34=const true @ Use
+    Assign((_51, const ())) @ _51=const () @ Use
+    goto -&gt; bb123 @ Goto
+}
+bb 120 {
+CleanUp: false
+    StorageDead(_184) @ StorageDead
+    StorageDead(_183) @ StorageDead
+    StorageLive(_186) @ StorageLive
+    StorageLive(_187) @ StorageLive
+    StorageLive(_188) @ StorageLive
+    StorageLive(_189) @ StorageLive
+    Assign((_189, &amp;_181)) @ _189=&amp;_181 @ Ref
+    _188 = &lt;alloc::sync::Arc&lt;time::timer::Timer&gt; as lazy_static::__Deref&gt;::deref(move _189) -&gt; [return: bb121, unwind: bb138] @ Call: FnDid: 3903
+}
+bb 121 {
+CleanUp: false
+    Assign((_187, &amp;(*_188))) @ _187=&amp;(*_188) @ Ref
+    StorageDead(_189) @ StorageDead
+    _186 = time::timer::Timer::cancel(move _187) -&gt; [return: bb122, unwind: bb138] @ Call: FnDid: 31563
+}
+bb 122 {
+CleanUp: false
+    StorageDead(_187) @ StorageDead
+    StorageDead(_188) @ StorageDead
+    StorageDead(_186) @ StorageDead
+    Assign((_51, const ())) @ _51=const () @ Use
+    goto -&gt; bb123 @ Goto
+}
+bb 123 {
+CleanUp: false
+    StorageDead(_182) @ StorageDead
+    drop(_181) -&gt; [return: bb125, unwind: bb151] @ Drop
+}
+bb 124 {
+CleanUp: false
+    Assign((_51, const ())) @ _51=const () @ Use
+    goto -&gt; bb126 @ Goto
+}
+bb 125 {
+CleanUp: false
+    StorageDead(_181) @ StorageDead
+    goto -&gt; bb126 @ Goto
+}
+bb 126 {
+CleanUp: false
+    Assign((_200, const false)) @ _200=const false @ Use
+    StorageDead(_151) @ StorageDead
+    Assign((_211, discriminant(_121))) @ _211=discriminant(_121) @ Discriminant
+    Assign((_199, const false)) @ _199=const false @ Use
+    Assign((_203, const false)) @ _203=const false @ Use
+    StorageDead(_121) @ StorageDead
+    goto -&gt; bb35 @ Goto
+}
+bb 127 {
+CleanUp: false
+    StorageDead(_108) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    goto -&gt; bb35 @ Goto
+}
+bb 128 {
+CleanUp: false
+    StorageLive(_192) @ StorageLive
+    StorageLive(_193) @ StorageLive
+    StorageLive(_194) @ StorageLive
+    StorageLive(_195) @ StorageLive
+    Assign((_197, const filesystem::epoll::event_poll::EventPoll::epoll_wait_with_file::promoted[0])) @ _197=const filesystem::epoll::event_poll::EventPoll::epoll_wait_with_file::promoted[0] @ Use
+    Assign((_195, &amp;(*_197))) @ _195=&amp;(*_197) @ Ref
+    Assign((_194, &amp;(*_195))) @ _194=&amp;(*_195) @ Ref
+    _193 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _194) -&gt; [return: bb129, unwind: bb164] @ Call: FnDid: 11832
+}
+bb 129 {
+CleanUp: false
+    StorageDead(_194) @ StorageDead
+    _192 = core::panicking::panic_fmt(move _193) -&gt; bb164 @ Call: FnDid: 10541
+}
+bb 130 {
+CleanUp: false
+    Assign((_200, const false)) @ _200=const false @ Use
+    StorageDead(_151) @ StorageDead
+    drop(_121) -&gt; [return: bb131, unwind: bb161] @ Drop
+}
+bb 131 {
+CleanUp: false
+    Assign((_199, const false)) @ _199=const false @ Use
+    Assign((_203, const false)) @ _203=const false @ Use
+    StorageDead(_121) @ StorageDead
+    goto -&gt; bb132 @ Goto
+}
+bb 132 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    Assign((_204, const false)) @ _204=const false @ Use
+    StorageDead(_30) @ StorageDead
+    drop(_28) -&gt; [return: bb133, unwind: bb144] @ Drop
+}
+bb 133 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    drop(_27) -&gt; [return: bb134, unwind: bb164] @ Drop
+}
+bb 134 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    Assign((_213, discriminant(_12))) @ _213=discriminant(_12) @ Discriminant
+    Assign((_205, const false)) @ _205=const false @ Use
+    Assign((_206, const false)) @ _206=const false @ Use
+    StorageDead(_12) @ StorageDead
+    goto -&gt; bb135 @ Goto
+}
+bb 135 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb136, unwind: bb147] @ Drop
+}
+bb 136 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    drop(_1) -&gt; [return: bb137, unwind: bb148] @ Drop
+}
+bb 137 {
+CleanUp: false
+    return @ Return
+}
+bb 138 {
+CleanUp: true
+    drop(_181) -&gt; [return: bb151, unwind terminate(cleanup)] @ Drop
+}
+bb 139 {
+CleanUp: true
+    drop(_176) -&gt; [return: bb151, unwind terminate(cleanup)] @ Drop
+}
+bb 140 {
+CleanUp: true
+    drop(_103) -&gt; [return: bb161, unwind terminate(cleanup)] @ Drop
+}
+bb 141 {
+CleanUp: true
+    drop(_91) -&gt; [return: bb159, unwind terminate(cleanup)] @ Drop
+}
+bb 142 {
+CleanUp: true
+    drop(_64) -&gt; [return: bb161, unwind terminate(cleanup)] @ Drop
+}
+bb 143 {
+CleanUp: true
+    drop(_28) -&gt; [return: bb144, unwind terminate(cleanup)] @ Drop
+}
+bb 144 {
+CleanUp: true
+    drop(_27) -&gt; [return: bb164, unwind terminate(cleanup)] @ Drop
+}
+bb 145 {
+CleanUp: true
+    drop(_17) -&gt; [return: bb164, unwind terminate(cleanup)] @ Drop
+}
+bb 146 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb147, unwind terminate(cleanup)] @ Drop
+}
+bb 147 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb148, unwind terminate(cleanup)] @ Drop
+}
+bb 148 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 149 {
+CleanUp: false
+    Assign((_207, discriminant(_86))) @ _207=discriminant(_86) @ Discriminant
+    StorageDead(_88) @ StorageDead
+    Assign((_198, const false)) @ _198=const false @ Use
+    StorageDead(_86) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    Assign((_51, const ())) @ _51=const () @ Use
+    goto -&gt; bb51 @ Goto
+}
+bb 150 {
+CleanUp: true
+    drop(_151) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 151 {
+CleanUp: true
+    switchInt(copy _200) -&gt; [0: bb158, otherwise: bb150] @ SwitchInt
+}
+bb 152 {
+CleanUp: true
+    drop(_141) -&gt; [return: bb155, unwind terminate(cleanup)] @ Drop
+}
+bb 153 {
+CleanUp: true
+    switchInt(copy _201) -&gt; [0: bb155, otherwise: bb152] @ SwitchInt
+}
+bb 154 {
+CleanUp: true
+    drop(_125) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 155 {
+CleanUp: true
+    switchInt(copy _202) -&gt; [0: bb158, otherwise: bb154] @ SwitchInt
+}
+bb 156 {
+CleanUp: true
+    switchInt(copy _203) -&gt; [0: bb161, otherwise: bb157] @ SwitchInt
+}
+bb 157 {
+CleanUp: true
+    drop(((_121 as Some).0: alloc::sync::Arc&lt;time::timer::Timer&gt;)) -&gt; [return: bb161, unwind terminate(cleanup)] @ Drop
+}
+bb 158 {
+CleanUp: true
+    Assign((_215, discriminant(_121))) @ _215=discriminant(_121) @ Discriminant
+    switchInt(move _215) -&gt; [1: bb156, otherwise: bb161] @ SwitchInt
+}
+bb 159 {
+CleanUp: true
+    Assign((_216, discriminant(_86))) @ _216=discriminant(_86) @ Discriminant
+    goto -&gt; bb161 @ Goto
+}
+bb 160 {
+CleanUp: true
+    drop(_30) -&gt; [return: bb143, unwind terminate(cleanup)] @ Drop
+}
+bb 161 {
+CleanUp: true
+    switchInt(copy _204) -&gt; [0: bb143, otherwise: bb160] @ SwitchInt
+}
+bb 162 {
+CleanUp: true
+    switchInt(copy _206) -&gt; [0: bb146, otherwise: bb163] @ SwitchInt
+}
+bb 163 {
+CleanUp: true
+    drop(((_12 as Some).0: filesystem::epoll::event_poll::EPollPrivateData)) -&gt; [return: bb146, unwind terminate(cleanup)] @ Drop
+}
+bb 164 {
+CleanUp: true
+    Assign((_217, discriminant(_12))) @ _217=discriminant(_12) @ Discriminant
+    switchInt(move _217) -&gt; [1: bb162, otherwise: bb146] @ SwitchInt
+}
+
+bb0 at src/filesystem/epoll/event_poll.rs:410:42: 410:56
+bb1 at src/filesystem/epoll/event_poll.rs:410:55: 410:56
+bb2 at src/filesystem/epoll/event_poll.rs:410:33: 410:38
+bb3 at src/filesystem/epoll/event_poll.rs:411:25: 411:30
+bb4 at src/filesystem/epoll/event_poll.rs:411:38: 411:39
+bb5 at src/filesystem/epoll/event_poll.rs:412:22: 412:22
+bb6 at src/filesystem/epoll/event_poll.rs:413:17: 413:18
+fn filesystem::epoll::event_poll::EventPoll::epoll_wait_with_file::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:17302 ~ dragonos_kernel[9e38]::filesystem::epoll::event_poll::{impl#0}::epoll_wait_with_file::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt;,)]) 
+_2:  @ &amp;&#39;{erased} system_error::SystemError 
+_3:  @ core::option::Option&lt;&amp;&#39;{erased} alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt; 
+_4:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt; 
+_5:  @ isize 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_7:  @ bool 
+_8:  @ &amp;&#39;{erased} time::timer::Timer 
+_9:  @ &amp;&#39;{erased} time::timer::Timer 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer, alloc::alloc::Global&gt;&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_11, deref_copy (_1.0: &amp;core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;))) @ _11=deref_copy (_1.0: &amp;core::option::Option&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;) @ CopyForDeref
+    Assign((_4, &amp;(*_11))) @ _4=&amp;(*_11) @ Ref
+    _3 = core::option::Option::&lt;alloc::sync::Arc&lt;time::timer::Timer&gt;&gt;::as_ref(move _4) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 10149
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    Assign((_5, discriminant(_3))) @ _5=discriminant(_3) @ Discriminant
+    switchInt(move _5) -&gt; [1: bb2, otherwise: bb5] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageLive(_6) @ StorageLive
+    Assign((_6, copy ((_3 as Some).0: &amp;alloc::sync::Arc&lt;time::timer::Timer&gt;))) @ _6=copy ((_3 as Some).0: &amp;alloc::sync::Arc&lt;time::timer::Timer&gt;) @ Use
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(*_6))) @ _10=&amp;(*_6) @ Ref
+    _9 = &lt;alloc::sync::Arc&lt;time::timer::Timer&gt; as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 3903
+}
+bb 3 {
+CleanUp: false
+    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = time::timer::Timer::cancel(move _8) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 31563
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb6 @ Goto
+}
+bb 5 {
+CleanUp: false
+    Assign((_0, const ())) @ _0=const () @ Use
+    goto -&gt; bb6 @ Goto
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

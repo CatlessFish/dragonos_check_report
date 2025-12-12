@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #39: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #39
+            
+                 <span class="func-name">driver::tty::virtual_terminal::{impl#0}::devfs_setup</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:02|RAP|WARN|: Double free detected in function &#34;devfs_setup&#34;
+warning: Double free detected.
+   --&gt; src/driver/tty/virtual_terminal/mod.rs:102:1
+    |
+102 | / pub fn devfs_setup(&amp;self) -&gt; Result&lt;(), SystemError&gt; {
+103 | |         let tty_core = self
+104 | |             .port
+105 | |             .port_data()
+106 | |             .internal_tty()
+107 | |             .ok_or(SystemError::ENODEV)?;
+108 | |         let tty_core_data = tty_core.core();
+109 | |         let devnum = *tty_core_data.device_number();
+110 | |         let vcname = format!(&#34;vc{}&#34;, self.index.get());
+111 | |
+112 | |         // 注册虚拟终端设备并将虚拟终端设备加入到文件系统
+113 | |         let vcdev = TtyDevice::new(
+114 | |             vcname.clone(),
+115 | |             IdTable::new(vcname, Some(devnum)),
+116 | |             TtyType::Tty,
+117 | |         );
+118 | |
+119 | |         device_register(vcdev.clone())?;
+120 | |         devfs_register(vcdev.name_ref(), vcdev.clone())?;
+121 | |         tty_core_data.set_vc_index(*self.index.get());
+122 | |         self.inner.lock().vcdev = Some(vcdev);
+123 | |
+124 | |         Ok(())
+125 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/tty/virtual_terminal/mod.rs line 102.
+    | MIR detail: Value _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) and _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) are alias.
+    | MIR detail: _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB45(src/driver/tty/virtual_terminal/mod.rs:125); _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB45(src/driver/tty/virtual_terminal/mod.rs:125).
+    |
+22:08:02|RAP|WARN|: Double free detected in function &#34;devfs_setup&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/tty/virtual_terminal/mod.rs:102:1
+    |
+102 | / pub fn devfs_setup(&amp;self) -&gt; Result&lt;(), SystemError&gt; {
+103 | |         let tty_core = self
+104 | |             .port
+105 | |             .port_data()
+106 | |             .internal_tty()
+107 | |             .ok_or(SystemError::ENODEV)?;
+108 | |         let tty_core_data = tty_core.core();
+109 | |         let devnum = *tty_core_data.device_number();
+110 | |         let vcname = format!(&#34;vc{}&#34;, self.index.get());
+111 | |
+112 | |         // 注册虚拟终端设备并将虚拟终端设备加入到文件系统
+113 | |         let vcdev = TtyDevice::new(
+114 | |             vcname.clone(),
+115 | |             IdTable::new(vcname, Some(devnum)),
+116 | |             TtyType::Tty,
+117 | |         );
+118 | |
+119 | |         device_register(vcdev.clone())?;
+120 | |         devfs_register(vcdev.name_ref(), vcdev.clone())?;
+121 | |         tty_core_data.set_vc_index(*self.index.get());
+122 | |         self.inner.lock().vcdev = Some(vcdev);
+123 | |
+124 | |         Ok(())
+125 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/tty/virtual_terminal/mod.rs line 102.
+    | MIR detail: Value _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) and _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) are alias.
+    | MIR detail: _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB57(src/driver/tty/virtual_terminal/mod.rs:125); _40(vcdev, src/driver/tty/virtual_terminal/mod.rs:113) is dropped at BB57(src/driver/tty/virtual_terminal/mod.rs:125).
+    |
+render dot for DefId(0:14565 ~ dragonos_kernel[9e38]::driver::tty::virtual_terminal::{impl#0}::devfs_setup)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/tty/virtual_terminal/mod.rs:103:13: 103:21
+bb1 at src/driver/tty/virtual_terminal/mod.rs:103:24: 104:18
+bb2 at src/driver/tty/virtual_terminal/mod.rs:103:24: 105:25
+bb3 at src/driver/tty/virtual_terminal/mod.rs:103:24: 105:25
+bb4 at src/driver/tty/virtual_terminal/mod.rs:106:27: 106:28
+bb5 at src/driver/tty/virtual_terminal/mod.rs:107:39: 107:40
+bb6 at src/driver/tty/virtual_terminal/mod.rs:107:40: 107:41
+bb8 at src/driver/tty/virtual_terminal/mod.rs:103:24: 107:41
+bb9 at src/driver/tty/virtual_terminal/mod.rs:107:40: 107:41
+bb10 at src/driver/tty/virtual_terminal/mod.rs:107:40: 107:41
+bb11 at src/driver/tty/virtual_terminal/mod.rs:107:41: 107:42
+bb12 at src/driver/tty/virtual_terminal/mod.rs:108:29: 108:37
+bb13 at src/driver/tty/virtual_terminal/mod.rs:108:43: 108:44
+bb14 at src/driver/tty/virtual_terminal/mod.rs:109:51: 109:52
+bb15 at src/driver/tty/virtual_terminal/mod.rs:110:53: 110:54
+bb16 at src/driver/tty/virtual_terminal/mod.rs:110:34: 110:35
+bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
+bb18 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
+bb19 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
+bb20 at src/driver/tty/virtual_terminal/mod.rs:114:26: 114:27
+bb21 at src/driver/tty/virtual_terminal/mod.rs:115:46: 115:47
+bb22 at src/driver/tty/virtual_terminal/mod.rs:117:9: 117:10
+bb23 at src/driver/tty/virtual_terminal/mod.rs:119:37: 119:38
+bb24 at src/driver/tty/virtual_terminal/mod.rs:119:38: 119:39
+bb25 at src/driver/tty/virtual_terminal/mod.rs:119:39: 119:40
+bb26 at src/driver/tty/virtual_terminal/mod.rs:119:9: 119:40
+bb27 at src/driver/tty/virtual_terminal/mod.rs:119:39: 119:40
+bb28 at src/driver/tty/virtual_terminal/mod.rs:119:39: 119:40
+bb29 at src/driver/tty/virtual_terminal/mod.rs:120:24: 120:29
+bb30 at src/driver/tty/virtual_terminal/mod.rs:120:24: 120:40
+bb31 at src/driver/tty/virtual_terminal/mod.rs:120:54: 120:55
+bb32 at src/driver/tty/virtual_terminal/mod.rs:120:55: 120:56
+bb33 at src/driver/tty/virtual_terminal/mod.rs:120:56: 120:57
+bb34 at src/driver/tty/virtual_terminal/mod.rs:120:9: 120:57
+bb35 at src/driver/tty/virtual_terminal/mod.rs:120:56: 120:57
+bb36 at src/driver/tty/virtual_terminal/mod.rs:120:56: 120:57
+bb37 at src/driver/tty/virtual_terminal/mod.rs:121:52: 121:53
+bb38 at src/driver/tty/virtual_terminal/mod.rs:121:53: 121:54
+bb39 at src/driver/tty/virtual_terminal/mod.rs:122:9: 122:26
+bb40 at src/driver/tty/virtual_terminal/mod.rs:122:25: 122:26
+bb41 at src/driver/tty/virtual_terminal/mod.rs:122:9: 122:32
+bb42 at src/driver/tty/virtual_terminal/mod.rs:122:9: 122:32
+bb43 at src/driver/tty/virtual_terminal/mod.rs:122:46: 122:47
+bb44 at src/driver/tty/virtual_terminal/mod.rs:125:5: 125:6
+bb46 at src/driver/tty/virtual_terminal/mod.rs:125:5: 125:6
+bb47 at src/driver/tty/virtual_terminal/mod.rs:107:41: 107:42
+bb48 at src/driver/tty/virtual_terminal/mod.rs:125:5: 125:6
+bb63 at src/driver/tty/virtual_terminal/mod.rs:107:41: 107:42
+fn driver::tty::virtual_terminal::VirtConsole::devfs_setup
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} driver::tty::virtual_terminal::VirtConsole 
+_2:  @ alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_3:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt;&gt; 
+_4:  @ core::result::Result&lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_5:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt;&gt; 
+_6:  @ &amp;&#39;{erased} driver::tty::tty_port::TtyPortData 
+_7:  @ &amp;&#39;{erased} driver::tty::tty_port::TtyPortData 
+_8:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::tty_port::TtyPortData&gt; 
+_9:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::tty_port::TtyPortData&gt; 
+_10:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::tty::tty_port::TtyPort), bound_vars: [] }] + &#39;{erased} 
+_11:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::tty::tty_port::TtyPort), bound_vars: [] }] + &#39;{erased} 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::tty::tty_port::TtyPort), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_13:  @ system_error::SystemError 
+_14:  @ isize 
+_15:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_16:  @ ! 
+_17:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_18:  @ alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_19:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_20:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_21:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_22:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_23:  @ driver::base::device::device_number::DeviceNumber 
+_24:  @ &amp;&#39;{erased} driver::base::device::device_number::DeviceNumber 
+_25:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_26:  @ alloc::string::String 
+_27:  @ alloc::string::String 
+_28:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_29:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_30:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_31:  @ &amp;&#39;{erased} &amp;&#39;{erased} usize 
+_32:  @ &amp;&#39;{erased} &amp;&#39;{erased} usize 
+_33:  @ &amp;&#39;{erased} usize 
+_34:  @ &amp;&#39;{erased} libs::lazy_init::Lazy&lt;usize&gt; 
+_35:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_36:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_37:  @ [&amp;&#39;{erased} str; 1_usize] 
+_38:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_39:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_40:  @ alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_41:  @ alloc::string::String 
+_42:  @ &amp;&#39;{erased} alloc::string::String 
+_43:  @ driver::base::device::IdTable 
+_44:  @ alloc::string::String 
+_45:  @ core::option::Option&lt;driver::base::device::device_number::DeviceNumber&gt; 
+_46:  @ driver::base::device::device_number::DeviceNumber 
+_47:  @ driver::tty::tty_device::TtyType 
+_48:  @ () 
+_49:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_50:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_51:  @ alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_52:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_53:  @ isize 
+_54:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_55:  @ ! 
+_56:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_57:  @ () 
+_58:  @ () 
+_59:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_60:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_61:  @ &amp;&#39;{erased} str 
+_62:  @ &amp;&#39;{erased} str 
+_63:  @ &amp;&#39;{erased} driver::tty::tty_device::TtyDevice 
+_64:  @ &amp;&#39;{erased} driver::tty::tty_device::TtyDevice 
+_65:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_66:  @ alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_67:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_68:  @ isize 
+_69:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_70:  @ ! 
+_71:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_72:  @ () 
+_73:  @ () 
+_74:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_75:  @ usize 
+_76:  @ &amp;&#39;{erased} usize 
+_77:  @ &amp;&#39;{erased} libs::lazy_init::Lazy&lt;usize&gt; 
+_78:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt;&gt; 
+_79:  @ alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice, alloc::alloc::Global&gt; 
+_80:  @ &amp;&#39;{erased} mut driver::tty::virtual_terminal::InnerVirtConsole 
+_81:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::virtual_terminal::InnerVirtConsole&gt; 
+_82:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::virtual_terminal::InnerVirtConsole&gt; 
+_83:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::InnerVirtConsole&gt; 
+_84:  @ () 
+_85:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_86:  @ bool 
+_87:  @ bool 
+_88:  @ bool 
+_89:  @ bool 
+_90:  @ isize 
+_91:  @ isize 
+_92:  @ isize 
+_93:  @ isize 
+_94:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_89, const false)) @ _89=const false @ Use
+    Assign((_87, const false)) @ _87=const false @ Use
+    Assign((_88, const false)) @ _88=const false @ Use
+    Assign((_86, const false)) @ _86=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;((*_1).1: alloc::sync::Arc&lt;dyn driver::tty::tty_port::TtyPort&gt;))) @ _12=&amp;((*_1).1: alloc::sync::Arc&lt;dyn driver::tty::tty_port::TtyPort&gt;) @ Ref
+    _11 = &lt;alloc::sync::Arc&lt;dyn driver::tty::tty_port::TtyPort&gt; as lazy_static::__Deref&gt;::deref(move _12) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_10, &amp;(*_11))) @ _10=&amp;(*_11) @ Ref
+    StorageDead(_12) @ StorageDead
+    _9 = &lt;dyn driver::tty::tty_port::TtyPort as driver::tty::tty_port::TtyPort&gt;::port_data(move _10) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 14375
+}
+bb 2 {
+CleanUp: false
+    Assign((_8, &amp;_9)) @ _8=&amp;_9 @ Ref
+    _7 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::tty::tty_port::TtyPortData&gt; as lazy_static::__Deref&gt;::deref(move _8) -&gt; [return: bb3, unwind: bb53] @ Call: FnDid: 3903
+}
+bb 3 {
+CleanUp: false
+    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    _5 = driver::tty::tty_port::TtyPortData::internal_tty(move _6) -&gt; [return: bb4, unwind: bb53] @ Call: FnDid: 14372
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    Assign((_13, system_error::SystemError::ENODEV)) @ _13=system_error::SystemError::ENODEV @ Aggregate
+    _4 = core::option::Option::&lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _5, move _13) -&gt; [return: bb5, unwind: bb53] @ Call: FnDid: 10178
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    _3 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _4) -&gt; [return: bb6, unwind: bb53] @ Call: FnDid: 4199
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    Assign((_14, discriminant(_3))) @ _14=discriminant(_3) @ Discriminant
+    switchInt(move _14) -&gt; [0: bb8, 1: bb9, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 8 {
+CleanUp: false
+    StorageLive(_18) @ StorageLive
+    Assign((_18, move ((_3 as Continue).0: alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt;))) @ _18=move ((_3 as Continue).0: alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt;) @ Use
+    Assign((_2, move _18)) @ _2=move _18 @ Use
+    StorageDead(_18) @ StorageDead
+    Assign((_92, discriminant(_3))) @ _92=discriminant(_3) @ Discriminant
+    drop(_9) -&gt; [return: bb11, unwind: bb52] @ Drop
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_15) @ StorageLive
+    Assign((_15, move ((_3 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _15=move ((_3 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_17) @ StorageLive
+    Assign((_17, move _15)) @ _17=move _15 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _17) -&gt; [return: bb10, unwind: bb63] @ Call: FnDid: 4202
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    Assign((_90, discriminant(_3))) @ _90=discriminant(_3) @ Discriminant
+    drop(_9) -&gt; [return: bb47, unwind: bb54] @ Drop
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_2)) @ _22=&amp;_2 @ Ref
+    _21 = &lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt; as lazy_static::__Deref&gt;::deref(move _22) -&gt; [return: bb12, unwind: bb52] @ Call: FnDid: 3903
+}
+bb 12 {
+CleanUp: false
+    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
+    StorageDead(_22) @ StorageDead
+    _19 = driver::tty::tty_core::TtyCore::core(move _20) -&gt; [return: bb13, unwind: bb52] @ Call: FnDid: 13766
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;(*_19))) @ _25=&amp;(*_19) @ Ref
+    _24 = driver::tty::tty_core::TtyCoreData::device_number(move _25) -&gt; [return: bb14, unwind: bb52] @ Call: FnDid: 13790
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    Assign((_23, copy (*_24))) @ _23=copy (*_24) @ Use
+    StorageDead(_24) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &amp;((*_1).2: libs::lazy_init::Lazy&lt;usize&gt;))) @ _34=&amp;((*_1).2: libs::lazy_init::Lazy&lt;usize&gt;) @ Ref
+    _33 = libs::lazy_init::Lazy::&lt;usize&gt;::get(move _34) -&gt; [return: bb15, unwind: bb52] @ Call: FnDid: 4292
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_32, &amp;_33)) @ _32=&amp;_33 @ Ref
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    _30 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;&amp;usize&gt;(move _31) -&gt; [return: bb16, unwind: bb52] @ Call: FnDid: 11807
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    Assign((_29, [move _30])) @ _29=[move _30] @ Aggregate
+    StorageDead(_30) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_85, const driver::tty::virtual_terminal::VirtConsole::devfs_setup::promoted[0])) @ _85=const driver::tty::virtual_terminal::VirtConsole::devfs_setup::promoted[0] @ Use
+    Assign((_36, &amp;(*_85))) @ _36=&amp;(*_85) @ Ref
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;_29)) @ _39=&amp;_29 @ Ref
+    Assign((_38, &amp;(*_39))) @ _38=&amp;(*_39) @ Ref
+    _28 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _35, move _38) -&gt; [return: bb17, unwind: bb52] @ Call: FnDid: 11836
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    _27 = alloc::fmt::format(move _28) -&gt; [return: bb18, unwind: bb52] @ Call: FnDid: 5475
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    _26 = core::hint::must_use::&lt;alloc::string::String&gt;(move _27) -&gt; [return: bb19, unwind: bb52] @ Call: FnDid: 1455
+}
+bb 19 {
+CleanUp: false
+    Assign((_89, const true)) @ _89=const true @ Use
+    StorageDead(_27) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    Assign((_42, &amp;_26)) @ _42=&amp;_26 @ Ref
+    _41 = &lt;alloc::string::String as core::clone::Clone&gt;::clone(move _42) -&gt; [return: bb20, unwind: bb62] @ Call: FnDid: 3116
+}
+bb 20 {
+CleanUp: false
+    Assign((_88, const true)) @ _88=const true @ Use
+    StorageDead(_42) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_89, const false)) @ _89=const false @ Use
+    Assign((_44, move _26)) @ _44=move _26 @ Use
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    Assign((_46, copy _23)) @ _46=copy _23 @ Use
+    Assign((_45, core::option::Option::&lt;driver::base::device::device_number::DeviceNumber&gt;::Some(move _46))) @ _45=core::option::Option::&lt;driver::base::device::device_number::DeviceNumber&gt;::Some(move _46) @ Aggregate
+    StorageDead(_46) @ StorageDead
+    _43 = driver::base::device::IdTable::new(move _44, move _45) -&gt; [return: bb21, unwind: bb60] @ Call: FnDid: 8161
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageLive(_47) @ StorageLive
+    Assign((_47, driver::tty::tty_device::TtyType::Tty)) @ _47=driver::tty::tty_device::TtyType::Tty @ Aggregate
+    Assign((_88, const false)) @ _88=const false @ Use
+    _40 = driver::tty::tty_device::TtyDevice::new(move _41, move _43, move _47) -&gt; [return: bb22, unwind: bb60] @ Call: FnDid: 13985
+}
+bb 22 {
+CleanUp: false
+    Assign((_87, const true)) @ _87=const true @ Use
+    StorageDead(_47) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    Assign((_88, const false)) @ _88=const false @ Use
+    StorageDead(_41) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    Assign((_52, &amp;_40)) @ _52=&amp;_40 @ Ref
+    _51 = &lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt; as core::clone::Clone&gt;::clone(move _52) -&gt; [return: bb23, unwind: bb58] @ Call: FnDid: 3116
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_52) @ StorageDead
+    _50 = driver::base::device::device_register::&lt;driver::tty::tty_device::TtyDevice&gt;(move _51) -&gt; [return: bb24, unwind: bb58] @ Call: FnDid: 8215
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    _49 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _50) -&gt; [return: bb25, unwind: bb58] @ Call: FnDid: 4199
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_50) @ StorageDead
+    Assign((_53, discriminant(_49))) @ _53=discriminant(_49) @ Discriminant
+    switchInt(move _53) -&gt; [0: bb26, 1: bb27, otherwise: bb7] @ SwitchInt
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_57) @ StorageLive
+    Assign((_57, copy ((_49 as Continue).0: ()))) @ _57=copy ((_49 as Continue).0: ()) @ Use
+    Assign((_48, copy _57)) @ _48=copy _57 @ Use
+    StorageDead(_57) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;_40)) @ _65=&amp;_40 @ Ref
+    _64 = &lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt; as lazy_static::__Deref&gt;::deref(move _65) -&gt; [return: bb29, unwind: bb58] @ Call: FnDid: 3903
+}
+bb 27 {
+CleanUp: false
+    StorageLive(_54) @ StorageLive
+    Assign((_54, move ((_49 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _54=move ((_49 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_56) @ StorageLive
+    Assign((_56, move _54)) @ _56=move _54 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _56) -&gt; [return: bb28, unwind: bb58] @ Call: FnDid: 4202
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    goto -&gt; bb45 @ Goto
+}
+bb 29 {
+CleanUp: false
+    Assign((_63, &amp;(*_64))) @ _63=&amp;(*_64) @ Ref
+    StorageDead(_65) @ StorageDead
+    _62 = driver::tty::tty_device::TtyDevice::name_ref(move _63) -&gt; [return: bb30, unwind: bb58] @ Call: FnDid: 13987
+}
+bb 30 {
+CleanUp: false
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    StorageDead(_63) @ StorageDead
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    Assign((_67, &amp;_40)) @ _67=&amp;_40 @ Ref
+    _66 = &lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt; as core::clone::Clone&gt;::clone(move _67) -&gt; [return: bb31, unwind: bb58] @ Call: FnDid: 3116
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    _60 = filesystem::devfs::devfs_register::&lt;driver::tty::tty_device::TtyDevice&gt;(move _61, move _66) -&gt; [return: bb32, unwind: bb58] @ Call: FnDid: 17152
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    _59 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _60) -&gt; [return: bb33, unwind: bb58] @ Call: FnDid: 4199
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    Assign((_68, discriminant(_59))) @ _68=discriminant(_59) @ Discriminant
+    switchInt(move _68) -&gt; [0: bb34, 1: bb35, otherwise: bb7] @ SwitchInt
+}
+bb 34 {
+CleanUp: false
+    StorageLive(_72) @ StorageLive
+    Assign((_72, copy ((_59 as Continue).0: ()))) @ _72=copy ((_59 as Continue).0: ()) @ Use
+    Assign((_58, copy _72)) @ _58=copy _72 @ Use
+    StorageDead(_72) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    Assign((_74, &amp;(*_19))) @ _74=&amp;(*_19) @ Ref
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_77, &amp;((*_1).2: libs::lazy_init::Lazy&lt;usize&gt;))) @ _77=&amp;((*_1).2: libs::lazy_init::Lazy&lt;usize&gt;) @ Ref
+    _76 = libs::lazy_init::Lazy::&lt;usize&gt;::get(move _77) -&gt; [return: bb37, unwind: bb58] @ Call: FnDid: 4292
+}
+bb 35 {
+CleanUp: false
+    StorageLive(_69) @ StorageLive
+    Assign((_69, move ((_59 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _69=move ((_59 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_71) @ StorageLive
+    Assign((_71, move _69)) @ _71=move _69 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _71) -&gt; [return: bb36, unwind: bb58] @ Call: FnDid: 4202
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    goto -&gt; bb45 @ Goto
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    Assign((_75, copy (*_76))) @ _75=copy (*_76) @ Use
+    _73 = driver::tty::tty_core::TtyCoreData::set_vc_index(move _74, move _75) -&gt; [return: bb38, unwind: bb58] @ Call: FnDid: 13808
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_87, const false)) @ _87=const false @ Use
+    Assign((_79, move _40)) @ _79=move _40 @ Use
+    Assign((_86, const true)) @ _86=const true @ Use
+    Assign((_78, core::option::Option::&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;::Some(move _79))) @ _78=core::option::Option::&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;::Some(move _79) @ Aggregate
+    StorageDead(_79) @ StorageDead
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;((*_1).3: libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::InnerVirtConsole&gt;))) @ _83=&amp;((*_1).3: libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::InnerVirtConsole&gt;) @ Ref
+    _82 = libs::spinlock::SpinLock::&lt;driver::tty::virtual_terminal::InnerVirtConsole&gt;::lock(move _83) -&gt; [return: bb39, unwind: bb51] @ Call: FnDid: 5261
+}
+bb 39 {
+CleanUp: false
+    Assign((_81, &amp;mut _82)) @ _81=&amp;mut _82 @ Ref
+    _80 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::tty::virtual_terminal::InnerVirtConsole&gt; as core::ops::DerefMut&gt;::deref_mut(move _81) -&gt; [return: bb40, unwind: bb56] @ Call: FnDid: 3915
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    drop(((*_80).0: core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;)) -&gt; [return: bb41, unwind: bb42] @ Drop
+}
+bb 41 {
+CleanUp: false
+    Assign((_86, const false)) @ _86=const false @ Use
+    Assign((((*_80).0: core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;), move _78)) @ ((*_80).0: core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;)=move _78 @ Use
+    Assign((_86, const false)) @ _86=const false @ Use
+    StorageDead(_78) @ StorageDead
+    drop(_82) -&gt; [return: bb43, unwind: bb58] @ Drop
+}
+bb 42 {
+CleanUp: true
+    Assign((_86, const false)) @ _86=const false @ Use
+    Assign((((*_80).0: core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;), move _78)) @ ((*_80).0: core::option::Option&lt;alloc::sync::Arc&lt;driver::tty::tty_device::TtyDevice&gt;&gt;)=move _78 @ Use
+    goto -&gt; bb56 @ Goto
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    Assign((_84, ())) @ _84=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _84))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _84) @ Aggregate
+    StorageDead(_84) @ StorageDead
+    Assign((_87, const false)) @ _87=const false @ Use
+    StorageDead(_40) @ StorageDead
+    Assign((_89, const false)) @ _89=const false @ Use
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    drop(_2) -&gt; [return: bb44, unwind: bb54] @ Drop
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_2) @ StorageDead
+    goto -&gt; bb49 @ Goto
+}
+bb 45 {
+CleanUp: false
+    drop(_40) -&gt; [return: bb46, unwind: bb62] @ Drop
+}
+bb 46 {
+CleanUp: false
+    Assign((_87, const false)) @ _87=const false @ Use
+    StorageDead(_40) @ StorageDead
+    Assign((_89, const false)) @ _89=const false @ Use
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    drop(_2) -&gt; [return: bb48, unwind: bb54] @ Drop
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    goto -&gt; bb48 @ Goto
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_2) @ StorageDead
+    goto -&gt; bb49 @ Goto
+}
+bb 49 {
+CleanUp: false
+    return @ Return
+}
+bb 50 {
+CleanUp: true
+    drop(_82) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 51 {
+CleanUp: true
+    drop(_78) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 52 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb54, unwind terminate(cleanup)] @ Drop
+}
+bb 53 {
+CleanUp: true
+    drop(_9) -&gt; [return: bb54, unwind terminate(cleanup)] @ Drop
+}
+bb 54 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 55 {
+CleanUp: true
+    drop(_78) -&gt; [return: bb50, unwind terminate(cleanup)] @ Drop
+}
+bb 56 {
+CleanUp: true
+    switchInt(copy _86) -&gt; [0: bb50, otherwise: bb55] @ SwitchInt
+}
+bb 57 {
+CleanUp: true
+    drop(_40) -&gt; [return: bb62, unwind terminate(cleanup)] @ Drop
+}
+bb 58 {
+CleanUp: true
+    switchInt(copy _87) -&gt; [0: bb62, otherwise: bb57] @ SwitchInt
+}
+bb 59 {
+CleanUp: true
+    drop(_41) -&gt; [return: bb62, unwind terminate(cleanup)] @ Drop
+}
+bb 60 {
+CleanUp: true
+    switchInt(copy _88) -&gt; [0: bb62, otherwise: bb59] @ SwitchInt
+}
+bb 61 {
+CleanUp: true
+    drop(_26) -&gt; [return: bb52, unwind terminate(cleanup)] @ Drop
+}
+bb 62 {
+CleanUp: true
+    switchInt(copy _89) -&gt; [0: bb52, otherwise: bb61] @ SwitchInt
+}
+bb 63 {
+CleanUp: true
+    Assign((_94, discriminant(_3))) @ _94=discriminant(_3) @ Discriminant
+    goto -&gt; bb53 @ Goto
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

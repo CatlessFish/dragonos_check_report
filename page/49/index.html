@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #49: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #49
+            
+                 <span class="func-name">filesystem::eventfd::{impl#3}::write_at</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:04|RAP|WARN|: Use-after-free detected in function &#34;write_at&#34;
+warning: Use-after-free detected.
+   --&gt; src/filesystem/eventfd.rs:241:79
+    |
+204 | fn write_at(
+205 |         &amp;self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &amp;[u8],
+209 |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 |         if len &lt; 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count &gt; val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+    |                                                                               -------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 241.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _68(eventfd, src/filesystem/eventfd.rs:240) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _68(eventfd, src/filesystem/eventfd.rs:240) is used at BB36(src/filesystem/eventfd.rs:241).
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/eventfd.rs:241:79
+    |
+204 | fn write_at(
+205 |         &amp;self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &amp;[u8],
+209 |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 |         if len &lt; 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count &gt; val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+    |                                                                               -------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 241.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _57(eventfd, src/filesystem/eventfd.rs:235) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _57(eventfd, src/filesystem/eventfd.rs:235) is used at BB36(src/filesystem/eventfd.rs:241).
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/eventfd.rs:242:9
+    |
+204 | fn write_at(
+205 |         &amp;self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &amp;[u8],
+209 |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 |         if len &lt; 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count &gt; val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+242 |         drop(eventfd);
+    |         ------------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 242.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _88(_, src/filesystem/eventfd.rs:242) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _88(_, src/filesystem/eventfd.rs:242) is used at BB43(src/filesystem/eventfd.rs:242).
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/filesystem/eventfd.rs:240:23
+    |
+204 | fn write_at(
+205 |         &amp;self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &amp;[u8],
+209 |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 |         if len &lt; 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count &gt; val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+    |                       ------------------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 240.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _69(_, src/filesystem/eventfd.rs:240) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _69(_, src/filesystem/eventfd.rs:240) is used at BB34(src/filesystem/eventfd.rs:240).
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+22:08:04|RAP|WARN|: Dangling pointer detected in function &#34;write_at&#34;
+warning: Use-after-free detected.
+   --&gt; src/filesystem/eventfd.rs:241:59
+    |
+204 | fn write_at(
+205 |         &amp;self,
+206 |         _offset: usize,
+207 |         len: usize,
+208 |         buf: &amp;[u8],
+209 |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 |         if len &lt; 8 {
+212 |             return Err(SystemError::EINVAL);
+213 |         }
+214 |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 |         if val == u64::MAX {
+216 |             return Err(SystemError::EINVAL);
+217 |         }
+218 |         loop {
+219 |             if ProcessManager::current_pcb().has_pending_signal() {
+220 |                 return Err(SystemError::ERESTARTSYS);
+221 |             }
+222 |             let eventfd = self.eventfd.lock();
+223 |             if u64::MAX - eventfd.count &gt; val {
+224 |                 break;
+225 |             }
+226 |             // block until a read() is performed  on the
+227 |             // file descriptor, or fails with the error EAGAIN if the
+228 |             // file descriptor has been made nonblocking.
+229 |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 |             }
+232 |             drop(eventfd);
+233 |             self.wait_queue.sleep().ok();
+234 |         }
+235 |         let mut eventfd = self.eventfd.lock();
+236 |         eventfd.count += val;
+237 |         drop(eventfd);
+238 |         self.wait_queue.wakeup_all(None);
+239 |
+240 |         let eventfd = self.eventfd.lock();
+241 |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+    |                                                           ----------------------------- Use-after-free (confidence 99%): Location in file src/filesystem/eventfd.rs line 241.
+    | MIR detail: Value _64(_, src/filesystem/eventfd.rs:237) and _80(_, src/filesystem/eventfd.rs:241) are alias.
+    | MIR detail: _64(_, src/filesystem/eventfd.rs:237) is dropped at BB32(src/filesystem/eventfd.rs:237); _80(_, src/filesystem/eventfd.rs:241) is used at BB36(src/filesystem/eventfd.rs:241).
+242 |         drop(eventfd);
+243 |
+244 |         // 唤醒epoll中等待的进程
+245 |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 |         return Ok(8);
+247 |     }
+    |
+22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;write_at&#34;
+warning: Dangling pointer detected.
+   --&gt; src/filesystem/eventfd.rs:204:1
+    |
+204 | / fn write_at(
+205 | |         &amp;self,
+206 | |         _offset: usize,
+207 | |         len: usize,
+208 | |         buf: &amp;[u8],
+209 | |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 | |         if len &lt; 8 {
+212 | |             return Err(SystemError::EINVAL);
+213 | |         }
+214 | |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 | |         if val == u64::MAX {
+216 | |             return Err(SystemError::EINVAL);
+217 | |         }
+218 | |         loop {
+219 | |             if ProcessManager::current_pcb().has_pending_signal() {
+220 | |                 return Err(SystemError::ERESTARTSYS);
+221 | |             }
+222 | |             let eventfd = self.eventfd.lock();
+223 | |             if u64::MAX - eventfd.count &gt; val {
+224 | |                 break;
+225 | |             }
+226 | |             // block until a read() is performed  on the
+227 | |             // file descriptor, or fails with the error EAGAIN if the
+228 | |             // file descriptor has been made nonblocking.
+229 | |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 | |             }
+232 | |             drop(eventfd);
+233 | |             self.wait_queue.sleep().ok();
+234 | |         }
+235 | |         let mut eventfd = self.eventfd.lock();
+236 | |         eventfd.count += val;
+237 | |         drop(eventfd);
+238 | |         self.wait_queue.wakeup_all(None);
+239 | |
+240 | |         let eventfd = self.eventfd.lock();
+241 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+242 | |         drop(eventfd);
+243 | |
+244 | |         // 唤醒epoll中等待的进程
+245 | |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 | |         return Ok(8);
+247 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 204.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in write_at and _1(self, src/filesystem/eventfd.rs:205) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in write_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:204); _1(self, src/filesystem/eventfd.rs:205) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/filesystem/eventfd.rs:204:1
+    |
+204 | / fn write_at(
+205 | |         &amp;self,
+206 | |         _offset: usize,
+207 | |         len: usize,
+208 | |         buf: &amp;[u8],
+209 | |         data: SpinLockGuard&lt;FilePrivateData&gt;,
+210 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+211 | |         if len &lt; 8 {
+212 | |             return Err(SystemError::EINVAL);
+213 | |         }
+214 | |         let val = u64::from_ne_bytes(buf[..8].try_into().unwrap());
+215 | |         if val == u64::MAX {
+216 | |             return Err(SystemError::EINVAL);
+217 | |         }
+218 | |         loop {
+219 | |             if ProcessManager::current_pcb().has_pending_signal() {
+220 | |                 return Err(SystemError::ERESTARTSYS);
+221 | |             }
+222 | |             let eventfd = self.eventfd.lock();
+223 | |             if u64::MAX - eventfd.count &gt; val {
+224 | |                 break;
+225 | |             }
+226 | |             // block until a read() is performed  on the
+227 | |             // file descriptor, or fails with the error EAGAIN if the
+228 | |             // file descriptor has been made nonblocking.
+229 | |             if eventfd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
+230 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
+231 | |             }
+232 | |             drop(eventfd);
+233 | |             self.wait_queue.sleep().ok();
+234 | |         }
+235 | |         let mut eventfd = self.eventfd.lock();
+236 | |         eventfd.count += val;
+237 | |         drop(eventfd);
+238 | |         self.wait_queue.wakeup_all(None);
+239 | |
+240 | |         let eventfd = self.eventfd.lock();
+241 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
+242 | |         drop(eventfd);
+243 | |
+244 | |         // 唤醒epoll中等待的进程
+245 | |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
+246 | |         return Ok(8);
+247 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 204.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in write_at and _1(self, src/filesystem/eventfd.rs:205) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in write_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:204); _1(self, src/filesystem/eventfd.rs:205) became dangling.
+    |
+render dot for DefId(0:17411 ~ dragonos_kernel[9e38]::filesystem::eventfd::{impl#3}::write_at)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/eventfd.rs:211:9: 213:10
+bb1 at src/filesystem/eventfd.rs:211:18: 211:19
+bb2 at src/filesystem/eventfd.rs:211:18: 211:19
+bb3 at src/filesystem/eventfd.rs:214:38: 214:46
+bb4 at src/filesystem/eventfd.rs:214:56: 214:57
+bb5 at src/filesystem/eventfd.rs:214:65: 214:66
+bb6 at src/filesystem/eventfd.rs:214:66: 214:67
+bb7 at src/filesystem/eventfd.rs:215:26: 215:27
+bb8 at src/filesystem/eventfd.rs:215:26: 215:27
+bb9 at src/filesystem/eventfd.rs:219:13: 221:14
+bb10 at src/filesystem/eventfd.rs:219:16: 219:45
+bb11 at src/filesystem/eventfd.rs:219:16: 219:45
+bb14 at src/filesystem/eventfd.rs:219:65: 219:66
+bb16 at src/filesystem/eventfd.rs:219:65: 219:66
+bb17 at src/filesystem/eventfd.rs:222:45: 222:46
+bb18 at src/filesystem/eventfd.rs:223:33: 223:34
+bb19 at src/filesystem/eventfd.rs:223:16: 223:40
+bb20 at src/filesystem/eventfd.rs:223:45: 223:46
+bb21 at src/filesystem/eventfd.rs:223:45: 223:46
+bb22 at src/filesystem/eventfd.rs:229:22: 229:23
+bb24 at src/filesystem/eventfd.rs:229:65: 229:66
+bb25 at src/filesystem/eventfd.rs:229:65: 229:66
+bb26 at src/filesystem/eventfd.rs:232:25: 232:26
+bb27 at src/filesystem/eventfd.rs:233:35: 233:36
+bb28 at src/filesystem/eventfd.rs:233:40: 233:41
+bb29 at src/filesystem/eventfd.rs:234:9: 234:10
+bb30 at src/filesystem/eventfd.rs:235:45: 235:46
+bb31 at src/filesystem/eventfd.rs:236:15: 236:16
+bb32 at src/filesystem/eventfd.rs:236:9: 236:29
+bb33 at src/filesystem/eventfd.rs:237:21: 237:22
+bb34 at src/filesystem/eventfd.rs:238:40: 238:41
+bb35 at src/filesystem/eventfd.rs:240:41: 240:42
+bb36 at src/filesystem/eventfd.rs:241:72: 241:77
+bb37 at src/filesystem/eventfd.rs:241:87: 241:88
+bb38 at src/filesystem/eventfd.rs:241:88: 241:89
+bb40 at src/filesystem/eventfd.rs:241:59: 241:89
+bb41 at src/filesystem/eventfd.rs:241:88: 241:89
+bb42 at src/filesystem/eventfd.rs:241:88: 241:89
+bb43 at src/filesystem/eventfd.rs:241:96: 241:97
+bb44 at src/filesystem/eventfd.rs:242:21: 242:22
+bb45 at src/filesystem/eventfd.rs:245:56: 245:57
+bb46 at src/filesystem/eventfd.rs:245:57: 245:58
+bb47 at src/filesystem/eventfd.rs:245:9: 245:58
+bb48 at src/filesystem/eventfd.rs:245:57: 245:58
+bb49 at src/filesystem/eventfd.rs:245:57: 245:58
+bb50 at src/filesystem/eventfd.rs:247:5: 247:6
+bb51 at src/filesystem/eventfd.rs:247:5: 247:6
+bb52 at src/filesystem/eventfd.rs:234:9: 234:10
+bb53 at src/filesystem/eventfd.rs:234:9: 234:10
+bb54 at src/filesystem/eventfd.rs:247:5: 247:6
+fn &lt;filesystem::eventfd::EventFdInode as filesystem::vfs::IndexNode&gt;::write_at
+_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdInode 
+_2:  @ usize 
+_3:  @ usize 
+_4:  @ &amp;&#39;{erased} [u8] 
+_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_6:  @ ! 
+_7:  @ () 
+_8:  @ bool 
+_9:  @ usize 
+_10:  @ ! 
+_11:  @ system_error::SystemError 
+_12:  @ u64 
+_13:  @ [u8; 8_usize] 
+_14:  @ core::result::Result&lt;[u8; 8_usize], core::array::TryFromSliceError&gt; 
+_15:  @ &amp;&#39;{erased} [u8] 
+_16:  @ &amp;&#39;{erased} [u8] 
+_17:  @ &amp;&#39;{erased} [u8] 
+_18:  @ core::ops::RangeTo&lt;usize&gt; 
+_19:  @ () 
+_20:  @ bool 
+_21:  @ u64 
+_22:  @ ! 
+_23:  @ system_error::SystemError 
+_24:  @ () 
+_25:  @ () 
+_26:  @ () 
+_27:  @ bool 
+_28:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_29:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_30:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_31:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_32:  @ ! 
+_33:  @ system_error::SystemError 
+_34:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_35:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt; 
+_36:  @ () 
+_37:  @ bool 
+_38:  @ u64 
+_39:  @ u64 
+_40:  @ &amp;&#39;{erased} filesystem::eventfd::EventFd 
+_41:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_42:  @ (u64, bool) 
+_43:  @ u64 
+_44:  @ ! 
+_45:  @ () 
+_46:  @ bool 
+_47:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdFlags 
+_48:  @ &amp;&#39;{erased} filesystem::eventfd::EventFd 
+_49:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_50:  @ ! 
+_51:  @ system_error::SystemError 
+_52:  @ () 
+_53:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_54:  @ core::option::Option&lt;()&gt; 
+_55:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_56:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_57:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_58:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt; 
+_59:  @ u64 
+_60:  @ &amp;&#39;{erased} mut filesystem::eventfd::EventFd 
+_61:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_62:  @ (u64, bool) 
+_63:  @ () 
+_64:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_65:  @ () 
+_66:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_67:  @ core::option::Option&lt;process::ProcessState&gt; 
+_68:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_69:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt; 
+_70:  @ filesystem::epoll::EPollEventType 
+_71:  @ u32 
+_72:  @ usize 
+_73:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
+_74:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_75:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdInode 
+_76:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_77:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_78:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_79:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_80:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_81:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_82:  @ isize 
+_83:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_84:  @ ! 
+_85:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_86:  @ usize 
+_87:  @ () 
+_88:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
+_89:  @ () 
+_90:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_91:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_92:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_93:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_94:  @ filesystem::epoll::EPollEventType 
+_95:  @ isize 
+_96:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_97:  @ ! 
+_98:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_99:  @ () 
+_100:  @ bool 
+_101:  @ bool 
+_102:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_102, const false)) @ _102=const false @ Use
+    Assign((_101, const false)) @ _101=const false @ Use
+    Assign((_100, const false)) @ _100=const false @ Use
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _3)) @ _9=copy _3 @ Use
+    Assign((_8, Lt(move _9, const 8_usize))) @ _8=Lt(move _9, const 8_usize) @ BinaryOp
+    switchInt(move _8) -&gt; [0: bb2, otherwise: bb1] @ SwitchInt
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::EINVAL)) @ _11=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _11))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb55 @ Goto
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, const ())) @ _7=const () @ Use
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;(*_4))) @ _17=&amp;(*_4) @ Ref
+    StorageLive(_18) @ StorageLive
+    Assign((_18, core::ops::RangeTo::&lt;usize&gt; { end: const 8_usize })) @ _18=core::ops::RangeTo::&lt;usize&gt; { end: const 8_usize } @ Aggregate
+    _16 = &lt;[u8] as core::ops::Index&lt;core::ops::RangeTo&lt;usize&gt;&gt;&gt;::index(move _17, move _18) -&gt; [return: bb3, unwind: bb58] @ Call: FnDid: 45437
+}
+bb 3 {
+CleanUp: false
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    _14 = &lt;&amp;[u8] as core::convert::TryInto&lt;[u8; 8]&gt;&gt;::try_into(move _15) -&gt; [return: bb4, unwind: bb58] @ Call: FnDid: 3394
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    _13 = core::result::Result::&lt;[u8; 8], core::array::TryFromSliceError&gt;::unwrap(move _14) -&gt; [return: bb5, unwind: bb58] @ Call: FnDid: 11024
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    _12 = core::num::&lt;impl u64&gt;::from_ne_bytes(move _13) -&gt; [return: bb6, unwind: bb58] @ Call: FnDid: 35421
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, copy _12)) @ _21=copy _12 @ Use
+    Assign((_20, Eq(move _21, const core::num::&lt;impl u64&gt;::MAX))) @ _20=Eq(move _21, const core::num::&lt;impl u64&gt;::MAX) @ BinaryOp
+    switchInt(move _20) -&gt; [0: bb8, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    Assign((_23, system_error::SystemError::EINVAL)) @ _23=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _23))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _23) @ Aggregate
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    goto -&gt; bb54 @ Goto
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    Assign((_19, const ())) @ _19=const () @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    goto -&gt; bb9 @ Goto
+}
+bb 9 {
+CleanUp: false
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    _31 = process::ProcessManager::current_pcb() -&gt; [return: bb10, unwind: bb58] @ Call: FnDid: 29866
+}
+bb 10 {
+CleanUp: false
+    Assign((_30, &amp;_31)) @ _30=&amp;_31 @ Ref
+    _29 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _30) -&gt; [return: bb11, unwind: bb57] @ Call: FnDid: 3903
+}
+bb 11 {
+CleanUp: false
+    Assign((_28, &amp;(*_29))) @ _28=&amp;(*_29) @ Ref
+    StorageDead(_30) @ StorageDead
+    _27 = process::ProcessControlBlock::has_pending_signal(move _28) -&gt; [return: bb12, unwind: bb57] @ Call: FnDid: 29965
+}
+bb 12 {
+CleanUp: false
+    switchInt(move _27) -&gt; [0: bb15, otherwise: bb13] @ SwitchInt
+}
+bb 13 {
+CleanUp: false
+    drop(_31) -&gt; [return: bb14, unwind: bb58] @ Drop
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    Assign((_33, system_error::SystemError::ERESTARTSYS)) @ _33=system_error::SystemError::ERESTARTSYS @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _33))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _33) @ Aggregate
+    StorageDead(_33) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    goto -&gt; bb53 @ Goto
+}
+bb 15 {
+CleanUp: false
+    drop(_31) -&gt; [return: bb16, unwind: bb58] @ Drop
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    Assign((_26, const ())) @ _26=const () @ Use
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;))) @ _35=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;) @ Ref
+    _34 = libs::spinlock::SpinLock::&lt;filesystem::eventfd::EventFd&gt;::lock(move _35) -&gt; [return: bb17, unwind: bb58] @ Call: FnDid: 5261
+}
+bb 17 {
+CleanUp: false
+    Assign((_102, const true)) @ _102=const true @ Use
+    StorageDead(_35) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;_34)) @ _41=&amp;_34 @ Ref
+    _40 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as lazy_static::__Deref&gt;::deref(move _41) -&gt; [return: bb18, unwind: bb66] @ Call: FnDid: 3903
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    Assign((_39, copy ((*_40).0: u64))) @ _39=copy ((*_40).0: u64) @ Use
+    Assign((_42, SubWithOverflow(const core::num::&lt;impl u64&gt;::MAX, copy _39))) @ _42=SubWithOverflow(const core::num::&lt;impl u64&gt;::MAX, copy _39) @ BinaryOp
+    assert(!move (_42.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, const core::num::&lt;impl u64&gt;::MAX, move _39) -&gt; [success: bb19, unwind: bb66] @ Assert
+}
+bb 19 {
+CleanUp: false
+    Assign((_38, move (_42.0: u64))) @ _38=move (_42.0: u64) @ Use
+    StorageDead(_39) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _12)) @ _43=copy _12 @ Use
+    Assign((_37, Gt(move _38, move _43))) @ _37=Gt(move _38, move _43) @ BinaryOp
+    switchInt(move _37) -&gt; [0: bb21, otherwise: bb20] @ SwitchInt
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    Assign((_24, const ())) @ _24=const () @ Use
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_34) -&gt; [return: bb29, unwind: bb58] @ Drop
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_43) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    Assign((_36, const ())) @ _36=const () @ Use
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &amp;_34)) @ _49=&amp;_34 @ Ref
+    _48 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as lazy_static::__Deref&gt;::deref(move _49) -&gt; [return: bb22, unwind: bb66] @ Call: FnDid: 3903
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    Assign((_47, &amp;((*_48).1: filesystem::eventfd::EventFdFlags))) @ _47=&amp;((*_48).1: filesystem::eventfd::EventFdFlags) @ Ref
+    _46 = filesystem::eventfd::EventFdFlags::contains(move _47, const filesystem::eventfd::EventFdFlags::EFD_NONBLOCK) -&gt; [return: bb23, unwind: bb66] @ Call: FnDid: 52149
+}
+bb 23 {
+CleanUp: false
+    switchInt(move _46) -&gt; [0: bb25, otherwise: bb24] @ SwitchInt
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    Assign((_51, system_error::SystemError::EAGAIN_OR_EWOULDBLOCK)) @ _51=system_error::SystemError::EAGAIN_OR_EWOULDBLOCK @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _51))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _51) @ Aggregate
+    StorageDead(_51) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    drop(_34) -&gt; [return: bb52, unwind: bb58] @ Drop
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    Assign((_45, const ())) @ _45=const () @ Use
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_102, const false)) @ _102=const false @ Use
+    Assign((_53, move _34)) @ _53=move _34 @ Use
+    _52 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt;&gt;(move _53) -&gt; [return: bb26, unwind: bb66] @ Call: FnDid: 2323
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;((*_1).1: libs::wait_queue::WaitQueue))) @ _56=&amp;((*_1).1: libs::wait_queue::WaitQueue) @ Ref
+    _55 = libs::wait_queue::WaitQueue::sleep(move _56) -&gt; [return: bb27, unwind: bb66] @ Call: FnDid: 5626
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    _54 = core::result::Result::&lt;(), system_error::SystemError&gt;::ok(move _55) -&gt; [return: bb28, unwind: bb66] @ Call: FnDid: 10993
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    Assign((_25, const ())) @ _25=const () @ Use
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_34) @ StorageDead
+    goto -&gt; bb9 @ Goto
+}
+bb 29 {
+CleanUp: false
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_34) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;))) @ _58=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;) @ Ref
+    _57 = libs::spinlock::SpinLock::&lt;filesystem::eventfd::EventFd&gt;::lock(move _58) -&gt; [return: bb30, unwind: bb58] @ Call: FnDid: 5261
+}
+bb 30 {
+CleanUp: false
+    Assign((_101, const true)) @ _101=const true @ Use
+    StorageDead(_58) @ StorageDead
+    StorageLive(_59) @ StorageLive
+    Assign((_59, copy _12)) @ _59=copy _12 @ Use
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    Assign((_61, &amp;mut _57)) @ _61=&amp;mut _57 @ Ref
+    _60 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as core::ops::DerefMut&gt;::deref_mut(move _61) -&gt; [return: bb31, unwind: bb64] @ Call: FnDid: 3915
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    Assign((_62, AddWithOverflow(copy ((*_60).0: u64), copy _59))) @ _62=AddWithOverflow(copy ((*_60).0: u64), copy _59) @ BinaryOp
+    assert(!move (_62.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_60).0: u64), move _59) -&gt; [success: bb32, unwind: bb64] @ Assert
+}
+bb 32 {
+CleanUp: false
+    Assign((((*_60).0: u64), move (_62.0: u64))) @ ((*_60).0: u64)=move (_62.0: u64) @ Use
+    StorageDead(_59) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    Assign((_101, const false)) @ _101=const false @ Use
+    Assign((_64, move _57)) @ _64=move _57 @ Use
+    _63 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt;&gt;(move _64) -&gt; [return: bb33, unwind: bb64] @ Call: FnDid: 2323
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    Assign((_66, &amp;((*_1).1: libs::wait_queue::WaitQueue))) @ _66=&amp;((*_1).1: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_67) @ StorageLive
+    Assign((_67, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _67=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _65 = libs::wait_queue::WaitQueue::wakeup_all(move _66, move _67) -&gt; [return: bb34, unwind: bb64] @ Call: FnDid: 5651
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;))) @ _69=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;) @ Ref
+    _68 = libs::spinlock::SpinLock::&lt;filesystem::eventfd::EventFd&gt;::lock(move _69) -&gt; [return: bb35, unwind: bb64] @ Call: FnDid: 5261
+}
+bb 35 {
+CleanUp: false
+    Assign((_100, const true)) @ _100=const true @ Use
+    StorageDead(_69) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, &amp;(*_1))) @ _75=&amp;(*_1) @ Ref
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_79, &amp;_5)) @ _79=&amp;_5 @ Ref
+    Assign((_78, &amp;(*_79))) @ _78=&amp;(*_79) @ Ref
+    _77 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt; as lazy_static::__Deref&gt;::deref(move _78) -&gt; [return: bb36, unwind: bb62] @ Call: FnDid: 3903
+}
+bb 36 {
+CleanUp: false
+    Assign((_76, &amp;(*_77))) @ _76=&amp;(*_77) @ Ref
+    StorageDead(_78) @ StorageDead
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &amp;_68)) @ _81=&amp;_68 @ Ref
+    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
+    _74 = filesystem::eventfd::EventFdInode::do_poll(move _75, move _76, move _80) -&gt; [return: bb37, unwind: bb62] @ Call: FnDid: 17401
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    _73 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _74) -&gt; [return: bb38, unwind: bb62] @ Call: FnDid: 4199
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_74) @ StorageDead
+    Assign((_82, discriminant(_73))) @ _82=discriminant(_73) @ Discriminant
+    switchInt(move _82) -&gt; [0: bb40, 1: bb41, otherwise: bb39] @ SwitchInt
+}
+bb 39 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 40 {
+CleanUp: false
+    StorageLive(_86) @ StorageLive
+    Assign((_86, copy ((_73 as Continue).0: usize))) @ _86=copy ((_73 as Continue).0: usize) @ Use
+    Assign((_72, copy _86)) @ _72=copy _86 @ Use
+    StorageDead(_86) @ StorageDead
+    Assign((_71, move _72 as u32 (IntToInt))) @ _71=move _72 as u32 (IntToInt) @ Cast
+    StorageDead(_72) @ StorageDead
+    _70 = filesystem::epoll::EPollEventType::from_bits_truncate(move _71) -&gt; [return: bb43, unwind: bb62] @ Call: FnDid: 51992
+}
+bb 41 {
+CleanUp: false
+    StorageLive(_83) @ StorageLive
+    Assign((_83, move ((_73 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _83=move ((_73 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_85) @ StorageLive
+    Assign((_85, move _83)) @ _85=move _83 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _85) -&gt; [return: bb42, unwind: bb62] @ Call: FnDid: 4202
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    goto -&gt; bb50 @ Goto
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    Assign((_100, const false)) @ _100=const false @ Use
+    Assign((_88, move _68)) @ _88=move _68 @ Use
+    _87 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt;&gt;(move _88) -&gt; [return: bb44, unwind: bb62] @ Call: FnDid: 2323
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_88) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &amp;((*_1).2: libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem&gt;&gt;&gt;))) @ _93=&amp;((*_1).2: libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem&gt;&gt;&gt;) @ Ref
+    Assign((_92, &amp;(*_93))) @ _92=&amp;(*_93) @ Ref
+    StorageLive(_94) @ StorageLive
+    Assign((_94, copy _70)) @ _94=copy _70 @ Use
+    _91 = filesystem::epoll::event_poll::EventPoll::wakeup_epoll(move _92, move _94) -&gt; [return: bb45, unwind: bb62] @ Call: FnDid: 17315
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    _90 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _91) -&gt; [return: bb46, unwind: bb62] @ Call: FnDid: 4199
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    Assign((_95, discriminant(_90))) @ _95=discriminant(_90) @ Discriminant
+    switchInt(move _95) -&gt; [0: bb47, 1: bb48, otherwise: bb39] @ SwitchInt
+}
+bb 47 {
+CleanUp: false
+    StorageLive(_99) @ StorageLive
+    Assign((_99, copy ((_90 as Continue).0: ()))) @ _99=copy ((_90 as Continue).0: ()) @ Use
+    Assign((_89, copy _99)) @ _89=copy _99 @ Use
+    StorageDead(_99) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 8_usize))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 8_usize) @ Aggregate
+    goto -&gt; bb50 @ Goto
+}
+bb 48 {
+CleanUp: false
+    StorageLive(_96) @ StorageLive
+    Assign((_96, move ((_90 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _96=move ((_90 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_98) @ StorageLive
+    Assign((_98, move _96)) @ _98=move _96 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _98) -&gt; [return: bb49, unwind: bb62] @ Call: FnDid: 4202
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    goto -&gt; bb50 @ Goto
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    switchInt(copy _100) -&gt; [0: bb51, otherwise: bb60] @ SwitchInt
+}
+bb 51 {
+CleanUp: false
+    Assign((_100, const false)) @ _100=const false @ Use
+    StorageDead(_68) @ StorageDead
+    Assign((_101, const false)) @ _101=const false @ Use
+    StorageDead(_57) @ StorageDead
+    goto -&gt; bb54 @ Goto
+}
+bb 52 {
+CleanUp: false
+    Assign((_102, const false)) @ _102=const false @ Use
+    StorageDead(_34) @ StorageDead
+    goto -&gt; bb53 @ Goto
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    goto -&gt; bb54 @ Goto
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    goto -&gt; bb55 @ Goto
+}
+bb 55 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb56, unwind: bb59] @ Drop
+}
+bb 56 {
+CleanUp: false
+    return @ Return
+}
+bb 57 {
+CleanUp: true
+    drop(_31) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 58 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb59, unwind terminate(cleanup)] @ Drop
+}
+bb 59 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 60 {
+CleanUp: false
+    drop(_68) -&gt; [return: bb51, unwind: bb64] @ Drop
+}
+bb 61 {
+CleanUp: true
+    drop(_68) -&gt; [return: bb64, unwind terminate(cleanup)] @ Drop
+}
+bb 62 {
+CleanUp: true
+    switchInt(copy _100) -&gt; [0: bb64, otherwise: bb61] @ SwitchInt
+}
+bb 63 {
+CleanUp: true
+    drop(_57) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 64 {
+CleanUp: true
+    switchInt(copy _101) -&gt; [0: bb58, otherwise: bb63] @ SwitchInt
+}
+bb 65 {
+CleanUp: true
+    drop(_34) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 66 {
+CleanUp: true
+    switchInt(copy _102) -&gt; [0: bb58, otherwise: bb65] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

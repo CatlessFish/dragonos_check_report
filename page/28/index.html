@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #28: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #28
+            
+                 <span class="func-name">driver::net::bridge::{impl#3}::add_device</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:58|RAP|WARN|: Double free detected in function &#34;add_device&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/net/bridge.rs:237:1
+    |
+237 | / pub fn add_device(&amp;self, device: Arc&lt;dyn BridgeEnableDevice&gt;) {
+238 | |         if let Some(netns) = self.netns() {
+239 | |             if !Arc::ptr_eq(
+240 | |                 &amp;netns,
+241 | |                 &amp;device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 | |             ) {
+243 | |                 log::warn!(&#34;Port and bridge are in different net namespaces&#34;);
+244 | |                 return;
+245 | |             }
+246 | |         }
+247 | |         let port = BridgePort::new(
+248 | |             self.next_port_id(),
+249 | |             device.clone(),
+250 | |             &amp;self.self_ref.upgrade().unwrap(),
+251 | |         );
+252 | |         log::info!(&#34;Adding port with id: {}&#34;, port.id);
+253 | |
+254 | |         self.inner.lock().add_port(port.id, port);
+255 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/bridge.rs line 237.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _49(port, src/driver/net/bridge.rs:247) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _49(port, src/driver/net/bridge.rs:247) is dropped at BB60(src/driver/net/bridge.rs:255).
+    |
+22:07:58|RAP|WARN|: Use-after-free detected in function &#34;add_device&#34;
+warning: Use-after-free detected.
+   --&gt; src/driver/net/bridge.rs:252:42
+    |
+237 | pub fn add_device(&amp;self, device: Arc&lt;dyn BridgeEnableDevice&gt;) {
+238 |         if let Some(netns) = self.netns() {
+239 |             if !Arc::ptr_eq(
+240 |                 &amp;netns,
+241 |                 &amp;device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 |             ) {
+243 |                 log::warn!(&#34;Port and bridge are in different net namespaces&#34;);
+244 |                 return;
+245 |             }
+246 |         }
+247 |         let port = BridgePort::new(
+248 |             self.next_port_id(),
+249 |             device.clone(),
+250 |             &amp;self.self_ref.upgrade().unwrap(),
+251 |         );
+252 |         log::info!(&#34;Adding port with id: {}&#34;, port.id);
+    |                                          -- Use-after-free (confidence 99%): Location in file src/driver/net/bridge.rs line 252.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _75(_, src/driver/net/bridge.rs:252) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _75(_, src/driver/net/bridge.rs:252) is used at BB37(src/driver/net/bridge.rs:252).
+253 |
+254 |         self.inner.lock().add_port(port.id, port);
+255 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/net/bridge.rs:254:45
+    |
+237 | pub fn add_device(&amp;self, device: Arc&lt;dyn BridgeEnableDevice&gt;) {
+238 |         if let Some(netns) = self.netns() {
+239 |             if !Arc::ptr_eq(
+240 |                 &amp;netns,
+241 |                 &amp;device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 |             ) {
+243 |                 log::warn!(&#34;Port and bridge are in different net namespaces&#34;);
+244 |                 return;
+245 |             }
+246 |         }
+247 |         let port = BridgePort::new(
+248 |             self.next_port_id(),
+249 |             device.clone(),
+250 |             &amp;self.self_ref.upgrade().unwrap(),
+251 |         );
+252 |         log::info!(&#34;Adding port with id: {}&#34;, port.id);
+253 |
+254 |         self.inner.lock().add_port(port.id, port);
+    |                                             ---- Use-after-free (confidence 99%): Location in file src/driver/net/bridge.rs line 254.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _49(port, src/driver/net/bridge.rs:247) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _49(port, src/driver/net/bridge.rs:247) is used at BB47(src/driver/net/bridge.rs:254).
+255 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/net/bridge.rs:254:9
+    |
+237 | pub fn add_device(&amp;self, device: Arc&lt;dyn BridgeEnableDevice&gt;) {
+238 |         if let Some(netns) = self.netns() {
+239 |             if !Arc::ptr_eq(
+240 |                 &amp;netns,
+241 |                 &amp;device.net_namespace().unwrap_or(INIT_NET_NAMESPACE.clone()),
+242 |             ) {
+243 |                 log::warn!(&#34;Port and bridge are in different net namespaces&#34;);
+244 |                 return;
+245 |             }
+246 |         }
+247 |         let port = BridgePort::new(
+248 |             self.next_port_id(),
+249 |             device.clone(),
+250 |             &amp;self.self_ref.upgrade().unwrap(),
+251 |         );
+252 |         log::info!(&#34;Adding port with id: {}&#34;, port.id);
+253 |
+254 |         self.inner.lock().add_port(port.id, port);
+    |         ----------------------------------------- Use-after-free (confidence 99%): Location in file src/driver/net/bridge.rs line 254.
+    | MIR detail: Value _57(_, src/driver/net/bridge.rs:250) and _98(_, src/driver/net/bridge.rs:254) are alias.
+    | MIR detail: _57(_, src/driver/net/bridge.rs:250) is dropped at BB31(src/driver/net/bridge.rs:251); _98(_, src/driver/net/bridge.rs:254) is used at BB47(src/driver/net/bridge.rs:254).
+255 |     }
+    |
+render dot for DefId(0:10524 ~ dragonos_kernel[9e38]::driver::net::bridge::{impl#3}::add_device)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/bridge.rs:238:9: 246:10
+bb1 at src/driver/net/bridge.rs:238:41: 238:42
+bb2 at src/driver/net/bridge.rs:238:21: 238:26
+bb3 at src/driver/net/bridge.rs:241:18: 241:24
+bb4 at src/driver/net/bridge.rs:241:39: 241:40
+bb5 at src/driver/net/bridge.rs:241:51: 241:69
+bb6 at src/driver/net/bridge.rs:241:76: 241:77
+bb7 at src/driver/net/bridge.rs:241:77: 241:78
+bb9 at src/driver/net/bridge.rs:242:13: 242:14
+bb10 at src/driver/net/bridge.rs:242:13: 242:14
+bb11 at src/driver/net/bridge.rs:242:13: 242:14
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb18 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb20 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb23 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb24 at src/driver/net/bridge.rs:242:13: 242:14
+bb25 at src/driver/net/bridge.rs:246:10: 246:10
+bb26 at src/driver/net/bridge.rs:246:9: 246:10
+bb27 at src/driver/net/bridge.rs:248:31: 248:32
+bb28 at src/driver/net/bridge.rs:249:13: 249:27
+bb29 at src/driver/net/bridge.rs:250:36: 250:37
+bb30 at src/driver/net/bridge.rs:250:45: 250:46
+bb31 at src/driver/net/bridge.rs:251:9: 251:10
+bb32 at src/driver/net/bridge.rs:251:10: 251:11
+bb34 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb35 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb37 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb38 at src/driver/net/bridge.rs:252:43: 252:44
+bb39 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb40 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb41 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb42 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb43 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb44 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb45 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb46 at src/driver/net/bridge.rs:254:9: 254:26
+bb47 at src/driver/net/bridge.rs:254:9: 254:26
+bb48 at src/driver/net/bridge.rs:254:49: 254:50
+bb49 at src/driver/net/bridge.rs:254:50: 254:51
+bb50 at src/driver/net/bridge.rs:246:9: 246:10
+bb59 at src/driver/net/bridge.rs:246:9: 246:10
+bb64 at src/driver/net/bridge.rs:246:9: 246:10
+fn driver::net::bridge::BridgeDriver::add_device
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} driver::net::bridge::BridgeDriver 
+_2:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ () 
+_4:  @ core::option::Option&lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt;&gt; 
+_5:  @ &amp;&#39;{erased} driver::net::bridge::BridgeDriver 
+_6:  @ isize 
+_7:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_8:  @ bool 
+_9:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_10:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_13:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_14:  @ core::option::Option&lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt;&gt; 
+_15:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased} 
+_16:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased} 
+_17:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_18:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_20:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_21:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_22:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
+_23:  @ ! 
+_24:  @ () 
+_25:  @ log::Level 
+_26:  @ bool 
+_27:  @ &amp;&#39;{erased} log::Level 
+_28:  @ &amp;&#39;{erased} log::LevelFilter 
+_29:  @ log::LevelFilter 
+_30:  @ bool 
+_31:  @ &amp;&#39;{erased} log::Level 
+_32:  @ &amp;&#39;{erased} log::LevelFilter 
+_33:  @ log::LevelFilter 
+_34:  @ () 
+_35:  @ log::__private_api::GlobalLogger 
+_36:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_37:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_38:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_39:  @ [&amp;&#39;{erased} str; 1_usize] 
+_40:  @ log::Level 
+_41:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_42:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_43:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_44:  @ &amp;&#39;{erased} str 
+_45:  @ &amp;&#39;{erased} str 
+_46:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_47:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_48:  @ () 
+_49:  @ driver::net::bridge::BridgePort 
+_50:  @ usize 
+_51:  @ &amp;&#39;{erased} driver::net::bridge::BridgeDriver 
+_52:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_53:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_54:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::bridge::BridgeEnableDevice), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_55:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::bridge::BridgeDriver, alloc::alloc::Global&gt; 
+_56:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::bridge::BridgeDriver, alloc::alloc::Global&gt; 
+_57:  @ alloc::sync::Arc&lt;driver::net::bridge::BridgeDriver, alloc::alloc::Global&gt; 
+_58:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::net::bridge::BridgeDriver, alloc::alloc::Global&gt;&gt; 
+_59:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;driver::net::bridge::BridgeDriver, alloc::alloc::Global&gt; 
+_60:  @ () 
+_61:  @ log::Level 
+_62:  @ bool 
+_63:  @ &amp;&#39;{erased} log::Level 
+_64:  @ &amp;&#39;{erased} log::LevelFilter 
+_65:  @ log::LevelFilter 
+_66:  @ bool 
+_67:  @ &amp;&#39;{erased} log::Level 
+_68:  @ &amp;&#39;{erased} log::LevelFilter 
+_69:  @ log::LevelFilter 
+_70:  @ () 
+_71:  @ log::__private_api::GlobalLogger 
+_72:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_73:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_74:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_75:  @ &amp;&#39;{erased} usize 
+_76:  @ &amp;&#39;{erased} usize 
+_77:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_78:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_79:  @ [&amp;&#39;{erased} str; 1_usize] 
+_80:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_81:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_82:  @ log::Level 
+_83:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_84:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_85:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_86:  @ &amp;&#39;{erased} str 
+_87:  @ &amp;&#39;{erased} str 
+_88:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_89:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_90:  @ () 
+_91:  @ () 
+_92:  @ &amp;&#39;{erased} mut driver::net::bridge::Bridge 
+_93:  @ &amp;&#39;{erased} mut driver::net::bridge::Bridge 
+_94:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::bridge::Bridge&gt; 
+_95:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::bridge::Bridge&gt; 
+_96:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::net::bridge::Bridge&gt; 
+_97:  @ usize 
+_98:  @ driver::net::bridge::BridgePort 
+_99:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_100:  @ &amp;&#39;{erased} log::LevelFilter 
+_101:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_102:  @ &amp;&#39;{erased} log::LevelFilter 
+_103:  @ bool 
+_104:  @ bool 
+_105:  @ bool 
+_106:  @ isize 
+_107:  @ isize 
+_108:  @ isize 
+_109:  @ isize 
+_110:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_105, const false)) @ _105=const false @ Use
+    Assign((_104, const false)) @ _104=const false @ Use
+    Assign((_103, const false)) @ _103=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;(*_1))) @ _5=&amp;(*_1) @ Ref
+    _4 = driver::net::bridge::BridgeDriver::netns(move _5) -&gt; [return: bb1, unwind: bb57] @ Call: FnDid: 10529
+}
+bb 1 {
+CleanUp: false
+    Assign((_103, const true)) @ _103=const true @ Use
+    StorageDead(_5) @ StorageDead
+    Assign((_6, discriminant(_4))) @ _6=discriminant(_4) @ Discriminant
+    switchInt(move _6) -&gt; [1: bb2, otherwise: bb25] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageLive(_7) @ StorageLive
+    Assign((_7, move ((_4 as Some).0: alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt;))) @ _7=move ((_4 as Some).0: alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt;) @ Use
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_7)) @ _10=&amp;_7 @ Ref
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;_2)) @ _17=&amp;_2 @ Ref
+    _16 = &lt;alloc::sync::Arc&lt;dyn driver::net::bridge::BridgeEnableDevice&gt; as lazy_static::__Deref&gt;::deref(move _17) -&gt; [return: bb3, unwind: bb56] @ Call: FnDid: 3903
+}
+bb 3 {
+CleanUp: false
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
+    StorageDead(_17) @ StorageDead
+    _14 = &lt;dyn driver::net::bridge::BridgeEnableDevice as driver::net::Iface&gt;::net_namespace(move _15) -&gt; [return: bb4, unwind: bb56] @ Call: FnDid: 11791
+}
+bb 4 {
+CleanUp: false
+    Assign((_105, const true)) @ _105=const true @ Use
+    StorageDead(_15) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _22=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    _20 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb5, unwind: bb63] @ Call: FnDid: 3903
+}
+bb 5 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    StorageDead(_21) @ StorageDead
+    _18 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as core::clone::Clone&gt;::clone(move _19) -&gt; [return: bb6, unwind: bb63] @ Call: FnDid: 3116
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_105, const false)) @ _105=const false @ Use
+    _13 = core::option::Option::&lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt;&gt;::unwrap_or(move _14, move _18) -&gt; [return: bb7, unwind: bb63] @ Call: FnDid: 10158
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    Assign((_105, const false)) @ _105=const false @ Use
+    StorageDead(_14) @ StorageDead
+    Assign((_12, &amp;_13)) @ _12=&amp;_13 @ Ref
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    _8 = alloc::sync::Arc::&lt;process::namespace::net_namespace::NetNamespace&gt;::ptr_eq(move _9, move _11) -&gt; [return: bb8, unwind: bb55] @ Call: FnDid: 6953
+}
+bb 8 {
+CleanUp: false
+    switchInt(move _8) -&gt; [0: bb10, otherwise: bb9] @ SwitchInt
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    drop(_13) -&gt; [return: bb24, unwind: bb56] @ Drop
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    drop(_13) -&gt; [return: bb11, unwind: bb56] @ Drop
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, log::Level::Warn)) @ _25=log::Level::Warn @ Aggregate
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &amp;_25)) @ _27=&amp;_25 @ Ref
+    StorageLive(_28) @ StorageLive
+    Assign((_102, const driver::net::bridge::BridgeDriver::add_device::promoted[3])) @ _102=const driver::net::bridge::BridgeDriver::add_device::promoted[3] @ Use
+    Assign((_28, &amp;(*_102))) @ _28=&amp;(*_102) @ Ref
+    _26 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _27, move _28) -&gt; [return: bb12, unwind: bb56] @ Call: FnDid: 3215
+}
+bb 12 {
+CleanUp: false
+    switchInt(move _26) -&gt; [0: bb21, otherwise: bb13] @ SwitchInt
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &amp;_25)) @ _31=&amp;_25 @ Ref
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    _33 = log::max_level() -&gt; [return: bb14, unwind: bb56] @ Call: FnDid: 134
+}
+bb 14 {
+CleanUp: false
+    Assign((_32, &amp;_33)) @ _32=&amp;_33 @ Ref
+    _30 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _31, move _32) -&gt; [return: bb15, unwind: bb56] @ Call: FnDid: 3215
+}
+bb 15 {
+CleanUp: false
+    switchInt(move _30) -&gt; [0: bb20, otherwise: bb16] @ SwitchInt
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, log::__private_api::GlobalLogger)) @ _35=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_101, const driver::net::bridge::BridgeDriver::add_device::promoted[2])) @ _101=const driver::net::bridge::BridgeDriver::add_device::promoted[2] @ Use
+    Assign((_38, &amp;(*_101))) @ _38=&amp;(*_101) @ Ref
+    Assign((_37, &amp;(*_38))) @ _37=&amp;(*_38) @ Ref
+    _36 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _37) -&gt; [return: bb17, unwind: bb56] @ Call: FnDid: 11832
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    Assign((_40, copy _25)) @ _40=copy _25 @ Use
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, const &#34;dragonos_kernel::driver::net::bridge&#34;)) @ _45=const &#34;dragonos_kernel::driver::net::bridge&#34; @ Use
+    Assign((_44, &amp;(*_45))) @ _44=&amp;(*_45) @ Ref
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    _47 = log::__private_api::loc() -&gt; [return: bb18, unwind: bb56] @ Call: FnDid: 184
+}
+bb 18 {
+CleanUp: false
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    Assign((_43, (move _44, const &#34;dragonos_kernel::driver::net::bridge&#34;, move _46))) @ _43=(move _44, const &#34;dragonos_kernel::driver::net::bridge&#34;, move _46) @ Aggregate
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    Assign((_42, &amp;_43)) @ _42=&amp;_43 @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    StorageLive(_48) @ StorageLive
+    Assign((_48, ())) @ _48=() @ Aggregate
+    _34 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _35, move _36, move _40, move _41, move _48) -&gt; [return: bb19, unwind: bb56] @ Call: FnDid: 178
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    Assign((_24, const ())) @ _24=const () @ Use
+    goto -&gt; bb23 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    goto -&gt; bb22 @ Goto
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    goto -&gt; bb22 @ Goto
+}
+bb 22 {
+CleanUp: false
+    Assign((_24, const ())) @ _24=const () @ Use
+    goto -&gt; bb23 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_8) @ StorageDead
+    drop(_7) -&gt; [return: bb50, unwind: bb64] @ Drop
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    StorageDead(_8) @ StorageDead
+    drop(_7) -&gt; [return: bb26, unwind: bb64] @ Drop
+}
+bb 25 {
+CleanUp: false
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb59 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb59 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_2)) @ _54=&amp;_2 @ Ref
+    _53 = &lt;alloc::sync::Arc&lt;dyn driver::net::bridge::BridgeEnableDevice&gt; as core::clone::Clone&gt;::clone(move _54) -&gt; [return: bb28, unwind: bb57] @ Call: FnDid: 3116
+}
+bb 28 {
+CleanUp: false
+    Assign((_52, move _53 as alloc::sync::Arc&lt;dyn driver::net::bridge::BridgeEnableDevice&gt; (PointerCoercion(Unsize, Implicit)))) @ _52=move _53 as alloc::sync::Arc&lt;dyn driver::net::bridge::BridgeEnableDevice&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_54) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    Assign((_59, &amp;((*_1).2: alloc::sync::Weak&lt;driver::net::bridge::BridgeDriver&gt;))) @ _59=&amp;((*_1).2: alloc::sync::Weak&lt;driver::net::bridge::BridgeDriver&gt;) @ Ref
+    _58 = alloc::sync::Weak::&lt;driver::net::bridge::BridgeDriver&gt;::upgrade(move _59) -&gt; [return: bb29, unwind: bb54] @ Call: FnDid: 7077
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    _57 = core::option::Option::&lt;alloc::sync::Arc&lt;driver::net::bridge::BridgeDriver&gt;&gt;::unwrap(move _58) -&gt; [return: bb30, unwind: bb54] @ Call: FnDid: 10157
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    Assign((_56, &amp;_57)) @ _56=&amp;_57 @ Ref
+    Assign((_55, &amp;(*_56))) @ _55=&amp;(*_56) @ Ref
+    _49 = driver::net::bridge::BridgePort::new(move _50, move _52, move _55) -&gt; [return: bb31, unwind: bb53] @ Call: FnDid: 10506
+}
+bb 31 {
+CleanUp: false
+    Assign((_104, const true)) @ _104=const true @ Use
+    StorageDead(_55) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    drop(_57) -&gt; [return: bb32, unwind: bb61] @ Drop
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_57) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    Assign((_61, log::Level::Info)) @ _61=log::Level::Info @ Aggregate
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_63, &amp;_61)) @ _63=&amp;_61 @ Ref
+    StorageLive(_64) @ StorageLive
+    Assign((_100, const driver::net::bridge::BridgeDriver::add_device::promoted[1])) @ _100=const driver::net::bridge::BridgeDriver::add_device::promoted[1] @ Use
+    Assign((_64, &amp;(*_100))) @ _64=&amp;(*_100) @ Ref
+    _62 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _63, move _64) -&gt; [return: bb33, unwind: bb61] @ Call: FnDid: 3215
+}
+bb 33 {
+CleanUp: false
+    switchInt(move _62) -&gt; [0: bb43, otherwise: bb34] @ SwitchInt
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    Assign((_67, &amp;_61)) @ _67=&amp;_61 @ Ref
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    _69 = log::max_level() -&gt; [return: bb35, unwind: bb61] @ Call: FnDid: 134
+}
+bb 35 {
+CleanUp: false
+    Assign((_68, &amp;_69)) @ _68=&amp;_69 @ Ref
+    _66 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _67, move _68) -&gt; [return: bb36, unwind: bb61] @ Call: FnDid: 3215
+}
+bb 36 {
+CleanUp: false
+    switchInt(move _66) -&gt; [0: bb42, otherwise: bb37] @ SwitchInt
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    Assign((_71, log::__private_api::GlobalLogger)) @ _71=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_76, &amp;(_49.0: usize))) @ _76=&amp;(_49.0: usize) @ Ref
+    Assign((_75, &amp;(*_76))) @ _75=&amp;(*_76) @ Ref
+    _74 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;usize&gt;(move _75) -&gt; [return: bb38, unwind: bb61] @ Call: FnDid: 11807
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    Assign((_73, [move _74])) @ _73=[move _74] @ Aggregate
+    StorageDead(_74) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    Assign((_99, const driver::net::bridge::BridgeDriver::add_device::promoted[0])) @ _99=const driver::net::bridge::BridgeDriver::add_device::promoted[0] @ Use
+    Assign((_78, &amp;(*_99))) @ _78=&amp;(*_99) @ Ref
+    Assign((_77, &amp;(*_78))) @ _77=&amp;(*_78) @ Ref
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &amp;_73)) @ _81=&amp;_73 @ Ref
+    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
+    _72 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _77, move _80) -&gt; [return: bb39, unwind: bb61] @ Call: FnDid: 11836
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    Assign((_82, copy _61)) @ _82=copy _61 @ Use
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    Assign((_87, const &#34;dragonos_kernel::driver::net::bridge&#34;)) @ _87=const &#34;dragonos_kernel::driver::net::bridge&#34; @ Use
+    Assign((_86, &amp;(*_87))) @ _86=&amp;(*_87) @ Ref
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    _89 = log::__private_api::loc() -&gt; [return: bb40, unwind: bb61] @ Call: FnDid: 184
+}
+bb 40 {
+CleanUp: false
+    Assign((_88, &amp;(*_89))) @ _88=&amp;(*_89) @ Ref
+    Assign((_85, (move _86, const &#34;dragonos_kernel::driver::net::bridge&#34;, move _88))) @ _85=(move _86, const &#34;dragonos_kernel::driver::net::bridge&#34;, move _88) @ Aggregate
+    StorageDead(_88) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    Assign((_84, &amp;_85)) @ _84=&amp;_85 @ Ref
+    Assign((_83, &amp;(*_84))) @ _83=&amp;(*_84) @ Ref
+    StorageLive(_90) @ StorageLive
+    Assign((_90, ())) @ _90=() @ Aggregate
+    _70 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _71, move _72, move _82, move _83, move _90) -&gt; [return: bb41, unwind: bb61] @ Call: FnDid: 178
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_84) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_60, const ())) @ _60=const () @ Use
+    goto -&gt; bb45 @ Goto
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    goto -&gt; bb44 @ Goto
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    goto -&gt; bb44 @ Goto
+}
+bb 44 {
+CleanUp: false
+    Assign((_60, const ())) @ _60=const () @ Use
+    goto -&gt; bb45 @ Goto
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    Assign((_96, &amp;((*_1).0: libs::spinlock::SpinLock&lt;driver::net::bridge::Bridge&gt;))) @ _96=&amp;((*_1).0: libs::spinlock::SpinLock&lt;driver::net::bridge::Bridge&gt;) @ Ref
+    _95 = libs::spinlock::SpinLock::&lt;driver::net::bridge::Bridge&gt;::lock(move _96) -&gt; [return: bb46, unwind: bb61] @ Call: FnDid: 5261
+}
+bb 46 {
+CleanUp: false
+    Assign((_94, &amp;mut _95)) @ _94=&amp;mut _95 @ Ref
+    _93 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::net::bridge::Bridge&gt; as core::ops::DerefMut&gt;::deref_mut(move _94) -&gt; [return: bb47, unwind: bb52] @ Call: FnDid: 3915
+}
+bb 47 {
+CleanUp: false
+    Assign((_92, &amp;mut (*_93))) @ _92=&amp;mut (*_93) @ Ref
+    StorageDead(_96) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    StorageLive(_97) @ StorageLive
+    Assign((_97, copy (_49.0: usize))) @ _97=copy (_49.0: usize) @ Use
+    StorageLive(_98) @ StorageLive
+    Assign((_104, const false)) @ _104=const false @ Use
+    Assign((_98, move _49)) @ _98=move _49 @ Use
+    _91 = driver::net::bridge::Bridge::add_port(move _92, move _97, move _98) -&gt; [return: bb48, unwind: bb52] @ Call: FnDid: 10509
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    drop(_95) -&gt; [return: bb49, unwind: bb61] @ Drop
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_95) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    Assign((_104, const false)) @ _104=const false @ Use
+    StorageDead(_49) @ StorageDead
+    drop(_2) -&gt; [return: bb51, unwind: bb58] @ Drop
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    Assign((_108, discriminant(_4))) @ _108=discriminant(_4) @ Discriminant
+    Assign((_103, const false)) @ _103=const false @ Use
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    drop(_2) -&gt; [return: bb51, unwind: bb58] @ Drop
+}
+bb 51 {
+CleanUp: false
+    return @ Return
+}
+bb 52 {
+CleanUp: true
+    drop(_95) -&gt; [return: bb61, unwind terminate(cleanup)] @ Drop
+}
+bb 53 {
+CleanUp: true
+    drop(_57) -&gt; [return: bb57, unwind terminate(cleanup)] @ Drop
+}
+bb 54 {
+CleanUp: true
+    drop(_52) -&gt; [return: bb57, unwind terminate(cleanup)] @ Drop
+}
+bb 55 {
+CleanUp: true
+    drop(_13) -&gt; [return: bb56, unwind terminate(cleanup)] @ Drop
+}
+bb 56 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb64, unwind terminate(cleanup)] @ Drop
+}
+bb 57 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 58 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 59 {
+CleanUp: false
+    Assign((_106, discriminant(_4))) @ _106=discriminant(_4) @ Discriminant
+    Assign((_103, const false)) @ _103=const false @ Use
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;(*_1))) @ _51=&amp;(*_1) @ Ref
+    _50 = driver::net::bridge::BridgeDriver::next_port_id(move _51) -&gt; [return: bb27, unwind: bb57] @ Call: FnDid: 10523
+}
+bb 60 {
+CleanUp: true
+    drop(_49) -&gt; [return: bb57, unwind terminate(cleanup)] @ Drop
+}
+bb 61 {
+CleanUp: true
+    switchInt(copy _104) -&gt; [0: bb57, otherwise: bb60] @ SwitchInt
+}
+bb 62 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb56, unwind terminate(cleanup)] @ Drop
+}
+bb 63 {
+CleanUp: true
+    switchInt(copy _105) -&gt; [0: bb56, otherwise: bb62] @ SwitchInt
+}
+bb 64 {
+CleanUp: true
+    Assign((_110, discriminant(_4))) @ _110=discriminant(_4) @ Discriminant
+    goto -&gt; bb57 @ Goto
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #2: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #2
+            
+                 <span class="func-name">arch::x86_64::driver::hpet::{impl#0}::period</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:07:47|RAP|WARN|: Dangling pointer detected in function &#34;period&#34;
+22:07:47|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;period&#34;
+warning: Dangling pointer detected.
+   --&gt; src/arch/x86_64/driver/hpet.rs:264:1
+    |
+264 | / pub fn period(&amp;self) -&gt; u64 {
+265 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+266 | |         let period = regs.counter_clock_period();
+267 | |         debug!(&#34;HPET period: {}&#34;, period);
+268 | |
+269 | |         drop(inner_guard);
+270 | |         return period;
+271 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 264.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in period and _1(self, src/arch/x86_64/driver/hpet.rs:264) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in period is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:264); _1(self, src/arch/x86_64/driver/hpet.rs:264) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/arch/x86_64/driver/hpet.rs:264:1
+    |
+264 | / pub fn period(&amp;self) -&gt; u64 {
+265 | |         let (inner_guard, regs) = unsafe { self.hpet_regs() };
+266 | |         let period = regs.counter_clock_period();
+267 | |         debug!(&#34;HPET period: {}&#34;, period);
+268 | |
+269 | |         drop(inner_guard);
+270 | |         return period;
+271 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/arch/x86_64/driver/hpet.rs line 264.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in period and _1(self, src/arch/x86_64/driver/hpet.rs:264) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in period is dropped at BB18446744073709551615(src/arch/x86_64/driver/hpet.rs:264); _1(self, src/arch/x86_64/driver/hpet.rs:264) became dangling.
+    |
+render dot for DefId(0:610 ~ dragonos_kernel[9e38]::arch::x86_64::driver::hpet::{impl#0}::period)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/arch/x86_64/driver/hpet.rs:265:35: 265:62
+bb1 at src/arch/x86_64/driver/hpet.rs:265:59: 265:60
+bb2 at src/arch/x86_64/driver/hpet.rs:266:48: 266:49
+bb4 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb7 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb8 at src/arch/x86_64/driver/hpet.rs:267:31: 267:32
+bb9 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb10 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb16 at src/arch/x86_64/driver/hpet.rs:269:25: 269:26
+fn arch::x86_64::driver::hpet::Hpet::period
+_0:  @ u64 
+_1:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_2:  @ ! 
+_3:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt; 
+_4:  @ &amp;&#39;{erased} driver::timers::hpet::HpetRegisters 
+_5:  @ (libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt;, &amp;&#39;{erased} driver::timers::hpet::HpetRegisters) 
+_6:  @ &amp;&#39;{erased} arch::x86_64::driver::hpet::Hpet 
+_7:  @ u64 
+_8:  @ &amp;&#39;{erased} driver::timers::hpet::HpetRegisters 
+_9:  @ () 
+_10:  @ log::Level 
+_11:  @ bool 
+_12:  @ &amp;&#39;{erased} log::Level 
+_13:  @ &amp;&#39;{erased} log::LevelFilter 
+_14:  @ log::LevelFilter 
+_15:  @ bool 
+_16:  @ &amp;&#39;{erased} log::Level 
+_17:  @ &amp;&#39;{erased} log::LevelFilter 
+_18:  @ log::LevelFilter 
+_19:  @ () 
+_20:  @ log::__private_api::GlobalLogger 
+_21:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_22:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_23:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_24:  @ &amp;&#39;{erased} u64 
+_25:  @ &amp;&#39;{erased} u64 
+_26:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_27:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_28:  @ [&amp;&#39;{erased} str; 1_usize] 
+_29:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_30:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_31:  @ log::Level 
+_32:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_33:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_34:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_35:  @ &amp;&#39;{erased} str 
+_36:  @ &amp;&#39;{erased} str 
+_37:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_38:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_39:  @ () 
+_40:  @ () 
+_41:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, arch::x86_64::driver::hpet::InnerHpet&gt; 
+_42:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_43:  @ &amp;&#39;{erased} log::LevelFilter 
+_44:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_1))) @ _6=&amp;(*_1) @ Ref
+    _5 = arch::x86_64::driver::hpet::Hpet::hpet_regs(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 607
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_3) @ StorageLive
+    Assign((_44, const true)) @ _44=const true @ Use
+    Assign((_3, move (_5.0: libs::rwlock::RwLockReadGuard&lt;&#39;_, arch::x86_64::driver::hpet::InnerHpet&gt;))) @ _3=move (_5.0: libs::rwlock::RwLockReadGuard&lt;&#39;_, arch::x86_64::driver::hpet::InnerHpet&gt;) @ Use
+    StorageLive(_4) @ StorageLive
+    Assign((_4, copy (_5.1: &amp;driver::timers::hpet::HpetRegisters))) @ _4=copy (_5.1: &amp;driver::timers::hpet::HpetRegisters) @ Use
+    StorageDead(_5) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;(*_4))) @ _8=&amp;(*_4) @ Ref
+    _7 = driver::timers::hpet::HpetRegisters::counter_clock_period(move _8) -&gt; [return: bb2, unwind: bb19] @ Call: FnDid: 13445
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, log::Level::Debug)) @ _10=log::Level::Debug @ Aggregate
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;_10)) @ _12=&amp;_10 @ Ref
+    StorageLive(_13) @ StorageLive
+    Assign((_43, const arch::x86_64::driver::hpet::Hpet::period::promoted[1])) @ _43=const arch::x86_64::driver::hpet::Hpet::period::promoted[1] @ Use
+    Assign((_13, &amp;(*_43))) @ _13=&amp;(*_43) @ Ref
+    _11 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _12, move _13) -&gt; [return: bb3, unwind: bb19] @ Call: FnDid: 3215
+}
+bb 3 {
+CleanUp: false
+    switchInt(move _11) -&gt; [0: bb13, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;_10)) @ _16=&amp;_10 @ Ref
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    _18 = log::max_level() -&gt; [return: bb5, unwind: bb19] @ Call: FnDid: 134
+}
+bb 5 {
+CleanUp: false
+    Assign((_17, &amp;_18)) @ _17=&amp;_18 @ Ref
+    _15 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _16, move _17) -&gt; [return: bb6, unwind: bb19] @ Call: FnDid: 3215
+}
+bb 6 {
+CleanUp: false
+    switchInt(move _15) -&gt; [0: bb12, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, log::__private_api::GlobalLogger)) @ _20=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_7)) @ _25=&amp;_7 @ Ref
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    _23 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;u64&gt;(move _24) -&gt; [return: bb8, unwind: bb19] @ Call: FnDid: 11807
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_22, [move _23])) @ _22=[move _23] @ Aggregate
+    StorageDead(_23) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    Assign((_42, const arch::x86_64::driver::hpet::Hpet::period::promoted[0])) @ _42=const arch::x86_64::driver::hpet::Hpet::period::promoted[0] @ Use
+    Assign((_27, &amp;(*_42))) @ _27=&amp;(*_42) @ Ref
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;_22)) @ _30=&amp;_22 @ Ref
+    Assign((_29, &amp;(*_30))) @ _29=&amp;(*_30) @ Ref
+    _21 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _26, move _29) -&gt; [return: bb9, unwind: bb19] @ Call: FnDid: 11836
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    Assign((_31, copy _10)) @ _31=copy _10 @ Use
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, const &#34;dragonos_kernel::arch::x86_64::driver::hpet&#34;)) @ _36=const &#34;dragonos_kernel::arch::x86_64::driver::hpet&#34; @ Use
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    _38 = log::__private_api::loc() -&gt; [return: bb10, unwind: bb19] @ Call: FnDid: 184
+}
+bb 10 {
+CleanUp: false
+    Assign((_37, &amp;(*_38))) @ _37=&amp;(*_38) @ Ref
+    Assign((_34, (move _35, const &#34;dragonos_kernel::arch::x86_64::driver::hpet&#34;, move _37))) @ _34=(move _35, const &#34;dragonos_kernel::arch::x86_64::driver::hpet&#34;, move _37) @ Aggregate
+    StorageDead(_37) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    Assign((_33, &amp;_34)) @ _33=&amp;_34 @ Ref
+    Assign((_32, &amp;(*_33))) @ _32=&amp;(*_33) @ Ref
+    StorageLive(_39) @ StorageLive
+    Assign((_39, ())) @ _39=() @ Aggregate
+    _19 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _20, move _21, move _31, move _32, move _39) -&gt; [return: bb11, unwind: bb19] @ Call: FnDid: 178
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    Assign((_9, const ())) @ _9=const () @ Use
+    goto -&gt; bb15 @ Goto
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    goto -&gt; bb14 @ Goto
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    goto -&gt; bb14 @ Goto
+}
+bb 14 {
+CleanUp: false
+    Assign((_9, const ())) @ _9=const () @ Use
+    goto -&gt; bb15 @ Goto
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_41, move _3)) @ _41=move _3 @ Use
+    _40 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, arch::x86_64::driver::hpet::InnerHpet&gt;&gt;(move _41) -&gt; [return: bb16, unwind: bb19] @ Call: FnDid: 2323
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    Assign((_0, copy _7)) @ _0=copy _7 @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_3) @ StorageDead
+    return @ Return
+}
+bb 17 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 18 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb17, unwind terminate(cleanup)] @ Drop
+}
+bb 19 {
+CleanUp: true
+    switchInt(copy _44) -&gt; [0: bb17, otherwise: bb18] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>

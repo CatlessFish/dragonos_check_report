@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report #187: Dragon Bugs</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Directory</a>
+        
+        <h1>
+            Report #187
+            
+                 <span class="func-name">sched::completion::{impl#0}::do_wait_for_common</span>
+            
+        </h1>
+
+
+        <div class="two-column">
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>Log Content</h2>
+                        <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
+                    </div>
+                    <pre id="logContent" class="code-block scrollable">22:08:17|RAP|WARN|: Dangling pointer detected in function &#34;do_wait_for_common&#34;
+22:08:17|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;do_wait_for_common&#34;
+warning: Dangling pointer detected.
+  --&gt; src/sched/completion.rs:31:1
+   |
+31 | / fn do_wait_for_common(&amp;self, mut timeout: i64, interuptible: bool) -&gt; Result&lt;i64, SystemError&gt; {
+32 | |         let mut inner = self.inner.lock_irqsave();
+33 | |         let pcb = ProcessManager::current_pcb();
+34 | |         if inner.done == 0 {
+35 | |             //loop break 类似 do while 保证进行一次信号检测
+36 | |             loop {
+37 | |                 //检查当前线程是否有未处理的信号
+38 | |                 if pcb.sig_info_irqsave().sig_pending().has_pending() {
+39 | |                     return Err(SystemError::ERESTARTSYS);
+40 | |                 }
+41 | |
+42 | |                 let e = if interuptible {
+43 | |                     unsafe { inner.wait_queue.sleep_without_schedule() }
+44 | |                 } else {
+45 | |                     unsafe { inner.wait_queue.sleep_without_schedule_uninterruptible() }
+46 | |                 };
+47 | |                 if e.is_err() {
+48 | |                     break;
+49 | |                 }
+50 | |                 drop(inner);
+51 | |                 timeout = schedule_timeout(timeout)?;
+52 | |                 inner = self.inner.lock_irqsave();
+53 | |                 if inner.done != 0 || timeout &lt;= 0 {
+54 | |                     break;
+55 | |                 }
+56 | |             }
+57 | |             inner.wait_queue.wakeup(None);
+58 | |             if inner.done == 0 {
+59 | |                 drop(inner);
+60 | |                 return Ok(timeout);
+61 | |             }
+62 | |         }
+63 | |         if inner.done != COMPLETE_ALL {
+64 | |             inner.done -= 1;
+65 | |         }
+66 | |         drop(inner);
+67 | |         return Ok(if timeout &gt; 0 { timeout } else { 1 });
+68 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/sched/completion.rs line 31.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_wait_for_common and _1(self, src/sched/completion.rs:31) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_wait_for_common is dropped at BB18446744073709551615(src/sched/completion.rs:31); _1(self, src/sched/completion.rs:31) became dangling.
+   |
+warning: Dangling pointer detected during unwinding.
+  --&gt; src/sched/completion.rs:31:1
+   |
+31 | / fn do_wait_for_common(&amp;self, mut timeout: i64, interuptible: bool) -&gt; Result&lt;i64, SystemError&gt; {
+32 | |         let mut inner = self.inner.lock_irqsave();
+33 | |         let pcb = ProcessManager::current_pcb();
+34 | |         if inner.done == 0 {
+35 | |             //loop break 类似 do while 保证进行一次信号检测
+36 | |             loop {
+37 | |                 //检查当前线程是否有未处理的信号
+38 | |                 if pcb.sig_info_irqsave().sig_pending().has_pending() {
+39 | |                     return Err(SystemError::ERESTARTSYS);
+40 | |                 }
+41 | |
+42 | |                 let e = if interuptible {
+43 | |                     unsafe { inner.wait_queue.sleep_without_schedule() }
+44 | |                 } else {
+45 | |                     unsafe { inner.wait_queue.sleep_without_schedule_uninterruptible() }
+46 | |                 };
+47 | |                 if e.is_err() {
+48 | |                     break;
+49 | |                 }
+50 | |                 drop(inner);
+51 | |                 timeout = schedule_timeout(timeout)?;
+52 | |                 inner = self.inner.lock_irqsave();
+53 | |                 if inner.done != 0 || timeout &lt;= 0 {
+54 | |                     break;
+55 | |                 }
+56 | |             }
+57 | |             inner.wait_queue.wakeup(None);
+58 | |             if inner.done == 0 {
+59 | |                 drop(inner);
+60 | |                 return Ok(timeout);
+61 | |             }
+62 | |         }
+63 | |         if inner.done != COMPLETE_ALL {
+64 | |             inner.done -= 1;
+65 | |         }
+66 | |         drop(inner);
+67 | |         return Ok(if timeout &gt; 0 { timeout } else { 1 });
+68 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/sched/completion.rs line 31.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_wait_for_common and _1(self, src/sched/completion.rs:31) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_wait_for_common is dropped at BB18446744073709551615(src/sched/completion.rs:31); _1(self, src/sched/completion.rs:31) became dangling.
+   |
+render dot for DefId(0:30104 ~ dragonos_kernel[9e38]::sched::completion::{impl#0}::do_wait_for_common)
+</pre>
+                </div>
+            
+
+            
+                <div class="column">
+                    <div class="file-header">
+                        <h2>MIR Content</h2>
+                        <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
+                    </div>
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/sched/completion.rs:32:13: 32:22
+bb1 at src/sched/completion.rs:32:49: 32:50
+bb2 at src/sched/completion.rs:34:9: 62:10
+bb3 at src/sched/completion.rs:34:16: 34:17
+bb4 at src/sched/completion.rs:34:26: 34:27
+bb5 at src/sched/completion.rs:38:17: 40:18
+bb6 at src/sched/completion.rs:38:20: 38:23
+bb7 at src/sched/completion.rs:38:20: 38:42
+bb8 at src/sched/completion.rs:38:20: 38:42
+bb9 at src/sched/completion.rs:38:20: 38:56
+bb12 at src/sched/completion.rs:38:69: 38:70
+bb14 at src/sched/completion.rs:38:69: 38:70
+bb15 at src/sched/completion.rs:43:30: 43:46
+bb16 at src/sched/completion.rs:45:30: 45:46
+bb17 at src/sched/completion.rs:43:34: 43:35
+bb18 at src/sched/completion.rs:43:70: 43:71
+bb19 at src/sched/completion.rs:45:34: 45:35
+bb20 at src/sched/completion.rs:45:86: 45:87
+bb21 at src/sched/completion.rs:46:17: 46:18
+bb23 at src/sched/completion.rs:47:29: 47:30
+bb24 at src/sched/completion.rs:47:29: 47:30
+bb25 at src/sched/completion.rs:50:27: 50:28
+bb26 at src/sched/completion.rs:51:51: 51:52
+bb27 at src/sched/completion.rs:51:52: 51:53
+bb29 at src/sched/completion.rs:51:27: 51:53
+bb30 at src/sched/completion.rs:51:52: 51:53
+bb31 at src/sched/completion.rs:51:52: 51:53
+bb32 at src/sched/completion.rs:52:49: 52:50
+bb33 at src/sched/completion.rs:53:24: 53:25
+bb34 at src/sched/completion.rs:53:34: 53:35
+bb35 at src/sched/completion.rs:53:34: 53:35
+bb36 at src/sched/completion.rs:53:50: 53:51
+bb37 at src/sched/completion.rs:54:21: 54:26
+bb38 at src/sched/completion.rs:53:50: 53:51
+bb39 at src/sched/completion.rs:56:13: 56:14
+bb40 at src/sched/completion.rs:57:17: 57:18
+bb41 at src/sched/completion.rs:57:41: 57:42
+bb42 at src/sched/completion.rs:58:20: 58:21
+bb43 at src/sched/completion.rs:58:30: 58:31
+bb44 at src/sched/completion.rs:59:27: 59:28
+bb45 at src/sched/completion.rs:58:30: 58:31
+bb46 at src/sched/completion.rs:34:26: 34:27
+bb47 at src/sched/completion.rs:62:9: 62:10
+bb48 at src/sched/completion.rs:63:16: 63:17
+bb49 at src/sched/completion.rs:63:37: 63:38
+bb50 at src/sched/completion.rs:64:17: 64:18
+bb51 at src/sched/completion.rs:64:13: 64:28
+bb52 at src/sched/completion.rs:63:37: 63:38
+bb53 at src/sched/completion.rs:65:9: 65:10
+bb54 at src/sched/completion.rs:66:19: 66:20
+bb55 at src/sched/completion.rs:67:32: 67:33
+bb56 at src/sched/completion.rs:67:32: 67:33
+bb57 at src/sched/completion.rs:67:55: 67:56
+bb58 at src/sched/completion.rs:56:13: 56:14
+bb59 at src/sched/completion.rs:62:9: 62:10
+bb61 at src/sched/completion.rs:68:5: 68:6
+bb62 at src/sched/completion.rs:68:5: 68:6
+fn sched::completion::Completion::do_wait_for_common
+_0:  @ core::result::Result&lt;i64, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} sched::completion::Completion 
+_2:  @ i64 
+_3:  @ bool 
+_4:  @ ! 
+_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_6:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;sched::completion::InnerCompletion&gt; 
+_7:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_8:  @ () 
+_9:  @ bool 
+_10:  @ u32 
+_11:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_12:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_13:  @ () 
+_14:  @ () 
+_15:  @ () 
+_16:  @ bool 
+_17:  @ &amp;&#39;{erased} ipc::signal_types::SigPending 
+_18:  @ &amp;&#39;{erased} ipc::signal_types::SigPending 
+_19:  @ &amp;&#39;{erased} process::ProcessSignalInfo 
+_20:  @ &amp;&#39;{erased} process::ProcessSignalInfo 
+_21:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, process::ProcessSignalInfo&gt; 
+_22:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, process::ProcessSignalInfo&gt; 
+_23:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_24:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_25:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_26:  @ ! 
+_27:  @ system_error::SystemError 
+_28:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_29:  @ bool 
+_30:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_31:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_32:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_33:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_34:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_35:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_36:  @ () 
+_37:  @ bool 
+_38:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_39:  @ ! 
+_40:  @ () 
+_41:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_42:  @ i64 
+_43:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, i64&gt; 
+_44:  @ core::result::Result&lt;i64, system_error::SystemError&gt; 
+_45:  @ i64 
+_46:  @ isize 
+_47:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_48:  @ ! 
+_49:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_50:  @ i64 
+_51:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_52:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;sched::completion::InnerCompletion&gt; 
+_53:  @ bool 
+_54:  @ u32 
+_55:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_56:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_57:  @ bool 
+_58:  @ i64 
+_59:  @ ! 
+_60:  @ bool 
+_61:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_62:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_63:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_64:  @ core::option::Option&lt;process::ProcessState&gt; 
+_65:  @ bool 
+_66:  @ u32 
+_67:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_68:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_69:  @ ! 
+_70:  @ () 
+_71:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_72:  @ i64 
+_73:  @ () 
+_74:  @ bool 
+_75:  @ u32 
+_76:  @ &amp;&#39;{erased} sched::completion::InnerCompletion 
+_77:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_78:  @ &amp;&#39;{erased} mut sched::completion::InnerCompletion 
+_79:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_80:  @ (u32, bool) 
+_81:  @ () 
+_82:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, sched::completion::InnerCompletion&gt; 
+_83:  @ i64 
+_84:  @ bool 
+_85:  @ i64 
+_86:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_86, const false)) @ _86=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;((*_1).0: libs::spinlock::SpinLock&lt;sched::completion::InnerCompletion&gt;))) @ _6=&amp;((*_1).0: libs::spinlock::SpinLock&lt;sched::completion::InnerCompletion&gt;) @ Ref
+    Assign((_86, const true)) @ _86=const true @ Use
+    _5 = libs::spinlock::SpinLock::&lt;sched::completion::InnerCompletion&gt;::lock_irqsave(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5263
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    _7 = process::ProcessManager::current_pcb() -&gt; [return: bb2, unwind: bb68] @ Call: FnDid: 29866
+}
+bb 2 {
+CleanUp: false
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;_5)) @ _12=&amp;_5 @ Ref
+    _11 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _12) -&gt; [return: bb3, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    Assign((_10, copy ((*_11).0: u32))) @ _10=copy ((*_11).0: u32) @ Use
+    Assign((_9, Eq(move _10, const 0_u32))) @ _9=Eq(move _10, const 0_u32) @ BinaryOp
+    switchInt(move _9) -&gt; [0: bb46, otherwise: bb4] @ SwitchInt
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    goto -&gt; bb5 @ Goto
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_7)) @ _25=&amp;_7 @ Ref
+    _24 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _25) -&gt; [return: bb6, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_23, &amp;(*_24))) @ _23=&amp;(*_24) @ Ref
+    StorageDead(_25) @ StorageDead
+    _22 = process::ProcessControlBlock::sig_info_irqsave(move _23) -&gt; [return: bb7, unwind: bb64] @ Call: FnDid: 29960
+}
+bb 7 {
+CleanUp: false
+    Assign((_21, &amp;_22)) @ _21=&amp;_22 @ Ref
+    _20 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, process::ProcessSignalInfo&gt; as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb8, unwind: bb63] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    StorageDead(_23) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    _18 = process::ProcessSignalInfo::sig_pending(move _19) -&gt; [return: bb9, unwind: bb63] @ Call: FnDid: 30068
+}
+bb 9 {
+CleanUp: false
+    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
+    StorageDead(_19) @ StorageDead
+    _16 = ipc::signal_types::SigPending::has_pending(move _17) -&gt; [return: bb10, unwind: bb63] @ Call: FnDid: 22739
+}
+bb 10 {
+CleanUp: false
+    switchInt(move _16) -&gt; [0: bb13, otherwise: bb11] @ SwitchInt
+}
+bb 11 {
+CleanUp: false
+    drop(_22) -&gt; [return: bb12, unwind: bb64] @ Drop
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    Assign((_27, system_error::SystemError::ERESTARTSYS)) @ _27=system_error::SystemError::ERESTARTSYS @ Aggregate
+    Assign((_0, core::result::Result::&lt;i64, system_error::SystemError&gt;::Err(move _27))) @ _0=core::result::Result::&lt;i64, system_error::SystemError&gt;::Err(move _27) @ Aggregate
+    StorageDead(_27) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 13 {
+CleanUp: false
+    drop(_22) -&gt; [return: bb14, unwind: bb64] @ Drop
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_15, const ())) @ _15=const () @ Use
+    StorageDead(_16) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, copy _3)) @ _29=copy _3 @ Use
+    switchInt(move _29) -&gt; [0: bb16, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;_5)) @ _32=&amp;_5 @ Ref
+    _31 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _32) -&gt; [return: bb17, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_5)) @ _35=&amp;_5 @ Ref
+    _34 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb19, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    Assign((_30, &amp;((*_31).1: libs::wait_queue::WaitQueue))) @ _30=&amp;((*_31).1: libs::wait_queue::WaitQueue) @ Ref
+    _28 = libs::wait_queue::WaitQueue::sleep_without_schedule(move _30) -&gt; [return: bb18, unwind: bb64] @ Call: FnDid: 5632
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    Assign((_33, &amp;((*_34).1: libs::wait_queue::WaitQueue))) @ _33=&amp;((*_34).1: libs::wait_queue::WaitQueue) @ Ref
+    _28 = libs::wait_queue::WaitQueue::sleep_without_schedule_uninterruptible(move _33) -&gt; [return: bb20, unwind: bb64] @ Call: FnDid: 5634
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;_28)) @ _38=&amp;_28 @ Ref
+    _37 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_err(move _38) -&gt; [return: bb22, unwind: bb64] @ Call: FnDid: 10990
+}
+bb 22 {
+CleanUp: false
+    switchInt(move _37) -&gt; [0: bb24, otherwise: bb23] @ SwitchInt
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    Assign((_13, const ())) @ _13=const () @ Use
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    goto -&gt; bb39 @ Goto
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    Assign((_36, const ())) @ _36=const () @ Use
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_86, const false)) @ _86=const false @ Use
+    Assign((_41, move _5)) @ _41=move _5 @ Use
+    _40 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt;&gt;(move _41) -&gt; [return: bb25, unwind: bb64] @ Call: FnDid: 2323
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, copy _2)) @ _45=copy _2 @ Use
+    _44 = time::timer::schedule_timeout(move _45) -&gt; [return: bb26, unwind: bb64] @ Call: FnDid: 31574
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    _43 = &lt;core::result::Result&lt;i64, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _44) -&gt; [return: bb27, unwind: bb64] @ Call: FnDid: 4199
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    Assign((_46, discriminant(_43))) @ _46=discriminant(_43) @ Discriminant
+    switchInt(move _46) -&gt; [0: bb29, 1: bb30, otherwise: bb28] @ SwitchInt
+}
+bb 28 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 29 {
+CleanUp: false
+    StorageLive(_50) @ StorageLive
+    Assign((_50, copy ((_43 as Continue).0: i64))) @ _50=copy ((_43 as Continue).0: i64) @ Use
+    Assign((_42, copy _50)) @ _42=copy _50 @ Use
+    StorageDead(_50) @ StorageDead
+    Assign((_2, move _42)) @ _2=move _42 @ Use
+    StorageDead(_42) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    Assign((_52, &amp;((*_1).0: libs::spinlock::SpinLock&lt;sched::completion::InnerCompletion&gt;))) @ _52=&amp;((*_1).0: libs::spinlock::SpinLock&lt;sched::completion::InnerCompletion&gt;) @ Ref
+    _51 = libs::spinlock::SpinLock::&lt;sched::completion::InnerCompletion&gt;::lock_irqsave(move _52) -&gt; [return: bb32, unwind: bb64] @ Call: FnDid: 5263
+}
+bb 30 {
+CleanUp: false
+    StorageLive(_47) @ StorageLive
+    Assign((_47, move ((_43 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _47=move ((_43 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_49) @ StorageLive
+    Assign((_49, move _47)) @ _49=move _47 @ Use
+    _0 = &lt;core::result::Result&lt;i64, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _49) -&gt; [return: bb31, unwind: bb64] @ Call: FnDid: 4202
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_52) @ StorageDead
+    Assign((_86, const true)) @ _86=const true @ Use
+    Assign((_5, move _51)) @ _5=move _51 @ Use
+    StorageDead(_51) @ StorageDead
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;_5)) @ _56=&amp;_5 @ Ref
+    _55 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _56) -&gt; [return: bb33, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 33 {
+CleanUp: false
+    StorageDead(_56) @ StorageDead
+    Assign((_54, copy ((*_55).0: u32))) @ _54=copy ((*_55).0: u32) @ Use
+    Assign((_53, Ne(move _54, const 0_u32))) @ _53=Ne(move _54, const 0_u32) @ BinaryOp
+    switchInt(move _53) -&gt; [0: bb35, otherwise: bb34] @ SwitchInt
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    goto -&gt; bb37 @ Goto
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, copy _2)) @ _58=copy _2 @ Use
+    Assign((_57, Le(move _58, const 0_i64))) @ _57=Le(move _58, const 0_i64) @ BinaryOp
+    switchInt(move _57) -&gt; [0: bb38, otherwise: bb36] @ SwitchInt
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    goto -&gt; bb37 @ Goto
+}
+bb 37 {
+CleanUp: false
+    Assign((_13, const ())) @ _13=const () @ Use
+    StorageDead(_57) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    goto -&gt; bb39 @ Goto
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    Assign((_14, const ())) @ _14=const () @ Use
+    StorageDead(_57) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    goto -&gt; bb5 @ Goto
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_63, &amp;_5)) @ _63=&amp;_5 @ Ref
+    _62 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _63) -&gt; [return: bb40, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_63) @ StorageDead
+    Assign((_61, &amp;((*_62).1: libs::wait_queue::WaitQueue))) @ _61=&amp;((*_62).1: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_64) @ StorageLive
+    Assign((_64, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _64=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _60 = libs::wait_queue::WaitQueue::wakeup(move _61, move _64) -&gt; [return: bb41, unwind: bb64] @ Call: FnDid: 5650
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    Assign((_68, &amp;_5)) @ _68=&amp;_5 @ Ref
+    _67 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _68) -&gt; [return: bb42, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_68) @ StorageDead
+    Assign((_66, copy ((*_67).0: u32))) @ _66=copy ((*_67).0: u32) @ Use
+    Assign((_65, Eq(move _66, const 0_u32))) @ _65=Eq(move _66, const 0_u32) @ BinaryOp
+    switchInt(move _65) -&gt; [0: bb45, otherwise: bb43] @ SwitchInt
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    Assign((_86, const false)) @ _86=const false @ Use
+    Assign((_71, move _5)) @ _71=move _5 @ Use
+    _70 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt;&gt;(move _71) -&gt; [return: bb44, unwind: bb64] @ Call: FnDid: 2323
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    Assign((_72, copy _2)) @ _72=copy _2 @ Use
+    Assign((_0, core::result::Result::&lt;i64, system_error::SystemError&gt;::Ok(move _72))) @ _0=core::result::Result::&lt;i64, system_error::SystemError&gt;::Ok(move _72) @ Aggregate
+    StorageDead(_72) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    goto -&gt; bb59 @ Goto
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    Assign((_8, const ())) @ _8=const () @ Use
+    StorageDead(_65) @ StorageDead
+    goto -&gt; bb47 @ Goto
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_8, const ())) @ _8=const () @ Use
+    goto -&gt; bb47 @ Goto
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_77, &amp;_5)) @ _77=&amp;_5 @ Ref
+    _76 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as lazy_static::__Deref&gt;::deref(move _77) -&gt; [return: bb48, unwind: bb64] @ Call: FnDid: 3903
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    Assign((_75, copy ((*_76).0: u32))) @ _75=copy ((*_76).0: u32) @ Use
+    Assign((_74, Ne(move _75, const sched::completion::COMPLETE_ALL))) @ _74=Ne(move _75, const sched::completion::COMPLETE_ALL) @ BinaryOp
+    switchInt(move _74) -&gt; [0: bb52, otherwise: bb49] @ SwitchInt
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_79, &amp;mut _5)) @ _79=&amp;mut _5 @ Ref
+    _78 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt; as core::ops::DerefMut&gt;::deref_mut(move _79) -&gt; [return: bb50, unwind: bb64] @ Call: FnDid: 3915
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_79) @ StorageDead
+    Assign((_80, SubWithOverflow(copy ((*_78).0: u32), const 1_u32))) @ _80=SubWithOverflow(copy ((*_78).0: u32), const 1_u32) @ BinaryOp
+    assert(!move (_80.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_78).0: u32), const 1_u32) -&gt; [success: bb51, unwind: bb64] @ Assert
+}
+bb 51 {
+CleanUp: false
+    Assign((((*_78).0: u32), move (_80.0: u32))) @ ((*_78).0: u32)=move (_80.0: u32) @ Use
+    StorageDead(_78) @ StorageDead
+    Assign((_73, const ())) @ _73=const () @ Use
+    goto -&gt; bb53 @ Goto
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    Assign((_73, const ())) @ _73=const () @ Use
+    goto -&gt; bb53 @ Goto
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_74) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    Assign((_86, const false)) @ _86=const false @ Use
+    Assign((_82, move _5)) @ _82=move _5 @ Use
+    _81 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, sched::completion::InnerCompletion&gt;&gt;(move _82) -&gt; [return: bb54, unwind: bb64] @ Call: FnDid: 2323
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, copy _2)) @ _85=copy _2 @ Use
+    Assign((_84, Gt(move _85, const 0_i64))) @ _84=Gt(move _85, const 0_i64) @ BinaryOp
+    switchInt(move _84) -&gt; [0: bb56, otherwise: bb55] @ SwitchInt
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    Assign((_83, copy _2)) @ _83=copy _2 @ Use
+    goto -&gt; bb57 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    Assign((_83, const 1_i64)) @ _83=const 1_i64 @ Use
+    goto -&gt; bb57 @ Goto
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    Assign((_0, core::result::Result::&lt;i64, system_error::SystemError&gt;::Ok(move _83))) @ _0=core::result::Result::&lt;i64, system_error::SystemError&gt;::Ok(move _83) @ Aggregate
+    StorageDead(_83) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    goto -&gt; bb59 @ Goto
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 60 {
+CleanUp: false
+    drop(_7) -&gt; [return: bb61, unwind: bb68] @ Drop
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    switchInt(copy _86) -&gt; [0: bb62, otherwise: bb66] @ SwitchInt
+}
+bb 62 {
+CleanUp: false
+    Assign((_86, const false)) @ _86=const false @ Use
+    StorageDead(_5) @ StorageDead
+    return @ Return
+}
+bb 63 {
+CleanUp: true
+    drop(_22) -&gt; [return: bb64, unwind terminate(cleanup)] @ Drop
+}
+bb 64 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb68, unwind terminate(cleanup)] @ Drop
+}
+bb 65 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 66 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb62, unwind: bb65] @ Drop
+}
+bb 67 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb65, unwind terminate(cleanup)] @ Drop
+}
+bb 68 {
+CleanUp: true
+    switchInt(copy _86) -&gt; [0: bb65, otherwise: bb67] @ SwitchInt
+}
+
+</div>
+                </div>
+            
+        </div>
+
+        
+    </div>
+    <script>
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied!');
+        });
+    }
+    </script>
+</body>
+</html>
