@@ -13,7 +13,7 @@
         <h1>
             Report #99
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_pwritev::{impl#0}::entry_format</span>
+                 <span class="func-name">net::socket::unix::stream::{impl#1}::connect</span>
             
         </h1>
 
@@ -25,38 +25,43 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:08|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_pwritev.rs:54:1
-   |
-54 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-55 | |         vec![
-56 | |             FormattedSyscallParam::new(&#34;fd:&#34;, Self::fd(args).to_string()),
-57 | |             FormattedSyscallParam::new(&#34;iov:&#34;, format!(&#34;{:#x}&#34;, Self::iov(args) as usize)),
-58 | |             FormattedSyscallParam::new(&#34;iov_count:&#34;, Self::iov_count(args).to_string()),
-59 | |             FormattedSyscallParam::new(&#34;offset:&#34;, Self::offset(args).to_string()),
-60 | |         ]
-61 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwritev.rs line 54.
-    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) and _9(_, src/filesystem/vfs/syscall/sys_pwritev.rs:56) are alias.
-    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_pwritev.rs:56) is dropped at BB20(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_pwritev.rs:54:1
-   |
-54 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-55 | |         vec![
-56 | |             FormattedSyscallParam::new(&#34;fd:&#34;, Self::fd(args).to_string()),
-57 | |             FormattedSyscallParam::new(&#34;iov:&#34;, format!(&#34;{:#x}&#34;, Self::iov(args) as usize)),
-58 | |             FormattedSyscallParam::new(&#34;iov_count:&#34;, Self::iov_count(args).to_string()),
-59 | |             FormattedSyscallParam::new(&#34;offset:&#34;, Self::offset(args).to_string()),
-60 | |         ]
-61 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pwritev.rs line 54.
-    | MIR detail: Value _39(_, src/filesystem/vfs/syscall/sys_pwritev.rs:58) and _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) are alias.
-    | MIR detail: _39(_, src/filesystem/vfs/syscall/sys_pwritev.rs:58) is dropped at BB18(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/filesystem/vfs/syscall/sys_pwritev.rs:57) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-render dot for DefId(0:20293 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pwritev::{impl#0}::entry_format)
+                    <pre id="logContent" class="code-block scrollable">22:08:15|RAP|WARN|: Dangling pointer detected in function &#34;connect&#34;
+warning: Dangling pointer detected.
+   --&gt; src/net/socket/unix/stream/mod.rs:167:1
+    |
+167 | / fn connect(&amp;self, server_endpoint: Endpoint) -&gt; Result&lt;(), SystemError&gt; {
+168 | |         let remote_addr = UnixEndpoint::try_from(server_endpoint)?.connect()?;
+169 | |         let backlog = get_backlog(&amp;remote_addr)?;
+170 | |
+171 | |         if self.is_nonblocking() {
+172 | |             self.try_connect(&amp;backlog)
+173 | |         } else {
+174 | |             backlog.pause_until(|| self.try_connect(&amp;backlog))
+175 | |         }
+176 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 167.
+    | MIR detail: Value _21(backlog, src/net/socket/unix/stream/mod.rs:169) and _1(self, src/net/socket/unix/stream/mod.rs:167) are alias.
+    | MIR detail: _21(backlog, src/net/socket/unix/stream/mod.rs:169) is dropped at BB23(src/net/socket/unix/stream/mod.rs:176); _1(self, src/net/socket/unix/stream/mod.rs:167) became dangling.
+    |
+22:08:15|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;connect&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/net/socket/unix/stream/mod.rs:167:1
+    |
+167 | / fn connect(&amp;self, server_endpoint: Endpoint) -&gt; Result&lt;(), SystemError&gt; {
+168 | |         let remote_addr = UnixEndpoint::try_from(server_endpoint)?.connect()?;
+169 | |         let backlog = get_backlog(&amp;remote_addr)?;
+170 | |
+171 | |         if self.is_nonblocking() {
+172 | |             self.try_connect(&amp;backlog)
+173 | |         } else {
+174 | |             backlog.pause_until(|| self.try_connect(&amp;backlog))
+175 | |         }
+176 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/unix/stream/mod.rs line 167.
+    | MIR detail: Value _21(backlog, src/net/socket/unix/stream/mod.rs:169) and _1(self, src/net/socket/unix/stream/mod.rs:167) are alias.
+    | MIR detail: _21(backlog, src/net/socket/unix/stream/mod.rs:169) is dropped at BB28(src/net/socket/unix/stream/mod.rs:176); _1(self, src/net/socket/unix/stream/mod.rs:167) became dangling.
+    |
+render dot for DefId(0:27103 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect)
 </pre>
                 </div>
             
@@ -67,320 +72,403 @@ render dot for DefId(0:20293 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb2 at src/filesystem/vfs/syscall/sys_pwritev.rs:56:47: 56:61
-bb3 at src/filesystem/vfs/syscall/sys_pwritev.rs:56:72: 56:73
-bb4 at src/filesystem/vfs/syscall/sys_pwritev.rs:56:73: 56:74
-bb5 at src/filesystem/vfs/syscall/sys_pwritev.rs:57:79: 57:80
-bb6 at src/filesystem/vfs/syscall/sys_pwritev.rs:57:61: 57:62
-bb7 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb10 at src/filesystem/vfs/syscall/sys_pwritev.rs:57:90: 57:91
-bb11 at src/filesystem/vfs/syscall/sys_pwritev.rs:58:54: 58:75
-bb12 at src/filesystem/vfs/syscall/sys_pwritev.rs:58:86: 58:87
-bb13 at src/filesystem/vfs/syscall/sys_pwritev.rs:58:87: 58:88
-bb14 at src/filesystem/vfs/syscall/sys_pwritev.rs:59:51: 59:69
-bb15 at src/filesystem/vfs/syscall/sys_pwritev.rs:59:80: 59:81
-bb16 at src/filesystem/vfs/syscall/sys_pwritev.rs:59:81: 59:82
-bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
-bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
-bb23 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-bb24 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-fn &lt;filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle as syscall::table::Syscall&gt;::entry_format
-_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
-_4:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
-_5:  @ usize 
-_6:  @ usize 
-_7:  @ *mut u8 
-_8:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
-_9:  @ syscall::table::FormattedSyscallParam 
-_10:  @ alloc::string::String 
-_11:  @ &amp;&#39;{erased} i32 
-_12:  @ i32 
-_13:  @ &amp;&#39;{erased} [usize] 
-_14:  @ syscall::table::FormattedSyscallParam 
-_15:  @ alloc::string::String 
-_16:  @ alloc::string::String 
-_17:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_18:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_19:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_20:  @ &amp;&#39;{erased} usize 
-_21:  @ &amp;&#39;{erased} usize 
-_22:  @ usize 
-_23:  @ *const filesystem::vfs::iov::IoVec 
-_24:  @ &amp;&#39;{erased} [usize] 
-_25:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_26:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_27:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_28:  @ [&amp;&#39;{erased} str; 1_usize] 
-_29:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_30:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_31:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_32:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_33:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_34:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_35:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_36:  @ core::fmt::rt::Placeholder 
-_37:  @ core::fmt::rt::Count 
-_38:  @ core::fmt::rt::Count 
-_39:  @ syscall::table::FormattedSyscallParam 
-_40:  @ alloc::string::String 
-_41:  @ &amp;&#39;{erased} usize 
-_42:  @ usize 
-_43:  @ &amp;&#39;{erased} [usize] 
-_44:  @ syscall::table::FormattedSyscallParam 
-_45:  @ alloc::string::String 
-_46:  @ &amp;&#39;{erased} usize 
-_47:  @ usize 
-_48:  @ &amp;&#39;{erased} [usize] 
-_49:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_50:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_51:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
-_52:  @ () 
-_53:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
-_54:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
-_55:  @ *const () 
-_56:  @ usize 
-_57:  @ usize 
-_58:  @ usize 
-_59:  @ usize 
-_60:  @ bool 
-_61:  @ *const () 
-_62:  @ usize 
-_63:  @ usize 
-_64:  @ bool 
-_65:  @ bool 
-_66:  @ bool 
-_67:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/net/socket/unix/stream/mod.rs:168:13: 168:24
+bb1 at src/net/socket/unix/stream/mod.rs:168:65: 168:66
+bb2 at src/net/socket/unix/stream/mod.rs:168:66: 168:67
+bb4 at src/net/socket/unix/stream/mod.rs:168:27: 168:67
+bb5 at src/net/socket/unix/stream/mod.rs:168:66: 168:67
+bb6 at src/net/socket/unix/stream/mod.rs:168:66: 168:67
+bb7 at src/net/socket/unix/stream/mod.rs:168:76: 168:77
+bb8 at src/net/socket/unix/stream/mod.rs:168:77: 168:78
+bb9 at src/net/socket/unix/stream/mod.rs:168:27: 168:78
+bb10 at src/net/socket/unix/stream/mod.rs:168:77: 168:78
+bb11 at src/net/socket/unix/stream/mod.rs:168:77: 168:78
+bb12 at src/net/socket/unix/stream/mod.rs:169:47: 169:48
+bb13 at src/net/socket/unix/stream/mod.rs:169:48: 169:49
+bb14 at src/net/socket/unix/stream/mod.rs:169:23: 169:49
+bb15 at src/net/socket/unix/stream/mod.rs:169:48: 169:49
+bb16 at src/net/socket/unix/stream/mod.rs:169:48: 169:49
+bb18 at src/net/socket/unix/stream/mod.rs:171:32: 171:33
+bb19 at src/net/socket/unix/stream/mod.rs:172:38: 172:39
+bb20 at src/net/socket/unix/stream/mod.rs:171:32: 171:33
+bb21 at src/net/socket/unix/stream/mod.rs:174:13: 174:20
+bb22 at src/net/socket/unix/stream/mod.rs:174:62: 174:63
+bb23 at src/net/socket/unix/stream/mod.rs:175:9: 175:10
+bb24 at src/net/socket/unix/stream/mod.rs:176:5: 176:6
+bb25 at src/net/socket/unix/stream/mod.rs:176:5: 176:6
+bb26 at src/net/socket/unix/stream/mod.rs:176:5: 176:6
+bb32 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb33 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb34 at src/net/socket/unix/stream/mod.rs:169:49: 169:50
+bb35 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb36 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+bb37 at src/net/socket/unix/stream/mod.rs:168:78: 168:79
+fn &lt;net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket&gt;::connect
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_2:  @ net::socket::endpoint::Endpoint 
+_3:  @ net::socket::unix::UnixEndpointBound 
+_4:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, net::socket::unix::UnixEndpointBound&gt; 
+_5:  @ core::result::Result&lt;net::socket::unix::UnixEndpointBound, system_error::SystemError&gt; 
+_6:  @ &amp;&#39;{erased} net::socket::unix::UnixEndpoint 
+_7:  @ net::socket::unix::UnixEndpoint 
+_8:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, net::socket::unix::UnixEndpoint&gt; 
+_9:  @ core::result::Result&lt;net::socket::unix::UnixEndpoint, system_error::SystemError&gt; 
+_10:  @ net::socket::endpoint::Endpoint 
+_11:  @ isize 
+_12:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_13:  @ ! 
+_14:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_15:  @ net::socket::unix::UnixEndpoint 
+_16:  @ isize 
+_17:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_18:  @ ! 
+_19:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_20:  @ net::socket::unix::UnixEndpointBound 
+_21:  @ alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_22:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;&gt; 
+_23:  @ core::result::Result&lt;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_24:  @ &amp;&#39;{erased} net::socket::unix::UnixEndpointBound 
+_25:  @ &amp;&#39;{erased} net::socket::unix::UnixEndpointBound 
+_26:  @ isize 
+_27:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_28:  @ ! 
+_29:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_30:  @ alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_31:  @ bool 
+_32:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_33:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_34:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_36:  @ &amp;&#39;{erased} net::socket::unix::stream::inner::Backlog 
+_37:  @ &amp;&#39;{erased} net::socket::unix::stream::inner::Backlog 
+_38:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_39:  @ Closure(DefId(0:27104 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket, &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;)]) 
+_40:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_42:  @ bool 
+_43:  @ bool 
+_44:  @ isize 
+_45:  @ isize 
+_46:  @ isize 
+_47:  @ isize 
+_48:  @ isize 
+_49:  @ isize 
+_50:  @ isize 
+_51:  @ isize 
+_52:  @ isize 
+_53:  @ isize 
+_54:  @ isize 
+_55:  @ isize 
+_56:  @ isize 
+_57:  @ isize 
+_58:  @ isize 
+_59:  @ isize 
 
 bb 0 {
 CleanUp: false
+    Assign((_43, const false)) @ _43=const false @ Use
+    Assign((_42, const false)) @ _42=const false @ Use
     StorageLive(_3) @ StorageLive
     StorageLive(_4) @ StorageLive
-    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 147
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, move _2)) @ _10=move _2 @ Use
+    _9 = &lt;net::socket::unix::UnixEndpoint as core::convert::TryFrom&lt;net::socket::endpoint::Endpoint&gt;&gt;::try_from(move _10) -&gt; [return: bb1, unwind: bb31] @ Call: FnDid: 3398
 }
 bb 1 {
 CleanUp: false
-    StorageLive(_8) @ StorageLive
-    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 4]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 4]) @ ShallowInitBox
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    Assign((_13, &amp;(*_2))) @ _13=&amp;(*_2) @ Ref
-    _12 = filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle::fd(move _13) -&gt; [return: bb2, unwind: bb22] @ Call: FnDid: 20295
+    StorageDead(_10) @ StorageDead
+    _8 = &lt;core::result::Result&lt;net::socket::unix::UnixEndpoint, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _9) -&gt; [return: bb2, unwind: bb31] @ Call: FnDid: 4199
 }
 bb 2 {
 CleanUp: false
-    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
-    StorageDead(_13) @ StorageDead
-    _10 = &lt;i32 as alloc::string::ToString&gt;::to_string(move _11) -&gt; [return: bb3, unwind: bb22] @ Call: FnDid: 6626
+    Assign((_42, const true)) @ _42=const true @ Use
+    Assign((_43, const true)) @ _43=const true @ Use
+    StorageDead(_9) @ StorageDead
+    Assign((_11, discriminant(_8))) @ _11=discriminant(_8) @ Discriminant
+    switchInt(move _11) -&gt; [0: bb4, 1: bb5, otherwise: bb3] @ SwitchInt
 }
 bb 3 {
 CleanUp: false
-    StorageDead(_11) @ StorageDead
-    _9 = syscall::table::FormattedSyscallParam::new(const &#34;fd:&#34;, move _10) -&gt; [return: bb4, unwind: bb22] @ Call: FnDid: 30792
+    unreachable @ Unreachable
 }
 bb 4 {
 CleanUp: false
-    StorageDead(_10) @ StorageDead
-    StorageLive(_14) @ StorageLive
     StorageLive(_15) @ StorageLive
-    StorageLive(_16) @ StorageLive
-    StorageLive(_17) @ StorageLive
-    StorageLive(_18) @ StorageLive
-    StorageLive(_19) @ StorageLive
+    Assign((_15, move ((_8 as Continue).0: net::socket::unix::UnixEndpoint))) @ _15=move ((_8 as Continue).0: net::socket::unix::UnixEndpoint) @ Use
+    Assign((_7, move _15)) @ _7=move _15 @ Use
+    StorageDead(_15) @ StorageDead
+    Assign((_6, &amp;_7)) @ _6=&amp;_7 @ Ref
+    _5 = net::socket::unix::UnixEndpoint::connect(move _6) -&gt; [return: bb7, unwind: bb30] @ Call: FnDid: 27171
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_12) @ StorageLive
+    Assign((_12, move ((_8 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _12=move ((_8 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_14) @ StorageLive
+    Assign((_14, move _12)) @ _14=move _12 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _14) -&gt; [return: bb6, unwind: bb37] @ Call: FnDid: 4202
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb33 @ Goto
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    _4 = &lt;core::result::Result&lt;net::socket::unix::UnixEndpointBound, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _5) -&gt; [return: bb8, unwind: bb30] @ Call: FnDid: 4199
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    Assign((_16, discriminant(_4))) @ _16=discriminant(_4) @ Discriminant
+    switchInt(move _16) -&gt; [0: bb9, 1: bb10, otherwise: bb3] @ SwitchInt
+}
+bb 9 {
+CleanUp: false
     StorageLive(_20) @ StorageLive
+    Assign((_20, move ((_4 as Continue).0: net::socket::unix::UnixEndpointBound))) @ _20=move ((_4 as Continue).0: net::socket::unix::UnixEndpointBound) @ Use
+    Assign((_3, move _20)) @ _3=move _20 @ Use
+    StorageDead(_20) @ StorageDead
+    Assign((_46, discriminant(_4))) @ _46=discriminant(_4) @ Discriminant
+    drop(_7) -&gt; [return: bb32, unwind: bb35] @ Drop
+}
+bb 10 {
+CleanUp: false
+    StorageLive(_17) @ StorageLive
+    Assign((_17, move ((_4 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _17=move ((_4 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_19) @ StorageLive
+    Assign((_19, move _17)) @ _19=move _17 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _19) -&gt; [return: bb11, unwind: bb36] @ Call: FnDid: 4202
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_44, discriminant(_4))) @ _44=discriminant(_4) @ Discriminant
+    drop(_7) -&gt; [return: bb33, unwind: bb37] @ Drop
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    _22 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _23) -&gt; [return: bb13, unwind: bb29] @ Call: FnDid: 4199
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    Assign((_26, discriminant(_22))) @ _26=discriminant(_22) @ Discriminant
+    switchInt(move _26) -&gt; [0: bb14, 1: bb15, otherwise: bb3] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageLive(_30) @ StorageLive
+    Assign((_30, move ((_22 as Continue).0: alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;))) @ _30=move ((_22 as Continue).0: alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;) @ Use
+    Assign((_21, move _30)) @ _21=move _30 @ Use
+    StorageDead(_30) @ StorageDead
+    Assign((_52, discriminant(_22))) @ _52=discriminant(_22) @ Discriminant
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;(*_1))) @ _32=&amp;(*_1) @ Ref
+    _31 = net::socket::unix::stream::UnixStreamSocket::is_nonblocking(move _32) -&gt; [return: bb17, unwind: bb28] @ Call: FnDid: 27100
+}
+bb 15 {
+CleanUp: false
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move ((_22 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _27=move ((_22 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_29) @ StorageLive
+    Assign((_29, move _27)) @ _29=move _27 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _29) -&gt; [return: bb16, unwind: bb34] @ Call: FnDid: 4202
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    Assign((_50, discriminant(_22))) @ _50=discriminant(_22) @ Discriminant
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    drop(_3) -&gt; [return: bb26, unwind: bb31] @ Drop
+}
+bb 17 {
+CleanUp: false
+    switchInt(move _31) -&gt; [0: bb20, otherwise: bb18] @ SwitchInt
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    Assign((_33, &amp;(*_1))) @ _33=&amp;(*_1) @ Ref
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_21)) @ _35=&amp;_21 @ Ref
+    Assign((_34, &amp;(*_35))) @ _34=&amp;(*_35) @ Ref
+    _0 = net::socket::unix::stream::UnixStreamSocket::try_connect(move _33, move _34) -&gt; [return: bb19, unwind: bb28] @ Call: FnDid: 27098
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    goto -&gt; bb23 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;_21)) @ _38=&amp;_21 @ Ref
+    _37 = &lt;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt; as lazy_static::__Deref&gt;::deref(move _38) -&gt; [return: bb21, unwind: bb28] @ Call: FnDid: 3903
+}
+bb 21 {
+CleanUp: false
+    Assign((_36, &amp;(*_37))) @ _36=&amp;(*_37) @ Ref
+    StorageDead(_38) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;(*_1))) @ _40=&amp;(*_1) @ Ref
+    StorageLive(_41) @ StorageLive
+    Assign((_41, &amp;_21)) @ _41=&amp;_21 @ Ref
+    Assign((_39, {closure@src/net/socket/unix/stream/mod.rs:174:33: 174:35} { self: move _40, backlog: move _41 })) @ _39={closure@src/net/socket/unix/stream/mod.rs:174:33: 174:35} { self: move _40, backlog: move _41 } @ Aggregate
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    _0 = net::socket::unix::stream::inner::Backlog::pause_until::&lt;{closure@src/net/socket/unix/stream/mod.rs:174:33: 174:35}&gt;(move _36, move _39) -&gt; [return: bb22, unwind: bb28] @ Call: FnDid: 27084
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    goto -&gt; bb23 @ Goto
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    drop(_21) -&gt; [return: bb24, unwind: bb29] @ Drop
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    drop(_3) -&gt; [return: bb25, unwind: bb31] @ Drop
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    goto -&gt; bb27 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    goto -&gt; bb27 @ Goto
+}
+bb 27 {
+CleanUp: false
+    return @ Return
+}
+bb 28 {
+CleanUp: true
+    drop(_21) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 30 {
+CleanUp: true
+    drop(_7) -&gt; [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+bb 31 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 32 {
+CleanUp: false
+    Assign((_48, discriminant(_8))) @ _48=discriminant(_8) @ Discriminant
+    Assign((_42, const false)) @ _42=const false @ Use
+    Assign((_43, const false)) @ _43=const false @ Use
+    StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_4) @ StorageDead
     StorageLive(_21) @ StorageLive
     StorageLive(_22) @ StorageLive
     StorageLive(_23) @ StorageLive
     StorageLive(_24) @ StorageLive
-    Assign((_24, &amp;(*_2))) @ _24=&amp;(*_2) @ Ref
-    _23 = filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle::iov(move _24) -&gt; [return: bb5, unwind: bb20] @ Call: FnDid: 20296
-}
-bb 5 {
-CleanUp: false
-    StorageDead(_24) @ StorageDead
-    Assign((_22, move _23 as usize (PointerExposeProvenance))) @ _22=move _23 as usize (PointerExposeProvenance) @ Cast
-    StorageDead(_23) @ StorageDead
-    Assign((_21, &amp;_22)) @ _21=&amp;_22 @ Ref
-    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
-    _19 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _20) -&gt; [return: bb6, unwind: bb20] @ Call: FnDid: 11815
-}
-bb 6 {
-CleanUp: false
-    StorageDead(_20) @ StorageDead
-    Assign((_18, [move _19])) @ _18=[move _19] @ Aggregate
-    StorageDead(_19) @ StorageDead
     StorageLive(_25) @ StorageLive
-    StorageLive(_26) @ StorageLive
-    StorageLive(_27) @ StorageLive
-    Assign((_50, const &lt;filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _50=const &lt;filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
-    Assign((_27, &amp;(*_50))) @ _27=&amp;(*_50) @ Ref
-    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
-    Assign((_25, move _26 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _25=move _26 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_26) @ StorageDead
-    StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    StorageLive(_31) @ StorageLive
-    Assign((_31, &amp;_18)) @ _31=&amp;_18 @ Ref
-    Assign((_30, &amp;(*_31))) @ _30=&amp;(*_31) @ Ref
-    Assign((_29, move _30 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _29=move _30 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_30) @ StorageDead
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    Assign((_49, const &lt;filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _49=const &lt;filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
-    Assign((_34, &amp;(*_49))) @ _34=&amp;(*_49) @ Ref
-    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
-    Assign((_32, move _33 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _32=move _33 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_33) @ StorageDead
-    _17 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _25, move _29, move _32) -&gt; [return: bb7, unwind: bb20] @ Call: FnDid: 11842
+    Assign((_25, &amp;_3)) @ _25=&amp;_3 @ Ref
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    _23 = net::socket::unix::stream::inner::get_backlog(move _24) -&gt; [return: bb12, unwind: bb29] @ Call: FnDid: 27088
 }
-bb 7 {
+bb 33 {
 CleanUp: false
-    StorageDead(_34) @ StorageDead
-    StorageDead(_32) @ StorageDead
-    StorageDead(_31) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageDead(_25) @ StorageDead
-    _16 = alloc::fmt::format(move _17) -&gt; [return: bb8, unwind: bb20] @ Call: FnDid: 5475
-}
-bb 8 {
-CleanUp: false
-    StorageDead(_22) @ StorageDead
-    StorageDead(_21) @ StorageDead
-    StorageDead(_18) @ StorageDead
-    StorageDead(_17) @ StorageDead
-    _15 = core::hint::must_use::&lt;alloc::string::String&gt;(move _16) -&gt; [return: bb9, unwind: bb20] @ Call: FnDid: 1455
-}
-bb 9 {
-CleanUp: false
-    StorageDead(_16) @ StorageDead
-    _14 = syscall::table::FormattedSyscallParam::new(const &#34;iov:&#34;, move _15) -&gt; [return: bb10, unwind: bb20] @ Call: FnDid: 30792
-}
-bb 10 {
-CleanUp: false
-    StorageDead(_15) @ StorageDead
-    StorageLive(_39) @ StorageLive
-    StorageLive(_40) @ StorageLive
-    StorageLive(_41) @ StorageLive
-    StorageLive(_42) @ StorageLive
-    StorageLive(_43) @ StorageLive
-    Assign((_43, &amp;(*_2))) @ _43=&amp;(*_2) @ Ref
-    _42 = filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle::iov_count(move _43) -&gt; [return: bb11, unwind: bb19] @ Call: FnDid: 20297
-}
-bb 11 {
-CleanUp: false
-    Assign((_41, &amp;_42)) @ _41=&amp;_42 @ Ref
-    StorageDead(_43) @ StorageDead
-    _40 = &lt;usize as alloc::string::ToString&gt;::to_string(move _41) -&gt; [return: bb12, unwind: bb19] @ Call: FnDid: 6626
-}
-bb 12 {
-CleanUp: false
-    StorageDead(_41) @ StorageDead
-    _39 = syscall::table::FormattedSyscallParam::new(const &#34;iov_count:&#34;, move _40) -&gt; [return: bb13, unwind: bb19] @ Call: FnDid: 30792
-}
-bb 13 {
-CleanUp: false
-    StorageDead(_40) @ StorageDead
-    StorageLive(_44) @ StorageLive
-    StorageLive(_45) @ StorageLive
-    StorageLive(_46) @ StorageLive
-    StorageLive(_47) @ StorageLive
-    StorageLive(_48) @ StorageLive
-    Assign((_48, &amp;(*_2))) @ _48=&amp;(*_2) @ Ref
-    _47 = filesystem::vfs::syscall::sys_pwritev::SysPwriteVHandle::offset(move _48) -&gt; [return: bb14, unwind: bb18] @ Call: FnDid: 20298
-}
-bb 14 {
-CleanUp: false
-    Assign((_46, &amp;_47)) @ _46=&amp;_47 @ Ref
-    StorageDead(_48) @ StorageDead
-    _45 = &lt;usize as alloc::string::ToString&gt;::to_string(move _46) -&gt; [return: bb15, unwind: bb18] @ Call: FnDid: 6626
-}
-bb 15 {
-CleanUp: false
-    StorageDead(_46) @ StorageDead
-    _44 = syscall::table::FormattedSyscallParam::new(const &#34;offset:&#34;, move _45) -&gt; [return: bb16, unwind: bb18] @ Call: FnDid: 30792
-}
-bb 16 {
-CleanUp: false
-    StorageDead(_45) @ StorageDead
-    Assign((_54, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _54=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
-    Assign((_55, copy _54 as *const () (PtrToPtr))) @ _55=copy _54 as *const () (PtrToPtr) @ Cast
-    Assign((_56, copy _55 as usize (Transmute))) @ _56=copy _55 as usize (Transmute) @ Cast
-    Assign((_57, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _57=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    Assign((_58, Sub(copy _57, const 1_usize))) @ _58=Sub(copy _57, const 1_usize) @ BinaryOp
-    Assign((_59, BitAnd(copy _56, copy _58))) @ _59=BitAnd(copy _56, copy _58) @ BinaryOp
-    Assign((_60, Eq(copy _59, const 0_usize))) @ _60=Eq(copy _59, const 0_usize) @ BinaryOp
-    assert(copy _60, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _57, copy _56) -&gt; [success: bb23, unwind unreachable] @ Assert
-}
-bb 17 {
-CleanUp: false
-    StorageDead(_3) @ StorageDead
-    StorageDead(_47) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    StorageDead(_12) @ StorageDead
-    return @ Return
-}
-bb 18 {
-CleanUp: true
-    drop(_39) -&gt; [return: bb19, unwind terminate(cleanup)] @ Drop
-}
-bb 19 {
-CleanUp: true
-    drop(_14) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
-}
-bb 20 {
-CleanUp: true
-    drop(_9) -&gt; [return: bb22, unwind terminate(cleanup)] @ Drop
-}
-bb 21 {
-CleanUp: true
-    resume @ UnwindResume
-}
-bb 22 {
-CleanUp: true
-    Assign((_53, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _53=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
-    Assign((_51, &amp;mut _8)) @ _51=&amp;mut _8 @ Ref
-    _52 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4]&gt; as core::ops::Drop&gt;::drop(move _51) -&gt; [return: bb25, unwind terminate(cleanup)] @ Call: FnDid: 3937
-}
-bb 23 {
-CleanUp: false
-    Assign((_61, copy _54 as *const () (PtrToPtr))) @ _61=copy _54 as *const () (PtrToPtr) @ Cast
-    Assign((_62, copy _61 as usize (Transmute))) @ _62=copy _61 as usize (Transmute) @ Cast
-    Assign((_63, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _63=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    Assign((_64, Ne(copy _63, const 0_usize))) @ _64=Ne(copy _63, const 0_usize) @ BinaryOp
-    Assign((_65, Eq(copy _62, const 0_usize))) @ _65=Eq(copy _62, const 0_usize) @ BinaryOp
-    Assign((_66, BitAnd(copy _65, copy _64))) @ _66=BitAnd(copy _65, copy _64) @ BinaryOp
-    Assign((_67, Not(copy _66))) @ _67=Not(copy _66) @ UnaryOp
-    assert(copy _67, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb24, unwind unreachable] @ Assert
-}
-bb 24 {
-CleanUp: false
-    Assign(((*_54), [move _9, move _14, move _39, move _44])) @ (*_54)=[move _9, move _14, move _39, move _44] @ Aggregate
-    StorageDead(_44) @ StorageDead
-    StorageDead(_39) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    Assign((_4, move _8)) @ _4=move _8 @ Use
-    Assign((_3, move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    Assign((_54, discriminant(_8))) @ _54=discriminant(_8) @ Discriminant
+    Assign((_42, const false)) @ _42=const false @ Use
+    Assign((_43, const false)) @ _43=const false @ Use
     StorageDead(_8) @ StorageDead
+    StorageDead(_7) @ StorageDead
     StorageDead(_4) @ StorageDead
-    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _3) -&gt; [return: bb17, unwind: bb21] @ Call: FnDid: 6192
+    goto -&gt; bb26 @ Goto
 }
-bb 25 {
+bb 34 {
 CleanUp: true
-    goto -&gt; bb21 @ Goto
+    Assign((_56, discriminant(_22))) @ _56=discriminant(_22) @ Discriminant
+    goto -&gt; bb29 @ Goto
+}
+bb 35 {
+CleanUp: true
+    Assign((_57, discriminant(_8))) @ _57=discriminant(_8) @ Discriminant
+    goto -&gt; bb29 @ Goto
+}
+bb 36 {
+CleanUp: true
+    Assign((_58, discriminant(_4))) @ _58=discriminant(_4) @ Discriminant
+    goto -&gt; bb30 @ Goto
+}
+bb 37 {
+CleanUp: true
+    Assign((_59, discriminant(_8))) @ _59=discriminant(_8) @ Discriminant
+    goto -&gt; bb31 @ Goto
+}
+
+bb0 at src/net/socket/unix/stream/mod.rs:174:36: 174:40
+bb1 at src/net/socket/unix/stream/mod.rs:174:61: 174:62
+fn &lt;net::socket::unix::stream::UnixStreamSocket as net::socket::base::Socket&gt;::connect::{closure#0}
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:27104 ~ dragonos_kernel[9e38]::net::socket::unix::stream::{impl#1}::connect::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket, &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt;)]) 
+_2:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_3:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_4:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+_5:  @ &amp;&#39;{erased} net::socket::unix::stream::UnixStreamSocket 
+_6:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog, alloc::alloc::Global&gt; 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_2) @ StorageLive
+    Assign((_5, deref_copy ((*_1).0: &amp;net::socket::unix::stream::UnixStreamSocket))) @ _5=deref_copy ((*_1).0: &amp;net::socket::unix::stream::UnixStreamSocket) @ CopyForDeref
+    Assign((_2, &amp;(*_5))) @ _2=&amp;(*_5) @ Ref
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_6, deref_copy ((*_1).1: &amp;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;))) @ _6=deref_copy ((*_1).1: &amp;alloc::sync::Arc&lt;net::socket::unix::stream::inner::Backlog&gt;) @ CopyForDeref
+    Assign((_4, &amp;(*_6))) @ _4=&amp;(*_6) @ Ref
+    Assign((_3, &amp;(*_4))) @ _3=&amp;(*_4) @ Ref
+    _0 = net::socket::unix::stream::UnixStreamSocket::try_connect(move _2, move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 27098
+}
+bb 1 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    return @ Return
 }
 
 </div>

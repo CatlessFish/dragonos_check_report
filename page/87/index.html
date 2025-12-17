@@ -13,7 +13,7 @@
         <h1>
             Report #87
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_lseek::{impl#0}::handle</span>
+                 <span class="func-name">ipc::pipe::{impl#6}::ioctl</span>
             
         </h1>
 
@@ -25,75 +25,67 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:07|RAP|WARN|: Double free detected in function &#34;handle&#34;
-22:08:07|RAP|WARN|: Double free detected in function &#34;handle&#34;
-warning: Double free detected.
-  --&gt; src/filesystem/vfs/syscall/sys_lseek.rs:35:1
-   |
-35 | / fn handle(&amp;self, args: &amp;[usize], _frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
-36 | |         let fd = Self::fd(args);
-37 | |         let offset = Self::offset(args);
-38 | |         let whence = Self::whence(args);
-39 | |
-40 | |         // Convert seek type to SeekFrom enum
-41 | |         let seek = match whence {
-42 | |             SEEK_SET =&gt; Ok(SeekFrom::SeekSet(offset)),
-43 | |             SEEK_CUR =&gt; Ok(SeekFrom::SeekCurrent(offset)),
-44 | |             SEEK_END =&gt; Ok(SeekFrom::SeekEnd(offset)),
-45 | |             SEEK_MAX =&gt; Ok(SeekFrom::SeekEnd(0)),
-46 | |             _ =&gt; Err(SystemError::EINVAL),
-47 | |         }?;
-48 | |
-49 | |         // Get file from file descriptor table
-50 | |         let binding = ProcessManager::current_pcb().fd_table();
-51 | |         let fd_table_guard = binding.read();
-52 | |         let file = fd_table_guard
-53 | |             .get_file_by_fd(fd)
-54 | |             .ok_or(SystemError::EBADF)?;
-55 | |
-56 | |         // Drop guard to avoid scheduling issues
-57 | |         drop(fd_table_guard);
-58 | |         // Perform the seek operation
-59 | |         return file.lseek(seek);
-60 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_lseek.rs line 35.
-    | MIR detail: Value _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) and _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) are alias.
-    | MIR detail: _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) is dropped at BB25(src/filesystem/vfs/syscall/sys_lseek.rs:57); _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) is dropped at BB32(src/filesystem/vfs/syscall/sys_lseek.rs:60).
-   |
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_lseek.rs:35:1
-   |
-35 | / fn handle(&amp;self, args: &amp;[usize], _frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
-36 | |         let fd = Self::fd(args);
-37 | |         let offset = Self::offset(args);
-38 | |         let whence = Self::whence(args);
-39 | |
-40 | |         // Convert seek type to SeekFrom enum
-41 | |         let seek = match whence {
-42 | |             SEEK_SET =&gt; Ok(SeekFrom::SeekSet(offset)),
-43 | |             SEEK_CUR =&gt; Ok(SeekFrom::SeekCurrent(offset)),
-44 | |             SEEK_END =&gt; Ok(SeekFrom::SeekEnd(offset)),
-45 | |             SEEK_MAX =&gt; Ok(SeekFrom::SeekEnd(0)),
-46 | |             _ =&gt; Err(SystemError::EINVAL),
-47 | |         }?;
-48 | |
-49 | |         // Get file from file descriptor table
-50 | |         let binding = ProcessManager::current_pcb().fd_table();
-51 | |         let fd_table_guard = binding.read();
-52 | |         let file = fd_table_guard
-53 | |             .get_file_by_fd(fd)
-54 | |             .ok_or(SystemError::EBADF)?;
-55 | |
-56 | |         // Drop guard to avoid scheduling issues
-57 | |         drop(fd_table_guard);
-58 | |         // Perform the seek operation
-59 | |         return file.lseek(seek);
-60 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_lseek.rs line 35.
-    | MIR detail: Value _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) and _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) are alias.
-    | MIR detail: _51(_, src/filesystem/vfs/syscall/sys_lseek.rs:57) is dropped at BB25(src/filesystem/vfs/syscall/sys_lseek.rs:57); _27(binding, src/filesystem/vfs/syscall/sys_lseek.rs:50) is dropped at BB36(src/filesystem/vfs/syscall/sys_lseek.rs:60).
-   |
-render dot for DefId(0:20104 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_lseek::{impl#0}::handle)
+                    <pre id="logContent" class="code-block scrollable">22:08:10|RAP|WARN|: Dangling pointer detected in function &#34;ioctl&#34;
+warning: Dangling pointer detected.
+   --&gt; src/ipc/pipe.rs:857:1
+    |
+857 | / fn ioctl(
+858 | |         &amp;self,
+859 | |         cmd: u32,
+860 | |         data: usize,
+861 | |         _private_data: &amp;FilePrivateData,
+862 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+863 | |         match cmd {
+864 | |             FIONREAD =&gt; {
+865 | |                 let inner = self.inner.lock();
+866 | |                 let available = inner.valid_cnt;
+867 | |                 drop(inner);
+868 | |
+869 | |                 let mut writer =
+870 | |                     UserBufferWriter::new(data as *mut u8, core::mem::size_of::&lt;i32&gt;(), true)?;
+871 | |                 writer
+872 | |                     .buffer_protected(0)?
+873 | |                     .write_one::&lt;i32&gt;(0, &amp;available)?;
+874 | |                 Ok(0)
+875 | |             }
+876 | |             _ =&gt; Err(SystemError::ENOSYS),
+877 | |         }
+878 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 857.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in ioctl and _1(self, src/ipc/pipe.rs:858) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in ioctl is dropped at BB18446744073709551615(src/ipc/pipe.rs:857); _1(self, src/ipc/pipe.rs:858) became dangling.
+    |
+22:08:10|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;ioctl&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/ipc/pipe.rs:857:1
+    |
+857 | / fn ioctl(
+858 | |         &amp;self,
+859 | |         cmd: u32,
+860 | |         data: usize,
+861 | |         _private_data: &amp;FilePrivateData,
+862 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
+863 | |         match cmd {
+864 | |             FIONREAD =&gt; {
+865 | |                 let inner = self.inner.lock();
+866 | |                 let available = inner.valid_cnt;
+867 | |                 drop(inner);
+868 | |
+869 | |                 let mut writer =
+870 | |                     UserBufferWriter::new(data as *mut u8, core::mem::size_of::&lt;i32&gt;(), true)?;
+871 | |                 writer
+872 | |                     .buffer_protected(0)?
+873 | |                     .write_one::&lt;i32&gt;(0, &amp;available)?;
+874 | |                 Ok(0)
+875 | |             }
+876 | |             _ =&gt; Err(SystemError::ENOSYS),
+877 | |         }
+878 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 857.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in ioctl and _1(self, src/ipc/pipe.rs:858) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in ioctl is dropped at BB18446744073709551615(src/ipc/pipe.rs:857); _1(self, src/ipc/pipe.rs:858) became dangling.
+    |
+render dot for DefId(0:22438 ~ dragonos_kernel[9e38]::ipc::pipe::{impl#6}::ioctl)
 </pre>
                 </div>
             
@@ -104,417 +96,301 @@ render dot for DefId(0:20104 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/vfs/syscall/sys_lseek.rs:36:13: 36:15
-bb1 at src/filesystem/vfs/syscall/sys_lseek.rs:36:31: 36:32
-bb2 at src/filesystem/vfs/syscall/sys_lseek.rs:37:39: 37:40
-bb3 at src/filesystem/vfs/syscall/sys_lseek.rs:38:39: 38:40
-bb4 at src/filesystem/vfs/syscall/sys_lseek.rs:46:22: 46:41
-bb5 at src/filesystem/vfs/syscall/sys_lseek.rs:45:28: 45:48
-bb6 at src/filesystem/vfs/syscall/sys_lseek.rs:44:28: 44:53
-bb7 at src/filesystem/vfs/syscall/sys_lseek.rs:43:28: 43:57
-bb8 at src/filesystem/vfs/syscall/sys_lseek.rs:42:28: 42:53
-bb10 at src/filesystem/vfs/syscall/sys_lseek.rs:47:10: 47:11
-bb12 at src/filesystem/vfs/syscall/sys_lseek.rs:41:20: 47:11
-bb13 at src/filesystem/vfs/syscall/sys_lseek.rs:47:10: 47:11
-bb14 at src/filesystem/vfs/syscall/sys_lseek.rs:47:10: 47:11
-bb15 at src/filesystem/vfs/syscall/sys_lseek.rs:50:23: 50:52
-bb16 at src/filesystem/vfs/syscall/sys_lseek.rs:50:23: 50:52
-bb17 at src/filesystem/vfs/syscall/sys_lseek.rs:50:62: 50:63
-bb18 at src/filesystem/vfs/syscall/sys_lseek.rs:50:63: 50:64
-bb19 at src/filesystem/vfs/syscall/sys_lseek.rs:51:30: 51:37
-bb20 at src/filesystem/vfs/syscall/sys_lseek.rs:51:43: 51:44
-bb21 at src/filesystem/vfs/syscall/sys_lseek.rs:52:20: 52:34
-bb22 at src/filesystem/vfs/syscall/sys_lseek.rs:53:31: 53:32
-bb23 at src/filesystem/vfs/syscall/sys_lseek.rs:54:38: 54:39
-bb24 at src/filesystem/vfs/syscall/sys_lseek.rs:54:39: 54:40
-bb25 at src/filesystem/vfs/syscall/sys_lseek.rs:52:20: 54:40
-bb26 at src/filesystem/vfs/syscall/sys_lseek.rs:54:39: 54:40
-bb27 at src/filesystem/vfs/syscall/sys_lseek.rs:54:39: 54:40
-bb28 at src/filesystem/vfs/syscall/sys_lseek.rs:57:28: 57:29
-bb29 at src/filesystem/vfs/syscall/sys_lseek.rs:59:16: 59:20
-bb30 at src/filesystem/vfs/syscall/sys_lseek.rs:59:31: 59:32
-bb31 at src/filesystem/vfs/syscall/sys_lseek.rs:60:5: 60:6
-bb32 at src/filesystem/vfs/syscall/sys_lseek.rs:60:5: 60:6
-bb33 at src/filesystem/vfs/syscall/sys_lseek.rs:60:5: 60:6
-bb34 at src/filesystem/vfs/syscall/sys_lseek.rs:60:5: 60:6
-bb40 at src/filesystem/vfs/syscall/sys_lseek.rs:54:40: 54:41
-fn &lt;filesystem::vfs::syscall::sys_lseek::SysLseekHandle as syscall::table::Syscall&gt;::handle
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/ipc/pipe.rs:863:15: 863:18
+bb1 at src/ipc/pipe.rs:876:22: 876:41
+bb2 at src/ipc/pipe.rs:865:21: 865:26
+bb3 at src/ipc/pipe.rs:865:45: 865:46
+bb4 at src/ipc/pipe.rs:866:37: 866:38
+bb5 at src/ipc/pipe.rs:867:27: 867:28
+bb7 at src/ipc/pipe.rs:870:93: 870:94
+bb8 at src/ipc/pipe.rs:870:94: 870:95
+bb10 at src/ipc/pipe.rs:870:21: 870:95
+bb11 at src/ipc/pipe.rs:870:94: 870:95
+bb12 at src/ipc/pipe.rs:870:94: 870:95
+bb13 at src/ipc/pipe.rs:872:40: 872:41
+bb14 at src/ipc/pipe.rs:872:41: 872:42
+bb15 at src/ipc/pipe.rs:871:17: 872:42
+bb16 at src/ipc/pipe.rs:872:41: 872:42
+bb17 at src/ipc/pipe.rs:872:41: 872:42
+bb18 at src/ipc/pipe.rs:873:52: 873:53
+bb19 at src/ipc/pipe.rs:873:53: 873:54
+bb20 at src/ipc/pipe.rs:871:17: 873:54
+bb21 at src/ipc/pipe.rs:873:53: 873:54
+bb22 at src/ipc/pipe.rs:873:53: 873:54
+bb23 at src/ipc/pipe.rs:873:54: 873:55
+bb24 at src/ipc/pipe.rs:875:13: 875:14
+fn &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::ioctl
 _0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_lseek::SysLseekHandle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ &amp;&#39;{erased} mut arch::x86_64::interrupt::TrapFrame 
-_4:  @ ! 
-_5:  @ i32 
-_6:  @ &amp;&#39;{erased} [usize] 
-_7:  @ i64 
-_8:  @ &amp;&#39;{erased} [usize] 
-_9:  @ u32 
-_10:  @ &amp;&#39;{erased} [usize] 
-_11:  @ driver::base::block::SeekFrom 
-_12:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, driver::base::block::SeekFrom&gt; 
-_13:  @ core::result::Result&lt;driver::base::block::SeekFrom, system_error::SystemError&gt; 
-_14:  @ driver::base::block::SeekFrom 
-_15:  @ i64 
-_16:  @ driver::base::block::SeekFrom 
-_17:  @ i64 
-_18:  @ driver::base::block::SeekFrom 
-_19:  @ i64 
-_20:  @ driver::base::block::SeekFrom 
-_21:  @ system_error::SystemError 
-_22:  @ isize 
-_23:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_24:  @ ! 
-_25:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_26:  @ driver::base::block::SeekFrom 
-_27:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
-_28:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_29:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_30:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_31:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_32:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
-_33:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
-_34:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
-_35:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
-_36:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_37:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
-_38:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
-_39:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
-_40:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
-_41:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
-_42:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
-_43:  @ i32 
-_44:  @ system_error::SystemError 
-_45:  @ isize 
-_46:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_47:  @ ! 
-_48:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_49:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_50:  @ () 
-_51:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
-_52:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
-_53:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
-_54:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_55:  @ driver::base::block::SeekFrom 
-_56:  @ bool 
-_57:  @ isize 
-_58:  @ isize 
-_59:  @ isize 
-_60:  @ isize 
-_61:  @ isize 
+_1:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_2:  @ u32 
+_3:  @ usize 
+_4:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_6:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_7:  @ i32 
+_8:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_9:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_10:  @ () 
+_11:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_12:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_13:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;&gt; 
+_14:  @ core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;, system_error::SystemError&gt; 
+_15:  @ *mut u8 
+_16:  @ usize 
+_17:  @ usize 
+_18:  @ isize 
+_19:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_20:  @ ! 
+_21:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_22:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_23:  @ () 
+_24:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_25:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_26:  @ &amp;&#39;{erased} mut syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt; 
+_27:  @ syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt; 
+_28:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt;&gt; 
+_29:  @ core::result::Result&lt;syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt;, system_error::SystemError&gt; 
+_30:  @ &amp;&#39;{erased} mut syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
+_31:  @ isize 
+_32:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_33:  @ ! 
+_34:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_35:  @ syscall::user_buffer::UserBuffer&lt;&#39;{erased}&gt; 
+_36:  @ &amp;&#39;{erased} i32 
+_37:  @ &amp;&#39;{erased} i32 
+_38:  @ isize 
+_39:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_40:  @ ! 
+_41:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_42:  @ () 
+_43:  @ system_error::SystemError 
+_44:  @ bool 
 
 bb 0 {
 CleanUp: false
-    Assign((_56, const false)) @ _56=const false @ Use
-    StorageLive(_5) @ StorageLive
-    StorageLive(_6) @ StorageLive
-    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
-    _5 = filesystem::vfs::syscall::sys_lseek::SysLseekHandle::fd(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 20107
+    Assign((_44, const false)) @ _44=const false @ Use
+    switchInt(copy _2) -&gt; [21531: bb2, otherwise: bb1] @ SwitchInt
 }
 bb 1 {
+CleanUp: false
+    StorageLive(_43) @ StorageLive
+    Assign((_43, system_error::SystemError::ENOSYS)) @ _43=system_error::SystemError::ENOSYS @ Aggregate
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _43))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _43) @ Aggregate
+    StorageDead(_43) @ StorageDead
+    goto -&gt; bb25 @ Goto
+}
+bb 2 {
+CleanUp: false
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _6=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    Assign((_44, const true)) @ _44=const true @ Use
+    _5 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _6) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 5261
+}
+bb 3 {
 CleanUp: false
     StorageDead(_6) @ StorageDead
     StorageLive(_7) @ StorageLive
     StorageLive(_8) @ StorageLive
-    Assign((_8, &amp;(*_2))) @ _8=&amp;(*_2) @ Ref
-    _7 = filesystem::vfs::syscall::sys_lseek::SysLseekHandle::offset(move _8) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 20108
-}
-bb 2 {
-CleanUp: false
-    StorageDead(_8) @ StorageDead
     StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    Assign((_10, &amp;(*_2))) @ _10=&amp;(*_2) @ Ref
-    _9 = filesystem::vfs::syscall::sys_lseek::SysLseekHandle::whence(move _10) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 20109
-}
-bb 3 {
-CleanUp: false
-    StorageDead(_10) @ StorageDead
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    switchInt(copy _9) -&gt; [0: bb8, 1: bb7, 2: bb6, 3: bb5, otherwise: bb4] @ SwitchInt
+    Assign((_9, &amp;_5)) @ _9=&amp;_5 @ Ref
+    _8 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _9) -&gt; [return: bb4, unwind: bb28] @ Call: FnDid: 3903
 }
 bb 4 {
 CleanUp: false
-    StorageLive(_21) @ StorageLive
-    Assign((_21, system_error::SystemError::EINVAL)) @ _21=system_error::SystemError::EINVAL @ Aggregate
-    Assign((_13, core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Err(move _21))) @ _13=core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Err(move _21) @ Aggregate
-    StorageDead(_21) @ StorageDead
-    goto -&gt; bb9 @ Goto
+    StorageDead(_9) @ StorageDead
+    Assign((_7, copy ((*_8).1: i32))) @ _7=copy ((*_8).1: i32) @ Use
+    StorageDead(_8) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_11, move _5)) @ _11=move _5 @ Use
+    _10 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _11) -&gt; [return: bb5, unwind: bb28] @ Call: FnDid: 2323
 }
 bb 5 {
 CleanUp: false
-    StorageLive(_20) @ StorageLive
-    Assign((_20, driver::base::block::SeekFrom::SeekEnd(const 0_i64))) @ _20=driver::base::block::SeekFrom::SeekEnd(const 0_i64) @ Aggregate
-    Assign((_13, core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _20))) @ _13=core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _20) @ Aggregate
-    StorageDead(_20) @ StorageDead
-    goto -&gt; bb9 @ Goto
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    Assign((_16, copy _3)) @ _16=copy _3 @ Use
+    Assign((_15, move _16 as *mut u8 (PointerWithExposedProvenance))) @ _15=move _16 as *mut u8 (PointerWithExposedProvenance) @ Cast
+    StorageDead(_16) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    _17 = core::mem::size_of::&lt;i32&gt;() -&gt; [return: bb6, unwind: bb28] @ Call: FnDid: 2294
 }
 bb 6 {
 CleanUp: false
-    StorageLive(_18) @ StorageLive
-    StorageLive(_19) @ StorageLive
-    Assign((_19, copy _7)) @ _19=copy _7 @ Use
-    Assign((_18, driver::base::block::SeekFrom::SeekEnd(move _19))) @ _18=driver::base::block::SeekFrom::SeekEnd(move _19) @ Aggregate
-    StorageDead(_19) @ StorageDead
-    Assign((_13, core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _18))) @ _13=core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _18) @ Aggregate
-    StorageDead(_18) @ StorageDead
-    goto -&gt; bb9 @ Goto
+    _14 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::new::&lt;u8&gt;(move _15, move _17, const true) -&gt; [return: bb7, unwind: bb28] @ Call: FnDid: 30897
 }
 bb 7 {
 CleanUp: false
-    StorageLive(_16) @ StorageLive
-    StorageLive(_17) @ StorageLive
-    Assign((_17, copy _7)) @ _17=copy _7 @ Use
-    Assign((_16, driver::base::block::SeekFrom::SeekCurrent(move _17))) @ _16=driver::base::block::SeekFrom::SeekCurrent(move _17) @ Aggregate
     StorageDead(_17) @ StorageDead
-    Assign((_13, core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _16))) @ _13=core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _16) @ Aggregate
-    StorageDead(_16) @ StorageDead
-    goto -&gt; bb9 @ Goto
+    StorageDead(_15) @ StorageDead
+    _13 = &lt;core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;_&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _14) -&gt; [return: bb8, unwind: bb28] @ Call: FnDid: 4199
 }
 bb 8 {
 CleanUp: false
-    StorageLive(_14) @ StorageLive
-    StorageLive(_15) @ StorageLive
-    Assign((_15, copy _7)) @ _15=copy _7 @ Use
-    Assign((_14, driver::base::block::SeekFrom::SeekSet(move _15))) @ _14=driver::base::block::SeekFrom::SeekSet(move _15) @ Aggregate
-    StorageDead(_15) @ StorageDead
-    Assign((_13, core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _14))) @ _13=core::result::Result::&lt;driver::base::block::SeekFrom, system_error::SystemError&gt;::Ok(move _14) @ Aggregate
     StorageDead(_14) @ StorageDead
-    goto -&gt; bb9 @ Goto
+    Assign((_18, discriminant(_13))) @ _18=discriminant(_13) @ Discriminant
+    switchInt(move _18) -&gt; [0: bb10, 1: bb11, otherwise: bb9] @ SwitchInt
 }
 bb 9 {
 CleanUp: false
-    _12 = &lt;core::result::Result&lt;driver::base::block::SeekFrom, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _13) -&gt; [return: bb10, unwind continue] @ Call: FnDid: 4199
+    unreachable @ Unreachable
 }
 bb 10 {
 CleanUp: false
+    StorageLive(_22) @ StorageLive
+    Assign((_22, move ((_13 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;))) @ _22=move ((_13 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;) @ Use
+    Assign((_12, move _22)) @ _12=move _22 @ Use
+    StorageDead(_22) @ StorageDead
     StorageDead(_13) @ StorageDead
-    Assign((_22, discriminant(_12))) @ _22=discriminant(_12) @ Discriminant
-    switchInt(move _22) -&gt; [0: bb12, 1: bb13, otherwise: bb11] @ SwitchInt
-}
-bb 11 {
-CleanUp: false
-    unreachable @ Unreachable
-}
-bb 12 {
-CleanUp: false
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
     StorageLive(_26) @ StorageLive
-    Assign((_26, move ((_12 as Continue).0: driver::base::block::SeekFrom))) @ _26=move ((_12 as Continue).0: driver::base::block::SeekFrom) @ Use
-    Assign((_11, move _26)) @ _11=move _26 @ Use
-    StorageDead(_26) @ StorageDead
-    StorageDead(_12) @ StorageDead
     StorageLive(_27) @ StorageLive
     StorageLive(_28) @ StorageLive
     StorageLive(_29) @ StorageLive
     StorageLive(_30) @ StorageLive
-    StorageLive(_31) @ StorageLive
-    _31 = process::ProcessManager::current_pcb() -&gt; [return: bb15, unwind continue] @ Call: FnDid: 29866
+    Assign((_30, &amp;mut _12)) @ _30=&amp;mut _12 @ Ref
+    _29 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::buffer_protected(move _30, const 0_usize) -&gt; [return: bb13, unwind: bb28] @ Call: FnDid: 30913
+}
+bb 11 {
+CleanUp: false
+    StorageLive(_19) @ StorageLive
+    Assign((_19, move ((_13 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _19=move ((_13 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_21) @ StorageLive
+    Assign((_21, move _19)) @ _21=move _19 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _21) -&gt; [return: bb12, unwind: bb28] @ Call: FnDid: 4202
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    goto -&gt; bb24 @ Goto
 }
 bb 13 {
 CleanUp: false
-    StorageLive(_23) @ StorageLive
-    Assign((_23, move ((_12 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _23=move ((_12 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_25) @ StorageLive
-    Assign((_25, move _23)) @ _25=move _23 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _25) -&gt; [return: bb14, unwind continue] @ Call: FnDid: 4202
+    StorageDead(_30) @ StorageDead
+    _28 = &lt;core::result::Result&lt;syscall::user_buffer::UserBuffer&lt;&#39;_&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _29) -&gt; [return: bb14, unwind: bb28] @ Call: FnDid: 4199
 }
 bb 14 {
 CleanUp: false
-    StorageDead(_25) @ StorageDead
-    StorageDead(_23) @ StorageDead
-    StorageDead(_12) @ StorageDead
-    goto -&gt; bb34 @ Goto
+    StorageDead(_29) @ StorageDead
+    Assign((_31, discriminant(_28))) @ _31=discriminant(_28) @ Discriminant
+    switchInt(move _31) -&gt; [0: bb15, 1: bb16, otherwise: bb9] @ SwitchInt
 }
 bb 15 {
 CleanUp: false
-    Assign((_30, &amp;_31)) @ _30=&amp;_31 @ Ref
-    _29 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _30) -&gt; [return: bb16, unwind: bb37] @ Call: FnDid: 3903
+    StorageLive(_35) @ StorageLive
+    Assign((_35, move ((_28 as Continue).0: syscall::user_buffer::UserBuffer&lt;&#39;_&gt;))) @ _35=move ((_28 as Continue).0: syscall::user_buffer::UserBuffer&lt;&#39;_&gt;) @ Use
+    Assign((_27, move _35)) @ _27=move _35 @ Use
+    StorageDead(_35) @ StorageDead
+    Assign((_26, &amp;mut _27)) @ _26=&amp;mut _27 @ Ref
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;_7)) @ _37=&amp;_7 @ Ref
+    Assign((_36, &amp;(*_37))) @ _36=&amp;(*_37) @ Ref
+    _25 = syscall::user_buffer::UserBuffer::&lt;&#39;_&gt;::write_one::&lt;i32&gt;(move _26, const 0_usize, move _36) -&gt; [return: bb18, unwind: bb28] @ Call: FnDid: 30951
 }
 bb 16 {
 CleanUp: false
-    Assign((_28, &amp;(*_29))) @ _28=&amp;(*_29) @ Ref
-    StorageDead(_30) @ StorageDead
-    _27 = process::ProcessControlBlock::fd_table(move _28) -&gt; [return: bb17, unwind: bb37] @ Call: FnDid: 29947
+    StorageLive(_32) @ StorageLive
+    Assign((_32, move ((_28 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _32=move ((_28 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_34) @ StorageLive
+    Assign((_34, move _32)) @ _34=move _32 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _34) -&gt; [return: bb17, unwind: bb28] @ Call: FnDid: 4202
 }
 bb 17 {
 CleanUp: false
-    StorageDead(_28) @ StorageDead
-    drop(_31) -&gt; [return: bb18, unwind: bb36] @ Drop
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    goto -&gt; bb23 @ Goto
 }
 bb 18 {
 CleanUp: false
-    StorageDead(_31) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    StorageLive(_35) @ StorageLive
-    Assign((_35, &amp;_27)) @ _35=&amp;_27 @ Ref
-    _34 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb19, unwind: bb36] @ Call: FnDid: 3903
+    StorageDead(_36) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    _24 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _25) -&gt; [return: bb19, unwind: bb28] @ Call: FnDid: 4199
 }
 bb 19 {
 CleanUp: false
-    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
-    StorageDead(_35) @ StorageDead
-    _32 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _33) -&gt; [return: bb20, unwind: bb36] @ Call: FnDid: 5156
+    StorageDead(_25) @ StorageDead
+    Assign((_38, discriminant(_24))) @ _38=discriminant(_24) @ Discriminant
+    switchInt(move _38) -&gt; [0: bb20, 1: bb21, otherwise: bb9] @ SwitchInt
 }
 bb 20 {
 CleanUp: false
-    Assign((_56, const true)) @ _56=const true @ Use
-    StorageDead(_33) @ StorageDead
-    StorageDead(_34) @ StorageDead
-    StorageLive(_36) @ StorageLive
-    StorageLive(_37) @ StorageLive
-    StorageLive(_38) @ StorageLive
-    StorageLive(_39) @ StorageLive
-    StorageLive(_40) @ StorageLive
-    StorageLive(_41) @ StorageLive
     StorageLive(_42) @ StorageLive
-    Assign((_42, &amp;_32)) @ _42=&amp;_32 @ Ref
-    _41 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _42) -&gt; [return: bb21, unwind: bb42] @ Call: FnDid: 3903
+    Assign((_42, copy ((_24 as Continue).0: ()))) @ _42=copy ((_24 as Continue).0: ()) @ Use
+    Assign((_23, copy _42)) @ _23=copy _42 @ Use
+    StorageDead(_42) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 0_usize))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 0_usize) @ Aggregate
+    StorageDead(_12) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb25 @ Goto
 }
 bb 21 {
 CleanUp: false
-    Assign((_40, &amp;(*_41))) @ _40=&amp;(*_41) @ Ref
-    StorageDead(_42) @ StorageDead
-    StorageLive(_43) @ StorageLive
-    Assign((_43, copy _5)) @ _43=copy _5 @ Use
-    _39 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _40, move _43) -&gt; [return: bb22, unwind: bb42] @ Call: FnDid: 19231
+    StorageLive(_39) @ StorageLive
+    Assign((_39, move ((_24 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _39=move ((_24 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_41) @ StorageLive
+    Assign((_41, move _39)) @ _41=move _39 @ Use
+    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _41) -&gt; [return: bb22, unwind: bb28] @ Call: FnDid: 4202
 }
 bb 22 {
 CleanUp: false
-    StorageDead(_43) @ StorageDead
-    StorageDead(_40) @ StorageDead
-    StorageLive(_44) @ StorageLive
-    Assign((_44, system_error::SystemError::EBADF)) @ _44=system_error::SystemError::EBADF @ Aggregate
-    _38 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _39, move _44) -&gt; [return: bb23, unwind: bb42] @ Call: FnDid: 10178
+    StorageDead(_41) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    goto -&gt; bb23 @ Goto
 }
 bb 23 {
 CleanUp: false
-    StorageDead(_44) @ StorageDead
-    StorageDead(_39) @ StorageDead
-    _37 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _38) -&gt; [return: bb24, unwind: bb42] @ Call: FnDid: 4199
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    goto -&gt; bb24 @ Goto
 }
 bb 24 {
 CleanUp: false
-    StorageDead(_38) @ StorageDead
-    Assign((_45, discriminant(_37))) @ _45=discriminant(_37) @ Discriminant
-    switchInt(move _45) -&gt; [0: bb25, 1: bb26, otherwise: bb11] @ SwitchInt
+    StorageDead(_12) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb25 @ Goto
 }
 bb 25 {
 CleanUp: false
-    StorageLive(_49) @ StorageLive
-    Assign((_49, move ((_37 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _49=move ((_37 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
-    Assign((_36, move _49)) @ _36=move _49 @ Use
-    StorageDead(_49) @ StorageDead
-    Assign((_59, discriminant(_37))) @ _59=discriminant(_37) @ Discriminant
-    StorageDead(_41) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    StorageLive(_50) @ StorageLive
-    StorageLive(_51) @ StorageLive
-    Assign((_56, const false)) @ _56=const false @ Use
-    Assign((_51, move _32)) @ _51=move _32 @ Use
-    _50 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _51) -&gt; [return: bb28, unwind: bb35] @ Call: FnDid: 2323
-}
-bb 26 {
-CleanUp: false
-    StorageLive(_46) @ StorageLive
-    Assign((_46, move ((_37 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _46=move ((_37 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_48) @ StorageLive
-    Assign((_48, move _46)) @ _48=move _46 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _48) -&gt; [return: bb27, unwind: bb40] @ Call: FnDid: 4202
-}
-bb 27 {
-CleanUp: false
-    StorageDead(_48) @ StorageDead
-    StorageDead(_46) @ StorageDead
-    Assign((_57, discriminant(_37))) @ _57=discriminant(_37) @ Discriminant
-    StorageDead(_41) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    goto -&gt; bb31 @ Goto
-}
-bb 28 {
-CleanUp: false
-    StorageDead(_51) @ StorageDead
-    StorageDead(_50) @ StorageDead
-    StorageLive(_52) @ StorageLive
-    StorageLive(_53) @ StorageLive
-    StorageLive(_54) @ StorageLive
-    Assign((_54, &amp;_36)) @ _54=&amp;_36 @ Ref
-    _53 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _54) -&gt; [return: bb29, unwind: bb35] @ Call: FnDid: 3903
-}
-bb 29 {
-CleanUp: false
-    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
-    StorageDead(_54) @ StorageDead
-    StorageLive(_55) @ StorageLive
-    Assign((_55, move _11)) @ _55=move _11 @ Use
-    _0 = filesystem::vfs::file::File::lseek(move _52, move _55) -&gt; [return: bb30, unwind: bb35] @ Call: FnDid: 19193
-}
-bb 30 {
-CleanUp: false
-    StorageDead(_55) @ StorageDead
-    StorageDead(_52) @ StorageDead
-    StorageDead(_53) @ StorageDead
-    drop(_36) -&gt; [return: bb31, unwind: bb42] @ Drop
-}
-bb 31 {
-CleanUp: false
-    StorageDead(_36) @ StorageDead
-    switchInt(copy _56) -&gt; [0: bb32, otherwise: bb39] @ SwitchInt
-}
-bb 32 {
-CleanUp: false
-    Assign((_56, const false)) @ _56=const false @ Use
-    StorageDead(_32) @ StorageDead
-    drop(_27) -&gt; [return: bb33, unwind: bb38] @ Drop
-}
-bb 33 {
-CleanUp: false
-    StorageDead(_27) @ StorageDead
-    goto -&gt; bb34 @ Goto
-}
-bb 34 {
-CleanUp: false
-    StorageDead(_11) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    StorageDead(_7) @ StorageDead
-    StorageDead(_5) @ StorageDead
     return @ Return
 }
-bb 35 {
-CleanUp: true
-    drop(_36) -&gt; [return: bb42, unwind terminate(cleanup)] @ Drop
-}
-bb 36 {
-CleanUp: true
-    drop(_27) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
-}
-bb 37 {
-CleanUp: true
-    drop(_31) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
-}
-bb 38 {
+bb 26 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 39 {
-CleanUp: false
-    drop(_32) -&gt; [return: bb32, unwind: bb36] @ Drop
-}
-bb 40 {
+bb 27 {
 CleanUp: true
-    Assign((_61, discriminant(_37))) @ _61=discriminant(_37) @ Discriminant
-    goto -&gt; bb42 @ Goto
+    drop(_5) -&gt; [return: bb26, unwind terminate(cleanup)] @ Drop
 }
-bb 41 {
+bb 28 {
 CleanUp: true
-    drop(_32) -&gt; [return: bb36, unwind terminate(cleanup)] @ Drop
-}
-bb 42 {
-CleanUp: true
-    switchInt(copy _56) -&gt; [0: bb36, otherwise: bb41] @ SwitchInt
+    switchInt(copy _44) -&gt; [0: bb26, otherwise: bb27] @ SwitchInt
 }
 
 </div>

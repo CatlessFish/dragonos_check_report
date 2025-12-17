@@ -13,7 +13,7 @@
         <h1>
             Report #30
             
-                 <span class="func-name">driver::net::e1000e::e1000e_driver::e1000e_driver_init</span>
+                 <span class="func-name">driver::net::veth::{impl#10}::new</span>
             
         </h1>
 
@@ -25,59 +25,106 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:07:58|RAP|WARN|: Double free detected in function &#34;e1000e_driver_init&#34;
-22:07:58|RAP|WARN|: Double free detected in function &#34;e1000e_driver_init&#34;
-warning: Double free detected.
-   --&gt; src/driver/net/e1000e/e1000e_driver.rs:417:1
+                    <pre id="logContent" class="code-block scrollable">22:07:58|RAP|WARN|: Double free detected in function &#34;new&#34;
+warning: Double free detected during unwinding.
+   --&gt; src/driver/net/veth.rs:323:1
     |
-417 | / pub fn e1000e_driver_init(device: E1000EDevice) {
-418 | |     let mac = smoltcp::wire::EthernetAddress::from_bytes(&amp;device.mac_address());
-419 | |     let driver = E1000EDriver::new(device);
-420 | |     let iface = E1000EInterface::new(driver);
-421 | |     // 标识网络设备已经启动
-422 | |     iface.set_net_state(NetDeivceState::__LINK_STATE_START);
-423 | |
-424 | |     // 将网卡的接口信息注册到全局的网卡接口信息表中
-425 | |     // NET_DEVICES
-426 | |     //     .write_irqsave()
-427 | |     //     .insert(iface.nic_id(), iface.clone());
-428 | |     INIT_NET_NAMESPACE.add_device(iface.clone());
-429 | |     iface.common.set_net_namespace(INIT_NET_NAMESPACE.clone());
-430 | |
-431 | |     info!(&#34;e1000e driver init successfully!\tMAC: [{}]&#34;, mac);
-432 | |
-433 | |     register_netdevice(iface.clone()).expect(&#34;register lo device failed&#34;);
-434 | | }
-    | |_- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 417.
-    | MIR detail: Value _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) and _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) are alias.
-    | MIR detail: _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB30(src/driver/net/e1000e/e1000e_driver.rs:434); _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB30(src/driver/net/e1000e/e1000e_driver.rs:434).
+323 | / pub fn new(driver: VethDriver) -&gt; Arc&lt;Self&gt; {
+324 | |         let iface_id = generate_iface_id();
+325 | |         let name = driver.name();
+326 | |         let mac = [
+327 | |             0x02,
+328 | |             0x00,
+329 | |             0x00,
+330 | |             0x00,
+331 | |             (iface_id &gt;&gt; 8) as u8,
+332 | |             iface_id as u8,
+333 | |         ];
+334 | |         let hw_addr = HardwareAddress::Ethernet(EthernetAddress(mac));
+335 | |         let mut iface_config = smoltcp::iface::Config::new(hw_addr);
+336 | |         iface_config.random_seed = rand() as u64;
+337 | |         let mut iface = smoltcp::iface::Interface::new(
+338 | |             iface_config,
+339 | |             &amp;mut driver.clone(),
+340 | |             crate::time::Instant::now().into(),
+341 | |         );
+342 | |         iface.set_any_ip(true);
+343 | |
+344 | |         let flags = InterfaceFlags::BROADCAST
+345 | |             | InterfaceFlags::MULTICAST
+346 | |             | InterfaceFlags::UP
+347 | |             | InterfaceFlags::RUNNING
+348 | |             | InterfaceFlags::LOWER_UP;
+349 | |
+350 | |         let device = Arc::new(VethInterface {
+351 | |             name,
+352 | |             driver: VethDriverWarpper(UnsafeCell::new(driver.clone())),
+353 | |             common: IfaceCommon::new(iface_id, super::types::InterfaceType::EETHER, flags, iface),
+354 | |             inner: SpinLock::new(VethCommonData::default()),
+355 | |             locked_kobj_state: LockedKObjectState::default(),
+356 | |         });
+357 | |         let napi_struct = NapiStruct::new(device.clone(), 10);
+358 | |         *device.common.napi_struct.write() = Some(napi_struct);
+359 | |
+360 | |         driver.inner.lock().self_iface_ref = Arc::downgrade(&amp;device);
+361 | |
+362 | |         // log::info!(&#34;VethInterface {} created with ID {}&#34;, device.name, iface_id);
+363 | |         device
+364 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/veth.rs line 323.
+    | MIR detail: Value _33(device, src/driver/net/veth.rs:350) and _33(device, src/driver/net/veth.rs:350) are alias.
+    | MIR detail: _33(device, src/driver/net/veth.rs:350) is dropped at BB43(src/driver/net/veth.rs:364); _33(device, src/driver/net/veth.rs:350) is dropped at BB43(src/driver/net/veth.rs:364).
     |
 warning: Double free detected during unwinding.
-   --&gt; src/driver/net/e1000e/e1000e_driver.rs:417:1
+   --&gt; src/driver/net/veth.rs:323:1
     |
-417 | / pub fn e1000e_driver_init(device: E1000EDevice) {
-418 | |     let mac = smoltcp::wire::EthernetAddress::from_bytes(&amp;device.mac_address());
-419 | |     let driver = E1000EDriver::new(device);
-420 | |     let iface = E1000EInterface::new(driver);
-421 | |     // 标识网络设备已经启动
-422 | |     iface.set_net_state(NetDeivceState::__LINK_STATE_START);
-423 | |
-424 | |     // 将网卡的接口信息注册到全局的网卡接口信息表中
-425 | |     // NET_DEVICES
-426 | |     //     .write_irqsave()
-427 | |     //     .insert(iface.nic_id(), iface.clone());
-428 | |     INIT_NET_NAMESPACE.add_device(iface.clone());
-429 | |     iface.common.set_net_namespace(INIT_NET_NAMESPACE.clone());
-430 | |
-431 | |     info!(&#34;e1000e driver init successfully!\tMAC: [{}]&#34;, mac);
-432 | |
-433 | |     register_netdevice(iface.clone()).expect(&#34;register lo device failed&#34;);
-434 | | }
-    | |_- Double free (confidence 99%): Location in file src/driver/net/e1000e/e1000e_driver.rs line 417.
-    | MIR detail: Value _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) and _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) are alias.
-    | MIR detail: _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB32(src/driver/net/e1000e/e1000e_driver.rs:434); _10(iface, src/driver/net/e1000e/e1000e_driver.rs:420) is dropped at BB32(src/driver/net/e1000e/e1000e_driver.rs:434).
+323 | / pub fn new(driver: VethDriver) -&gt; Arc&lt;Self&gt; {
+324 | |         let iface_id = generate_iface_id();
+325 | |         let name = driver.name();
+326 | |         let mac = [
+327 | |             0x02,
+328 | |             0x00,
+329 | |             0x00,
+330 | |             0x00,
+331 | |             (iface_id &gt;&gt; 8) as u8,
+332 | |             iface_id as u8,
+333 | |         ];
+334 | |         let hw_addr = HardwareAddress::Ethernet(EthernetAddress(mac));
+335 | |         let mut iface_config = smoltcp::iface::Config::new(hw_addr);
+336 | |         iface_config.random_seed = rand() as u64;
+337 | |         let mut iface = smoltcp::iface::Interface::new(
+338 | |             iface_config,
+339 | |             &amp;mut driver.clone(),
+340 | |             crate::time::Instant::now().into(),
+341 | |         );
+342 | |         iface.set_any_ip(true);
+343 | |
+344 | |         let flags = InterfaceFlags::BROADCAST
+345 | |             | InterfaceFlags::MULTICAST
+346 | |             | InterfaceFlags::UP
+347 | |             | InterfaceFlags::RUNNING
+348 | |             | InterfaceFlags::LOWER_UP;
+349 | |
+350 | |         let device = Arc::new(VethInterface {
+351 | |             name,
+352 | |             driver: VethDriverWarpper(UnsafeCell::new(driver.clone())),
+353 | |             common: IfaceCommon::new(iface_id, super::types::InterfaceType::EETHER, flags, iface),
+354 | |             inner: SpinLock::new(VethCommonData::default()),
+355 | |             locked_kobj_state: LockedKObjectState::default(),
+356 | |         });
+357 | |         let napi_struct = NapiStruct::new(device.clone(), 10);
+358 | |         *device.common.napi_struct.write() = Some(napi_struct);
+359 | |
+360 | |         driver.inner.lock().self_iface_ref = Arc::downgrade(&amp;device);
+361 | |
+362 | |         // log::info!(&#34;VethInterface {} created with ID {}&#34;, device.name, iface_id);
+363 | |         device
+364 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/net/veth.rs line 323.
+    | MIR detail: Value _40(_, src/driver/net/veth.rs:353) and _40(_, src/driver/net/veth.rs:353) are alias.
+    | MIR detail: _40(_, src/driver/net/veth.rs:353) is dropped at BB45(src/driver/net/veth.rs:356); _40(_, src/driver/net/veth.rs:353) is dropped at BB45(src/driver/net/veth.rs:356).
     |
-render dot for DefId(0:10934 ~ dragonos_kernel[9e38]::driver::net::e1000e::e1000e_driver::e1000e_driver_init)
+render dot for DefId(0:11420 ~ dragonos_kernel[9e38]::driver::net::veth::{impl#10}::new)
 </pre>
                 </div>
             
@@ -88,452 +135,713 @@ render dot for DefId(0:10934 ~ dragonos_kernel[9e38]::driver::net::e1000e::e1000
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/e1000e/e1000e_driver.rs:418:9: 418:12
-bb1 at src/driver/net/e1000e/e1000e_driver.rs:418:78: 418:79
-bb2 at src/driver/net/e1000e/e1000e_driver.rs:418:79: 418:80
-bb3 at src/driver/net/e1000e/e1000e_driver.rs:419:42: 419:43
-bb4 at src/driver/net/e1000e/e1000e_driver.rs:420:44: 420:45
-bb5 at src/driver/net/e1000e/e1000e_driver.rs:422:5: 422:10
-bb6 at src/driver/net/e1000e/e1000e_driver.rs:422:59: 422:60
-bb7 at src/driver/net/e1000e/e1000e_driver.rs:428:5: 428:23
-bb8 at src/driver/net/e1000e/e1000e_driver.rs:428:5: 428:23
-bb9 at src/driver/net/e1000e/e1000e_driver.rs:428:35: 428:48
-bb10 at src/driver/net/e1000e/e1000e_driver.rs:428:48: 428:49
-bb11 at src/driver/net/e1000e/e1000e_driver.rs:429:9: 429:10
-bb12 at src/driver/net/e1000e/e1000e_driver.rs:429:36: 429:54
-bb13 at src/driver/net/e1000e/e1000e_driver.rs:429:61: 429:62
-bb14 at src/driver/net/e1000e/e1000e_driver.rs:429:62: 429:63
-bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
-bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
-bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
-bb20 at src/driver/net/e1000e/e1000e_driver.rs:431:53: 431:54
-bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
-bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
-bb23 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
-bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
-bb25 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
-bb26 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
-bb27 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
-bb28 at src/driver/net/e1000e/e1000e_driver.rs:433:24: 433:37
-bb29 at src/driver/net/e1000e/e1000e_driver.rs:433:37: 433:38
-bb30 at src/driver/net/e1000e/e1000e_driver.rs:433:73: 433:74
-bb31 at src/driver/net/e1000e/e1000e_driver.rs:434:1: 434:2
-fn driver::net::e1000e::e1000e_driver::e1000e_driver_init
-_0:  @ () 
-_1:  @ driver::net::e1000e::e1000e::E1000EDevice 
-_2:  @ smoltcp::wire::EthernetAddress 
-_3:  @ &amp;&#39;{erased} [u8] 
-_4:  @ &amp;&#39;{erased} [u8; 6_usize] 
-_5:  @ &amp;&#39;{erased} [u8; 6_usize] 
-_6:  @ [u8; 6_usize] 
-_7:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e::E1000EDevice 
-_8:  @ driver::net::e1000e::e1000e_driver::E1000EDriver 
-_9:  @ driver::net::e1000e::e1000e::E1000EDevice 
-_10:  @ alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_11:  @ driver::net::e1000e::e1000e_driver::E1000EDriver 
-_12:  @ () 
-_13:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e_driver::E1000EInterface 
-_14:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e_driver::E1000EInterface 
-_15:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_16:  @ () 
-_17:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
-_18:  @ &amp;&#39;{erased} process::namespace::net_namespace::NetNamespace 
-_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
-_20:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
-_21:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
-_22:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
-_23:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_24:  @ alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_25:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_26:  @ () 
-_27:  @ &amp;&#39;{erased} driver::net::IfaceCommon 
-_28:  @ &amp;&#39;{erased} driver::net::e1000e::e1000e_driver::E1000EInterface 
-_29:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_30:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
-_31:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
-_32:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
-_33:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
-_34:  @ &amp;&#39;{erased} process::namespace::net_namespace::INIT_NET_NAMESPACE 
-_35:  @ () 
-_36:  @ log::Level 
-_37:  @ bool 
-_38:  @ &amp;&#39;{erased} log::Level 
-_39:  @ &amp;&#39;{erased} log::LevelFilter 
-_40:  @ log::LevelFilter 
-_41:  @ bool 
-_42:  @ &amp;&#39;{erased} log::Level 
-_43:  @ &amp;&#39;{erased} log::LevelFilter 
-_44:  @ log::LevelFilter 
-_45:  @ () 
-_46:  @ log::__private_api::GlobalLogger 
-_47:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_48:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_49:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_50:  @ &amp;&#39;{erased} smoltcp::wire::EthernetAddress 
-_51:  @ &amp;&#39;{erased} smoltcp::wire::EthernetAddress 
-_52:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
-_53:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
-_54:  @ [&amp;&#39;{erased} str; 2_usize] 
-_55:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_56:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_57:  @ log::Level 
-_58:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
-_59:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
-_60:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
-_61:  @ &amp;&#39;{erased} str 
-_62:  @ &amp;&#39;{erased} str 
-_63:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
-_64:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
-_65:  @ () 
-_66:  @ () 
-_67:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_68:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_69:  @ alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_70:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface, alloc::alloc::Global&gt; 
-_71:  @ &amp;&#39;{erased} str 
-_72:  @ &amp;&#39;{erased} str 
-_73:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
-_74:  @ &amp;&#39;{erased} log::LevelFilter 
-_75:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/veth.rs:324:13: 324:21
+bb1 at src/driver/net/veth.rs:325:13: 325:17
+bb2 at src/driver/net/veth.rs:325:32: 325:33
+bb3 at src/driver/net/veth.rs:331:13: 331:28
+bb4 at src/driver/net/veth.rs:335:67: 335:68
+bb5 at src/driver/net/veth.rs:336:9: 336:49
+bb6 at src/driver/net/veth.rs:339:31: 339:32
+bb8 at src/driver/net/veth.rs:340:46: 340:47
+bb9 at src/driver/net/veth.rs:341:9: 341:10
+bb10 at src/driver/net/veth.rs:341:10: 341:11
+bb11 at src/driver/net/veth.rs:342:30: 342:31
+bb13 at src/driver/net/veth.rs:346:32: 346:33
+bb14 at src/driver/net/veth.rs:347:37: 347:38
+bb15 at src/driver/net/veth.rs:348:38: 348:39
+bb16 at src/driver/net/veth.rs:352:68: 352:69
+bb17 at src/driver/net/veth.rs:352:69: 352:70
+bb18 at src/driver/net/veth.rs:353:97: 353:98
+bb20 at src/driver/net/veth.rs:354:59: 354:60
+bb21 at src/driver/net/veth.rs:350:31: 356:10
+bb22 at src/driver/net/veth.rs:356:10: 356:11
+bb23 at src/driver/net/veth.rs:357:43: 357:57
+bb24 at src/driver/net/veth.rs:357:61: 357:62
+bb25 at src/driver/net/veth.rs:358:15: 358:16
+bb26 at src/driver/net/veth.rs:358:10: 358:43
+bb27 at src/driver/net/veth.rs:358:42: 358:43
+bb28 at src/driver/net/veth.rs:358:9: 358:43
+bb29 at src/driver/net/veth.rs:358:9: 358:43
+bb30 at src/driver/net/veth.rs:358:63: 358:64
+bb31 at src/driver/net/veth.rs:360:68: 360:69
+bb32 at src/driver/net/veth.rs:360:9: 360:21
+bb33 at src/driver/net/veth.rs:360:9: 360:28
+bb34 at src/driver/net/veth.rs:360:27: 360:28
+bb35 at src/driver/net/veth.rs:360:9: 360:43
+bb36 at src/driver/net/veth.rs:360:9: 360:43
+bb37 at src/driver/net/veth.rs:360:69: 360:70
+fn driver::net::veth::VethInterface::new
+_0:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_1:  @ driver::net::veth::VethDriver 
+_2:  @ usize 
+_3:  @ alloc::string::String 
+_4:  @ &amp;&#39;{erased} driver::net::veth::VethDriver 
+_5:  @ [u8; 6_usize] 
+_6:  @ u8 
+_7:  @ usize 
+_8:  @ usize 
+_9:  @ u32 
+_10:  @ bool 
+_11:  @ u8 
+_12:  @ usize 
+_13:  @ smoltcp::wire::HardwareAddress 
+_14:  @ smoltcp::wire::EthernetAddress 
+_15:  @ [u8; 6_usize] 
+_16:  @ smoltcp::iface::Config 
+_17:  @ smoltcp::wire::HardwareAddress 
+_18:  @ usize 
+_19:  @ smoltcp::iface::Interface 
+_20:  @ smoltcp::iface::Config 
+_21:  @ &amp;&#39;{erased} mut driver::net::veth::VethDriver 
+_22:  @ &amp;&#39;{erased} mut driver::net::veth::VethDriver 
+_23:  @ driver::net::veth::VethDriver 
+_24:  @ &amp;&#39;{erased} driver::net::veth::VethDriver 
+_25:  @ smoltcp::time::Instant 
+_26:  @ time::Instant 
+_27:  @ () 
+_28:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_29:  @ driver::net::types::InterfaceFlags 
+_30:  @ driver::net::types::InterfaceFlags 
+_31:  @ driver::net::types::InterfaceFlags 
+_32:  @ driver::net::types::InterfaceFlags 
+_33:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_34:  @ driver::net::veth::VethInterface 
+_35:  @ alloc::string::String 
+_36:  @ driver::net::veth::VethDriverWarpper 
+_37:  @ core::cell::UnsafeCell&lt;driver::net::veth::VethDriver&gt; 
+_38:  @ driver::net::veth::VethDriver 
+_39:  @ &amp;&#39;{erased} driver::net::veth::VethDriver 
+_40:  @ driver::net::IfaceCommon 
+_41:  @ usize 
+_42:  @ driver::net::types::InterfaceType 
+_43:  @ driver::net::types::InterfaceFlags 
+_44:  @ smoltcp::iface::Interface 
+_45:  @ libs::spinlock::SpinLock&lt;driver::net::veth::VethCommonData&gt; 
+_46:  @ driver::net::veth::VethCommonData 
+_47:  @ driver::base::kobject::LockedKObjectState 
+_48:  @ alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt; 
+_49:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_50:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_51:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_52:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt; 
+_53:  @ alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt; 
+_54:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt; 
+_55:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt;&gt; 
+_56:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt;&gt; 
+_57:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt;&gt; 
+_58:  @ &amp;&#39;{erased} driver::net::veth::VethInterface 
+_59:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_60:  @ alloc::sync::Weak&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_61:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_62:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_63:  @ &amp;&#39;{erased} mut driver::net::veth::Veth 
+_64:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::veth::Veth&gt; 
+_65:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::veth::Veth&gt; 
+_66:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::net::veth::Veth&gt; 
+_67:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::net::veth::Veth&gt; 
+_68:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::veth::Veth&gt;, alloc::alloc::Global&gt; 
+_69:  @ bool 
+_70:  @ bool 
+_71:  @ bool 
+_72:  @ bool 
 
 bb 0 {
 CleanUp: false
-    Assign((_75, const false)) @ _75=const false @ Use
-    Assign((_75, const true)) @ _75=const true @ Use
+    Assign((_72, const false)) @ _72=const false @ Use
+    Assign((_71, const false)) @ _71=const false @ Use
+    Assign((_70, const false)) @ _70=const false @ Use
+    Assign((_69, const false)) @ _69=const false @ Use
     StorageLive(_2) @ StorageLive
+    _2 = net::generate_iface_id() -&gt; [return: bb1, unwind: bb49] @ Call: FnDid: 27289
+}
+bb 1 {
+CleanUp: false
     StorageLive(_3) @ StorageLive
     StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;_1)) @ _4=&amp;_1 @ Ref
+    _3 = driver::net::veth::VethDriver::name(move _4) -&gt; [return: bb2, unwind: bb49] @ Call: FnDid: 11387
+}
+bb 2 {
+CleanUp: false
+    Assign((_72, const true)) @ _72=const true @ Use
+    StorageDead(_4) @ StorageDead
     StorageLive(_5) @ StorageLive
     StorageLive(_6) @ StorageLive
     StorageLive(_7) @ StorageLive
-    Assign((_7, &amp;_1)) @ _7=&amp;_1 @ Ref
-    _6 = driver::net::e1000e::e1000e::E1000EDevice::mac_address(move _7) -&gt; [return: bb1, unwind: bb35] @ Call: FnDid: 10672
+    StorageLive(_8) @ StorageLive
+    Assign((_8, copy _2)) @ _8=copy _2 @ Use
+    Assign((_9, const 8_i32 as u32 (IntToInt))) @ _9=const 8_i32 as u32 (IntToInt) @ Cast
+    Assign((_10, Lt(move _9, const 64_u32))) @ _10=Lt(move _9, const 64_u32) @ BinaryOp
+    assert(move _10, &#34;attempt to shift right by `{}`, which would overflow&#34;, const 8_i32) -&gt; [success: bb3, unwind: bb58] @ Assert
+}
+bb 3 {
+CleanUp: false
+    Assign((_7, Shr(move _8, const 8_i32))) @ _7=Shr(move _8, const 8_i32) @ BinaryOp
+    StorageDead(_8) @ StorageDead
+    Assign((_6, move _7 as u8 (IntToInt))) @ _6=move _7 as u8 (IntToInt) @ Cast
+    StorageDead(_7) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, copy _2)) @ _12=copy _2 @ Use
+    Assign((_11, move _12 as u8 (IntToInt))) @ _11=move _12 as u8 (IntToInt) @ Cast
+    StorageDead(_12) @ StorageDead
+    Assign((_5, [const 2_u8, const 0_u8, const 0_u8, const 0_u8, move _6, move _11])) @ _5=[const 2_u8, const 0_u8, const 0_u8, const 0_u8, move _6, move _11] @ Aggregate
+    StorageDead(_11) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, copy _5)) @ _15=copy _5 @ Use
+    Assign((_14, smoltcp::wire::EthernetAddress(move _15))) @ _14=smoltcp::wire::EthernetAddress(move _15) @ Aggregate
+    StorageDead(_15) @ StorageDead
+    Assign((_13, smoltcp::wire::HardwareAddress::Ethernet(move _14))) @ _13=smoltcp::wire::HardwareAddress::Ethernet(move _14) @ Aggregate
+    StorageDead(_14) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, copy _13)) @ _17=copy _13 @ Use
+    _16 = smoltcp::iface::Config::new(move _17) -&gt; [return: bb4, unwind: bb58] @ Call: FnDid: 295
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    _18 = arch::x86_64::rand::rand() -&gt; [return: bb5, unwind: bb58] @ Call: FnDid: 2001
+}
+bb 5 {
+CleanUp: false
+    Assign(((_16.0: u64), move _18 as u64 (IntToInt))) @ (_16.0: u64)=move _18 as u64 (IntToInt) @ Cast
+    StorageDead(_18) @ StorageDead
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_20, move _16)) @ _20=move _16 @ Use
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, &amp;_1)) @ _24=&amp;_1 @ Ref
+    _23 = &lt;driver::net::veth::VethDriver as core::clone::Clone&gt;::clone(move _24) -&gt; [return: bb6, unwind: bb58] @ Call: FnDid: 3116
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_22, &amp;mut _23)) @ _22=&amp;mut _23 @ Ref
+    Assign((_21, &amp;mut (*_22))) @ _21=&amp;mut (*_22) @ Ref
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    _26 = time::Instant::now() -&gt; [return: bb7, unwind: bb48] @ Call: FnDid: 31615
+}
+bb 7 {
+CleanUp: false
+    _25 = &lt;time::Instant as core::convert::Into&lt;smoltcp::time::Instant&gt;&gt;::into(move _26) -&gt; [return: bb8, unwind: bb48] @ Call: FnDid: 3387
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_26) @ StorageDead
+    _19 = smoltcp::iface::Interface::new::&lt;driver::net::veth::VethDriver&gt;(move _20, move _21, move _25) -&gt; [return: bb9, unwind: bb48] @ Call: FnDid: 297
+}
+bb 9 {
+CleanUp: false
+    Assign((_71, const true)) @ _71=const true @ Use
+    StorageDead(_25) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    drop(_23) -&gt; [return: bb10, unwind: bb56] @ Drop
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;mut _19)) @ _28=&amp;mut _19 @ Ref
+    _27 = smoltcp::iface::Interface::set_any_ip(move _28, const true) -&gt; [return: bb11, unwind: bb56] @ Call: FnDid: 314
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    _32 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(const driver::net::types::InterfaceFlags::BROADCAST, const driver::net::types::InterfaceFlags::MULTICAST) -&gt; [return: bb12, unwind: bb56] @ Call: FnDid: 39936
+}
+bb 12 {
+CleanUp: false
+    _31 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _32, const driver::net::types::InterfaceFlags::UP) -&gt; [return: bb13, unwind: bb56] @ Call: FnDid: 39936
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    _30 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _31, const driver::net::types::InterfaceFlags::RUNNING) -&gt; [return: bb14, unwind: bb56] @ Call: FnDid: 39936
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    _29 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _30, const driver::net::types::InterfaceFlags::LOWER_UP) -&gt; [return: bb15, unwind: bb56] @ Call: FnDid: 39936
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_72, const false)) @ _72=const false @ Use
+    Assign((_35, move _3)) @ _35=move _3 @ Use
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;_1)) @ _39=&amp;_1 @ Ref
+    _38 = &lt;driver::net::veth::VethDriver as core::clone::Clone&gt;::clone(move _39) -&gt; [return: bb16, unwind: bb47] @ Call: FnDid: 3116
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    _37 = core::cell::UnsafeCell::&lt;driver::net::veth::VethDriver&gt;::new(move _38) -&gt; [return: bb17, unwind: bb47] @ Call: FnDid: 5681
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    Assign((_36, driver::net::veth::VethDriverWarpper(move _37))) @ _36=driver::net::veth::VethDriverWarpper(move _37) @ Aggregate
+    StorageDead(_37) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_41, copy _2)) @ _41=copy _2 @ Use
+    StorageLive(_42) @ StorageLive
+    Assign((_42, driver::net::types::InterfaceType::EETHER)) @ _42=driver::net::types::InterfaceType::EETHER @ Aggregate
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _29)) @ _43=copy _29 @ Use
+    StorageLive(_44) @ StorageLive
+    Assign((_71, const false)) @ _71=const false @ Use
+    Assign((_44, move _19)) @ _44=move _19 @ Use
+    _40 = driver::net::IfaceCommon::new(move _41, move _42, move _43, move _44) -&gt; [return: bb18, unwind: bb46] @ Call: FnDid: 11816
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageLive(_45) @ StorageLive
+    StorageLive(_46) @ StorageLive
+    _46 = &lt;driver::net::veth::VethCommonData as core::default::Default&gt;::default() -&gt; [return: bb19, unwind: bb45] @ Call: FnDid: 3464
+}
+bb 19 {
+CleanUp: false
+    _45 = libs::spinlock::SpinLock::&lt;driver::net::veth::VethCommonData&gt;::new(move _46) -&gt; [return: bb20, unwind: bb45] @ Call: FnDid: 5260
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    StorageLive(_47) @ StorageLive
+    _47 = &lt;driver::base::kobject::LockedKObjectState as core::default::Default&gt;::default() -&gt; [return: bb21, unwind: bb44] @ Call: FnDid: 3464
+}
+bb 21 {
+CleanUp: false
+    Assign((_34, driver::net::veth::VethInterface { name: move _35, driver: move _36, common: move _40, inner: move _45, locked_kobj_state: move _47 })) @ _34=driver::net::veth::VethInterface { name: move _35, driver: move _36, common: move _40, inner: move _45, locked_kobj_state: move _47 } @ Aggregate
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    _33 = alloc::sync::Arc::&lt;driver::net::veth::VethInterface&gt;::new(move _34) -&gt; [return: bb22, unwind: bb56] @ Call: FnDid: 6875
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;_33)) @ _51=&amp;_33 @ Ref
+    _50 = &lt;alloc::sync::Arc&lt;driver::net::veth::VethInterface&gt; as core::clone::Clone&gt;::clone(move _51) -&gt; [return: bb23, unwind: bb43] @ Call: FnDid: 3116
+}
+bb 23 {
+CleanUp: false
+    Assign((_49, move _50 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _49=move _50 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_51) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    _48 = driver::net::napi::NapiStruct::new(move _49, const 10_usize) -&gt; [return: bb24, unwind: bb43] @ Call: FnDid: 11131
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_53, move _48)) @ _53=move _48 @ Use
+    Assign((_70, const true)) @ _70=const true @ Use
+    Assign((_52, core::option::Option::&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;::Some(move _53))) @ _52=core::option::Option::&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;::Some(move _53) @ Aggregate
+    StorageDead(_53) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    Assign((_59, &amp;_33)) @ _59=&amp;_33 @ Ref
+    _58 = &lt;alloc::sync::Arc&lt;driver::net::veth::VethInterface&gt; as lazy_static::__Deref&gt;::deref(move _59) -&gt; [return: bb25, unwind: bb42] @ Call: FnDid: 3903
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    Assign((_57, &amp;(((*_58).2: driver::net::IfaceCommon).10: libs::rwlock::RwLock&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt;))) @ _57=&amp;(((*_58).2: driver::net::IfaceCommon).10: libs::rwlock::RwLock&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt;) @ Ref
+    _56 = libs::rwlock::RwLock::&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt;::write(move _57) -&gt; [return: bb26, unwind: bb42] @ Call: FnDid: 5165
+}
+bb 26 {
+CleanUp: false
+    Assign((_55, &amp;mut _56)) @ _55=&amp;mut _56 @ Ref
+    StorageDead(_57) @ StorageDead
+    _54 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _55) -&gt; [return: bb27, unwind: bb54] @ Call: FnDid: 3915
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    drop((*_54)) -&gt; [return: bb28, unwind: bb29] @ Drop
+}
+bb 28 {
+CleanUp: false
+    Assign((_70, const false)) @ _70=const false @ Use
+    Assign(((*_54), move _52)) @ (*_54)=move _52 @ Use
+    Assign((_70, const false)) @ _70=const false @ Use
+    StorageDead(_52) @ StorageDead
+    drop(_56) -&gt; [return: bb30, unwind: bb43] @ Drop
+}
+bb 29 {
+CleanUp: true
+    Assign((_70, const false)) @ _70=const false @ Use
+    Assign(((*_54), move _52)) @ (*_54)=move _52 @ Use
+    goto -&gt; bb54 @ Goto
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_62, &amp;_33)) @ _62=&amp;_33 @ Ref
+    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
+    _60 = alloc::sync::Arc::&lt;driver::net::veth::VethInterface&gt;::downgrade(move _61) -&gt; [return: bb31, unwind: bb43] @ Call: FnDid: 6946
+}
+bb 31 {
+CleanUp: false
+    Assign((_69, const true)) @ _69=const true @ Use
+    StorageDead(_61) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    Assign((_68, &amp;(_1.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::veth::Veth&gt;&gt;))) @ _68=&amp;(_1.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::veth::Veth&gt;&gt;) @ Ref
+    _67 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::veth::Veth&gt;&gt; as lazy_static::__Deref&gt;::deref(move _68) -&gt; [return: bb32, unwind: bb40] @ Call: FnDid: 3903
+}
+bb 32 {
+CleanUp: false
+    Assign((_66, &amp;(*_67))) @ _66=&amp;(*_67) @ Ref
+    StorageDead(_68) @ StorageDead
+    _65 = libs::spinlock::SpinLock::&lt;driver::net::veth::Veth&gt;::lock(move _66) -&gt; [return: bb33, unwind: bb40] @ Call: FnDid: 5261
+}
+bb 33 {
+CleanUp: false
+    Assign((_64, &amp;mut _65)) @ _64=&amp;mut _65 @ Ref
+    _63 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::net::veth::Veth&gt; as core::ops::DerefMut&gt;::deref_mut(move _64) -&gt; [return: bb34, unwind: bb52] @ Call: FnDid: 3915
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_66) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    drop(((*_63).3: alloc::sync::Weak&lt;driver::net::veth::VethInterface&gt;)) -&gt; [return: bb35, unwind: bb36] @ Drop
+}
+bb 35 {
+CleanUp: false
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((((*_63).3: alloc::sync::Weak&lt;driver::net::veth::VethInterface&gt;), move _60)) @ ((*_63).3: alloc::sync::Weak&lt;driver::net::veth::VethInterface&gt;)=move _60 @ Use
+    Assign((_69, const false)) @ _69=const false @ Use
+    StorageDead(_60) @ StorageDead
+    drop(_65) -&gt; [return: bb37, unwind: bb43] @ Drop
+}
+bb 36 {
+CleanUp: true
+    Assign((_69, const false)) @ _69=const false @ Use
+    Assign((((*_63).3: alloc::sync::Weak&lt;driver::net::veth::VethInterface&gt;), move _60)) @ ((*_63).3: alloc::sync::Weak&lt;driver::net::veth::VethInterface&gt;)=move _60 @ Use
+    goto -&gt; bb52 @ Goto
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    Assign((_0, move _33)) @ _0=move _33 @ Use
+    StorageDead(_48) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    Assign((_71, const false)) @ _71=const false @ Use
+    StorageDead(_19) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    Assign((_72, const false)) @ _72=const false @ Use
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    drop(_1) -&gt; [return: bb38, unwind: bb50] @ Drop
+}
+bb 38 {
+CleanUp: false
+    return @ Return
+}
+bb 39 {
+CleanUp: true
+    drop(_65) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 40 {
+CleanUp: true
+    drop(_60) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 41 {
+CleanUp: true
+    drop(_56) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 42 {
+CleanUp: true
+    drop(_52) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 43 {
+CleanUp: true
+    drop(_33) -&gt; [return: bb56, unwind terminate(cleanup)] @ Drop
+}
+bb 44 {
+CleanUp: true
+    drop(_45) -&gt; [return: bb45, unwind terminate(cleanup)] @ Drop
+}
+bb 45 {
+CleanUp: true
+    drop(_40) -&gt; [return: bb46, unwind terminate(cleanup)] @ Drop
+}
+bb 46 {
+CleanUp: true
+    drop(_36) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+}
+bb 47 {
+CleanUp: true
+    drop(_35) -&gt; [return: bb56, unwind terminate(cleanup)] @ Drop
+}
+bb 48 {
+CleanUp: true
+    drop(_23) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 49 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb50, unwind terminate(cleanup)] @ Drop
+}
+bb 50 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 51 {
+CleanUp: true
+    drop(_60) -&gt; [return: bb39, unwind terminate(cleanup)] @ Drop
+}
+bb 52 {
+CleanUp: true
+    switchInt(copy _69) -&gt; [0: bb39, otherwise: bb51] @ SwitchInt
+}
+bb 53 {
+CleanUp: true
+    drop(_52) -&gt; [return: bb41, unwind terminate(cleanup)] @ Drop
+}
+bb 54 {
+CleanUp: true
+    switchInt(copy _70) -&gt; [0: bb41, otherwise: bb53] @ SwitchInt
+}
+bb 55 {
+CleanUp: true
+    drop(_19) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 56 {
+CleanUp: true
+    switchInt(copy _71) -&gt; [0: bb58, otherwise: bb55] @ SwitchInt
+}
+bb 57 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb49, unwind terminate(cleanup)] @ Drop
+}
+bb 58 {
+CleanUp: true
+    switchInt(copy _72) -&gt; [0: bb49, otherwise: bb57] @ SwitchInt
+}
+
+bb0 at src/driver/net/veth.rs:373:34: 373:68
+bb1 at src/driver/net/veth.rs:373:67: 373:68
+bb2 at src/driver/net/veth.rs:374:48: 374:49
+bb3 at src/driver/net/veth.rs:375:48: 375:49
+bb4 at src/driver/net/veth.rs:377:9: 377:15
+bb5 at src/driver/net/veth.rs:377:38: 377:39
+bb6 at src/driver/net/veth.rs:378:9: 378:15
+bb7 at src/driver/net/veth.rs:378:38: 378:39
+fn driver::net::veth::VethInterface::new_pair
+_0:  @ (alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt;, alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt;) 
+_1:  @ &amp;&#39;{erased} str 
+_2:  @ &amp;&#39;{erased} str 
+_3:  @ driver::net::veth::VethDriver 
+_4:  @ driver::net::veth::VethDriver 
+_5:  @ (driver::net::veth::VethDriver, driver::net::veth::VethDriver) 
+_6:  @ &amp;&#39;{erased} str 
+_7:  @ &amp;&#39;{erased} str 
+_8:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_9:  @ driver::net::veth::VethDriver 
+_10:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_11:  @ driver::net::veth::VethDriver 
+_12:  @ () 
+_13:  @ &amp;&#39;{erased} driver::net::veth::VethInterface 
+_14:  @ &amp;&#39;{erased} driver::net::veth::VethInterface 
+_15:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_16:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_17:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_18:  @ () 
+_19:  @ &amp;&#39;{erased} driver::net::veth::VethInterface 
+_20:  @ &amp;&#39;{erased} driver::net::veth::VethInterface 
+_21:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_22:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_23:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_24:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_25:  @ alloc::sync::Arc&lt;driver::net::veth::VethInterface, alloc::alloc::Global&gt; 
+_26:  @ bool 
+_27:  @ bool 
+
+bb 0 {
+CleanUp: false
+    Assign((_27, const false)) @ _27=const false @ Use
+    Assign((_26, const false)) @ _26=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_1))) @ _6=&amp;(*_1) @ Ref
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;(*_2))) @ _7=&amp;(*_2) @ Ref
+    _5 = driver::net::veth::VethDriver::new_pair(move _6, move _7) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 11386
 }
 bb 1 {
 CleanUp: false
     StorageDead(_7) @ StorageDead
-    Assign((_5, &amp;_6)) @ _5=&amp;_6 @ Ref
-    Assign((_4, &amp;(*_5))) @ _4=&amp;(*_5) @ Ref
-    Assign((_3, move _4 as &amp;[u8] (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as &amp;[u8] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_4) @ StorageDead
-    _2 = smoltcp::wire::EthernetAddress::from_bytes(move _3) -&gt; [return: bb2, unwind: bb35] @ Call: FnDid: 2026
-}
-bb 2 {
-CleanUp: false
-    StorageDead(_3) @ StorageDead
     StorageDead(_6) @ StorageDead
+    StorageLive(_3) @ StorageLive
+    Assign((_27, const true)) @ _27=const true @ Use
+    Assign((_3, move (_5.0: driver::net::veth::VethDriver))) @ _3=move (_5.0: driver::net::veth::VethDriver) @ Use
+    StorageLive(_4) @ StorageLive
+    Assign((_26, const true)) @ _26=const true @ Use
+    Assign((_4, move (_5.1: driver::net::veth::VethDriver))) @ _4=move (_5.1: driver::net::veth::VethDriver) @ Use
     StorageDead(_5) @ StorageDead
     StorageLive(_8) @ StorageLive
     StorageLive(_9) @ StorageLive
-    Assign((_75, const false)) @ _75=const false @ Use
-    Assign((_9, move _1)) @ _9=move _1 @ Use
-    _8 = driver::net::e1000e::e1000e_driver::E1000EDriver::new(move _9) -&gt; [return: bb3, unwind: bb35] @ Call: FnDid: 10877
+    Assign((_27, const false)) @ _27=const false @ Use
+    Assign((_9, move _3)) @ _9=move _3 @ Use
+    _8 = driver::net::veth::VethInterface::new(move _9) -&gt; [return: bb2, unwind: bb13] @ Call: FnDid: 11420
 }
-bb 3 {
+bb 2 {
 CleanUp: false
     StorageDead(_9) @ StorageDead
     StorageLive(_10) @ StorageLive
     StorageLive(_11) @ StorageLive
-    Assign((_11, move _8)) @ _11=move _8 @ Use
-    _10 = driver::net::e1000e::e1000e_driver::E1000EInterface::new(move _11) -&gt; [return: bb4, unwind: bb35] @ Call: FnDid: 10889
+    Assign((_26, const false)) @ _26=const false @ Use
+    Assign((_11, move _4)) @ _11=move _4 @ Use
+    _10 = driver::net::veth::VethInterface::new(move _11) -&gt; [return: bb3, unwind: bb9] @ Call: FnDid: 11420
 }
-bb 4 {
+bb 3 {
 CleanUp: false
     StorageDead(_11) @ StorageDead
     StorageLive(_12) @ StorageLive
     StorageLive(_13) @ StorageLive
     StorageLive(_14) @ StorageLive
     StorageLive(_15) @ StorageLive
-    Assign((_15, &amp;_10)) @ _15=&amp;_10 @ Ref
-    _14 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb5, unwind: bb32] @ Call: FnDid: 3903
+    Assign((_15, &amp;_8)) @ _15=&amp;_8 @ Ref
+    _14 = &lt;alloc::sync::Arc&lt;driver::net::veth::VethInterface&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb4, unwind: bb8] @ Call: FnDid: 3903
 }
-bb 5 {
+bb 4 {
 CleanUp: false
     Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
     StorageDead(_15) @ StorageDead
-    _12 = &lt;driver::net::e1000e::e1000e_driver::E1000EInterface as driver::net::Iface&gt;::set_net_state(move _13, const driver::net::NetDeivceState::__LINK_STATE_START) -&gt; [return: bb6, unwind: bb32] @ Call: FnDid: 11788
-}
-bb 6 {
-CleanUp: false
-    StorageDead(_13) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    StorageDead(_12) @ StorageDead
     StorageLive(_16) @ StorageLive
     StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;_10)) @ _17=&amp;_10 @ Ref
+    Assign((_16, &amp;(*_17))) @ _16=&amp;(*_17) @ Ref
+    _12 = driver::net::veth::VethInterface::set_peer_iface(move _13, move _16) -&gt; [return: bb5, unwind: bb8] @ Call: FnDid: 11421
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
     StorageLive(_18) @ StorageLive
     StorageLive(_19) @ StorageLive
     StorageLive(_20) @ StorageLive
     StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;_10)) @ _21=&amp;_10 @ Ref
+    _20 = &lt;alloc::sync::Arc&lt;driver::net::veth::VethInterface&gt; as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb6, unwind: bb8] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    StorageDead(_21) @ StorageDead
     StorageLive(_22) @ StorageLive
-    Assign((_22, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _22=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
-    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
-    _20 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb7, unwind: bb32] @ Call: FnDid: 3903
+    StorageLive(_23) @ StorageLive
+    Assign((_23, &amp;_8)) @ _23=&amp;_8 @ Ref
+    Assign((_22, &amp;(*_23))) @ _22=&amp;(*_23) @ Ref
+    _18 = driver::net::veth::VethInterface::set_peer_iface(move _19, move _22) -&gt; [return: bb7, unwind: bb8] @ Call: FnDid: 11421
 }
 bb 7 {
 CleanUp: false
-    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
-    _18 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb8, unwind: bb32] @ Call: FnDid: 3903
-}
-bb 8 {
-CleanUp: false
-    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
-    StorageDead(_21) @ StorageDead
-    StorageDead(_19) @ StorageDead
-    StorageLive(_23) @ StorageLive
-    StorageLive(_24) @ StorageLive
-    StorageLive(_25) @ StorageLive
-    Assign((_25, &amp;_10)) @ _25=&amp;_10 @ Ref
-    _24 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as core::clone::Clone&gt;::clone(move _25) -&gt; [return: bb9, unwind: bb32] @ Call: FnDid: 3116
-}
-bb 9 {
-CleanUp: false
-    Assign((_23, move _24 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _23=move _24 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_25) @ StorageDead
-    StorageDead(_24) @ StorageDead
-    _16 = process::namespace::net_namespace::NetNamespace::add_device(move _17, move _23) -&gt; [return: bb10, unwind: bb32] @ Call: FnDid: 28324
-}
-bb 10 {
-CleanUp: false
-    StorageDead(_23) @ StorageDead
-    StorageDead(_17) @ StorageDead
     StorageDead(_22) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_23) @ StorageDead
     StorageDead(_20) @ StorageDead
     StorageDead(_18) @ StorageDead
-    StorageDead(_16) @ StorageDead
-    StorageLive(_26) @ StorageLive
-    StorageLive(_27) @ StorageLive
-    StorageLive(_28) @ StorageLive
-    StorageLive(_29) @ StorageLive
-    Assign((_29, &amp;_10)) @ _29=&amp;_10 @ Ref
-    _28 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as lazy_static::__Deref&gt;::deref(move _29) -&gt; [return: bb11, unwind: bb32] @ Call: FnDid: 3903
-}
-bb 11 {
-CleanUp: false
-    StorageDead(_29) @ StorageDead
-    Assign((_27, &amp;((*_28).1: driver::net::IfaceCommon))) @ _27=&amp;((*_28).1: driver::net::IfaceCommon) @ Ref
-    StorageLive(_30) @ StorageLive
-    StorageLive(_31) @ StorageLive
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    Assign((_34, const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE})) @ _34=const {alloc164668: &amp;process::namespace::net_namespace::INIT_NET_NAMESPACE} @ Use
-    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
-    _32 = &lt;process::namespace::net_namespace::INIT_NET_NAMESPACE as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb12, unwind: bb32] @ Call: FnDid: 3903
-}
-bb 12 {
-CleanUp: false
-    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
-    StorageDead(_33) @ StorageDead
-    _30 = &lt;alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace&gt; as core::clone::Clone&gt;::clone(move _31) -&gt; [return: bb13, unwind: bb32] @ Call: FnDid: 3116
-}
-bb 13 {
-CleanUp: false
-    StorageDead(_31) @ StorageDead
-    _26 = driver::net::IfaceCommon::set_net_namespace(move _27, move _30) -&gt; [return: bb14, unwind: bb32] @ Call: FnDid: 11831
-}
-bb 14 {
-CleanUp: false
-    StorageDead(_30) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageDead(_34) @ StorageDead
-    StorageDead(_32) @ StorageDead
-    StorageDead(_28) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    StorageLive(_35) @ StorageLive
-    StorageLive(_36) @ StorageLive
-    Assign((_36, log::Level::Info)) @ _36=log::Level::Info @ Aggregate
-    StorageLive(_37) @ StorageLive
-    StorageLive(_38) @ StorageLive
-    Assign((_38, &amp;_36)) @ _38=&amp;_36 @ Ref
-    StorageLive(_39) @ StorageLive
-    Assign((_74, const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[1])) @ _74=const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[1] @ Use
-    Assign((_39, &amp;(*_74))) @ _39=&amp;(*_74) @ Ref
-    _37 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _38, move _39) -&gt; [return: bb15, unwind: bb32] @ Call: FnDid: 3215
-}
-bb 15 {
-CleanUp: false
-    switchInt(move _37) -&gt; [0: bb25, otherwise: bb16] @ SwitchInt
-}
-bb 16 {
-CleanUp: false
-    StorageDead(_39) @ StorageDead
-    StorageDead(_38) @ StorageDead
-    StorageLive(_41) @ StorageLive
-    StorageLive(_42) @ StorageLive
-    Assign((_42, &amp;_36)) @ _42=&amp;_36 @ Ref
-    StorageLive(_43) @ StorageLive
-    StorageLive(_44) @ StorageLive
-    _44 = log::max_level() -&gt; [return: bb17, unwind: bb32] @ Call: FnDid: 134
-}
-bb 17 {
-CleanUp: false
-    Assign((_43, &amp;_44)) @ _43=&amp;_44 @ Ref
-    _41 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _42, move _43) -&gt; [return: bb18, unwind: bb32] @ Call: FnDid: 3215
-}
-bb 18 {
-CleanUp: false
-    switchInt(move _41) -&gt; [0: bb24, otherwise: bb19] @ SwitchInt
-}
-bb 19 {
-CleanUp: false
-    StorageDead(_44) @ StorageDead
-    StorageDead(_43) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    StorageLive(_45) @ StorageLive
-    StorageLive(_46) @ StorageLive
-    Assign((_46, log::__private_api::GlobalLogger)) @ _46=log::__private_api::GlobalLogger @ Aggregate
-    StorageLive(_47) @ StorageLive
-    StorageLive(_48) @ StorageLive
-    StorageLive(_49) @ StorageLive
-    StorageLive(_50) @ StorageLive
-    StorageLive(_51) @ StorageLive
-    Assign((_51, &amp;_2)) @ _51=&amp;_2 @ Ref
-    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
-    _49 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;smoltcp::wire::EthernetAddress&gt;(move _50) -&gt; [return: bb20, unwind: bb32] @ Call: FnDid: 11807
-}
-bb 20 {
-CleanUp: false
-    StorageDead(_50) @ StorageDead
-    Assign((_48, [move _49])) @ _48=[move _49] @ Aggregate
-    StorageDead(_49) @ StorageDead
-    StorageLive(_52) @ StorageLive
-    StorageLive(_53) @ StorageLive
-    Assign((_73, const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[0])) @ _73=const driver::net::e1000e::e1000e_driver::e1000e_driver_init::promoted[0] @ Use
-    Assign((_53, &amp;(*_73))) @ _53=&amp;(*_73) @ Ref
-    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
-    StorageLive(_55) @ StorageLive
-    StorageLive(_56) @ StorageLive
-    Assign((_56, &amp;_48)) @ _56=&amp;_48 @ Ref
-    Assign((_55, &amp;(*_56))) @ _55=&amp;(*_56) @ Ref
-    _47 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 1&gt;(move _52, move _55) -&gt; [return: bb21, unwind: bb32] @ Call: FnDid: 11836
-}
-bb 21 {
-CleanUp: false
-    StorageDead(_56) @ StorageDead
-    StorageDead(_55) @ StorageDead
-    StorageDead(_53) @ StorageDead
-    StorageDead(_52) @ StorageDead
-    StorageLive(_57) @ StorageLive
-    Assign((_57, copy _36)) @ _57=copy _36 @ Use
-    StorageLive(_58) @ StorageLive
-    StorageLive(_59) @ StorageLive
-    StorageLive(_60) @ StorageLive
-    StorageLive(_61) @ StorageLive
-    StorageLive(_62) @ StorageLive
-    Assign((_62, const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34;)) @ _62=const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34; @ Use
-    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
-    StorageLive(_63) @ StorageLive
-    StorageLive(_64) @ StorageLive
-    _64 = log::__private_api::loc() -&gt; [return: bb22, unwind: bb32] @ Call: FnDid: 184
-}
-bb 22 {
-CleanUp: false
-    Assign((_63, &amp;(*_64))) @ _63=&amp;(*_64) @ Ref
-    Assign((_60, (move _61, const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34;, move _63))) @ _60=(move _61, const &#34;dragonos_kernel::driver::net::e1000e::e1000e_driver&#34;, move _63) @ Aggregate
-    StorageDead(_63) @ StorageDead
-    StorageDead(_61) @ StorageDead
-    Assign((_59, &amp;_60)) @ _59=&amp;_60 @ Ref
-    Assign((_58, &amp;(*_59))) @ _58=&amp;(*_59) @ Ref
-    StorageLive(_65) @ StorageLive
-    Assign((_65, ())) @ _65=() @ Aggregate
-    _45 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _46, move _47, move _57, move _58, move _65) -&gt; [return: bb23, unwind: bb32] @ Call: FnDid: 178
-}
-bb 23 {
-CleanUp: false
-    StorageDead(_65) @ StorageDead
-    StorageDead(_58) @ StorageDead
-    StorageDead(_57) @ StorageDead
-    StorageDead(_47) @ StorageDead
-    StorageDead(_46) @ StorageDead
-    StorageDead(_64) @ StorageDead
-    StorageDead(_62) @ StorageDead
-    StorageDead(_60) @ StorageDead
-    StorageDead(_59) @ StorageDead
-    StorageDead(_51) @ StorageDead
-    StorageDead(_48) @ StorageDead
-    StorageDead(_45) @ StorageDead
-    Assign((_35, const ())) @ _35=const () @ Use
-    goto -&gt; bb27 @ Goto
-}
-bb 24 {
-CleanUp: false
-    StorageDead(_44) @ StorageDead
-    StorageDead(_43) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    goto -&gt; bb26 @ Goto
-}
-bb 25 {
-CleanUp: false
-    StorageDead(_39) @ StorageDead
-    StorageDead(_38) @ StorageDead
-    goto -&gt; bb26 @ Goto
-}
-bb 26 {
-CleanUp: false
-    Assign((_35, const ())) @ _35=const () @ Use
-    goto -&gt; bb27 @ Goto
-}
-bb 27 {
-CleanUp: false
-    StorageDead(_41) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    StorageDead(_36) @ StorageDead
-    StorageDead(_35) @ StorageDead
-    StorageLive(_66) @ StorageLive
-    StorageLive(_67) @ StorageLive
-    StorageLive(_68) @ StorageLive
-    StorageLive(_69) @ StorageLive
-    StorageLive(_70) @ StorageLive
-    Assign((_70, &amp;_10)) @ _70=&amp;_10 @ Ref
-    _69 = &lt;alloc::sync::Arc&lt;driver::net::e1000e::e1000e_driver::E1000EInterface&gt; as core::clone::Clone&gt;::clone(move _70) -&gt; [return: bb28, unwind: bb32] @ Call: FnDid: 3116
-}
-bb 28 {
-CleanUp: false
-    Assign((_68, move _69 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _68=move _69 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_70) @ StorageDead
-    StorageDead(_69) @ StorageDead
-    _67 = driver::net::register_netdevice(move _68) -&gt; [return: bb29, unwind: bb32] @ Call: FnDid: 11800
-}
-bb 29 {
-CleanUp: false
-    StorageDead(_68) @ StorageDead
-    StorageLive(_71) @ StorageLive
-    StorageLive(_72) @ StorageLive
-    Assign((_72, const &#34;register lo device failed&#34;)) @ _72=const &#34;register lo device failed&#34; @ Use
-    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
-    _66 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _67, move _71) -&gt; [return: bb30, unwind: bb32] @ Call: FnDid: 11023
-}
-bb 30 {
-CleanUp: false
-    StorageDead(_71) @ StorageDead
-    StorageDead(_67) @ StorageDead
-    StorageDead(_72) @ StorageDead
-    StorageDead(_66) @ StorageDead
-    Assign((_0, const ())) @ _0=const () @ Use
-    drop(_10) -&gt; [return: bb31, unwind: bb35] @ Drop
-}
-bb 31 {
-CleanUp: false
+    StorageLive(_24) @ StorageLive
+    Assign((_24, move _8)) @ _24=move _8 @ Use
+    StorageLive(_25) @ StorageLive
+    Assign((_25, move _10)) @ _25=move _10 @ Use
+    Assign((_0, (move _24, move _25))) @ _0=(move _24, move _25) @ Aggregate
+    StorageDead(_25) @ StorageDead
+    StorageDead(_24) @ StorageDead
     StorageDead(_10) @ StorageDead
     StorageDead(_8) @ StorageDead
-    StorageDead(_2) @ StorageDead
+    Assign((_26, const false)) @ _26=const false @ Use
+    StorageDead(_4) @ StorageDead
+    Assign((_27, const false)) @ _27=const false @ Use
+    StorageDead(_3) @ StorageDead
     return @ Return
 }
-bb 32 {
+bb 8 {
 CleanUp: true
-    drop(_10) -&gt; [return: bb35, unwind terminate(cleanup)] @ Drop
+    drop(_10) -&gt; [return: bb9, unwind terminate(cleanup)] @ Drop
 }
-bb 33 {
+bb 9 {
+CleanUp: true
+    drop(_8) -&gt; [return: bb13, unwind terminate(cleanup)] @ Drop
+}
+bb 10 {
+CleanUp: true
+    switchInt(copy _27) -&gt; [0: bb11, otherwise: bb14] @ SwitchInt
+}
+bb 11 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 34 {
+bb 12 {
 CleanUp: true
-    drop(_1) -&gt; [return: bb33, unwind terminate(cleanup)] @ Drop
+    drop(_4) -&gt; [return: bb10, unwind terminate(cleanup)] @ Drop
 }
-bb 35 {
+bb 13 {
 CleanUp: true
-    switchInt(copy _75) -&gt; [0: bb33, otherwise: bb34] @ SwitchInt
+    switchInt(copy _26) -&gt; [0: bb10, otherwise: bb12] @ SwitchInt
+}
+bb 14 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb11, unwind terminate(cleanup)] @ Drop
 }
 
 </div>

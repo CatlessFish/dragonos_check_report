@@ -13,7 +13,7 @@
         <h1>
             Report #104
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_readv::{impl#0}::entry_format</span>
+                 <span class="func-name">process::fork::{impl#1}::fork</span>
             
         </h1>
 
@@ -25,22 +25,141 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:08|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
+                    <pre id="logContent" class="code-block scrollable">22:08:16|RAP|WARN|: Double free detected in function &#34;fork&#34;
+22:08:16|RAP|WARN|: Double free detected in function &#34;fork&#34;
+warning: Double free detected.
+   --&gt; src/process/fork.rs:194:1
+    |
+194 | / pub fn fork(
+195 | |         current_trapframe: &amp;TrapFrame,
+196 | |         clone_flags: CloneFlags,
+197 | |     ) -&gt; Result&lt;RawPid, SystemError&gt; {
+198 | |         let current_pcb = ProcessManager::current_pcb();
+199 | |
+200 | |         let new_kstack: KernelStack = KernelStack::new()?;
+201 | |
+202 | |         let name = current_pcb.basic().name().to_string();
+203 | |
+204 | |         let mut args = KernelCloneArgs::new();
+205 | |         args.flags = clone_flags;
+206 | |         args.exit_signal = Signal::SIGCHLD;
+207 | |         args.verify()?;
+208 | |         let pcb = ProcessControlBlock::new(name, new_kstack);
+209 | |         Self::copy_process(&amp;current_pcb, &amp;pcb, args, current_trapframe).map_err(|e| {
+210 | |             error!(
+211 | |                 &#34;fork: Failed to copy process, current pid: [{:?}], new pid: [{:?}]. Error: {:?}&#34;,
+212 | |                 current_pcb.raw_pid(),
+213 | |                 pcb.raw_pid(),
+214 | |                 e
+215 | |             );
+216 | |             e
+217 | |         })?;
+218 | |         // if pcb.raw_pid().data() &gt; 1 {
+219 | |         //     log::debug!(
+220 | |         //         &#34;fork done, pid: {}, pgid: {:?}, tgid: {:?}, sid: {}&#34;,
+221 | |         //         pcb.raw_pid(),
+222 | |         //         pcb.task_pgrp().map(|x| x.pid_vnr().data()),
+223 | |         //         pcb.task_tgid_vnr(),
+224 | |         //         pcb.task_session().map_or(0, |s| s.pid_vnr().data())
+225 | |         //     );
+226 | |         // }
+227 | |
+228 | |         // 向procfs注册进程
+229 | |         procfs_register_pid(pcb.raw_pid()).unwrap_or_else(|e| {
+230 | |             panic!(
+231 | |                 &#34;fork: Failed to register pid to procfs, pid: [{:?}]. Error: {:?}&#34;,
+232 | |                 pcb.raw_pid(),
+233 | |                 e
+234 | |             )
+235 | |         });
+236 | |
+237 | |         pcb.sched_info().set_on_cpu(Some(smp_get_processor_id()));
+238 | |
+239 | |         ProcessManager::wakeup(&amp;pcb).unwrap_or_else(|e| {
+240 | |             panic!(
+241 | |                 &#34;fork: Failed to wakeup new process, pid: [{:?}]. Error: {:?}&#34;,
+242 | |                 pcb.raw_pid(),
+243 | |                 e
+244 | |             )
+245 | |         });
+246 | |
+247 | |         if ProcessManager::current_pid().data() == 0 {
+248 | |             return Ok(pcb.raw_pid());
+249 | |         }
+250 | |
+251 | |         return Ok(pcb.pid().pid_vnr());
+252 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/fork.rs line 194.
+    | MIR detail: Value _35(pcb, src/process/fork.rs:208) and _4(current_pcb, src/process/fork.rs:198) are alias.
+    | MIR detail: _35(pcb, src/process/fork.rs:208) is dropped at BB48(src/process/fork.rs:252); _4(current_pcb, src/process/fork.rs:198) is dropped at BB52(src/process/fork.rs:252).
+    |
 warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_readv.rs:42:1
-   |
-42 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-43 | |         vec![
-44 | |             FormattedSyscallParam::new(&#34;fd&#34;, Self::fd(args).to_string()),
-45 | |             FormattedSyscallParam::new(&#34;iov&#34;, format!(&#34;{:#x}&#34;, Self::iov(args) as usize)),
-46 | |             FormattedSyscallParam::new(&#34;count&#34;, Self::count(args).to_string()),
-47 | |         ]
-48 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_readv.rs line 42.
-    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_readv.rs:45) and _9(_, src/filesystem/vfs/syscall/sys_readv.rs:44) are alias.
-    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_readv.rs:45) is dropped at BB15(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_readv.rs:44) is dropped at BB16(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-render dot for DefId(0:20359 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_readv::{impl#0}::entry_format)
+   --&gt; src/process/fork.rs:194:1
+    |
+194 | / pub fn fork(
+195 | |         current_trapframe: &amp;TrapFrame,
+196 | |         clone_flags: CloneFlags,
+197 | |     ) -&gt; Result&lt;RawPid, SystemError&gt; {
+198 | |         let current_pcb = ProcessManager::current_pcb();
+199 | |
+200 | |         let new_kstack: KernelStack = KernelStack::new()?;
+201 | |
+202 | |         let name = current_pcb.basic().name().to_string();
+203 | |
+204 | |         let mut args = KernelCloneArgs::new();
+205 | |         args.flags = clone_flags;
+206 | |         args.exit_signal = Signal::SIGCHLD;
+207 | |         args.verify()?;
+208 | |         let pcb = ProcessControlBlock::new(name, new_kstack);
+209 | |         Self::copy_process(&amp;current_pcb, &amp;pcb, args, current_trapframe).map_err(|e| {
+210 | |             error!(
+211 | |                 &#34;fork: Failed to copy process, current pid: [{:?}], new pid: [{:?}]. Error: {:?}&#34;,
+212 | |                 current_pcb.raw_pid(),
+213 | |                 pcb.raw_pid(),
+214 | |                 e
+215 | |             );
+216 | |             e
+217 | |         })?;
+218 | |         // if pcb.raw_pid().data() &gt; 1 {
+219 | |         //     log::debug!(
+220 | |         //         &#34;fork done, pid: {}, pgid: {:?}, tgid: {:?}, sid: {}&#34;,
+221 | |         //         pcb.raw_pid(),
+222 | |         //         pcb.task_pgrp().map(|x| x.pid_vnr().data()),
+223 | |         //         pcb.task_tgid_vnr(),
+224 | |         //         pcb.task_session().map_or(0, |s| s.pid_vnr().data())
+225 | |         //     );
+226 | |         // }
+227 | |
+228 | |         // 向procfs注册进程
+229 | |         procfs_register_pid(pcb.raw_pid()).unwrap_or_else(|e| {
+230 | |             panic!(
+231 | |                 &#34;fork: Failed to register pid to procfs, pid: [{:?}]. Error: {:?}&#34;,
+232 | |                 pcb.raw_pid(),
+233 | |                 e
+234 | |             )
+235 | |         });
+236 | |
+237 | |         pcb.sched_info().set_on_cpu(Some(smp_get_processor_id()));
+238 | |
+239 | |         ProcessManager::wakeup(&amp;pcb).unwrap_or_else(|e| {
+240 | |             panic!(
+241 | |                 &#34;fork: Failed to wakeup new process, pid: [{:?}]. Error: {:?}&#34;,
+242 | |                 pcb.raw_pid(),
+243 | |                 e
+244 | |             )
+245 | |         });
+246 | |
+247 | |         if ProcessManager::current_pid().data() == 0 {
+248 | |             return Ok(pcb.raw_pid());
+249 | |         }
+250 | |
+251 | |         return Ok(pcb.pid().pid_vnr());
+252 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/process/fork.rs line 194.
+    | MIR detail: Value _35(pcb, src/process/fork.rs:208) and _4(current_pcb, src/process/fork.rs:198) are alias.
+    | MIR detail: _35(pcb, src/process/fork.rs:208) is dropped at BB55(src/process/fork.rs:252); _4(current_pcb, src/process/fork.rs:198) is dropped at BB57(src/process/fork.rs:252).
+    |
+render dot for DefId(0:27988 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork)
 </pre>
                 </div>
             
@@ -51,123 +170,203 @@ render dot for DefId(0:20359 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb2 at src/filesystem/vfs/syscall/sys_readv.rs:44:46: 44:60
-bb3 at src/filesystem/vfs/syscall/sys_readv.rs:44:71: 44:72
-bb4 at src/filesystem/vfs/syscall/sys_readv.rs:44:72: 44:73
-bb5 at src/filesystem/vfs/syscall/sys_readv.rs:45:78: 45:79
-bb6 at src/filesystem/vfs/syscall/sys_readv.rs:45:60: 45:61
-bb7 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb10 at src/filesystem/vfs/syscall/sys_readv.rs:45:89: 45:90
-bb11 at src/filesystem/vfs/syscall/sys_readv.rs:46:49: 46:66
-bb12 at src/filesystem/vfs/syscall/sys_readv.rs:46:77: 46:78
-bb13 at src/filesystem/vfs/syscall/sys_readv.rs:46:78: 46:79
-bb14 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
-bb18 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
-bb19 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-bb20 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-fn &lt;filesystem::vfs::syscall::sys_readv::SysReadVHandle as syscall::table::Syscall&gt;::entry_format
-_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_readv::SysReadVHandle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
-_4:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3_usize], alloc::alloc::Global&gt; 
-_5:  @ usize 
-_6:  @ usize 
-_7:  @ *mut u8 
-_8:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3_usize], alloc::alloc::Global&gt; 
-_9:  @ syscall::table::FormattedSyscallParam 
-_10:  @ alloc::string::String 
-_11:  @ &amp;&#39;{erased} i32 
-_12:  @ i32 
-_13:  @ &amp;&#39;{erased} [usize] 
-_14:  @ syscall::table::FormattedSyscallParam 
-_15:  @ alloc::string::String 
-_16:  @ alloc::string::String 
-_17:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_18:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_19:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_20:  @ &amp;&#39;{erased} usize 
-_21:  @ &amp;&#39;{erased} usize 
-_22:  @ usize 
-_23:  @ *const filesystem::vfs::iov::IoVec 
-_24:  @ &amp;&#39;{erased} [usize] 
-_25:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_26:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_27:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_28:  @ [&amp;&#39;{erased} str; 1_usize] 
-_29:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_30:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_31:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_32:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_33:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_34:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_35:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_36:  @ core::fmt::rt::Placeholder 
-_37:  @ core::fmt::rt::Count 
-_38:  @ core::fmt::rt::Count 
-_39:  @ syscall::table::FormattedSyscallParam 
-_40:  @ alloc::string::String 
-_41:  @ &amp;&#39;{erased} usize 
-_42:  @ usize 
-_43:  @ &amp;&#39;{erased} [usize] 
-_44:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_45:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_46:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3_usize], alloc::alloc::Global&gt; 
-_47:  @ () 
-_48:  @ *const [syscall::table::FormattedSyscallParam; 3_usize] 
-_49:  @ *const [syscall::table::FormattedSyscallParam; 3_usize] 
-_50:  @ *const () 
-_51:  @ usize 
-_52:  @ usize 
-_53:  @ usize 
-_54:  @ usize 
-_55:  @ bool 
-_56:  @ *const () 
-_57:  @ usize 
-_58:  @ usize 
-_59:  @ bool 
-_60:  @ bool 
-_61:  @ bool 
-_62:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/process/fork.rs:198:13: 198:24
+bb1 at src/process/fork.rs:200:13: 200:23
+bb3 at src/process/fork.rs:200:57: 200:58
+bb5 at src/process/fork.rs:200:39: 200:58
+bb6 at src/process/fork.rs:200:57: 200:58
+bb7 at src/process/fork.rs:200:57: 200:58
+bb8 at src/process/fork.rs:202:20: 202:31
+bb9 at src/process/fork.rs:202:20: 202:39
+bb10 at src/process/fork.rs:202:20: 202:39
+bb11 at src/process/fork.rs:202:20: 202:46
+bb12 at src/process/fork.rs:202:57: 202:58
+bb13 at src/process/fork.rs:202:58: 202:59
+bb14 at src/process/fork.rs:205:22: 205:33
+bb15 at src/process/fork.rs:207:21: 207:22
+bb16 at src/process/fork.rs:207:22: 207:23
+bb17 at src/process/fork.rs:207:9: 207:23
+bb18 at src/process/fork.rs:207:22: 207:23
+bb19 at src/process/fork.rs:207:22: 207:23
+bb20 at src/process/fork.rs:208:60: 208:61
+bb21 at src/process/fork.rs:209:71: 209:72
+bb22 at src/process/fork.rs:217:10: 217:11
+bb23 at src/process/fork.rs:217:11: 217:12
+bb24 at src/process/fork.rs:209:9: 217:12
+bb25 at src/process/fork.rs:217:11: 217:12
+bb26 at src/process/fork.rs:217:11: 217:12
+bb27 at src/process/fork.rs:229:29: 229:32
+bb28 at src/process/fork.rs:229:41: 229:42
+bb29 at src/process/fork.rs:229:42: 229:43
+bb30 at src/process/fork.rs:235:10: 235:11
+bb31 at src/process/fork.rs:237:9: 237:12
+bb32 at src/process/fork.rs:237:9: 237:25
+bb33 at src/process/fork.rs:237:37: 237:65
+bb34 at src/process/fork.rs:237:65: 237:66
+bb35 at src/process/fork.rs:239:36: 239:37
+bb36 at src/process/fork.rs:245:10: 245:11
+bb37 at src/process/fork.rs:247:12: 247:41
+bb38 at src/process/fork.rs:247:47: 247:48
+bb39 at src/process/fork.rs:247:52: 247:53
+bb40 at src/process/fork.rs:248:23: 248:26
+bb41 at src/process/fork.rs:248:35: 248:36
+bb42 at src/process/fork.rs:247:52: 247:53
+bb43 at src/process/fork.rs:251:19: 251:22
+bb44 at src/process/fork.rs:251:19: 251:28
+bb45 at src/process/fork.rs:251:19: 251:28
+bb46 at src/process/fork.rs:251:37: 251:38
+bb47 at src/process/fork.rs:251:39: 251:40
+bb49 at src/process/fork.rs:252:5: 252:6
+bb50 at src/process/fork.rs:252:5: 252:6
+bb51 at src/process/fork.rs:252:5: 252:6
+bb52 at src/process/fork.rs:252:5: 252:6
+bb53 at src/process/fork.rs:252:5: 252:6
+bb69 at src/process/fork.rs:200:58: 200:59
+fn process::fork::&lt;impl process::ProcessManager&gt;::fork
+_0:  @ core::result::Result&lt;process::RawPid, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} arch::x86_64::interrupt::TrapFrame 
+_2:  @ process::fork::CloneFlags 
+_3:  @ ! 
+_4:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_5:  @ process::KernelStack 
+_6:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, process::KernelStack&gt; 
+_7:  @ core::result::Result&lt;process::KernelStack, system_error::SystemError&gt; 
+_8:  @ isize 
+_9:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_10:  @ ! 
+_11:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_12:  @ process::KernelStack 
+_13:  @ alloc::string::String 
+_14:  @ &amp;&#39;{erased} str 
+_15:  @ &amp;&#39;{erased} str 
+_16:  @ &amp;&#39;{erased} process::ProcessBasicInfo 
+_17:  @ &amp;&#39;{erased} process::ProcessBasicInfo 
+_18:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, process::ProcessBasicInfo&gt; 
+_19:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, process::ProcessBasicInfo&gt; 
+_20:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_21:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_22:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_23:  @ process::fork::KernelCloneArgs 
+_24:  @ process::fork::CloneFlags 
+_25:  @ ipc::generic_signal::GenericSignal 
+_26:  @ () 
+_27:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_28:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_29:  @ &amp;&#39;{erased} process::fork::KernelCloneArgs 
+_30:  @ isize 
+_31:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_32:  @ ! 
+_33:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_34:  @ () 
+_35:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_36:  @ alloc::string::String 
+_37:  @ process::KernelStack 
+_38:  @ () 
+_39:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_40:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_41:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_42:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_43:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_44:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_45:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_46:  @ process::fork::KernelCloneArgs 
+_47:  @ &amp;&#39;{erased} arch::x86_64::interrupt::TrapFrame 
+_48:  @ Closure(DefId(0:27989 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)) -&gt; system_error::SystemError, bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;)]) 
+_49:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_50:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_51:  @ isize 
+_52:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_53:  @ ! 
+_54:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_55:  @ () 
+_56:  @ () 
+_57:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_58:  @ process::RawPid 
+_59:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_60:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_61:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_62:  @ Closure(DefId(0:27990 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;,)]) 
+_63:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_64:  @ () 
+_65:  @ &amp;&#39;{erased} process::ProcessSchedulerInfo 
+_66:  @ &amp;&#39;{erased} process::ProcessSchedulerInfo 
+_67:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_68:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_69:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_70:  @ core::option::Option&lt;smp::cpu::ProcessorId&gt; 
+_71:  @ smp::cpu::ProcessorId 
+_72:  @ () 
+_73:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_74:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_75:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_76:  @ Closure(DefId(0:27991 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork::{closure#2}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;,)]) 
+_77:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_78:  @ () 
+_79:  @ bool 
+_80:  @ usize 
+_81:  @ &amp;&#39;{erased} process::RawPid 
+_82:  @ process::RawPid 
+_83:  @ ! 
+_84:  @ process::RawPid 
+_85:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_86:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_87:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_88:  @ process::RawPid 
+_89:  @ &amp;&#39;{erased} process::pid::Pid 
+_90:  @ &amp;&#39;{erased} process::pid::Pid 
+_91:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::pid::Pid, alloc::alloc::Global&gt; 
+_92:  @ alloc::sync::Arc&lt;process::pid::Pid, alloc::alloc::Global&gt; 
+_93:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_94:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_95:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_96:  @ bool 
+_97:  @ bool 
+_98:  @ bool 
+_99:  @ isize 
+_100:  @ isize 
+_101:  @ isize 
+_102:  @ isize 
+_103:  @ isize 
 
 bb 0 {
 CleanUp: false
-    StorageLive(_3) @ StorageLive
+    Assign((_98, const false)) @ _98=const false @ Use
+    Assign((_97, const false)) @ _97=const false @ Use
+    Assign((_96, const false)) @ _96=const false @ Use
     StorageLive(_4) @ StorageLive
-    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 3]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 3]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 147
+    _4 = process::ProcessManager::current_pcb() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 29866
 }
 bb 1 {
 CleanUp: false
-    StorageLive(_8) @ StorageLive
-    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 3]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 3]) @ ShallowInitBox
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    Assign((_13, &amp;(*_2))) @ _13=&amp;(*_2) @ Ref
-    _12 = filesystem::vfs::syscall::sys_readv::SysReadVHandle::fd(move _13) -&gt; [return: bb2, unwind: bb18] @ Call: FnDid: 20361
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    _7 = process::KernelStack::new() -&gt; [return: bb2, unwind: bb57] @ Call: FnDid: 30046
 }
 bb 2 {
 CleanUp: false
-    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
-    StorageDead(_13) @ StorageDead
-    _10 = &lt;i32 as alloc::string::ToString&gt;::to_string(move _11) -&gt; [return: bb3, unwind: bb18] @ Call: FnDid: 6626
+    _6 = &lt;core::result::Result&lt;process::KernelStack, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _7) -&gt; [return: bb3, unwind: bb57] @ Call: FnDid: 4199
 }
 bb 3 {
 CleanUp: false
-    StorageDead(_11) @ StorageDead
-    _9 = syscall::table::FormattedSyscallParam::new(const &#34;fd&#34;, move _10) -&gt; [return: bb4, unwind: bb18] @ Call: FnDid: 30792
+    StorageDead(_7) @ StorageDead
+    Assign((_8, discriminant(_6))) @ _8=discriminant(_6) @ Discriminant
+    switchInt(move _8) -&gt; [0: bb5, 1: bb6, otherwise: bb4] @ SwitchInt
 }
 bb 4 {
 CleanUp: false
-    StorageDead(_10) @ StorageDead
+    unreachable @ Unreachable
+}
+bb 5 {
+CleanUp: false
+    StorageLive(_12) @ StorageLive
+    Assign((_12, move ((_6 as Continue).0: process::KernelStack))) @ _12=move ((_6 as Continue).0: process::KernelStack) @ Use
+    Assign((_98, const true)) @ _98=const true @ Use
+    Assign((_5, move _12)) @ _5=move _12 @ Use
+    StorageDead(_12) @ StorageDead
+    Assign((_101, discriminant(_6))) @ _101=discriminant(_6) @ Discriminant
+    StorageDead(_6) @ StorageDead
+    StorageLive(_13) @ StorageLive
     StorageLive(_14) @ StorageLive
     StorageLive(_15) @ StorageLive
     StorageLive(_16) @ StorageLive
@@ -177,158 +376,994 @@ CleanUp: false
     StorageLive(_20) @ StorageLive
     StorageLive(_21) @ StorageLive
     StorageLive(_22) @ StorageLive
-    StorageLive(_23) @ StorageLive
-    StorageLive(_24) @ StorageLive
-    Assign((_24, &amp;(*_2))) @ _24=&amp;(*_2) @ Ref
-    _23 = filesystem::vfs::syscall::sys_readv::SysReadVHandle::iov(move _24) -&gt; [return: bb5, unwind: bb16] @ Call: FnDid: 20362
-}
-bb 5 {
-CleanUp: false
-    StorageDead(_24) @ StorageDead
-    Assign((_22, move _23 as usize (PointerExposeProvenance))) @ _22=move _23 as usize (PointerExposeProvenance) @ Cast
-    StorageDead(_23) @ StorageDead
-    Assign((_21, &amp;_22)) @ _21=&amp;_22 @ Ref
-    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
-    _19 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _20) -&gt; [return: bb6, unwind: bb16] @ Call: FnDid: 11815
+    Assign((_22, &amp;_4)) @ _22=&amp;_4 @ Ref
+    _21 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _22) -&gt; [return: bb8, unwind: bb68] @ Call: FnDid: 3903
 }
 bb 6 {
 CleanUp: false
-    StorageDead(_20) @ StorageDead
-    Assign((_18, [move _19])) @ _18=[move _19] @ Aggregate
-    StorageDead(_19) @ StorageDead
-    StorageLive(_25) @ StorageLive
-    StorageLive(_26) @ StorageLive
-    StorageLive(_27) @ StorageLive
-    Assign((_45, const &lt;filesystem::vfs::syscall::sys_readv::SysReadVHandle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _45=const &lt;filesystem::vfs::syscall::sys_readv::SysReadVHandle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
-    Assign((_27, &amp;(*_45))) @ _27=&amp;(*_45) @ Ref
-    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
-    Assign((_25, move _26 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _25=move _26 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_26) @ StorageDead
-    StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    StorageLive(_31) @ StorageLive
-    Assign((_31, &amp;_18)) @ _31=&amp;_18 @ Ref
-    Assign((_30, &amp;(*_31))) @ _30=&amp;(*_31) @ Ref
-    Assign((_29, move _30 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _29=move _30 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_30) @ StorageDead
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    Assign((_44, const &lt;filesystem::vfs::syscall::sys_readv::SysReadVHandle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _44=const &lt;filesystem::vfs::syscall::sys_readv::SysReadVHandle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
-    Assign((_34, &amp;(*_44))) @ _34=&amp;(*_44) @ Ref
-    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
-    Assign((_32, move _33 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _32=move _33 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_33) @ StorageDead
-    _17 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _25, move _29, move _32) -&gt; [return: bb7, unwind: bb16] @ Call: FnDid: 11842
+    StorageLive(_9) @ StorageLive
+    Assign((_9, move ((_6 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _9=move ((_6 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_11) @ StorageLive
+    Assign((_11, move _9)) @ _11=move _9 @ Use
+    _0 = &lt;core::result::Result&lt;process::RawPid, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _11) -&gt; [return: bb7, unwind: bb69] @ Call: FnDid: 4202
 }
 bb 7 {
 CleanUp: false
-    StorageDead(_34) @ StorageDead
-    StorageDead(_32) @ StorageDead
-    StorageDead(_31) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageDead(_25) @ StorageDead
-    _16 = alloc::fmt::format(move _17) -&gt; [return: bb8, unwind: bb16] @ Call: FnDid: 5475
+    StorageDead(_11) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_99, discriminant(_6))) @ _99=discriminant(_6) @ Discriminant
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb52 @ Goto
 }
 bb 8 {
 CleanUp: false
+    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
     StorageDead(_22) @ StorageDead
-    StorageDead(_21) @ StorageDead
-    StorageDead(_18) @ StorageDead
-    StorageDead(_17) @ StorageDead
-    _15 = core::hint::must_use::&lt;alloc::string::String&gt;(move _16) -&gt; [return: bb9, unwind: bb16] @ Call: FnDid: 1455
+    _19 = process::ProcessControlBlock::basic(move _20) -&gt; [return: bb9, unwind: bb68] @ Call: FnDid: 29928
 }
 bb 9 {
 CleanUp: false
-    StorageDead(_16) @ StorageDead
-    _14 = syscall::table::FormattedSyscallParam::new(const &#34;iov&#34;, move _15) -&gt; [return: bb10, unwind: bb16] @ Call: FnDid: 30792
+    Assign((_18, &amp;_19)) @ _18=&amp;_19 @ Ref
+    _17 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, process::ProcessBasicInfo&gt; as lazy_static::__Deref&gt;::deref(move _18) -&gt; [return: bb10, unwind: bb56] @ Call: FnDid: 3903
 }
 bb 10 {
 CleanUp: false
+    Assign((_16, &amp;(*_17))) @ _16=&amp;(*_17) @ Ref
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    _15 = process::ProcessBasicInfo::name(move _16) -&gt; [return: bb11, unwind: bb56] @ Call: FnDid: 30001
+}
+bb 11 {
+CleanUp: false
+    Assign((_14, &amp;(*_15))) @ _14=&amp;(*_15) @ Ref
+    StorageDead(_16) @ StorageDead
+    _13 = &lt;str as alloc::string::ToString&gt;::to_string(move _14) -&gt; [return: bb12, unwind: bb56] @ Call: FnDid: 6626
+}
+bb 12 {
+CleanUp: false
+    Assign((_97, const true)) @ _97=const true @ Use
+    StorageDead(_14) @ StorageDead
+    drop(_19) -&gt; [return: bb13, unwind: bb66] @ Drop
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
     StorageDead(_15) @ StorageDead
+    StorageLive(_23) @ StorageLive
+    _23 = process::fork::KernelCloneArgs::new() -&gt; [return: bb14, unwind: bb66] @ Call: FnDid: 27983
+}
+bb 14 {
+CleanUp: false
+    Assign((_96, const true)) @ _96=const true @ Use
+    StorageLive(_24) @ StorageLive
+    Assign((_24, copy _2)) @ _24=copy _2 @ Use
+    Assign(((_23.0: process::fork::CloneFlags), move _24)) @ (_23.0: process::fork::CloneFlags)=move _24 @ Use
+    StorageDead(_24) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    Assign((_25, ipc::generic_signal::GenericSignal::SIGCHLD)) @ _25=ipc::generic_signal::GenericSignal::SIGCHLD @ Aggregate
+    Assign(((_23.5: ipc::generic_signal::GenericSignal), move _25)) @ (_23.5: ipc::generic_signal::GenericSignal)=move _25 @ Use
+    StorageDead(_25) @ StorageDead
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;_23)) @ _29=&amp;_23 @ Ref
+    _28 = process::fork::KernelCloneArgs::verify(move _29) -&gt; [return: bb15, unwind: bb64] @ Call: FnDid: 27984
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    _27 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _28) -&gt; [return: bb16, unwind: bb64] @ Call: FnDid: 4199
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_28) @ StorageDead
+    Assign((_30, discriminant(_27))) @ _30=discriminant(_27) @ Discriminant
+    switchInt(move _30) -&gt; [0: bb17, 1: bb18, otherwise: bb4] @ SwitchInt
+}
+bb 17 {
+CleanUp: false
+    StorageLive(_34) @ StorageLive
+    Assign((_34, copy ((_27 as Continue).0: ()))) @ _34=copy ((_27 as Continue).0: ()) @ Use
+    Assign((_26, copy _34)) @ _26=copy _34 @ Use
+    StorageDead(_34) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_97, const false)) @ _97=const false @ Use
+    Assign((_36, move _13)) @ _36=move _13 @ Use
+    StorageLive(_37) @ StorageLive
+    Assign((_98, const false)) @ _98=const false @ Use
+    Assign((_37, move _5)) @ _37=move _5 @ Use
+    _35 = process::ProcessControlBlock::new(move _36, move _37) -&gt; [return: bb20, unwind: bb64] @ Call: FnDid: 29903
+}
+bb 18 {
+CleanUp: false
+    StorageLive(_31) @ StorageLive
+    Assign((_31, move ((_27 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _31=move ((_27 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_33) @ StorageLive
+    Assign((_33, move _31)) @ _33=move _31 @ Use
+    _0 = &lt;core::result::Result&lt;process::RawPid, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _33) -&gt; [return: bb19, unwind: bb64] @ Call: FnDid: 4202
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_38) @ StorageLive
     StorageLive(_39) @ StorageLive
     StorageLive(_40) @ StorageLive
     StorageLive(_41) @ StorageLive
     StorageLive(_42) @ StorageLive
     StorageLive(_43) @ StorageLive
-    Assign((_43, &amp;(*_2))) @ _43=&amp;(*_2) @ Ref
-    _42 = filesystem::vfs::syscall::sys_readv::SysReadVHandle::count(move _43) -&gt; [return: bb11, unwind: bb15] @ Call: FnDid: 20363
+    Assign((_43, &amp;_4)) @ _43=&amp;_4 @ Ref
+    Assign((_42, &amp;(*_43))) @ _42=&amp;(*_43) @ Ref
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;_35)) @ _45=&amp;_35 @ Ref
+    Assign((_44, &amp;(*_45))) @ _44=&amp;(*_45) @ Ref
+    StorageLive(_46) @ StorageLive
+    Assign((_96, const false)) @ _96=const false @ Use
+    Assign((_46, move _23)) @ _46=move _23 @ Use
+    StorageLive(_47) @ StorageLive
+    Assign((_47, &amp;(*_1))) @ _47=&amp;(*_1) @ Ref
+    _41 = process::fork::&lt;impl process::ProcessManager&gt;::copy_process(move _42, move _44, move _46, move _47) -&gt; [return: bb21, unwind: bb55] @ Call: FnDid: 27999
 }
-bb 11 {
+bb 21 {
 CleanUp: false
-    Assign((_41, &amp;_42)) @ _41=&amp;_42 @ Ref
-    StorageDead(_43) @ StorageDead
-    _40 = &lt;usize as alloc::string::ToString&gt;::to_string(move _41) -&gt; [return: bb12, unwind: bb15] @ Call: FnDid: 6626
+    StorageDead(_47) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &amp;_4)) @ _49=&amp;_4 @ Ref
+    StorageLive(_50) @ StorageLive
+    Assign((_50, &amp;_35)) @ _50=&amp;_35 @ Ref
+    Assign((_48, {closure@src/process/fork.rs:209:81: 209:84} { current_pcb: move _49, pcb: move _50 })) @ _48={closure@src/process/fork.rs:209:81: 209:84} { current_pcb: move _49, pcb: move _50 } @ Aggregate
+    StorageDead(_50) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    _40 = core::result::Result::&lt;(), system_error::SystemError&gt;::map_err::&lt;system_error::SystemError, {closure@src/process/fork.rs:209:81: 209:84}&gt;(move _41, move _48) -&gt; [return: bb22, unwind: bb55] @ Call: FnDid: 11010
 }
-bb 12 {
+bb 22 {
 CleanUp: false
+    StorageDead(_48) @ StorageDead
     StorageDead(_41) @ StorageDead
-    _39 = syscall::table::FormattedSyscallParam::new(const &#34;count&#34;, move _40) -&gt; [return: bb13, unwind: bb15] @ Call: FnDid: 30792
+    _39 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _40) -&gt; [return: bb23, unwind: bb55] @ Call: FnDid: 4199
 }
-bb 13 {
+bb 23 {
 CleanUp: false
     StorageDead(_40) @ StorageDead
-    Assign((_49, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute))) @ _49=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute) @ Cast
-    Assign((_50, copy _49 as *const () (PtrToPtr))) @ _50=copy _49 as *const () (PtrToPtr) @ Cast
-    Assign((_51, copy _50 as usize (Transmute))) @ _51=copy _50 as usize (Transmute) @ Cast
-    Assign((_52, AlignOf([syscall::table::FormattedSyscallParam; 3]))) @ _52=AlignOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    Assign((_53, Sub(copy _52, const 1_usize))) @ _53=Sub(copy _52, const 1_usize) @ BinaryOp
-    Assign((_54, BitAnd(copy _51, copy _53))) @ _54=BitAnd(copy _51, copy _53) @ BinaryOp
-    Assign((_55, Eq(copy _54, const 0_usize))) @ _55=Eq(copy _54, const 0_usize) @ BinaryOp
-    assert(copy _55, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _52, copy _51) -&gt; [success: bb19, unwind unreachable] @ Assert
+    Assign((_51, discriminant(_39))) @ _51=discriminant(_39) @ Discriminant
+    switchInt(move _51) -&gt; [0: bb24, 1: bb25, otherwise: bb4] @ SwitchInt
 }
-bb 14 {
+bb 24 {
 CleanUp: false
-    StorageDead(_3) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    StorageDead(_12) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    Assign((_55, copy ((_39 as Continue).0: ()))) @ _55=copy ((_39 as Continue).0: ()) @ Use
+    Assign((_38, copy _55)) @ _38=copy _55 @ Use
+    StorageDead(_55) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    StorageLive(_61) @ StorageLive
+    Assign((_61, &amp;_35)) @ _61=&amp;_35 @ Ref
+    _60 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _61) -&gt; [return: bb27, unwind: bb55] @ Call: FnDid: 3903
+}
+bb 25 {
+CleanUp: false
+    StorageLive(_52) @ StorageLive
+    Assign((_52, move ((_39 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _52=move ((_39 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_54) @ StorageLive
+    Assign((_54, move _52)) @ _54=move _52 @ Use
+    _0 = &lt;core::result::Result&lt;process::RawPid, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _54) -&gt; [return: bb26, unwind: bb55] @ Call: FnDid: 4202
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    goto -&gt; bb48 @ Goto
+}
+bb 27 {
+CleanUp: false
+    Assign((_59, &amp;(*_60))) @ _59=&amp;(*_60) @ Ref
+    StorageDead(_61) @ StorageDead
+    _58 = process::ProcessControlBlock::raw_pid(move _59) -&gt; [return: bb28, unwind: bb55] @ Call: FnDid: 29942
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_59) @ StorageDead
+    _57 = filesystem::procfs::procfs_register_pid(move _58) -&gt; [return: bb29, unwind: bb55] @ Call: FnDid: 18766
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_63, &amp;_35)) @ _63=&amp;_35 @ Ref
+    Assign((_62, {closure@src/process/fork.rs:229:59: 229:62} { pcb: move _63 })) @ _62={closure@src/process/fork.rs:229:59: 229:62} { pcb: move _63 } @ Aggregate
+    StorageDead(_63) @ StorageDead
+    _56 = core::result::Result::&lt;(), system_error::SystemError&gt;::unwrap_or_else::&lt;{closure@src/process/fork.rs:229:59: 229:62}&gt;(move _57, move _62) -&gt; [return: bb30, unwind: bb55] @ Call: FnDid: 11041
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_62) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    StorageLive(_66) @ StorageLive
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    Assign((_69, &amp;_35)) @ _69=&amp;_35 @ Ref
+    _68 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _69) -&gt; [return: bb31, unwind: bb55] @ Call: FnDid: 3903
+}
+bb 31 {
+CleanUp: false
+    Assign((_67, &amp;(*_68))) @ _67=&amp;(*_68) @ Ref
+    StorageDead(_69) @ StorageDead
+    _66 = process::ProcessControlBlock::sched_info(move _67) -&gt; [return: bb32, unwind: bb55] @ Call: FnDid: 29938
+}
+bb 32 {
+CleanUp: false
+    Assign((_65, &amp;(*_66))) @ _65=&amp;(*_66) @ Ref
+    StorageDead(_67) @ StorageDead
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    _71 = smp::core::smp_get_processor_id() -&gt; [return: bb33, unwind: bb55] @ Call: FnDid: 30600
+}
+bb 33 {
+CleanUp: false
+    Assign((_70, core::option::Option::&lt;smp::cpu::ProcessorId&gt;::Some(move _71))) @ _70=core::option::Option::&lt;smp::cpu::ProcessorId&gt;::Some(move _71) @ Aggregate
+    StorageDead(_71) @ StorageDead
+    _64 = process::ProcessSchedulerInfo::set_on_cpu(move _65, move _70) -&gt; [return: bb34, unwind: bb55] @ Call: FnDid: 30021
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_66) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    Assign((_75, &amp;_35)) @ _75=&amp;_35 @ Ref
+    Assign((_74, &amp;(*_75))) @ _74=&amp;(*_75) @ Ref
+    _73 = process::ProcessManager::wakeup(move _74) -&gt; [return: bb35, unwind: bb55] @ Call: FnDid: 29871
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_74) @ StorageDead
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_77, &amp;_35)) @ _77=&amp;_35 @ Ref
+    Assign((_76, {closure@src/process/fork.rs:239:53: 239:56} { pcb: move _77 })) @ _76={closure@src/process/fork.rs:239:53: 239:56} { pcb: move _77 } @ Aggregate
+    StorageDead(_77) @ StorageDead
+    _72 = core::result::Result::&lt;(), system_error::SystemError&gt;::unwrap_or_else::&lt;{closure@src/process/fork.rs:239:53: 239:56}&gt;(move _73, move _76) -&gt; [return: bb36, unwind: bb55] @ Call: FnDid: 11041
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    _82 = process::ProcessManager::current_pid() -&gt; [return: bb37, unwind: bb55] @ Call: FnDid: 29867
+}
+bb 37 {
+CleanUp: false
+    Assign((_81, &amp;_82)) @ _81=&amp;_82 @ Ref
+    _80 = process::RawPid::data(move _81) -&gt; [return: bb38, unwind: bb55] @ Call: FnDid: 66521
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    Assign((_79, Eq(move _80, const 0_usize))) @ _79=Eq(move _80, const 0_usize) @ BinaryOp
+    switchInt(move _79) -&gt; [0: bb42, otherwise: bb39] @ SwitchInt
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    Assign((_87, &amp;_35)) @ _87=&amp;_35 @ Ref
+    _86 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _87) -&gt; [return: bb40, unwind: bb55] @ Call: FnDid: 3903
+}
+bb 40 {
+CleanUp: false
+    Assign((_85, &amp;(*_86))) @ _85=&amp;(*_86) @ Ref
+    StorageDead(_87) @ StorageDead
+    _84 = process::ProcessControlBlock::raw_pid(move _85) -&gt; [return: bb41, unwind: bb55] @ Call: FnDid: 29942
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    Assign((_0, core::result::Result::&lt;process::RawPid, system_error::SystemError&gt;::Ok(move _84))) @ _0=core::result::Result::&lt;process::RawPid, system_error::SystemError&gt;::Ok(move _84) @ Aggregate
+    StorageDead(_84) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    goto -&gt; bb48 @ Goto
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_82) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    Assign((_78, const ())) @ _78=const () @ Use
+    StorageDead(_79) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    Assign((_95, &amp;_35)) @ _95=&amp;_35 @ Ref
+    _94 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _95) -&gt; [return: bb43, unwind: bb55] @ Call: FnDid: 3903
+}
+bb 43 {
+CleanUp: false
+    Assign((_93, &amp;(*_94))) @ _93=&amp;(*_94) @ Ref
+    StorageDead(_95) @ StorageDead
+    _92 = process::pid::&lt;impl process::ProcessControlBlock&gt;::pid(move _93) -&gt; [return: bb44, unwind: bb55] @ Call: FnDid: 28749
+}
+bb 44 {
+CleanUp: false
+    Assign((_91, &amp;_92)) @ _91=&amp;_92 @ Ref
+    _90 = &lt;alloc::sync::Arc&lt;process::pid::Pid&gt; as lazy_static::__Deref&gt;::deref(move _91) -&gt; [return: bb45, unwind: bb54] @ Call: FnDid: 3903
+}
+bb 45 {
+CleanUp: false
+    Assign((_89, &amp;(*_90))) @ _89=&amp;(*_90) @ Ref
+    StorageDead(_93) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    _88 = process::pid::Pid::pid_vnr(move _89) -&gt; [return: bb46, unwind: bb54] @ Call: FnDid: 28729
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_89) @ StorageDead
+    Assign((_0, core::result::Result::&lt;process::RawPid, system_error::SystemError&gt;::Ok(move _88))) @ _0=core::result::Result::&lt;process::RawPid, system_error::SystemError&gt;::Ok(move _88) @ Aggregate
+    StorageDead(_88) @ StorageDead
+    drop(_92) -&gt; [return: bb47, unwind: bb55] @ Drop
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    StorageDead(_90) @ StorageDead
+    goto -&gt; bb48 @ Goto
+}
+bb 48 {
+CleanUp: false
+    drop(_35) -&gt; [return: bb49, unwind: bb64] @ Drop
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 50 {
+CleanUp: false
+    Assign((_96, const false)) @ _96=const false @ Use
+    StorageDead(_23) @ StorageDead
+    switchInt(copy _97) -&gt; [0: bb51, otherwise: bb61] @ SwitchInt
+}
+bb 51 {
+CleanUp: false
+    Assign((_97, const false)) @ _97=const false @ Use
+    StorageDead(_13) @ StorageDead
+    switchInt(copy _98) -&gt; [0: bb52, otherwise: bb62] @ SwitchInt
+}
+bb 52 {
+CleanUp: false
+    Assign((_98, const false)) @ _98=const false @ Use
+    StorageDead(_5) @ StorageDead
+    drop(_4) -&gt; [return: bb53, unwind: bb58] @ Drop
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
     return @ Return
 }
-bb 15 {
+bb 54 {
 CleanUp: true
-    drop(_14) -&gt; [return: bb16, unwind terminate(cleanup)] @ Drop
+    drop(_92) -&gt; [return: bb55, unwind terminate(cleanup)] @ Drop
 }
-bb 16 {
+bb 55 {
 CleanUp: true
-    drop(_9) -&gt; [return: bb18, unwind terminate(cleanup)] @ Drop
+    drop(_35) -&gt; [return: bb64, unwind terminate(cleanup)] @ Drop
 }
-bb 17 {
+bb 56 {
+CleanUp: true
+    drop(_19) -&gt; [return: bb68, unwind terminate(cleanup)] @ Drop
+}
+bb 57 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb58, unwind terminate(cleanup)] @ Drop
+}
+bb 58 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 18 {
+bb 59 {
+CleanUp: false
+    drop(_23) -&gt; [return: bb50, unwind: bb66] @ Drop
+}
+bb 60 {
+CleanUp: false
+    switchInt(copy _96) -&gt; [0: bb50, otherwise: bb59] @ SwitchInt
+}
+bb 61 {
+CleanUp: false
+    drop(_13) -&gt; [return: bb51, unwind: bb68] @ Drop
+}
+bb 62 {
+CleanUp: false
+    drop(_5) -&gt; [return: bb52, unwind: bb57] @ Drop
+}
+bb 63 {
 CleanUp: true
-    Assign((_48, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute))) @ _48=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute) @ Cast
-    Assign((_46, &amp;mut _8)) @ _46=&amp;mut _8 @ Ref
-    _47 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3]&gt; as core::ops::Drop&gt;::drop(move _46) -&gt; [return: bb21, unwind terminate(cleanup)] @ Call: FnDid: 3937
+    drop(_23) -&gt; [return: bb66, unwind terminate(cleanup)] @ Drop
+}
+bb 64 {
+CleanUp: true
+    switchInt(copy _96) -&gt; [0: bb66, otherwise: bb63] @ SwitchInt
+}
+bb 65 {
+CleanUp: true
+    drop(_13) -&gt; [return: bb68, unwind terminate(cleanup)] @ Drop
+}
+bb 66 {
+CleanUp: true
+    switchInt(copy _97) -&gt; [0: bb68, otherwise: bb65] @ SwitchInt
+}
+bb 67 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb57, unwind terminate(cleanup)] @ Drop
+}
+bb 68 {
+CleanUp: true
+    switchInt(copy _98) -&gt; [0: bb57, otherwise: bb67] @ SwitchInt
+}
+bb 69 {
+CleanUp: true
+    Assign((_103, discriminant(_6))) @ _103=discriminant(_6) @ Discriminant
+    goto -&gt; bb57 @ Goto
+}
+
+bb0 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:107:34: 114:6
+bb2 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb3 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb5 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb6 at src/process/fork.rs:212:17: 212:28
+bb7 at src/process/fork.rs:212:37: 212:38
+bb8 at src/process/fork.rs:213:17: 213:20
+bb9 at src/process/fork.rs:213:29: 213:30
+bb10 at src/process/fork.rs:211:65: 211:66
+bb11 at src/process/fork.rs:211:82: 211:83
+bb12 at src/process/fork.rs:211:96: 211:97
+bb13 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb15 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb18 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+fn process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#0}
+_0:  @ system_error::SystemError 
+_1:  @ Closure(DefId(0:27989 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)) -&gt; system_error::SystemError, bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;, &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;)]) 
+_2:  @ system_error::SystemError 
+_3:  @ () 
+_4:  @ log::Level 
+_5:  @ bool 
+_6:  @ &amp;&#39;{erased} log::Level 
+_7:  @ &amp;&#39;{erased} log::LevelFilter 
+_8:  @ log::LevelFilter 
+_9:  @ bool 
+_10:  @ &amp;&#39;{erased} log::Level 
+_11:  @ &amp;&#39;{erased} log::LevelFilter 
+_12:  @ log::LevelFilter 
+_13:  @ () 
+_14:  @ log::__private_api::GlobalLogger 
+_15:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_16:  @ (&amp;&#39;{erased} process::RawPid, &amp;&#39;{erased} process::RawPid, &amp;&#39;{erased} system_error::SystemError) 
+_17:  @ &amp;&#39;{erased} process::RawPid 
+_18:  @ process::RawPid 
+_19:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_20:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_21:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_22:  @ &amp;&#39;{erased} process::RawPid 
+_23:  @ process::RawPid 
+_24:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_25:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_26:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_27:  @ &amp;&#39;{erased} system_error::SystemError 
+_28:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 3_usize] 
+_29:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_30:  @ &amp;&#39;{erased} process::RawPid 
+_31:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_32:  @ &amp;&#39;{erased} process::RawPid 
+_33:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_34:  @ &amp;&#39;{erased} system_error::SystemError 
+_35:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_36:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_37:  @ [&amp;&#39;{erased} str; 3_usize] 
+_38:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 3_usize] 
+_39:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 3_usize] 
+_40:  @ log::Level 
+_41:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_42:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_43:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_44:  @ &amp;&#39;{erased} str 
+_45:  @ &amp;&#39;{erased} str 
+_46:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_47:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_48:  @ () 
+_49:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 3_usize] 
+_50:  @ &amp;&#39;{erased} log::LevelFilter 
+_51:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_52:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_53:  @ &amp;&#39;{erased} process::RawPid 
+_54:  @ &amp;&#39;{erased} process::RawPid 
+_55:  @ &amp;&#39;{erased} system_error::SystemError 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, log::Level::Error)) @ _4=log::Level::Error @ Aggregate
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;_4)) @ _6=&amp;_4 @ Ref
+    StorageLive(_7) @ StorageLive
+    Assign((_50, const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#0}::promoted[1])) @ _50=const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#0}::promoted[1] @ Use
+    Assign((_7, &amp;(*_50))) @ _7=&amp;(*_50) @ Ref
+    _5 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _6, move _7) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3215
+}
+bb 1 {
+CleanUp: false
+    switchInt(move _5) -&gt; [0: bb17, otherwise: bb2] @ SwitchInt
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;_4)) @ _10=&amp;_4 @ Ref
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    _12 = log::max_level() -&gt; [return: bb3, unwind continue] @ Call: FnDid: 134
+}
+bb 3 {
+CleanUp: false
+    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
+    _9 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _10, move _11) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 3215
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _9) -&gt; [0: bb16, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, log::__private_api::GlobalLogger)) @ _14=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_15) @ StorageLive
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_51, deref_copy (_1.0: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;))) @ _51=deref_copy (_1.0: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;) @ CopyForDeref
+    Assign((_21, &amp;(*_51))) @ _21=&amp;(*_51) @ Ref
+    _20 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 3903
+}
+bb 6 {
+CleanUp: false
+    Assign((_19, &amp;(*_20))) @ _19=&amp;(*_20) @ Ref
+    StorageDead(_21) @ StorageDead
+    _18 = process::ProcessControlBlock::raw_pid(move _19) -&gt; [return: bb7, unwind continue] @ Call: FnDid: 29942
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    Assign((_17, &amp;_18)) @ _17=&amp;_18 @ Ref
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_52, deref_copy (_1.1: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;))) @ _52=deref_copy (_1.1: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;) @ CopyForDeref
+    Assign((_26, &amp;(*_52))) @ _26=&amp;(*_52) @ Ref
+    _25 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _26) -&gt; [return: bb8, unwind continue] @ Call: FnDid: 3903
+}
+bb 8 {
+CleanUp: false
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    StorageDead(_26) @ StorageDead
+    _23 = process::ProcessControlBlock::raw_pid(move _24) -&gt; [return: bb9, unwind continue] @ Call: FnDid: 29942
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    Assign((_22, &amp;_23)) @ _22=&amp;_23 @ Ref
+    StorageLive(_27) @ StorageLive
+    Assign((_27, &amp;_2)) @ _27=&amp;_2 @ Ref
+    Assign((_16, (move _17, move _22, move _27))) @ _16=(move _17, move _22, move _27) @ Aggregate
+    StorageDead(_27) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_53, deref_copy (_16.0: &amp;process::RawPid))) @ _53=deref_copy (_16.0: &amp;process::RawPid) @ CopyForDeref
+    Assign((_30, &amp;(*_53))) @ _30=&amp;(*_53) @ Ref
+    _29 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;process::RawPid&gt;(move _30) -&gt; [return: bb10, unwind continue] @ Call: FnDid: 11809
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_54, deref_copy (_16.1: &amp;process::RawPid))) @ _54=deref_copy (_16.1: &amp;process::RawPid) @ CopyForDeref
+    Assign((_32, &amp;(*_54))) @ _32=&amp;(*_54) @ Ref
+    _31 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;process::RawPid&gt;(move _32) -&gt; [return: bb11, unwind continue] @ Call: FnDid: 11809
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_55, deref_copy (_16.2: &amp;system_error::SystemError))) @ _55=deref_copy (_16.2: &amp;system_error::SystemError) @ CopyForDeref
+    Assign((_34, &amp;(*_55))) @ _34=&amp;(*_55) @ Ref
+    _33 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;system_error::SystemError&gt;(move _34) -&gt; [return: bb12, unwind continue] @ Call: FnDid: 11809
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    Assign((_28, [move _29, move _31, move _33])) @ _28=[move _29, move _31, move _33] @ Aggregate
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_49, const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#0}::promoted[0])) @ _49=const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#0}::promoted[0] @ Use
+    Assign((_36, &amp;(*_49))) @ _36=&amp;(*_49) @ Ref
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;_28)) @ _39=&amp;_28 @ Ref
+    Assign((_38, &amp;(*_39))) @ _38=&amp;(*_39) @ Ref
+    _15 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;3, 3&gt;(move _35, move _38) -&gt; [return: bb13, unwind continue] @ Call: FnDid: 11836
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    Assign((_40, copy _4)) @ _40=copy _4 @ Use
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, const &#34;dragonos_kernel::process::fork&#34;)) @ _45=const &#34;dragonos_kernel::process::fork&#34; @ Use
+    Assign((_44, &amp;(*_45))) @ _44=&amp;(*_45) @ Ref
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    _47 = log::__private_api::loc() -&gt; [return: bb14, unwind continue] @ Call: FnDid: 184
+}
+bb 14 {
+CleanUp: false
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    Assign((_43, (move _44, const &#34;dragonos_kernel::process::fork&#34;, move _46))) @ _43=(move _44, const &#34;dragonos_kernel::process::fork&#34;, move _46) @ Aggregate
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    Assign((_42, &amp;_43)) @ _42=&amp;_43 @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    StorageLive(_48) @ StorageLive
+    Assign((_48, ())) @ _48=() @ Aggregate
+    _13 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _14, move _15, move _40, move _41, move _48) -&gt; [return: bb15, unwind continue] @ Call: FnDid: 178
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb19 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    goto -&gt; bb18 @ Goto
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb18 @ Goto
+}
+bb 18 {
+CleanUp: false
+    Assign((_3, const ())) @ _3=const () @ Use
+    goto -&gt; bb19 @ Goto
 }
 bb 19 {
 CleanUp: false
-    Assign((_56, copy _49 as *const () (PtrToPtr))) @ _56=copy _49 as *const () (PtrToPtr) @ Cast
-    Assign((_57, copy _56 as usize (Transmute))) @ _57=copy _56 as usize (Transmute) @ Cast
-    Assign((_58, SizeOf([syscall::table::FormattedSyscallParam; 3]))) @ _58=SizeOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    Assign((_59, Ne(copy _58, const 0_usize))) @ _59=Ne(copy _58, const 0_usize) @ BinaryOp
-    Assign((_60, Eq(copy _57, const 0_usize))) @ _60=Eq(copy _57, const 0_usize) @ BinaryOp
-    Assign((_61, BitAnd(copy _60, copy _59))) @ _61=BitAnd(copy _60, copy _59) @ BinaryOp
-    Assign((_62, Not(copy _61))) @ _62=Not(copy _61) @ UnaryOp
-    assert(copy _62, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb20, unwind unreachable] @ Assert
-}
-bb 20 {
-CleanUp: false
-    Assign(((*_49), [move _9, move _14, move _39])) @ (*_49)=[move _9, move _14, move _39] @ Aggregate
-    StorageDead(_39) @ StorageDead
-    StorageDead(_14) @ StorageDead
     StorageDead(_9) @ StorageDead
-    Assign((_4, move _8)) @ _4=move _8 @ Use
-    Assign((_3, move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_8) @ StorageDead
+    StorageDead(_5) @ StorageDead
     StorageDead(_4) @ StorageDead
-    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _3) -&gt; [return: bb14, unwind: bb17] @ Call: FnDid: 6192
+    StorageDead(_3) @ StorageDead
+    Assign((_0, move _2)) @ _0=move _2 @ Use
+    return @ Return
 }
-bb 21 {
-CleanUp: true
-    goto -&gt; bb17 @ Goto
+
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:9: 107:73
+bb1 at src/process/fork.rs:232:17: 232:20
+bb2 at src/process/fork.rs:232:29: 232:30
+bb3 at src/process/fork.rs:231:67: 231:68
+bb4 at src/process/fork.rs:231:81: 231:82
+bb5 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+fn process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#1}
+_0:  @ () 
+_1:  @ Closure(DefId(0:27990 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork::{closure#1}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;,)]) 
+_2:  @ system_error::SystemError 
+_3:  @ ! 
+_4:  @ ! 
+_5:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_6:  @ (&amp;&#39;{erased} process::RawPid, &amp;&#39;{erased} system_error::SystemError) 
+_7:  @ &amp;&#39;{erased} process::RawPid 
+_8:  @ process::RawPid 
+_9:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_10:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} system_error::SystemError 
+_13:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_14:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_15:  @ &amp;&#39;{erased} process::RawPid 
+_16:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_17:  @ &amp;&#39;{erased} system_error::SystemError 
+_18:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_19:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_20:  @ [&amp;&#39;{erased} str; 2_usize] 
+_21:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_22:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_23:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_24:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_25:  @ &amp;&#39;{erased} process::RawPid 
+_26:  @ &amp;&#39;{erased} system_error::SystemError 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_24, deref_copy (_1.0: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;))) @ _24=deref_copy (_1.0: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;) @ CopyForDeref
+    Assign((_11, &amp;(*_24))) @ _11=&amp;(*_24) @ Ref
+    _10 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _11) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    StorageDead(_11) @ StorageDead
+    _8 = process::ProcessControlBlock::raw_pid(move _9) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 29942
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, &amp;_8)) @ _7=&amp;_8 @ Ref
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;_2)) @ _12=&amp;_2 @ Ref
+    Assign((_6, (move _7, move _12))) @ _6=(move _7, move _12) @ Aggregate
+    StorageDead(_12) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_25, deref_copy (_6.0: &amp;process::RawPid))) @ _25=deref_copy (_6.0: &amp;process::RawPid) @ CopyForDeref
+    Assign((_15, &amp;(*_25))) @ _15=&amp;(*_25) @ Ref
+    _14 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;process::RawPid&gt;(move _15) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 11809
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_26, deref_copy (_6.1: &amp;system_error::SystemError))) @ _26=deref_copy (_6.1: &amp;system_error::SystemError) @ CopyForDeref
+    Assign((_17, &amp;(*_26))) @ _17=&amp;(*_26) @ Ref
+    _16 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;system_error::SystemError&gt;(move _17) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 11809
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_13, [move _14, move _16])) @ _13=[move _14, move _16] @ Aggregate
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_23, const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#1}::promoted[0])) @ _23=const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#1}::promoted[0] @ Use
+    Assign((_19, &amp;(*_23))) @ _19=&amp;(*_23) @ Ref
+    Assign((_18, &amp;(*_19))) @ _18=&amp;(*_19) @ Ref
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_13)) @ _22=&amp;_13 @ Ref
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    _5 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _18, move _21) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 11836
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    _4 = core::panicking::panic_fmt(move _5) -&gt; unwind continue @ Call: FnDid: 10541
+}
+
+bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:9: 107:73
+bb1 at src/process/fork.rs:242:17: 242:20
+bb2 at src/process/fork.rs:242:29: 242:30
+bb3 at src/process/fork.rs:241:63: 241:64
+bb4 at src/process/fork.rs:241:77: 241:78
+bb5 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic.rs:107:71: 107:72
+fn process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#2}
+_0:  @ () 
+_1:  @ Closure(DefId(0:27991 ~ dragonos_kernel[9e38]::process::fork::{impl#1}::fork::{closure#2}), [i32, Binder { value: extern &#34;RustCall&#34; fn((system_error::SystemError,)), bound_vars: [] }, (&amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt;,)]) 
+_2:  @ system_error::SystemError 
+_3:  @ ! 
+_4:  @ ! 
+_5:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_6:  @ (&amp;&#39;{erased} process::RawPid, &amp;&#39;{erased} system_error::SystemError) 
+_7:  @ &amp;&#39;{erased} process::RawPid 
+_8:  @ process::RawPid 
+_9:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_10:  @ &amp;&#39;{erased} process::ProcessControlBlock 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_12:  @ &amp;&#39;{erased} system_error::SystemError 
+_13:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_14:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_15:  @ &amp;&#39;{erased} process::RawPid 
+_16:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_17:  @ &amp;&#39;{erased} system_error::SystemError 
+_18:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_19:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_20:  @ [&amp;&#39;{erased} str; 2_usize] 
+_21:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_22:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
+_23:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
+_24:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
+_25:  @ &amp;&#39;{erased} process::RawPid 
+_26:  @ &amp;&#39;{erased} system_error::SystemError 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_24, deref_copy (_1.0: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;))) @ _24=deref_copy (_1.0: &amp;alloc::sync::Arc&lt;process::ProcessControlBlock&gt;) @ CopyForDeref
+    Assign((_11, &amp;(*_24))) @ _11=&amp;(*_24) @ Ref
+    _10 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _11) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 3903
+}
+bb 1 {
+CleanUp: false
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    StorageDead(_11) @ StorageDead
+    _8 = process::ProcessControlBlock::raw_pid(move _9) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 29942
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_9) @ StorageDead
+    Assign((_7, &amp;_8)) @ _7=&amp;_8 @ Ref
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;_2)) @ _12=&amp;_2 @ Ref
+    Assign((_6, (move _7, move _12))) @ _6=(move _7, move _12) @ Aggregate
+    StorageDead(_12) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_25, deref_copy (_6.0: &amp;process::RawPid))) @ _25=deref_copy (_6.0: &amp;process::RawPid) @ CopyForDeref
+    Assign((_15, &amp;(*_25))) @ _15=&amp;(*_25) @ Ref
+    _14 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;process::RawPid&gt;(move _15) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 11809
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_26, deref_copy (_6.1: &amp;system_error::SystemError))) @ _26=deref_copy (_6.1: &amp;system_error::SystemError) @ CopyForDeref
+    Assign((_17, &amp;(*_26))) @ _17=&amp;(*_26) @ Ref
+    _16 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;system_error::SystemError&gt;(move _17) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 11809
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_17) @ StorageDead
+    Assign((_13, [move _14, move _16])) @ _13=[move _14, move _16] @ Aggregate
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_23, const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#2}::promoted[0])) @ _23=const process::fork::&lt;impl process::ProcessManager&gt;::fork::{closure#2}::promoted[0] @ Use
+    Assign((_19, &amp;(*_23))) @ _19=&amp;(*_23) @ Ref
+    Assign((_18, &amp;(*_19))) @ _18=&amp;(*_19) @ Ref
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_13)) @ _22=&amp;_13 @ Ref
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    _5 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _18, move _21) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 11836
+}
+bb 5 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    _4 = core::panicking::panic_fmt(move _5) -&gt; unwind continue @ Call: FnDid: 10541
 }
 
 </div>

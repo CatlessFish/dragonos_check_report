@@ -13,7 +13,7 @@
         <h1>
             Report #48
             
-                 <span class="func-name">filesystem::eventfd::{impl#3}::read_at</span>
+                 <span class="func-name">filesystem::ext4::inode::{impl#0}::create</span>
             
         </h1>
 
@@ -25,133 +25,67 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:04|RAP|WARN|: Dangling pointer detected in function &#34;read_at&#34;
+                    <pre id="logContent" class="code-block scrollable">22:08:05|RAP|WARN|: Dangling pointer detected in function &#34;create&#34;
+22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;create&#34;
 warning: Dangling pointer detected.
-   --&gt; src/filesystem/eventfd.rs:140:1
-    |
-140 | / fn read_at(
-141 | |         &amp;self,
-142 | |         _offset: usize,
-143 | |         len: usize,
-144 | |         buf: &amp;mut [u8],
-145 | |         data_guard: SpinLockGuard&lt;FilePrivateData&gt;,
-146 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
-147 | |         let data = data_guard.clone();
-148 | |         drop(data_guard);
-149 | |         if len &lt; 8 {
-150 | |             return Err(SystemError::EINVAL);
-151 | |         }
-152 | |         let mut lock_efd = self.eventfd.lock();
-153 | |         while lock_efd.count == 0 {
-154 | |             if lock_efd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
-155 | |                 drop(lock_efd);
-156 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
-157 | |             }
-158 | |
-159 | |             drop(lock_efd);
-160 | |
-161 | |             if ProcessManager::current_pcb().has_pending_signal_fast() {
-162 | |                 return Err(SystemError::ERESTARTSYS);
-163 | |             }
-164 | |
-165 | |             let r = wq_wait_event_interruptible!(self.wait_queue, self.readable(), {});
-166 | |             if r.is_err() {
-167 | |                 ProcessManager::current_pcb()
-168 | |                     .flags()
-169 | |                     .insert(ProcessFlags::HAS_PENDING_SIGNAL);
-170 | |
-171 | |                 return Err(SystemError::ERESTARTSYS);
-172 | |             }
-173 | |
-174 | |             lock_efd = self.eventfd.lock();
-175 | |         }
-176 | |         let mut val = lock_efd.count;
-177 | |
-178 | |         let mut eventfd = lock_efd;
-179 | |         if eventfd.flags.contains(EventFdFlags::EFD_SEMAPHORE) {
-180 | |             eventfd.count -= 1;
-181 | |             val = 1;
-182 | |         } else {
-183 | |             eventfd.count = 0;
-184 | |         }
-185 | |         let val_bytes = val.to_ne_bytes();
-186 | |         buf[..8].copy_from_slice(&amp;val_bytes);
-187 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
-188 | |         drop(eventfd);
-189 | |
-190 | |         // 唤醒epoll中等待的进程
-191 | |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
-192 | |
-193 | |         return Ok(8);
-194 | |     }
-    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 140.
-    | MIR detail: Value UNKNWON(_18446744073709551615) in read_at and _1(self, src/filesystem/eventfd.rs:141) are alias.
-    | MIR detail: UNKNWON(_18446744073709551615) in read_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:140); _1(self, src/filesystem/eventfd.rs:141) became dangling.
-    |
-22:08:04|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;read_at&#34;
+  --&gt; src/filesystem/ext4/inode.rs:54:1
+   |
+54 | / fn create(
+55 | |         &amp;self,
+56 | |         name: &amp;str,
+57 | |         file_type: vfs::FileType,
+58 | |         mode: vfs::InodeMode,
+59 | |     ) -&gt; Result&lt;Arc&lt;dyn IndexNode&gt;, SystemError&gt; {
+60 | |         let mut guard = self.0.lock();
+61 | |         // another_ext4的高4位是文件类型，低12位是权限
+62 | |         let file_mode = InodeMode::from(file_type).union(mode);
+63 | |         let ext4 = &amp;guard.concret_fs().fs;
+64 | |         let id = ext4.create(
+65 | |             guard.inner_inode_num,
+66 | |             name,
+67 | |             another_ext4::InodeMode::from_bits_truncate(file_mode.bits() as u16),
+68 | |         )?;
+69 | |         let dname = DName::from(name);
+70 | |         let inode = LockedExt4Inode::new(id, guard.fs_ptr.clone(), dname.clone());
+71 | |         // 更新 children 缓存
+72 | |         guard.children.insert(dname, inode.clone());
+73 | |         drop(guard);
+74 | |         Ok(inode as Arc&lt;dyn IndexNode&gt;)
+75 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/ext4/inode.rs line 54.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in create and _1(self, src/filesystem/ext4/inode.rs:55) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in create is dropped at BB18446744073709551615(src/filesystem/ext4/inode.rs:54); _1(self, src/filesystem/ext4/inode.rs:55) became dangling.
+   |
 warning: Dangling pointer detected during unwinding.
-   --&gt; src/filesystem/eventfd.rs:140:1
-    |
-140 | / fn read_at(
-141 | |         &amp;self,
-142 | |         _offset: usize,
-143 | |         len: usize,
-144 | |         buf: &amp;mut [u8],
-145 | |         data_guard: SpinLockGuard&lt;FilePrivateData&gt;,
-146 | |     ) -&gt; Result&lt;usize, SystemError&gt; {
-147 | |         let data = data_guard.clone();
-148 | |         drop(data_guard);
-149 | |         if len &lt; 8 {
-150 | |             return Err(SystemError::EINVAL);
-151 | |         }
-152 | |         let mut lock_efd = self.eventfd.lock();
-153 | |         while lock_efd.count == 0 {
-154 | |             if lock_efd.flags.contains(EventFdFlags::EFD_NONBLOCK) {
-155 | |                 drop(lock_efd);
-156 | |                 return Err(SystemError::EAGAIN_OR_EWOULDBLOCK);
-157 | |             }
-158 | |
-159 | |             drop(lock_efd);
-160 | |
-161 | |             if ProcessManager::current_pcb().has_pending_signal_fast() {
-162 | |                 return Err(SystemError::ERESTARTSYS);
-163 | |             }
-164 | |
-165 | |             let r = wq_wait_event_interruptible!(self.wait_queue, self.readable(), {});
-166 | |             if r.is_err() {
-167 | |                 ProcessManager::current_pcb()
-168 | |                     .flags()
-169 | |                     .insert(ProcessFlags::HAS_PENDING_SIGNAL);
-170 | |
-171 | |                 return Err(SystemError::ERESTARTSYS);
-172 | |             }
-173 | |
-174 | |             lock_efd = self.eventfd.lock();
-175 | |         }
-176 | |         let mut val = lock_efd.count;
-177 | |
-178 | |         let mut eventfd = lock_efd;
-179 | |         if eventfd.flags.contains(EventFdFlags::EFD_SEMAPHORE) {
-180 | |             eventfd.count -= 1;
-181 | |             val = 1;
-182 | |         } else {
-183 | |             eventfd.count = 0;
-184 | |         }
-185 | |         let val_bytes = val.to_ne_bytes();
-186 | |         buf[..8].copy_from_slice(&amp;val_bytes);
-187 | |         let pollflag = EPollEventType::from_bits_truncate(self.do_poll(&amp;data, &amp;eventfd)? as u32);
-188 | |         drop(eventfd);
-189 | |
-190 | |         // 唤醒epoll中等待的进程
-191 | |         EventPoll::wakeup_epoll(&amp;self.epitems, pollflag)?;
-192 | |
-193 | |         return Ok(8);
-194 | |     }
-    | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/eventfd.rs line 140.
-    | MIR detail: Value UNKNWON(_18446744073709551615) in read_at and _1(self, src/filesystem/eventfd.rs:141) are alias.
-    | MIR detail: UNKNWON(_18446744073709551615) in read_at is dropped at BB18446744073709551615(src/filesystem/eventfd.rs:140); _1(self, src/filesystem/eventfd.rs:141) became dangling.
-    |
-render dot for DefId(0:17410 ~ dragonos_kernel[9e38]::filesystem::eventfd::{impl#3}::read_at)
+  --&gt; src/filesystem/ext4/inode.rs:54:1
+   |
+54 | / fn create(
+55 | |         &amp;self,
+56 | |         name: &amp;str,
+57 | |         file_type: vfs::FileType,
+58 | |         mode: vfs::InodeMode,
+59 | |     ) -&gt; Result&lt;Arc&lt;dyn IndexNode&gt;, SystemError&gt; {
+60 | |         let mut guard = self.0.lock();
+61 | |         // another_ext4的高4位是文件类型，低12位是权限
+62 | |         let file_mode = InodeMode::from(file_type).union(mode);
+63 | |         let ext4 = &amp;guard.concret_fs().fs;
+64 | |         let id = ext4.create(
+65 | |             guard.inner_inode_num,
+66 | |             name,
+67 | |             another_ext4::InodeMode::from_bits_truncate(file_mode.bits() as u16),
+68 | |         )?;
+69 | |         let dname = DName::from(name);
+70 | |         let inode = LockedExt4Inode::new(id, guard.fs_ptr.clone(), dname.clone());
+71 | |         // 更新 children 缓存
+72 | |         guard.children.insert(dname, inode.clone());
+73 | |         drop(guard);
+74 | |         Ok(inode as Arc&lt;dyn IndexNode&gt;)
+75 | |     }
+   | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/ext4/inode.rs line 54.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in create and _1(self, src/filesystem/ext4/inode.rs:55) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in create is dropped at BB18446744073709551615(src/filesystem/ext4/inode.rs:54); _1(self, src/filesystem/ext4/inode.rs:55) became dangling.
+   |
+render dot for DefId(0:17544 ~ dragonos_kernel[9e38]::filesystem::ext4::inode::{impl#0}::create)
 </pre>
                 </div>
             
@@ -162,1008 +96,504 @@ render dot for DefId(0:17410 ~ dragonos_kernel[9e38]::filesystem::eventfd::{impl
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/eventfd.rs:147:13: 147:17
-bb1 at src/filesystem/eventfd.rs:147:20: 147:30
-bb2 at src/filesystem/eventfd.rs:147:37: 147:38
-bb3 at src/filesystem/eventfd.rs:148:24: 148:25
-bb4 at src/filesystem/eventfd.rs:149:18: 149:19
-bb5 at src/filesystem/eventfd.rs:149:18: 149:19
-bb6 at src/filesystem/eventfd.rs:152:46: 152:47
-bb7 at src/filesystem/eventfd.rs:153:15: 153:34
-bb8 at src/filesystem/eventfd.rs:153:22: 153:23
-bb9 at src/filesystem/eventfd.rs:153:33: 153:34
-bb10 at src/filesystem/eventfd.rs:154:23: 154:24
-bb12 at src/filesystem/eventfd.rs:154:66: 154:67
-bb13 at src/filesystem/eventfd.rs:155:30: 155:31
-bb14 at src/filesystem/eventfd.rs:154:66: 154:67
-bb15 at src/filesystem/eventfd.rs:159:26: 159:27
-bb16 at src/filesystem/eventfd.rs:161:16: 161:45
-bb17 at src/filesystem/eventfd.rs:161:16: 161:45
-bb20 at src/filesystem/eventfd.rs:161:70: 161:71
-bb22 at src/filesystem/eventfd.rs:161:70: 161:71
-bb24 at src/filesystem/eventfd.rs:165:81: 165:82
-bb25 at src/filesystem/eventfd.rs:165:81: 165:82
-bb26 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:41:17: 41:18
-bb27 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:41:61: 41:62
-bb29 at src/filesystem/eventfd.rs:165:81: 165:82
-bb30 at src/filesystem/eventfd.rs:165:81: 165:82
-bb31 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:35: 46:44
-bb33 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:43: 46:44
-bb34 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:43: 46:44
-bb35 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:50:14: 50:14
-bb36 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:52:17: 52:18
-bb37 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:53:9: 53:10
-bb38 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:55:13: 55:30
-bb39 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:55:29: 55:30
-bb40 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:56:10: 56:10
-bb41 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:56:9: 56:10
-bb42 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:18:9: 18:10
-bb44 at src/filesystem/eventfd.rs:166:25: 166:26
-bb45 at src/filesystem/eventfd.rs:167:17: 167:46
-bb46 at src/filesystem/eventfd.rs:167:17: 167:46
-bb47 at src/filesystem/eventfd.rs:167:17: 168:29
-bb48 at src/filesystem/eventfd.rs:169:61: 169:62
-bb49 at src/filesystem/eventfd.rs:169:62: 169:63
-bb50 at src/filesystem/eventfd.rs:166:25: 166:26
-bb51 at src/filesystem/eventfd.rs:174:42: 174:43
-bb52 at src/filesystem/eventfd.rs:153:33: 153:34
-bb53 at src/filesystem/eventfd.rs:176:30: 176:31
-bb54 at src/filesystem/eventfd.rs:179:18: 179:19
-bb56 at src/filesystem/eventfd.rs:179:62: 179:63
-bb57 at src/filesystem/eventfd.rs:180:19: 180:20
-bb58 at src/filesystem/eventfd.rs:180:13: 180:31
-bb59 at src/filesystem/eventfd.rs:179:62: 179:63
-bb60 at src/filesystem/eventfd.rs:183:19: 183:20
-bb61 at src/filesystem/eventfd.rs:184:9: 184:10
-bb62 at src/filesystem/eventfd.rs:185:41: 185:42
-bb63 at src/filesystem/eventfd.rs:186:9: 186:17
-bb64 at src/filesystem/eventfd.rs:186:44: 186:45
-bb65 at src/filesystem/eventfd.rs:187:87: 187:88
-bb66 at src/filesystem/eventfd.rs:187:88: 187:89
-bb68 at src/filesystem/eventfd.rs:187:59: 187:89
-bb69 at src/filesystem/eventfd.rs:187:88: 187:89
-bb70 at src/filesystem/eventfd.rs:187:88: 187:89
-bb71 at src/filesystem/eventfd.rs:187:96: 187:97
-bb72 at src/filesystem/eventfd.rs:188:21: 188:22
-bb73 at src/filesystem/eventfd.rs:191:56: 191:57
-bb74 at src/filesystem/eventfd.rs:191:57: 191:58
-bb75 at src/filesystem/eventfd.rs:191:9: 191:58
-bb76 at src/filesystem/eventfd.rs:191:57: 191:58
-bb77 at src/filesystem/eventfd.rs:191:57: 191:58
-bb78 at src/filesystem/eventfd.rs:194:5: 194:6
-bb79 at src/filesystem/eventfd.rs:194:5: 194:6
-bb80 at src/filesystem/eventfd.rs:175:9: 175:10
-bb81 at src/filesystem/eventfd.rs:194:5: 194:6
-bb83 at src/filesystem/eventfd.rs:194:5: 194:6
-fn &lt;filesystem::eventfd::EventFdInode as filesystem::vfs::IndexNode&gt;::read_at
-_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdInode 
-_2:  @ usize 
-_3:  @ usize 
-_4:  @ &amp;&#39;{erased} mut [u8] 
-_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
-_6:  @ ! 
-_7:  @ filesystem::vfs::file::FilePrivateData 
-_8:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
-_9:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
-_10:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
-_11:  @ () 
-_12:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
-_13:  @ () 
-_14:  @ bool 
-_15:  @ usize 
-_16:  @ ! 
-_17:  @ system_error::SystemError 
-_18:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_19:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt; 
-_20:  @ () 
-_21:  @ () 
-_22:  @ bool 
-_23:  @ u64 
-_24:  @ &amp;&#39;{erased} filesystem::eventfd::EventFd 
-_25:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_26:  @ () 
-_27:  @ bool 
-_28:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdFlags 
-_29:  @ &amp;&#39;{erased} filesystem::eventfd::EventFd 
-_30:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_31:  @ ! 
-_32:  @ () 
-_33:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_34:  @ system_error::SystemError 
-_35:  @ () 
-_36:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_37:  @ () 
-_38:  @ bool 
-_39:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_40:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_41:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_42:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_43:  @ ! 
-_44:  @ system_error::SystemError 
-_45:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_46:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_47:  @ () 
-_48:  @ () 
-_49:  @ bool 
-_50:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdInode 
-_51:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_52:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_53:  @ () 
-_54:  @ bool 
-_55:  @ () 
-_56:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_57:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
-_58:  @ () 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/ext4/inode.rs:60:13: 60:22
+bb1 at src/filesystem/ext4/inode.rs:60:37: 60:38
+bb2 at src/filesystem/ext4/inode.rs:62:50: 62:51
+bb3 at src/filesystem/ext4/inode.rs:62:62: 62:63
+bb4 at src/filesystem/ext4/inode.rs:63:21: 63:26
+bb5 at src/filesystem/ext4/inode.rs:63:21: 63:39
+bb6 at src/filesystem/ext4/inode.rs:63:38: 63:39
+bb7 at src/filesystem/ext4/inode.rs:65:17: 65:18
+bb8 at src/filesystem/ext4/inode.rs:67:72: 67:73
+bb9 at src/filesystem/ext4/inode.rs:67:80: 67:81
+bb10 at src/filesystem/ext4/inode.rs:68:9: 68:10
+bb11 at src/filesystem/ext4/inode.rs:68:10: 68:11
+bb13 at src/filesystem/ext4/inode.rs:64:18: 68:11
+bb14 at src/filesystem/ext4/inode.rs:68:10: 68:11
+bb15 at src/filesystem/ext4/inode.rs:68:10: 68:11
+bb16 at src/filesystem/ext4/inode.rs:69:37: 69:38
+bb17 at src/filesystem/ext4/inode.rs:70:50: 70:51
+bb18 at src/filesystem/ext4/inode.rs:70:65: 70:66
+bb19 at src/filesystem/ext4/inode.rs:70:80: 70:81
+bb20 at src/filesystem/ext4/inode.rs:70:81: 70:82
+bb21 at src/filesystem/ext4/inode.rs:72:13: 72:14
+bb22 at src/filesystem/ext4/inode.rs:72:50: 72:51
+bb23 at src/filesystem/ext4/inode.rs:72:51: 72:52
+bb24 at src/filesystem/ext4/inode.rs:72:52: 72:53
+bb25 at src/filesystem/ext4/inode.rs:73:19: 73:20
+bb26 at src/filesystem/ext4/inode.rs:75:5: 75:6
+bb27 at src/filesystem/ext4/inode.rs:75:5: 75:6
+bb28 at src/filesystem/ext4/inode.rs:75:5: 75:6
+bb39 at src/filesystem/ext4/inode.rs:68:11: 68:12
+fn &lt;filesystem::ext4::inode::LockedExt4Inode as filesystem::vfs::IndexNode&gt;::create
+_0:  @ core::result::Result&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::ext4::inode::LockedExt4Inode 
+_2:  @ &amp;&#39;{erased} str 
+_3:  @ filesystem::vfs::FileType 
+_4:  @ filesystem::vfs::InodeMode 
+_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::ext4::inode::Ext4Inode&gt; 
+_6:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::ext4::inode::Ext4Inode&gt; 
+_7:  @ filesystem::vfs::InodeMode 
+_8:  @ filesystem::vfs::InodeMode 
+_9:  @ filesystem::vfs::FileType 
+_10:  @ filesystem::vfs::InodeMode 
+_11:  @ &amp;&#39;{erased} kdepends::another_ext4::Ext4 
+_12:  @ &amp;&#39;{erased} filesystem::ext4::filesystem::Ext4FileSystem 
+_13:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::ext4::filesystem::Ext4FileSystem, alloc::alloc::Global&gt; 
+_14:  @ alloc::sync::Arc&lt;filesystem::ext4::filesystem::Ext4FileSystem, alloc::alloc::Global&gt; 
+_15:  @ &amp;&#39;{erased} filesystem::ext4::inode::Ext4Inode 
+_16:  @ &amp;&#39;{erased} filesystem::ext4::inode::Ext4Inode 
+_17:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::ext4::inode::Ext4Inode&gt; 
+_18:  @ u32 
+_19:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, kdepends::another_ext4::Ext4Error&gt;, u32&gt; 
+_20:  @ core::result::Result&lt;u32, kdepends::another_ext4::Ext4Error&gt; 
+_21:  @ &amp;&#39;{erased} kdepends::another_ext4::Ext4 
+_22:  @ u32 
+_23:  @ &amp;&#39;{erased} filesystem::ext4::inode::Ext4Inode 
+_24:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::ext4::inode::Ext4Inode&gt; 
+_25:  @ &amp;&#39;{erased} str 
+_26:  @ kdepends::another_ext4::InodeMode 
+_27:  @ u16 
+_28:  @ u32 
+_29:  @ &amp;&#39;{erased} filesystem::vfs::InodeMode 
+_30:  @ isize 
+_31:  @ core::result::Result&lt;core::convert::Infallible, kdepends::another_ext4::Ext4Error&gt; 
+_32:  @ ! 
+_33:  @ core::result::Result&lt;core::convert::Infallible, kdepends::another_ext4::Ext4Error&gt; 
+_34:  @ u32 
+_35:  @ filesystem::vfs::utils::DName 
+_36:  @ &amp;&#39;{erased} str 
+_37:  @ alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode, alloc::alloc::Global&gt; 
+_38:  @ u32 
+_39:  @ alloc::sync::Weak&lt;filesystem::ext4::filesystem::Ext4FileSystem, alloc::alloc::Global&gt; 
+_40:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;filesystem::ext4::filesystem::Ext4FileSystem, alloc::alloc::Global&gt; 
+_41:  @ &amp;&#39;{erased} filesystem::ext4::inode::Ext4Inode 
+_42:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::ext4::inode::Ext4Inode&gt; 
+_43:  @ filesystem::vfs::utils::DName 
+_44:  @ &amp;&#39;{erased} filesystem::vfs::utils::DName 
+_45:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode, alloc::alloc::Global&gt;&gt; 
+_46:  @ &amp;&#39;{erased} mut alloc::collections::BTreeMap&lt;filesystem::vfs::utils::DName, alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_47:  @ &amp;&#39;{erased} mut filesystem::ext4::inode::Ext4Inode 
+_48:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::ext4::inode::Ext4Inode&gt; 
+_49:  @ filesystem::vfs::utils::DName 
+_50:  @ alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode, alloc::alloc::Global&gt; 
+_51:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode, alloc::alloc::Global&gt; 
+_52:  @ () 
+_53:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::ext4::inode::Ext4Inode&gt; 
+_54:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_55:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_56:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_57:  @ alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode, alloc::alloc::Global&gt; 
+_58:  @ bool 
 _59:  @ bool 
-_60:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdInode 
-_61:  @ ! 
-_62:  @ () 
-_63:  @ bool 
-_64:  @ bool 
-_65:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
-_66:  @ ! 
-_67:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_68:  @ () 
-_69:  @ () 
-_70:  @ () 
-_71:  @ bool 
-_72:  @ () 
-_73:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
-_74:  @ () 
-_75:  @ bool 
-_76:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
-_77:  @ ! 
-_78:  @ () 
-_79:  @ &amp;&#39;{erased} mut process::ProcessFlags 
-_80:  @ &amp;&#39;{erased} mut process::ProcessFlags 
-_81:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_82:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_83:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_84:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_85:  @ system_error::SystemError 
-_86:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_87:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt; 
-_88:  @ ! 
-_89:  @ () 
-_90:  @ ! 
-_91:  @ u64 
-_92:  @ &amp;&#39;{erased} filesystem::eventfd::EventFd 
-_93:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_94:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_95:  @ () 
-_96:  @ bool 
-_97:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdFlags 
-_98:  @ &amp;&#39;{erased} filesystem::eventfd::EventFd 
-_99:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_100:  @ &amp;&#39;{erased} mut filesystem::eventfd::EventFd 
-_101:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_102:  @ (u64, bool) 
-_103:  @ &amp;&#39;{erased} mut filesystem::eventfd::EventFd 
-_104:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_105:  @ [u8; 8_usize] 
-_106:  @ u64 
-_107:  @ () 
-_108:  @ &amp;&#39;{erased} mut [u8] 
-_109:  @ &amp;&#39;{erased} mut [u8] 
-_110:  @ &amp;&#39;{erased} mut [u8] 
-_111:  @ core::ops::RangeTo&lt;usize&gt; 
-_112:  @ &amp;&#39;{erased} [u8] 
-_113:  @ &amp;&#39;{erased} [u8; 8_usize] 
-_114:  @ &amp;&#39;{erased} [u8; 8_usize] 
-_115:  @ filesystem::epoll::EPollEventType 
-_116:  @ u32 
-_117:  @ usize 
-_118:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
-_119:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
-_120:  @ &amp;&#39;{erased} filesystem::eventfd::EventFdInode 
-_121:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
-_122:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
-_123:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_124:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_125:  @ isize 
-_126:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_127:  @ ! 
-_128:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_129:  @ usize 
-_130:  @ () 
-_131:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::eventfd::EventFd&gt; 
-_132:  @ () 
-_133:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
-_134:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_135:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_136:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_137:  @ filesystem::epoll::EPollEventType 
-_138:  @ isize 
-_139:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_140:  @ ! 
-_141:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_142:  @ () 
-_143:  @ bool 
-_144:  @ bool 
-_145:  @ bool 
+_60:  @ bool 
+_61:  @ bool 
+_62:  @ isize 
+_63:  @ isize 
+_64:  @ isize 
+_65:  @ isize 
+_66:  @ isize 
 
 bb 0 {
 CleanUp: false
-    Assign((_145, const false)) @ _145=const false @ Use
-    Assign((_144, const false)) @ _144=const false @ Use
-    Assign((_143, const false)) @ _143=const false @ Use
-    Assign((_145, const true)) @ _145=const true @ Use
-    StorageLive(_7) @ StorageLive
-    StorageLive(_8) @ StorageLive
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    Assign((_10, &amp;_5)) @ _10=&amp;_5 @ Ref
-    _9 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt; as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb1, unwind: bb94] @ Call: FnDid: 3903
+    Assign((_61, const false)) @ _61=const false @ Use
+    Assign((_60, const false)) @ _60=const false @ Use
+    Assign((_59, const false)) @ _59=const false @ Use
+    Assign((_58, const false)) @ _58=const false @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::ext4::inode::Ext4Inode&gt;))) @ _6=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::ext4::inode::Ext4Inode&gt;) @ Ref
+    Assign((_61, const true)) @ _61=const true @ Use
+    _5 = libs::spinlock::SpinLock::&lt;filesystem::ext4::inode::Ext4Inode&gt;::lock(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5261
 }
 bb 1 {
 CleanUp: false
-    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
-    StorageDead(_10) @ StorageDead
-    _7 = &lt;filesystem::vfs::file::FilePrivateData as core::clone::Clone&gt;::clone(move _8) -&gt; [return: bb2, unwind: bb94] @ Call: FnDid: 3116
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy _3)) @ _9=copy _3 @ Use
+    _8 = &lt;filesystem::vfs::InodeMode as core::convert::From&lt;filesystem::vfs::FileType&gt;&gt;::from(move _9) -&gt; [return: bb2, unwind: bb41] @ Call: FnDid: 3390
 }
 bb 2 {
 CleanUp: false
-    StorageDead(_8) @ StorageDead
     StorageDead(_9) @ StorageDead
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    Assign((_145, const false)) @ _145=const false @ Use
-    Assign((_12, move _5)) @ _12=move _5 @ Use
-    _11 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt;&gt;(move _12) -&gt; [return: bb3, unwind: bb86] @ Call: FnDid: 2323
+    StorageLive(_10) @ StorageLive
+    Assign((_10, copy _4)) @ _10=copy _4 @ Use
+    _7 = filesystem::vfs::InodeMode::union(move _8, move _10) -&gt; [return: bb3, unwind: bb41] @ Call: FnDid: 55676
 }
 bb 3 {
 CleanUp: false
-    StorageDead(_12) @ StorageDead
-    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
     StorageLive(_13) @ StorageLive
     StorageLive(_14) @ StorageLive
     StorageLive(_15) @ StorageLive
-    Assign((_15, copy _3)) @ _15=copy _3 @ Use
-    Assign((_14, Lt(move _15, const 8_usize))) @ _14=Lt(move _15, const 8_usize) @ BinaryOp
-    switchInt(move _14) -&gt; [0: bb5, otherwise: bb4] @ SwitchInt
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;_5)) @ _17=&amp;_5 @ Ref
+    _16 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::ext4::inode::Ext4Inode&gt; as lazy_static::__Deref&gt;::deref(move _17) -&gt; [return: bb4, unwind: bb41] @ Call: FnDid: 3903
 }
 bb 4 {
 CleanUp: false
-    StorageDead(_15) @ StorageDead
-    StorageLive(_17) @ StorageLive
-    Assign((_17, system_error::SystemError::EINVAL)) @ _17=system_error::SystemError::EINVAL @ Aggregate
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _17))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _17) @ Aggregate
+    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
     StorageDead(_17) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    StorageDead(_13) @ StorageDead
-    goto -&gt; bb82 @ Goto
+    _14 = filesystem::ext4::inode::Ext4Inode::concret_fs(move _15) -&gt; [return: bb5, unwind: bb41] @ Call: FnDid: 17575
 }
 bb 5 {
 CleanUp: false
-    StorageDead(_15) @ StorageDead
-    Assign((_13, const ())) @ _13=const () @ Use
-    StorageDead(_14) @ StorageDead
-    StorageDead(_13) @ StorageDead
-    StorageLive(_18) @ StorageLive
-    StorageLive(_19) @ StorageLive
-    Assign((_19, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;))) @ _19=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;) @ Ref
-    _18 = libs::spinlock::SpinLock::&lt;filesystem::eventfd::EventFd&gt;::lock(move _19) -&gt; [return: bb6, unwind: bb86] @ Call: FnDid: 5261
+    Assign((_13, &amp;_14)) @ _13=&amp;_14 @ Ref
+    _12 = &lt;alloc::sync::Arc&lt;filesystem::ext4::filesystem::Ext4FileSystem&gt; as lazy_static::__Deref&gt;::deref(move _13) -&gt; [return: bb6, unwind: bb31] @ Call: FnDid: 3903
 }
 bb 6 {
 CleanUp: false
-    Assign((_144, const true)) @ _144=const true @ Use
-    StorageDead(_19) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    Assign((_11, &amp;((*_12).0: kdepends::another_ext4::Ext4))) @ _11=&amp;((*_12).0: kdepends::another_ext4::Ext4) @ Ref
+    StorageDead(_16) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
     StorageLive(_20) @ StorageLive
-    goto -&gt; bb7 @ Goto
-}
-bb 7 {
-CleanUp: false
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;(*_11))) @ _21=&amp;(*_11) @ Ref
     StorageLive(_22) @ StorageLive
     StorageLive(_23) @ StorageLive
     StorageLive(_24) @ StorageLive
-    StorageLive(_25) @ StorageLive
-    Assign((_25, &amp;_18)) @ _25=&amp;_18 @ Ref
-    _24 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as lazy_static::__Deref&gt;::deref(move _25) -&gt; [return: bb8, unwind: bb92] @ Call: FnDid: 3903
+    Assign((_24, &amp;_5)) @ _24=&amp;_5 @ Ref
+    _23 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::ext4::inode::Ext4Inode&gt; as lazy_static::__Deref&gt;::deref(move _24) -&gt; [return: bb7, unwind: bb31] @ Call: FnDid: 3903
 }
-bb 8 {
-CleanUp: false
-    StorageDead(_25) @ StorageDead
-    Assign((_23, copy ((*_24).0: u64))) @ _23=copy ((*_24).0: u64) @ Use
-    Assign((_22, Eq(move _23, const 0_u64))) @ _22=Eq(move _23, const 0_u64) @ BinaryOp
-    switchInt(move _22) -&gt; [0: bb52, otherwise: bb9] @ SwitchInt
-}
-bb 9 {
+bb 7 {
 CleanUp: false
     StorageDead(_24) @ StorageDead
-    StorageDead(_23) @ StorageDead
+    Assign((_22, copy ((*_23).0: u32))) @ _22=copy ((*_23).0: u32) @ Use
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;(*_2))) @ _25=&amp;(*_2) @ Ref
     StorageLive(_26) @ StorageLive
     StorageLive(_27) @ StorageLive
     StorageLive(_28) @ StorageLive
     StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    Assign((_30, &amp;_18)) @ _30=&amp;_18 @ Ref
-    _29 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as lazy_static::__Deref&gt;::deref(move _30) -&gt; [return: bb10, unwind: bb92] @ Call: FnDid: 3903
+    Assign((_29, &amp;_7)) @ _29=&amp;_7 @ Ref
+    _28 = filesystem::vfs::InodeMode::bits(move _29) -&gt; [return: bb8, unwind: bb31] @ Call: FnDid: 55663
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    Assign((_27, move _28 as u16 (IntToInt))) @ _27=move _28 as u16 (IntToInt) @ Cast
+    StorageDead(_28) @ StorageDead
+    _26 = kdepends::another_ext4::ext4_defs::inode::_::&lt;impl kdepends::another_ext4::InodeMode&gt;::from_bits_truncate(move _27) -&gt; [return: bb9, unwind: bb31] @ Call: FnDid: 889
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    _20 = kdepends::another_ext4::ext4::low_level::&lt;impl kdepends::another_ext4::Ext4&gt;::create(move _21, move _22, move _25, move _26) -&gt; [return: bb10, unwind: bb31] @ Call: FnDid: 122
 }
 bb 10 {
 CleanUp: false
-    StorageDead(_30) @ StorageDead
-    Assign((_28, &amp;((*_29).1: filesystem::eventfd::EventFdFlags))) @ _28=&amp;((*_29).1: filesystem::eventfd::EventFdFlags) @ Ref
-    _27 = filesystem::eventfd::EventFdFlags::contains(move _28, const filesystem::eventfd::EventFdFlags::EFD_NONBLOCK) -&gt; [return: bb11, unwind: bb92] @ Call: FnDid: 52149
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    _19 = &lt;core::result::Result&lt;u32, kdepends::another_ext4::Ext4Error&gt; as core::ops::Try&gt;::branch(move _20) -&gt; [return: bb11, unwind: bb31] @ Call: FnDid: 4199
 }
 bb 11 {
 CleanUp: false
-    switchInt(move _27) -&gt; [0: bb14, otherwise: bb12] @ SwitchInt
+    StorageDead(_20) @ StorageDead
+    Assign((_30, discriminant(_19))) @ _30=discriminant(_19) @ Discriminant
+    switchInt(move _30) -&gt; [0: bb13, 1: bb14, otherwise: bb12] @ SwitchInt
 }
 bb 12 {
 CleanUp: false
-    StorageDead(_29) @ StorageDead
-    StorageDead(_28) @ StorageDead
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    Assign((_144, const false)) @ _144=const false @ Use
-    Assign((_33, move _18)) @ _33=move _18 @ Use
-    _32 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt;&gt;(move _33) -&gt; [return: bb13, unwind: bb92] @ Call: FnDid: 2323
+    unreachable @ Unreachable
 }
 bb 13 {
 CleanUp: false
-    StorageDead(_33) @ StorageDead
-    StorageDead(_32) @ StorageDead
     StorageLive(_34) @ StorageLive
-    Assign((_34, system_error::SystemError::EAGAIN_OR_EWOULDBLOCK)) @ _34=system_error::SystemError::EAGAIN_OR_EWOULDBLOCK @ Aggregate
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _34))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _34) @ Aggregate
+    Assign((_34, copy ((_19 as Continue).0: u32))) @ _34=copy ((_19 as Continue).0: u32) @ Use
+    Assign((_18, copy _34)) @ _18=copy _34 @ Use
     StorageDead(_34) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    goto -&gt; bb80 @ Goto
+    Assign((_62, discriminant(_19))) @ _62=discriminant(_19) @ Discriminant
+    StorageDead(_23) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_36, copy _2)) @ _36=copy _2 @ Use
+    _35 = &lt;filesystem::vfs::utils::DName as core::convert::From&lt;&amp;str&gt;&gt;::from(move _36) -&gt; [return: bb16, unwind: bb31] @ Call: FnDid: 3390
 }
 bb 14 {
 CleanUp: false
-    StorageDead(_29) @ StorageDead
-    StorageDead(_28) @ StorageDead
-    Assign((_26, const ())) @ _26=const () @ Use
-    StorageDead(_27) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    StorageLive(_35) @ StorageLive
-    StorageLive(_36) @ StorageLive
-    Assign((_144, const false)) @ _144=const false @ Use
-    Assign((_36, move _18)) @ _36=move _18 @ Use
-    _35 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt;&gt;(move _36) -&gt; [return: bb15, unwind: bb92] @ Call: FnDid: 2323
+    StorageLive(_31) @ StorageLive
+    Assign((_31, move ((_19 as Break).0: core::result::Result&lt;core::convert::Infallible, kdepends::another_ext4::Ext4Error&gt;))) @ _31=move ((_19 as Break).0: core::result::Result&lt;core::convert::Infallible, kdepends::another_ext4::Ext4Error&gt;) @ Use
+    StorageLive(_33) @ StorageLive
+    Assign((_33, move _31)) @ _33=move _31 @ Use
+    _0 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, kdepends::another_ext4::Ext4Error&gt;&gt;&gt;::from_residual(move _33) -&gt; [return: bb15, unwind: bb39] @ Call: FnDid: 4202
 }
 bb 15 {
 CleanUp: false
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_64, discriminant(_19))) @ _64=discriminant(_19) @ Discriminant
+    StorageDead(_23) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    drop(_14) -&gt; [return: bb27, unwind: bb41] @ Drop
+}
+bb 16 {
+CleanUp: false
+    Assign((_60, const true)) @ _60=const true @ Use
     StorageDead(_36) @ StorageDead
-    StorageDead(_35) @ StorageDead
     StorageLive(_37) @ StorageLive
     StorageLive(_38) @ StorageLive
+    Assign((_38, copy _18)) @ _38=copy _18 @ Use
     StorageLive(_39) @ StorageLive
     StorageLive(_40) @ StorageLive
     StorageLive(_41) @ StorageLive
     StorageLive(_42) @ StorageLive
-    _42 = process::ProcessManager::current_pcb() -&gt; [return: bb16, unwind: bb92] @ Call: FnDid: 29866
-}
-bb 16 {
-CleanUp: false
-    Assign((_41, &amp;_42)) @ _41=&amp;_42 @ Ref
-    _40 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _41) -&gt; [return: bb17, unwind: bb85] @ Call: FnDid: 3903
+    Assign((_42, &amp;_5)) @ _42=&amp;_5 @ Ref
+    _41 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::ext4::inode::Ext4Inode&gt; as lazy_static::__Deref&gt;::deref(move _42) -&gt; [return: bb17, unwind: bb38] @ Call: FnDid: 3903
 }
 bb 17 {
 CleanUp: false
-    Assign((_39, &amp;(*_40))) @ _39=&amp;(*_40) @ Ref
-    StorageDead(_41) @ StorageDead
-    _38 = process::ProcessControlBlock::has_pending_signal_fast(move _39) -&gt; [return: bb18, unwind: bb85] @ Call: FnDid: 29966
+    StorageDead(_42) @ StorageDead
+    Assign((_40, &amp;((*_41).1: alloc::sync::Weak&lt;filesystem::ext4::filesystem::Ext4FileSystem&gt;))) @ _40=&amp;((*_41).1: alloc::sync::Weak&lt;filesystem::ext4::filesystem::Ext4FileSystem&gt;) @ Ref
+    _39 = &lt;alloc::sync::Weak&lt;filesystem::ext4::filesystem::Ext4FileSystem&gt; as core::clone::Clone&gt;::clone(move _40) -&gt; [return: bb18, unwind: bb38] @ Call: FnDid: 3116
 }
 bb 18 {
 CleanUp: false
-    switchInt(move _38) -&gt; [0: bb21, otherwise: bb19] @ SwitchInt
+    Assign((_59, const true)) @ _59=const true @ Use
+    StorageDead(_40) @ StorageDead
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    Assign((_44, &amp;_35)) @ _44=&amp;_35 @ Ref
+    _43 = &lt;filesystem::vfs::utils::DName as core::clone::Clone&gt;::clone(move _44) -&gt; [return: bb19, unwind: bb36] @ Call: FnDid: 3116
 }
 bb 19 {
 CleanUp: false
-    drop(_42) -&gt; [return: bb20, unwind: bb92] @ Drop
+    StorageDead(_44) @ StorageDead
+    Assign((_59, const false)) @ _59=const false @ Use
+    _37 = filesystem::ext4::inode::LockedExt4Inode::new(move _38, move _39, move _43) -&gt; [return: bb20, unwind: bb36] @ Call: FnDid: 17572
 }
 bb 20 {
 CleanUp: false
-    StorageDead(_42) @ StorageDead
-    StorageDead(_40) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    Assign((_59, const false)) @ _59=const false @ Use
     StorageDead(_39) @ StorageDead
-    StorageLive(_44) @ StorageLive
-    Assign((_44, system_error::SystemError::ERESTARTSYS)) @ _44=system_error::SystemError::ERESTARTSYS @ Aggregate
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _44))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _44) @ Aggregate
-    StorageDead(_44) @ StorageDead
     StorageDead(_38) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    goto -&gt; bb80 @ Goto
-}
-bb 21 {
-CleanUp: false
-    drop(_42) -&gt; [return: bb22, unwind: bb92] @ Drop
-}
-bb 22 {
-CleanUp: false
-    StorageDead(_42) @ StorageDead
-    StorageDead(_40) @ StorageDead
-    StorageDead(_39) @ StorageDead
-    Assign((_37, const ())) @ _37=const () @ Use
-    StorageDead(_38) @ StorageDead
-    StorageDead(_37) @ StorageDead
+    StorageDead(_41) @ StorageDead
     StorageLive(_45) @ StorageLive
     StorageLive(_46) @ StorageLive
     StorageLive(_47) @ StorageLive
-    Assign((_47, ())) @ _47=() @ Aggregate
-    Assign((_46, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _47))) @ _46=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _47) @ Aggregate
-    StorageDead(_47) @ StorageDead
     StorageLive(_48) @ StorageLive
+    Assign((_48, &amp;mut _5)) @ _48=&amp;mut _5 @ Ref
+    _47 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::ext4::inode::Ext4Inode&gt; as core::ops::DerefMut&gt;::deref_mut(move _48) -&gt; [return: bb21, unwind: bb30] @ Call: FnDid: 3915
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    Assign((_46, &amp;mut ((*_47).3: alloc::collections::BTreeMap&lt;filesystem::vfs::utils::DName, alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode&gt;&gt;))) @ _46=&amp;mut ((*_47).3: alloc::collections::BTreeMap&lt;filesystem::vfs::utils::DName, alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode&gt;&gt;) @ Ref
     StorageLive(_49) @ StorageLive
+    Assign((_60, const false)) @ _60=const false @ Use
+    Assign((_58, const true)) @ _58=const true @ Use
+    Assign((_49, move _35)) @ _49=move _35 @ Use
     StorageLive(_50) @ StorageLive
-    Assign((_50, &amp;(*_1))) @ _50=&amp;(*_1) @ Ref
-    _49 = filesystem::eventfd::EventFdInode::readable(move _50) -&gt; [return: bb23, unwind: bb92] @ Call: FnDid: 17400
+    StorageLive(_51) @ StorageLive
+    Assign((_51, &amp;_37)) @ _51=&amp;_37 @ Ref
+    _50 = &lt;alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode&gt; as core::clone::Clone&gt;::clone(move _51) -&gt; [return: bb22, unwind: bb34] @ Call: FnDid: 3116
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_51) @ StorageDead
+    Assign((_58, const false)) @ _58=const false @ Use
+    _45 = alloc::collections::BTreeMap::&lt;filesystem::vfs::utils::DName, alloc::sync::Arc&lt;filesystem::ext4::inode::LockedExt4Inode&gt;&gt;::insert(move _46, move _49, move _50) -&gt; [return: bb23, unwind: bb34] @ Call: FnDid: 1937
 }
 bb 23 {
 CleanUp: false
-    switchInt(move _49) -&gt; [0: bb25, otherwise: bb24] @ SwitchInt
+    StorageDead(_50) @ StorageDead
+    Assign((_58, const false)) @ _58=const false @ Use
+    StorageDead(_49) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    drop(_45) -&gt; [return: bb24, unwind: bb30] @ Drop
 }
 bb 24 {
 CleanUp: false
-    StorageDead(_50) @ StorageDead
-    Assign((_48, const ())) @ _48=const () @ Use
-    goto -&gt; bb42 @ Goto
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    Assign((_61, const false)) @ _61=const false @ Use
+    Assign((_53, move _5)) @ _53=move _5 @ Use
+    _52 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::ext4::inode::Ext4Inode&gt;&gt;(move _53) -&gt; [return: bb25, unwind: bb30] @ Call: FnDid: 2323
 }
 bb 25 {
 CleanUp: false
-    StorageDead(_50) @ StorageDead
-    StorageLive(_51) @ StorageLive
-    StorageLive(_52) @ StorageLive
-    StorageLive(_53) @ StorageLive
-    Assign((_53, ())) @ _53=() @ Aggregate
-    Assign((_52, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _53))) @ _52=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _53) @ Aggregate
     StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
     StorageLive(_54) @ StorageLive
-    Assign((_54, const true)) @ _54=const true @ Use
     StorageLive(_55) @ StorageLive
-    goto -&gt; bb26 @ Goto
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, move _37)) @ _57=move _37 @ Use
+    Assign((_56, move _57 as alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt; (PointerCoercion(Unsize, AsCast)))) @ _56=move _57 as alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
+    StorageDead(_57) @ StorageDead
+    Assign((_55, move _56)) @ _55=move _56 @ Use
+    Assign((_54, move _55 as alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt; (PointerCoercion(Unsize, Implicit)))) @ _54=move _55 as alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    StorageDead(_55) @ StorageDead
+    Assign((_0, core::result::Result::&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt;::Ok(move _54))) @ _0=core::result::Result::&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt;::Ok(move _54) @ Aggregate
+    StorageDead(_54) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    Assign((_60, const false)) @ _60=const false @ Use
+    StorageDead(_35) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    drop(_14) -&gt; [return: bb26, unwind: bb32] @ Drop
 }
 bb 26 {
 CleanUp: false
-    StorageLive(_56) @ StorageLive
-    StorageLive(_57) @ StorageLive
-    Assign((_57, &amp;((*_1).1: libs::wait_queue::WaitQueue))) @ _57=&amp;((*_1).1: libs::wait_queue::WaitQueue) @ Ref
-    _56 = libs::wait_queue::WaitQueue::prepare_to_wait_event(move _57, const true) -&gt; [return: bb27, unwind: bb92] @ Call: FnDid: 5622
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    Assign((_61, const false)) @ _61=const false @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    goto -&gt; bb29 @ Goto
 }
 bb 27 {
 CleanUp: false
-    StorageDead(_57) @ StorageDead
-    StorageLive(_58) @ StorageLive
-    StorageLive(_59) @ StorageLive
-    StorageLive(_60) @ StorageLive
-    Assign((_60, &amp;(*_1))) @ _60=&amp;(*_1) @ Ref
-    _59 = filesystem::eventfd::EventFdInode::readable(move _60) -&gt; [return: bb28, unwind: bb92] @ Call: FnDid: 17400
+    StorageDead(_14) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    drop(_5) -&gt; [return: bb28, unwind: bb32] @ Drop
 }
 bb 28 {
 CleanUp: false
-    switchInt(move _59) -&gt; [0: bb30, otherwise: bb29] @ SwitchInt
+    Assign((_61, const false)) @ _61=const false @ Use
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb29 @ Goto
 }
 bb 29 {
 CleanUp: false
-    StorageDead(_60) @ StorageDead
-    Assign((_55, const ())) @ _55=const () @ Use
-    StorageDead(_59) @ StorageDead
-    StorageDead(_58) @ StorageDead
-    goto -&gt; bb37 @ Goto
-}
-bb 30 {
-CleanUp: false
-    StorageDead(_60) @ StorageDead
-    Assign((_58, const ())) @ _58=const () @ Use
-    StorageDead(_59) @ StorageDead
-    StorageDead(_58) @ StorageDead
-    StorageLive(_62) @ StorageLive
-    StorageLive(_63) @ StorageLive
-    Assign((_63, const true)) @ _63=const true @ Use
-    switchInt(move _63) -&gt; [0: bb35, otherwise: bb31] @ SwitchInt
-}
-bb 31 {
-CleanUp: false
-    StorageLive(_64) @ StorageLive
-    StorageLive(_65) @ StorageLive
-    Assign((_65, &amp;_56)) @ _65=&amp;_56 @ Ref
-    _64 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_ok(move _65) -&gt; [return: bb32, unwind: bb92] @ Call: FnDid: 10987
-}
-bb 32 {
-CleanUp: false
-    switchInt(move _64) -&gt; [0: bb34, otherwise: bb33] @ SwitchInt
-}
-bb 33 {
-CleanUp: false
-    StorageDead(_65) @ StorageDead
-    goto -&gt; bb35 @ Goto
-}
-bb 34 {
-CleanUp: false
-    StorageDead(_65) @ StorageDead
-    StorageLive(_67) @ StorageLive
-    Assign((_67, move _56)) @ _67=move _56 @ Use
-    Assign((_52, move _67)) @ _52=move _67 @ Use
-    StorageDead(_67) @ StorageDead
-    Assign((_54, const false)) @ _54=const false @ Use
-    Assign((_55, const ())) @ _55=const () @ Use
-    StorageDead(_64) @ StorageDead
-    StorageDead(_63) @ StorageDead
-    StorageDead(_62) @ StorageDead
-    goto -&gt; bb37 @ Goto
-}
-bb 35 {
-CleanUp: false
-    Assign((_62, const ())) @ _62=const () @ Use
-    StorageDead(_64) @ StorageDead
-    StorageDead(_63) @ StorageDead
-    StorageDead(_62) @ StorageDead
-    StorageLive(_68) @ StorageLive
-    StorageLive(_69) @ StorageLive
-    Assign((_69, const ())) @ _69=const () @ Use
-    StorageDead(_69) @ StorageDead
-    _68 = sched::schedule(const sched::SchedMode::SM_NONE) -&gt; [return: bb36, unwind: bb92] @ Call: FnDid: 30574
-}
-bb 36 {
-CleanUp: false
-    StorageDead(_68) @ StorageDead
-    Assign((_21, const ())) @ _21=const () @ Use
-    StorageDead(_56) @ StorageDead
-    goto -&gt; bb26 @ Goto
-}
-bb 37 {
-CleanUp: false
-    StorageDead(_56) @ StorageDead
-    StorageDead(_55) @ StorageDead
-    StorageLive(_70) @ StorageLive
-    StorageLive(_71) @ StorageLive
-    Assign((_71, copy _54)) @ _71=copy _54 @ Use
-    switchInt(move _71) -&gt; [0: bb40, otherwise: bb38] @ SwitchInt
-}
-bb 38 {
-CleanUp: false
-    StorageLive(_72) @ StorageLive
-    StorageLive(_73) @ StorageLive
-    Assign((_73, &amp;((*_1).1: libs::wait_queue::WaitQueue))) @ _73=&amp;((*_1).1: libs::wait_queue::WaitQueue) @ Ref
-    _72 = libs::wait_queue::WaitQueue::finish_wait(move _73) -&gt; [return: bb39, unwind: bb92] @ Call: FnDid: 5624
-}
-bb 39 {
-CleanUp: false
-    StorageDead(_73) @ StorageDead
-    StorageDead(_72) @ StorageDead
-    Assign((_70, const ())) @ _70=const () @ Use
-    goto -&gt; bb41 @ Goto
-}
-bb 40 {
-CleanUp: false
-    Assign((_70, const ())) @ _70=const () @ Use
-    goto -&gt; bb41 @ Goto
-}
-bb 41 {
-CleanUp: false
-    StorageDead(_71) @ StorageDead
-    StorageDead(_70) @ StorageDead
-    Assign((_51, move _52)) @ _51=move _52 @ Use
-    StorageDead(_54) @ StorageDead
-    StorageDead(_52) @ StorageDead
-    Assign((_46, move _51)) @ _46=move _51 @ Use
-    StorageDead(_51) @ StorageDead
-    Assign((_48, const ())) @ _48=const () @ Use
-    goto -&gt; bb42 @ Goto
-}
-bb 42 {
-CleanUp: false
-    StorageDead(_49) @ StorageDead
-    StorageDead(_48) @ StorageDead
-    Assign((_45, move _46)) @ _45=move _46 @ Use
-    StorageDead(_46) @ StorageDead
-    StorageLive(_74) @ StorageLive
-    StorageLive(_75) @ StorageLive
-    StorageLive(_76) @ StorageLive
-    Assign((_76, &amp;_45)) @ _76=&amp;_45 @ Ref
-    _75 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_err(move _76) -&gt; [return: bb43, unwind: bb92] @ Call: FnDid: 10990
-}
-bb 43 {
-CleanUp: false
-    switchInt(move _75) -&gt; [0: bb50, otherwise: bb44] @ SwitchInt
-}
-bb 44 {
-CleanUp: false
-    StorageDead(_76) @ StorageDead
-    StorageLive(_78) @ StorageLive
-    StorageLive(_79) @ StorageLive
-    StorageLive(_80) @ StorageLive
-    StorageLive(_81) @ StorageLive
-    StorageLive(_82) @ StorageLive
-    StorageLive(_83) @ StorageLive
-    StorageLive(_84) @ StorageLive
-    _84 = process::ProcessManager::current_pcb() -&gt; [return: bb45, unwind: bb92] @ Call: FnDid: 29866
-}
-bb 45 {
-CleanUp: false
-    Assign((_83, &amp;_84)) @ _83=&amp;_84 @ Ref
-    _82 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _83) -&gt; [return: bb46, unwind: bb84] @ Call: FnDid: 3903
-}
-bb 46 {
-CleanUp: false
-    Assign((_81, &amp;(*_82))) @ _81=&amp;(*_82) @ Ref
-    StorageDead(_83) @ StorageDead
-    _80 = process::ProcessControlBlock::flags(move _81) -&gt; [return: bb47, unwind: bb84] @ Call: FnDid: 29927
-}
-bb 47 {
-CleanUp: false
-    Assign((_79, &amp;mut (*_80))) @ _79=&amp;mut (*_80) @ Ref
-    StorageDead(_81) @ StorageDead
-    _78 = process::ProcessFlags::insert(move _79, const process::ProcessFlags::HAS_PENDING_SIGNAL) -&gt; [return: bb48, unwind: bb84] @ Call: FnDid: 66631
-}
-bb 48 {
-CleanUp: false
-    StorageDead(_79) @ StorageDead
-    drop(_84) -&gt; [return: bb49, unwind: bb92] @ Drop
-}
-bb 49 {
-CleanUp: false
-    StorageDead(_84) @ StorageDead
-    StorageDead(_82) @ StorageDead
-    StorageDead(_80) @ StorageDead
-    StorageDead(_78) @ StorageDead
-    StorageLive(_85) @ StorageLive
-    Assign((_85, system_error::SystemError::ERESTARTSYS)) @ _85=system_error::SystemError::ERESTARTSYS @ Aggregate
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _85))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _85) @ Aggregate
-    StorageDead(_85) @ StorageDead
-    StorageDead(_75) @ StorageDead
-    StorageDead(_74) @ StorageDead
-    StorageDead(_45) @ StorageDead
-    goto -&gt; bb80 @ Goto
-}
-bb 50 {
-CleanUp: false
-    StorageDead(_76) @ StorageDead
-    Assign((_74, const ())) @ _74=const () @ Use
-    StorageDead(_75) @ StorageDead
-    StorageDead(_74) @ StorageDead
-    StorageLive(_86) @ StorageLive
-    StorageLive(_87) @ StorageLive
-    Assign((_87, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;))) @ _87=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::eventfd::EventFd&gt;) @ Ref
-    _86 = libs::spinlock::SpinLock::&lt;filesystem::eventfd::EventFd&gt;::lock(move _87) -&gt; [return: bb51, unwind: bb92] @ Call: FnDid: 5261
-}
-bb 51 {
-CleanUp: false
-    StorageDead(_87) @ StorageDead
-    Assign((_144, const true)) @ _144=const true @ Use
-    Assign((_18, move _86)) @ _18=move _86 @ Use
-    StorageDead(_86) @ StorageDead
-    Assign((_21, const ())) @ _21=const () @ Use
-    StorageDead(_45) @ StorageDead
-    StorageDead(_22) @ StorageDead
-    goto -&gt; bb7 @ Goto
-}
-bb 52 {
-CleanUp: false
-    StorageDead(_24) @ StorageDead
-    StorageDead(_23) @ StorageDead
-    StorageLive(_89) @ StorageLive
-    Assign((_20, const ())) @ _20=const () @ Use
-    StorageDead(_89) @ StorageDead
-    StorageDead(_22) @ StorageDead
-    StorageDead(_20) @ StorageDead
-    StorageLive(_91) @ StorageLive
-    StorageLive(_92) @ StorageLive
-    StorageLive(_93) @ StorageLive
-    Assign((_93, &amp;_18)) @ _93=&amp;_18 @ Ref
-    _92 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as lazy_static::__Deref&gt;::deref(move _93) -&gt; [return: bb53, unwind: bb92] @ Call: FnDid: 3903
-}
-bb 53 {
-CleanUp: false
-    StorageDead(_93) @ StorageDead
-    Assign((_91, copy ((*_92).0: u64))) @ _91=copy ((*_92).0: u64) @ Use
-    StorageDead(_92) @ StorageDead
-    StorageLive(_94) @ StorageLive
-    Assign((_144, const false)) @ _144=const false @ Use
-    Assign((_143, const true)) @ _143=const true @ Use
-    Assign((_94, move _18)) @ _94=move _18 @ Use
-    StorageLive(_95) @ StorageLive
-    StorageLive(_96) @ StorageLive
-    StorageLive(_97) @ StorageLive
-    StorageLive(_98) @ StorageLive
-    StorageLive(_99) @ StorageLive
-    Assign((_99, &amp;_94)) @ _99=&amp;_94 @ Ref
-    _98 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as lazy_static::__Deref&gt;::deref(move _99) -&gt; [return: bb54, unwind: bb90] @ Call: FnDid: 3903
-}
-bb 54 {
-CleanUp: false
-    StorageDead(_99) @ StorageDead
-    Assign((_97, &amp;((*_98).1: filesystem::eventfd::EventFdFlags))) @ _97=&amp;((*_98).1: filesystem::eventfd::EventFdFlags) @ Ref
-    _96 = filesystem::eventfd::EventFdFlags::contains(move _97, const filesystem::eventfd::EventFdFlags::EFD_SEMAPHORE) -&gt; [return: bb55, unwind: bb90] @ Call: FnDid: 52149
-}
-bb 55 {
-CleanUp: false
-    switchInt(move _96) -&gt; [0: bb59, otherwise: bb56] @ SwitchInt
-}
-bb 56 {
-CleanUp: false
-    StorageDead(_98) @ StorageDead
-    StorageDead(_97) @ StorageDead
-    StorageLive(_100) @ StorageLive
-    StorageLive(_101) @ StorageLive
-    Assign((_101, &amp;mut _94)) @ _101=&amp;mut _94 @ Ref
-    _100 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as core::ops::DerefMut&gt;::deref_mut(move _101) -&gt; [return: bb57, unwind: bb90] @ Call: FnDid: 3915
-}
-bb 57 {
-CleanUp: false
-    StorageDead(_101) @ StorageDead
-    Assign((_102, SubWithOverflow(copy ((*_100).0: u64), const 1_u64))) @ _102=SubWithOverflow(copy ((*_100).0: u64), const 1_u64) @ BinaryOp
-    assert(!move (_102.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_100).0: u64), const 1_u64) -&gt; [success: bb58, unwind: bb90] @ Assert
-}
-bb 58 {
-CleanUp: false
-    Assign((((*_100).0: u64), move (_102.0: u64))) @ ((*_100).0: u64)=move (_102.0: u64) @ Use
-    StorageDead(_100) @ StorageDead
-    Assign((_91, const 1_u64)) @ _91=const 1_u64 @ Use
-    Assign((_95, const ())) @ _95=const () @ Use
-    goto -&gt; bb61 @ Goto
-}
-bb 59 {
-CleanUp: false
-    StorageDead(_98) @ StorageDead
-    StorageDead(_97) @ StorageDead
-    StorageLive(_103) @ StorageLive
-    StorageLive(_104) @ StorageLive
-    Assign((_104, &amp;mut _94)) @ _104=&amp;mut _94 @ Ref
-    _103 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt; as core::ops::DerefMut&gt;::deref_mut(move _104) -&gt; [return: bb60, unwind: bb90] @ Call: FnDid: 3915
-}
-bb 60 {
-CleanUp: false
-    StorageDead(_104) @ StorageDead
-    Assign((((*_103).0: u64), const 0_u64)) @ ((*_103).0: u64)=const 0_u64 @ Use
-    StorageDead(_103) @ StorageDead
-    Assign((_95, const ())) @ _95=const () @ Use
-    goto -&gt; bb61 @ Goto
-}
-bb 61 {
-CleanUp: false
-    StorageDead(_96) @ StorageDead
-    StorageDead(_95) @ StorageDead
-    StorageLive(_105) @ StorageLive
-    StorageLive(_106) @ StorageLive
-    Assign((_106, copy _91)) @ _106=copy _91 @ Use
-    _105 = core::num::&lt;impl u64&gt;::to_ne_bytes(move _106) -&gt; [return: bb62, unwind: bb90] @ Call: FnDid: 35415
-}
-bb 62 {
-CleanUp: false
-    StorageDead(_106) @ StorageDead
-    StorageLive(_107) @ StorageLive
-    StorageLive(_108) @ StorageLive
-    StorageLive(_109) @ StorageLive
-    StorageLive(_110) @ StorageLive
-    Assign((_110, &amp;mut (*_4))) @ _110=&amp;mut (*_4) @ Ref
-    StorageLive(_111) @ StorageLive
-    Assign((_111, core::ops::RangeTo::&lt;usize&gt; { end: const 8_usize })) @ _111=core::ops::RangeTo::&lt;usize&gt; { end: const 8_usize } @ Aggregate
-    _109 = &lt;[u8] as core::ops::IndexMut&lt;core::ops::RangeTo&lt;usize&gt;&gt;&gt;::index_mut(move _110, move _111) -&gt; [return: bb63, unwind: bb90] @ Call: FnDid: 3977
-}
-bb 63 {
-CleanUp: false
-    Assign((_108, &amp;mut (*_109))) @ _108=&amp;mut (*_109) @ Ref
-    StorageDead(_111) @ StorageDead
-    StorageDead(_110) @ StorageDead
-    StorageLive(_112) @ StorageLive
-    StorageLive(_113) @ StorageLive
-    StorageLive(_114) @ StorageLive
-    Assign((_114, &amp;_105)) @ _114=&amp;_105 @ Ref
-    Assign((_113, &amp;(*_114))) @ _113=&amp;(*_114) @ Ref
-    Assign((_112, move _113 as &amp;[u8] (PointerCoercion(Unsize, Implicit)))) @ _112=move _113 as &amp;[u8] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_113) @ StorageDead
-    _107 = core::slice::&lt;impl [u8]&gt;::copy_from_slice(move _108, move _112) -&gt; [return: bb64, unwind: bb90] @ Call: FnDid: 14153
-}
-bb 64 {
-CleanUp: false
-    StorageDead(_112) @ StorageDead
-    StorageDead(_108) @ StorageDead
-    StorageDead(_114) @ StorageDead
-    StorageDead(_109) @ StorageDead
-    StorageDead(_107) @ StorageDead
-    StorageLive(_115) @ StorageLive
-    StorageLive(_116) @ StorageLive
-    StorageLive(_117) @ StorageLive
-    StorageLive(_118) @ StorageLive
-    StorageLive(_119) @ StorageLive
-    StorageLive(_120) @ StorageLive
-    Assign((_120, &amp;(*_1))) @ _120=&amp;(*_1) @ Ref
-    StorageLive(_121) @ StorageLive
-    StorageLive(_122) @ StorageLive
-    Assign((_122, &amp;_7)) @ _122=&amp;_7 @ Ref
-    Assign((_121, &amp;(*_122))) @ _121=&amp;(*_122) @ Ref
-    StorageLive(_123) @ StorageLive
-    StorageLive(_124) @ StorageLive
-    Assign((_124, &amp;_94)) @ _124=&amp;_94 @ Ref
-    Assign((_123, &amp;(*_124))) @ _123=&amp;(*_124) @ Ref
-    _119 = filesystem::eventfd::EventFdInode::do_poll(move _120, move _121, move _123) -&gt; [return: bb65, unwind: bb90] @ Call: FnDid: 17401
-}
-bb 65 {
-CleanUp: false
-    StorageDead(_123) @ StorageDead
-    StorageDead(_121) @ StorageDead
-    StorageDead(_120) @ StorageDead
-    _118 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _119) -&gt; [return: bb66, unwind: bb90] @ Call: FnDid: 4199
-}
-bb 66 {
-CleanUp: false
-    StorageDead(_119) @ StorageDead
-    Assign((_125, discriminant(_118))) @ _125=discriminant(_118) @ Discriminant
-    switchInt(move _125) -&gt; [0: bb68, 1: bb69, otherwise: bb67] @ SwitchInt
-}
-bb 67 {
-CleanUp: false
-    unreachable @ Unreachable
-}
-bb 68 {
-CleanUp: false
-    StorageLive(_129) @ StorageLive
-    Assign((_129, copy ((_118 as Continue).0: usize))) @ _129=copy ((_118 as Continue).0: usize) @ Use
-    Assign((_117, copy _129)) @ _117=copy _129 @ Use
-    StorageDead(_129) @ StorageDead
-    Assign((_116, move _117 as u32 (IntToInt))) @ _116=move _117 as u32 (IntToInt) @ Cast
-    StorageDead(_117) @ StorageDead
-    _115 = filesystem::epoll::EPollEventType::from_bits_truncate(move _116) -&gt; [return: bb71, unwind: bb90] @ Call: FnDid: 51992
-}
-bb 69 {
-CleanUp: false
-    StorageLive(_126) @ StorageLive
-    Assign((_126, move ((_118 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _126=move ((_118 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_128) @ StorageLive
-    Assign((_128, move _126)) @ _128=move _126 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _128) -&gt; [return: bb70, unwind: bb90] @ Call: FnDid: 4202
-}
-bb 70 {
-CleanUp: false
-    StorageDead(_128) @ StorageDead
-    StorageDead(_126) @ StorageDead
-    StorageDead(_117) @ StorageDead
-    StorageDead(_116) @ StorageDead
-    StorageDead(_124) @ StorageDead
-    StorageDead(_122) @ StorageDead
-    StorageDead(_118) @ StorageDead
-    goto -&gt; bb78 @ Goto
-}
-bb 71 {
-CleanUp: false
-    StorageDead(_116) @ StorageDead
-    StorageDead(_124) @ StorageDead
-    StorageDead(_122) @ StorageDead
-    StorageDead(_118) @ StorageDead
-    StorageLive(_130) @ StorageLive
-    StorageLive(_131) @ StorageLive
-    Assign((_143, const false)) @ _143=const false @ Use
-    Assign((_131, move _94)) @ _131=move _94 @ Use
-    _130 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::eventfd::EventFd&gt;&gt;(move _131) -&gt; [return: bb72, unwind: bb90] @ Call: FnDid: 2323
-}
-bb 72 {
-CleanUp: false
-    StorageDead(_131) @ StorageDead
-    StorageDead(_130) @ StorageDead
-    StorageLive(_132) @ StorageLive
-    StorageLive(_133) @ StorageLive
-    StorageLive(_134) @ StorageLive
-    StorageLive(_135) @ StorageLive
-    StorageLive(_136) @ StorageLive
-    Assign((_136, &amp;((*_1).2: libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem&gt;&gt;&gt;))) @ _136=&amp;((*_1).2: libs::spinlock::SpinLock&lt;alloc::collections::LinkedList&lt;alloc::sync::Arc&lt;filesystem::epoll::EPollItem&gt;&gt;&gt;) @ Ref
-    Assign((_135, &amp;(*_136))) @ _135=&amp;(*_136) @ Ref
-    StorageLive(_137) @ StorageLive
-    Assign((_137, copy _115)) @ _137=copy _115 @ Use
-    _134 = filesystem::epoll::event_poll::EventPoll::wakeup_epoll(move _135, move _137) -&gt; [return: bb73, unwind: bb90] @ Call: FnDid: 17315
-}
-bb 73 {
-CleanUp: false
-    StorageDead(_137) @ StorageDead
-    StorageDead(_135) @ StorageDead
-    _133 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _134) -&gt; [return: bb74, unwind: bb90] @ Call: FnDid: 4199
-}
-bb 74 {
-CleanUp: false
-    StorageDead(_134) @ StorageDead
-    Assign((_138, discriminant(_133))) @ _138=discriminant(_133) @ Discriminant
-    switchInt(move _138) -&gt; [0: bb75, 1: bb76, otherwise: bb67] @ SwitchInt
-}
-bb 75 {
-CleanUp: false
-    StorageLive(_142) @ StorageLive
-    Assign((_142, copy ((_133 as Continue).0: ()))) @ _142=copy ((_133 as Continue).0: ()) @ Use
-    Assign((_132, copy _142)) @ _132=copy _142 @ Use
-    StorageDead(_142) @ StorageDead
-    StorageDead(_136) @ StorageDead
-    StorageDead(_133) @ StorageDead
-    StorageDead(_132) @ StorageDead
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 8_usize))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Ok(const 8_usize) @ Aggregate
-    goto -&gt; bb78 @ Goto
-}
-bb 76 {
-CleanUp: false
-    StorageLive(_139) @ StorageLive
-    Assign((_139, move ((_133 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _139=move ((_133 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_141) @ StorageLive
-    Assign((_141, move _139)) @ _141=move _139 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _141) -&gt; [return: bb77, unwind: bb90] @ Call: FnDid: 4202
-}
-bb 77 {
-CleanUp: false
-    StorageDead(_141) @ StorageDead
-    StorageDead(_139) @ StorageDead
-    StorageDead(_136) @ StorageDead
-    StorageDead(_133) @ StorageDead
-    StorageDead(_132) @ StorageDead
-    goto -&gt; bb78 @ Goto
-}
-bb 78 {
-CleanUp: false
-    StorageDead(_115) @ StorageDead
-    StorageDead(_105) @ StorageDead
-    switchInt(copy _143) -&gt; [0: bb79, otherwise: bb88] @ SwitchInt
-}
-bb 79 {
-CleanUp: false
-    Assign((_143, const false)) @ _143=const false @ Use
-    StorageDead(_94) @ StorageDead
-    StorageDead(_91) @ StorageDead
-    goto -&gt; bb81 @ Goto
-}
-bb 80 {
-CleanUp: false
-    StorageDead(_22) @ StorageDead
-    StorageDead(_20) @ StorageDead
-    goto -&gt; bb81 @ Goto
-}
-bb 81 {
-CleanUp: false
-    Assign((_144, const false)) @ _144=const false @ Use
-    StorageDead(_18) @ StorageDead
-    goto -&gt; bb82 @ Goto
-}
-bb 82 {
-CleanUp: false
-    drop(_7) -&gt; [return: bb83, unwind: bb94] @ Drop
-}
-bb 83 {
-CleanUp: false
-    StorageDead(_7) @ StorageDead
     return @ Return
 }
-bb 84 {
+bb 30 {
 CleanUp: true
-    drop(_84) -&gt; [return: bb92, unwind terminate(cleanup)] @ Drop
+    drop(_37) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
 }
-bb 85 {
+bb 31 {
 CleanUp: true
-    drop(_42) -&gt; [return: bb92, unwind terminate(cleanup)] @ Drop
+    drop(_14) -&gt; [return: bb41, unwind terminate(cleanup)] @ Drop
 }
-bb 86 {
-CleanUp: true
-    drop(_7) -&gt; [return: bb94, unwind terminate(cleanup)] @ Drop
-}
-bb 87 {
+bb 32 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 88 {
+bb 33 {
+CleanUp: true
+    drop(_49) -&gt; [return: bb30, unwind terminate(cleanup)] @ Drop
+}
+bb 34 {
+CleanUp: true
+    switchInt(copy _58) -&gt; [0: bb30, otherwise: bb33] @ SwitchInt
+}
+bb 35 {
+CleanUp: true
+    drop(_39) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
+}
+bb 36 {
+CleanUp: true
+    switchInt(copy _59) -&gt; [0: bb38, otherwise: bb35] @ SwitchInt
+}
+bb 37 {
+CleanUp: true
+    drop(_35) -&gt; [return: bb31, unwind terminate(cleanup)] @ Drop
+}
+bb 38 {
+CleanUp: true
+    switchInt(copy _60) -&gt; [0: bb31, otherwise: bb37] @ SwitchInt
+}
+bb 39 {
+CleanUp: true
+    Assign((_66, discriminant(_19))) @ _66=discriminant(_19) @ Discriminant
+    goto -&gt; bb31 @ Goto
+}
+bb 40 {
+CleanUp: true
+    drop(_5) -&gt; [return: bb32, unwind terminate(cleanup)] @ Drop
+}
+bb 41 {
+CleanUp: true
+    switchInt(copy _61) -&gt; [0: bb32, otherwise: bb40] @ SwitchInt
+}
+
+bb0 at src/filesystem/ext4/inode.rs:84:9: 86:10
+bb1 at src/filesystem/ext4/inode.rs:84:20: 84:21
+bb2 at src/filesystem/ext4/inode.rs:85:53: 85:54
+bb3 at src/filesystem/ext4/inode.rs:84:20: 84:21
+fn &lt;filesystem::ext4::inode::LockedExt4Inode as filesystem::vfs::IndexNode&gt;::create_with_data
+_0:  @ core::result::Result&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(filesystem::vfs::IndexNode), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::ext4::inode::LockedExt4Inode 
+_2:  @ &amp;&#39;{erased} str 
+_3:  @ filesystem::vfs::FileType 
+_4:  @ filesystem::vfs::InodeMode 
+_5:  @ usize 
+_6:  @ () 
+_7:  @ bool 
+_8:  @ usize 
+_9:  @ ! 
+_10:  @ &amp;&#39;{erased} filesystem::ext4::inode::LockedExt4Inode 
+_11:  @ &amp;&#39;{erased} str 
+_12:  @ filesystem::vfs::FileType 
+_13:  @ filesystem::vfs::InodeMode 
+_14:  @ system_error::SystemError 
+
+bb 0 {
 CleanUp: false
-    drop(_94) -&gt; [return: bb79, unwind: bb92] @ Drop
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, copy _5)) @ _8=copy _5 @ Use
+    Assign((_7, Eq(move _8, const 0_usize))) @ _7=Eq(move _8, const 0_usize) @ BinaryOp
+    switchInt(move _7) -&gt; [0: bb3, otherwise: bb1] @ SwitchInt
 }
-bb 89 {
-CleanUp: true
-    drop(_94) -&gt; [return: bb92, unwind terminate(cleanup)] @ Drop
+bb 1 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(*_1))) @ _10=&amp;(*_1) @ Ref
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &amp;(*_2))) @ _11=&amp;(*_2) @ Ref
+    StorageLive(_12) @ StorageLive
+    Assign((_12, copy _3)) @ _12=copy _3 @ Use
+    StorageLive(_13) @ StorageLive
+    Assign((_13, copy _4)) @ _13=copy _4 @ Use
+    _0 = &lt;filesystem::ext4::inode::LockedExt4Inode as filesystem::vfs::IndexNode&gt;::create(move _10, move _11, move _12, move _13) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 21766
 }
-bb 90 {
-CleanUp: true
-    switchInt(copy _143) -&gt; [0: bb92, otherwise: bb89] @ SwitchInt
+bb 2 {
+CleanUp: false
+    StorageDead(_13) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb4 @ Goto
 }
-bb 91 {
-CleanUp: true
-    drop(_18) -&gt; [return: bb86, unwind terminate(cleanup)] @ Drop
+bb 3 {
+CleanUp: false
+    StorageDead(_8) @ StorageDead
+    Assign((_6, const ())) @ _6=const () @ Use
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    Assign((_14, system_error::SystemError::ENOSYS)) @ _14=system_error::SystemError::ENOSYS @ Aggregate
+    Assign((_0, core::result::Result::&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt;::Err(move _14))) @ _0=core::result::Result::&lt;alloc::sync::Arc&lt;dyn filesystem::vfs::IndexNode&gt;, system_error::SystemError&gt;::Err(move _14) @ Aggregate
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb4 @ Goto
 }
-bb 92 {
-CleanUp: true
-    switchInt(copy _144) -&gt; [0: bb86, otherwise: bb91] @ SwitchInt
-}
-bb 93 {
-CleanUp: true
-    drop(_5) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
-}
-bb 94 {
-CleanUp: true
-    switchInt(copy _145) -&gt; [0: bb87, otherwise: bb93] @ SwitchInt
+bb 4 {
+CleanUp: false
+    return @ Return
 }
 
 </div>

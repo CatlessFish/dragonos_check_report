@@ -13,7 +13,7 @@
         <h1>
             Report #86
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_linkat::{impl#0}::entry_format</span>
+                 <span class="func-name">ipc::pipe::{impl#6}::close</span>
             
         </h1>
 
@@ -25,56 +25,139 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:07|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_linkat.rs:45:1
-   |
-45 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-46 | |         vec![
-47 | |             FormattedSyscallParam::new(&#34;oldfd&#34;, format!(&#34;{:#x}&#34;, Self::oldfd(args))),
-48 | |             FormattedSyscallParam::new(&#34;old&#34;, format!(&#34;{:#x}&#34;, Self::old_path(args) as usize)),
-49 | |             FormattedSyscallParam::new(&#34;newfd&#34;, format!(&#34;{:#x}&#34;, Self::newfd(args))),
-50 | |             FormattedSyscallParam::new(&#34;new&#34;, format!(&#34;{:#x}&#34;, Self::new_path(args) as usize)),
-51 | |             FormattedSyscallParam::new(&#34;flags&#34;, format!(&#34;{:#x}&#34;, Self::flags(args))),
-52 | |         ]
-53 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_linkat.rs line 45.
-    | MIR detail: Value _33(_, src/filesystem/vfs/syscall/sys_linkat.rs:48) and _9(_, src/filesystem/vfs/syscall/sys_linkat.rs:47) are alias.
-    | MIR detail: _33(_, src/filesystem/vfs/syscall/sys_linkat.rs:48) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_linkat.rs:47) is dropped at BB36(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_linkat.rs:45:1
-   |
-45 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-46 | |         vec![
-47 | |             FormattedSyscallParam::new(&#34;oldfd&#34;, format!(&#34;{:#x}&#34;, Self::oldfd(args))),
-48 | |             FormattedSyscallParam::new(&#34;old&#34;, format!(&#34;{:#x}&#34;, Self::old_path(args) as usize)),
-49 | |             FormattedSyscallParam::new(&#34;newfd&#34;, format!(&#34;{:#x}&#34;, Self::newfd(args))),
-50 | |             FormattedSyscallParam::new(&#34;new&#34;, format!(&#34;{:#x}&#34;, Self::new_path(args) as usize)),
-51 | |             FormattedSyscallParam::new(&#34;flags&#34;, format!(&#34;{:#x}&#34;, Self::flags(args))),
-52 | |         ]
-53 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_linkat.rs line 45.
-    | MIR detail: Value _58(_, src/filesystem/vfs/syscall/sys_linkat.rs:49) and _33(_, src/filesystem/vfs/syscall/sys_linkat.rs:48) are alias.
-    | MIR detail: _58(_, src/filesystem/vfs/syscall/sys_linkat.rs:49) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _33(_, src/filesystem/vfs/syscall/sys_linkat.rs:48) is dropped at BB35(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_linkat.rs:45:1
-   |
-45 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-46 | |         vec![
-47 | |             FormattedSyscallParam::new(&#34;oldfd&#34;, format!(&#34;{:#x}&#34;, Self::oldfd(args))),
-48 | |             FormattedSyscallParam::new(&#34;old&#34;, format!(&#34;{:#x}&#34;, Self::old_path(args) as usize)),
-49 | |             FormattedSyscallParam::new(&#34;newfd&#34;, format!(&#34;{:#x}&#34;, Self::newfd(args))),
-50 | |             FormattedSyscallParam::new(&#34;new&#34;, format!(&#34;{:#x}&#34;, Self::new_path(args) as usize)),
-51 | |             FormattedSyscallParam::new(&#34;flags&#34;, format!(&#34;{:#x}&#34;, Self::flags(args))),
-52 | |         ]
-53 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_linkat.rs line 45.
-    | MIR detail: Value _82(_, src/filesystem/vfs/syscall/sys_linkat.rs:50) and _58(_, src/filesystem/vfs/syscall/sys_linkat.rs:49) are alias.
-    | MIR detail: _82(_, src/filesystem/vfs/syscall/sys_linkat.rs:50) is dropped at BB33(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _58(_, src/filesystem/vfs/syscall/sys_linkat.rs:49) is dropped at BB34(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-render dot for DefId(0:20076 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_linkat::{impl#0}::entry_format)
+                    <pre id="logContent" class="code-block scrollable">22:08:10|RAP|WARN|: Dangling pointer detected in function &#34;close&#34;
+warning: Dangling pointer detected.
+   --&gt; src/ipc/pipe.rs:589:1
+    |
+589 | / fn close(&amp;self, data: SpinLockGuard&lt;FilePrivateData&gt;) -&gt; Result&lt;(), SystemError&gt; {
+590 | |         let flags: FileFlags;
+591 | |         if let FilePrivateData::Pipefs(pipe_data) = &amp;*data {
+592 | |             flags = pipe_data.flags;
+593 | |         } else {
+594 | |             return Err(SystemError::EBADF);
+595 | |         }
+596 | |         let accflags = flags.access_flags();
+597 | |         let mut guard = self.inner.lock();
+598 | |
+599 | |         // 写端关闭
+600 | |         if accflags == FileFlags::O_WRONLY {
+601 | |             assert!(guard.writer &gt; 0);
+602 | |             guard.writer -= 1;
+603 | |             // 如果已经没有写端了，则唤醒读端
+604 | |             if guard.writer == 0 {
+605 | |                 drop(guard); // 先释放 inner 锁，避免潜在的死锁
+606 | |                              // 唤醒所有等待的读端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+607 | |                 self.read_wait_queue.wakeup_all(None);
+608 | |                 return Ok(());
+609 | |             }
+610 | |         }
+611 | |
+612 | |         // 读端关闭
+613 | |         if accflags == FileFlags::O_RDONLY {
+614 | |             assert!(guard.reader &gt; 0);
+615 | |             guard.reader -= 1;
+616 | |             // 如果已经没有读端了，则唤醒写端
+617 | |             if guard.reader == 0 {
+618 | |                 drop(guard); // 先释放 inner 锁，避免死锁
+619 | |                              // 唤醒所有等待的写端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+620 | |                 self.write_wait_queue.wakeup_all(None);
+621 | |                 return Ok(());
+622 | |             }
+623 | |         }
+624 | |
+625 | |         // O_RDWR 模式关闭：同时减少读写计数
+626 | |         if accflags == FileFlags::O_RDWR {
+627 | |             assert!(guard.reader &gt; 0);
+628 | |             assert!(guard.writer &gt; 0);
+629 | |             guard.reader -= 1;
+630 | |             guard.writer -= 1;
+631 | |             let wake_reader = guard.writer == 0;
+632 | |             let wake_writer = guard.reader == 0;
+633 | |             drop(guard); // 先释放 inner 锁
+634 | |
+635 | |             // 如果已经没有写端了，则唤醒读端
+636 | |             if wake_reader {
+637 | |                 self.read_wait_queue.wakeup_all(None);
+638 | |             }
+639 | |             // 如果已经没有读端了，则唤醒写端
+640 | |             if wake_writer {
+641 | |                 self.write_wait_queue.wakeup_all(None);
+642 | |             }
+643 | |         }
+644 | |
+645 | |         return Ok(());
+646 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 589.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in close and _1(self, src/ipc/pipe.rs:589) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in close is dropped at BB18446744073709551615(src/ipc/pipe.rs:589); _1(self, src/ipc/pipe.rs:589) became dangling.
+    |
+22:08:10|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;close&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/ipc/pipe.rs:589:1
+    |
+589 | / fn close(&amp;self, data: SpinLockGuard&lt;FilePrivateData&gt;) -&gt; Result&lt;(), SystemError&gt; {
+590 | |         let flags: FileFlags;
+591 | |         if let FilePrivateData::Pipefs(pipe_data) = &amp;*data {
+592 | |             flags = pipe_data.flags;
+593 | |         } else {
+594 | |             return Err(SystemError::EBADF);
+595 | |         }
+596 | |         let accflags = flags.access_flags();
+597 | |         let mut guard = self.inner.lock();
+598 | |
+599 | |         // 写端关闭
+600 | |         if accflags == FileFlags::O_WRONLY {
+601 | |             assert!(guard.writer &gt; 0);
+602 | |             guard.writer -= 1;
+603 | |             // 如果已经没有写端了，则唤醒读端
+604 | |             if guard.writer == 0 {
+605 | |                 drop(guard); // 先释放 inner 锁，避免潜在的死锁
+606 | |                              // 唤醒所有等待的读端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+607 | |                 self.read_wait_queue.wakeup_all(None);
+608 | |                 return Ok(());
+609 | |             }
+610 | |         }
+611 | |
+612 | |         // 读端关闭
+613 | |         if accflags == FileFlags::O_RDONLY {
+614 | |             assert!(guard.reader &gt; 0);
+615 | |             guard.reader -= 1;
+616 | |             // 如果已经没有读端了，则唤醒写端
+617 | |             if guard.reader == 0 {
+618 | |                 drop(guard); // 先释放 inner 锁，避免死锁
+619 | |                              // 唤醒所有等待的写端（不进行状态过滤，因为进程可能已经被其他操作唤醒但还未从队列中移除）                                        ...
+620 | |                 self.write_wait_queue.wakeup_all(None);
+621 | |                 return Ok(());
+622 | |             }
+623 | |         }
+624 | |
+625 | |         // O_RDWR 模式关闭：同时减少读写计数
+626 | |         if accflags == FileFlags::O_RDWR {
+627 | |             assert!(guard.reader &gt; 0);
+628 | |             assert!(guard.writer &gt; 0);
+629 | |             guard.reader -= 1;
+630 | |             guard.writer -= 1;
+631 | |             let wake_reader = guard.writer == 0;
+632 | |             let wake_writer = guard.reader == 0;
+633 | |             drop(guard); // 先释放 inner 锁
+634 | |
+635 | |             // 如果已经没有写端了，则唤醒读端
+636 | |             if wake_reader {
+637 | |                 self.read_wait_queue.wakeup_all(None);
+638 | |             }
+639 | |             // 如果已经没有读端了，则唤醒写端
+640 | |             if wake_writer {
+641 | |                 self.write_wait_queue.wakeup_all(None);
+642 | |             }
+643 | |         }
+644 | |
+645 | |         return Ok(());
+646 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 589.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in close and _1(self, src/ipc/pipe.rs:589) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in close is dropped at BB18446744073709551615(src/ipc/pipe.rs:589); _1(self, src/ipc/pipe.rs:589) became dangling.
+    |
+render dot for DefId(0:22429 ~ dragonos_kernel[9e38]::ipc::pipe::{impl#6}::close)
 </pre>
                 </div>
             
@@ -85,668 +168,761 @@ render dot for DefId(0:20076 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb2 at src/filesystem/vfs/syscall/sys_linkat.rs:47:82: 47:83
-bb3 at src/filesystem/vfs/syscall/sys_linkat.rs:47:62: 47:63
-bb4 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb5 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb6 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb7 at src/filesystem/vfs/syscall/sys_linkat.rs:47:84: 47:85
-bb8 at src/filesystem/vfs/syscall/sys_linkat.rs:48:83: 48:84
-bb9 at src/filesystem/vfs/syscall/sys_linkat.rs:48:60: 48:61
-bb10 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb11 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb12 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb13 at src/filesystem/vfs/syscall/sys_linkat.rs:48:94: 48:95
-bb14 at src/filesystem/vfs/syscall/sys_linkat.rs:49:82: 49:83
-bb15 at src/filesystem/vfs/syscall/sys_linkat.rs:49:62: 49:63
-bb16 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb18 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb19 at src/filesystem/vfs/syscall/sys_linkat.rs:49:84: 49:85
-bb20 at src/filesystem/vfs/syscall/sys_linkat.rs:50:83: 50:84
-bb21 at src/filesystem/vfs/syscall/sys_linkat.rs:50:60: 50:61
-bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb23 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb24 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb25 at src/filesystem/vfs/syscall/sys_linkat.rs:50:94: 50:95
-bb26 at src/filesystem/vfs/syscall/sys_linkat.rs:51:82: 51:83
-bb27 at src/filesystem/vfs/syscall/sys_linkat.rs:51:62: 51:63
-bb28 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb29 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb30 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb31 at src/filesystem/vfs/syscall/sys_linkat.rs:51:84: 51:85
-bb32 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
-bb38 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
-bb39 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-bb40 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-fn &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format
-_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
-_4:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5_usize], alloc::alloc::Global&gt; 
-_5:  @ usize 
-_6:  @ usize 
-_7:  @ *mut u8 
-_8:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5_usize], alloc::alloc::Global&gt; 
-_9:  @ syscall::table::FormattedSyscallParam 
-_10:  @ alloc::string::String 
-_11:  @ alloc::string::String 
-_12:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_13:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_14:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_15:  @ &amp;&#39;{erased} i32 
-_16:  @ &amp;&#39;{erased} i32 
-_17:  @ i32 
-_18:  @ &amp;&#39;{erased} [usize] 
-_19:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_20:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_21:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_22:  @ [&amp;&#39;{erased} str; 1_usize] 
-_23:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_24:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_25:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_26:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_27:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_28:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_29:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_30:  @ core::fmt::rt::Placeholder 
-_31:  @ core::fmt::rt::Count 
-_32:  @ core::fmt::rt::Count 
-_33:  @ syscall::table::FormattedSyscallParam 
-_34:  @ alloc::string::String 
-_35:  @ alloc::string::String 
-_36:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_37:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_38:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_39:  @ &amp;&#39;{erased} usize 
-_40:  @ &amp;&#39;{erased} usize 
-_41:  @ usize 
-_42:  @ *const u8 
-_43:  @ &amp;&#39;{erased} [usize] 
-_44:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_45:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_46:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_47:  @ [&amp;&#39;{erased} str; 1_usize] 
-_48:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_49:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_50:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_51:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_52:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_53:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_54:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_55:  @ core::fmt::rt::Placeholder 
-_56:  @ core::fmt::rt::Count 
-_57:  @ core::fmt::rt::Count 
-_58:  @ syscall::table::FormattedSyscallParam 
-_59:  @ alloc::string::String 
-_60:  @ alloc::string::String 
-_61:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_62:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_63:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_64:  @ &amp;&#39;{erased} i32 
-_65:  @ &amp;&#39;{erased} i32 
-_66:  @ i32 
-_67:  @ &amp;&#39;{erased} [usize] 
-_68:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_69:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_70:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_71:  @ [&amp;&#39;{erased} str; 1_usize] 
-_72:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_73:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_74:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_75:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_76:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_77:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_78:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_79:  @ core::fmt::rt::Placeholder 
-_80:  @ core::fmt::rt::Count 
-_81:  @ core::fmt::rt::Count 
-_82:  @ syscall::table::FormattedSyscallParam 
-_83:  @ alloc::string::String 
-_84:  @ alloc::string::String 
-_85:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_86:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_87:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_88:  @ &amp;&#39;{erased} usize 
-_89:  @ &amp;&#39;{erased} usize 
-_90:  @ usize 
-_91:  @ *const u8 
-_92:  @ &amp;&#39;{erased} [usize] 
-_93:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_94:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_95:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_96:  @ [&amp;&#39;{erased} str; 1_usize] 
-_97:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_98:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_99:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_100:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_101:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_102:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_103:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_104:  @ core::fmt::rt::Placeholder 
-_105:  @ core::fmt::rt::Count 
-_106:  @ core::fmt::rt::Count 
-_107:  @ syscall::table::FormattedSyscallParam 
-_108:  @ alloc::string::String 
-_109:  @ alloc::string::String 
-_110:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_111:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_112:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_113:  @ &amp;&#39;{erased} i32 
-_114:  @ &amp;&#39;{erased} i32 
-_115:  @ i32 
-_116:  @ &amp;&#39;{erased} [usize] 
-_117:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_118:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_119:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_120:  @ [&amp;&#39;{erased} str; 1_usize] 
-_121:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_122:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_123:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_124:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_125:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_126:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_127:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_128:  @ core::fmt::rt::Placeholder 
-_129:  @ core::fmt::rt::Count 
-_130:  @ core::fmt::rt::Count 
-_131:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_132:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_133:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_134:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_135:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_136:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_137:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_138:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_139:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_140:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_141:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5_usize], alloc::alloc::Global&gt; 
-_142:  @ () 
-_143:  @ *const [syscall::table::FormattedSyscallParam; 5_usize] 
-_144:  @ *const [syscall::table::FormattedSyscallParam; 5_usize] 
-_145:  @ *const () 
-_146:  @ usize 
-_147:  @ usize 
-_148:  @ usize 
-_149:  @ usize 
-_150:  @ bool 
-_151:  @ *const () 
-_152:  @ usize 
-_153:  @ usize 
-_154:  @ bool 
-_155:  @ bool 
-_156:  @ bool 
-_157:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/ipc/pipe.rs:590:13: 590:18
+bb1 at src/ipc/pipe.rs:591:58: 591:59
+bb2 at src/ipc/pipe.rs:591:40: 591:49
+bb3 at src/ipc/pipe.rs:594:24: 594:42
+bb4 at src/ipc/pipe.rs:596:43: 596:44
+bb5 at src/ipc/pipe.rs:597:41: 597:42
+bb7 at src/ipc/pipe.rs:600:42: 600:43
+bb8 at src/ipc/pipe.rs:601:25: 601:26
+bb9 at src/ipc/pipe.rs:601:36: 601:37
+bb10 at src/ipc/pipe.rs:601:36: 601:37
+bb11 at src/ipc/pipe.rs:602:17: 602:18
+bb12 at src/ipc/pipe.rs:602:13: 602:30
+bb13 at src/ipc/pipe.rs:604:20: 604:21
+bb14 at src/ipc/pipe.rs:604:32: 604:33
+bb15 at src/ipc/pipe.rs:605:27: 605:28
+bb16 at src/ipc/pipe.rs:607:53: 607:54
+bb17 at src/ipc/pipe.rs:604:32: 604:33
+bb18 at src/ipc/pipe.rs:600:42: 600:43
+bb19 at src/ipc/pipe.rs:610:9: 610:10
+bb21 at src/ipc/pipe.rs:613:42: 613:43
+bb22 at src/ipc/pipe.rs:614:25: 614:26
+bb23 at src/ipc/pipe.rs:614:36: 614:37
+bb24 at src/ipc/pipe.rs:614:36: 614:37
+bb25 at src/ipc/pipe.rs:615:17: 615:18
+bb26 at src/ipc/pipe.rs:615:13: 615:30
+bb27 at src/ipc/pipe.rs:617:20: 617:21
+bb28 at src/ipc/pipe.rs:617:32: 617:33
+bb29 at src/ipc/pipe.rs:618:27: 618:28
+bb30 at src/ipc/pipe.rs:620:54: 620:55
+bb31 at src/ipc/pipe.rs:617:32: 617:33
+bb32 at src/ipc/pipe.rs:613:42: 613:43
+bb33 at src/ipc/pipe.rs:623:9: 623:10
+bb35 at src/ipc/pipe.rs:626:40: 626:41
+bb36 at src/ipc/pipe.rs:627:25: 627:26
+bb37 at src/ipc/pipe.rs:627:36: 627:37
+bb38 at src/ipc/pipe.rs:627:36: 627:37
+bb39 at src/ipc/pipe.rs:628:25: 628:26
+bb40 at src/ipc/pipe.rs:628:36: 628:37
+bb41 at src/ipc/pipe.rs:628:36: 628:37
+bb42 at src/ipc/pipe.rs:629:17: 629:18
+bb43 at src/ipc/pipe.rs:629:13: 629:30
+bb44 at src/ipc/pipe.rs:630:17: 630:18
+bb45 at src/ipc/pipe.rs:630:13: 630:30
+bb46 at src/ipc/pipe.rs:631:35: 631:36
+bb47 at src/ipc/pipe.rs:632:35: 632:36
+bb48 at src/ipc/pipe.rs:633:23: 633:24
+bb49 at src/ipc/pipe.rs:637:17: 637:54
+bb50 at src/ipc/pipe.rs:637:53: 637:54
+bb51 at src/ipc/pipe.rs:638:14: 638:14
+bb52 at src/ipc/pipe.rs:638:13: 638:14
+bb53 at src/ipc/pipe.rs:641:17: 641:55
+bb54 at src/ipc/pipe.rs:641:54: 641:55
+bb55 at src/ipc/pipe.rs:642:14: 642:14
+bb56 at src/ipc/pipe.rs:642:13: 642:14
+bb57 at src/ipc/pipe.rs:626:40: 626:41
+bb58 at src/ipc/pipe.rs:643:9: 643:10
+bb59 at src/ipc/pipe.rs:646:5: 646:6
+bb60 at src/ipc/pipe.rs:646:5: 646:6
+fn &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_2:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_3:  @ ! 
+_4:  @ filesystem::vfs::file::FileFlags 
+_5:  @ () 
+_6:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_7:  @ &amp;&#39;{erased} filesystem::vfs::file::FilePrivateData 
+_8:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_9:  @ isize 
+_10:  @ &amp;&#39;{erased} ipc::pipe::PipeFsPrivateData 
+_11:  @ filesystem::vfs::file::FileFlags 
+_12:  @ ! 
+_13:  @ system_error::SystemError 
+_14:  @ filesystem::vfs::file::FileFlags 
+_15:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_16:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_17:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_18:  @ () 
+_19:  @ bool 
+_20:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_21:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_22:  @ filesystem::vfs::file::FileFlags 
+_23:  @ () 
+_24:  @ bool 
+_25:  @ u32 
+_26:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_27:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_28:  @ ! 
+_29:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_30:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_31:  @ (u32, bool) 
+_32:  @ bool 
+_33:  @ u32 
+_34:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_35:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_36:  @ ! 
+_37:  @ () 
+_38:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_39:  @ () 
+_40:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_41:  @ core::option::Option&lt;process::ProcessState&gt; 
+_42:  @ () 
+_43:  @ () 
+_44:  @ bool 
+_45:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_46:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_47:  @ filesystem::vfs::file::FileFlags 
+_48:  @ () 
+_49:  @ bool 
+_50:  @ u32 
+_51:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_52:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_53:  @ ! 
+_54:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_55:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_56:  @ (u32, bool) 
+_57:  @ bool 
+_58:  @ u32 
+_59:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_60:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_61:  @ ! 
+_62:  @ () 
+_63:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_64:  @ () 
+_65:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_66:  @ core::option::Option&lt;process::ProcessState&gt; 
+_67:  @ () 
+_68:  @ () 
+_69:  @ bool 
+_70:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_71:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_72:  @ filesystem::vfs::file::FileFlags 
+_73:  @ () 
+_74:  @ bool 
+_75:  @ u32 
+_76:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_77:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_78:  @ ! 
+_79:  @ () 
+_80:  @ bool 
+_81:  @ u32 
+_82:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_83:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_84:  @ ! 
+_85:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_86:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_87:  @ (u32, bool) 
+_88:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_89:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_90:  @ (u32, bool) 
+_91:  @ bool 
+_92:  @ u32 
+_93:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_94:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_95:  @ bool 
+_96:  @ u32 
+_97:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_98:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_99:  @ () 
+_100:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_101:  @ () 
+_102:  @ bool 
+_103:  @ () 
+_104:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_105:  @ core::option::Option&lt;process::ProcessState&gt; 
+_106:  @ bool 
+_107:  @ () 
+_108:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_109:  @ core::option::Option&lt;process::ProcessState&gt; 
+_110:  @ () 
+_111:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_112:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_113:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_114:  @ bool 
 
 bb 0 {
 CleanUp: false
-    StorageLive(_3) @ StorageLive
+    Assign((_114, const false)) @ _114=const false @ Use
     StorageLive(_4) @ StorageLive
-    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 5]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
-    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 5]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
-    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 147
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    StorageLive(_8) @ StorageLive
+    Assign((_8, &amp;_2)) @ _8=&amp;_2 @ Ref
+    _7 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt; as lazy_static::__Deref&gt;::deref(move _8) -&gt; [return: bb1, unwind: bb62] @ Call: FnDid: 3903
 }
 bb 1 {
 CleanUp: false
-    StorageLive(_8) @ StorageLive
-    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 5]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 5]) @ ShallowInitBox
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    StorageLive(_14) @ StorageLive
-    StorageLive(_15) @ StorageLive
-    StorageLive(_16) @ StorageLive
-    StorageLive(_17) @ StorageLive
-    StorageLive(_18) @ StorageLive
-    Assign((_18, &amp;(*_2))) @ _18=&amp;(*_2) @ Ref
-    _17 = filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle::oldfd(move _18) -&gt; [return: bb2, unwind: bb38] @ Call: FnDid: 20078
+    StorageDead(_8) @ StorageDead
+    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
+    Assign((_9, discriminant((*_6)))) @ _9=discriminant((*_6)) @ Discriminant
+    switchInt(move _9) -&gt; [0: bb2, otherwise: bb3] @ SwitchInt
 }
 bb 2 {
 CleanUp: false
-    StorageDead(_18) @ StorageDead
-    Assign((_16, &amp;_17)) @ _16=&amp;_17 @ Ref
-    Assign((_15, &amp;(*_16))) @ _15=&amp;(*_16) @ Ref
-    _14 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;i32&gt;(move _15) -&gt; [return: bb3, unwind: bb38] @ Call: FnDid: 11815
+    StorageLive(_10) @ StorageLive
+    Assign((_10, &amp;(((*_6) as Pipefs).0: ipc::pipe::PipeFsPrivateData))) @ _10=&amp;(((*_6) as Pipefs).0: ipc::pipe::PipeFsPrivateData) @ Ref
+    StorageLive(_11) @ StorageLive
+    Assign((_11, copy ((*_10).0: filesystem::vfs::file::FileFlags))) @ _11=copy ((*_10).0: filesystem::vfs::file::FileFlags) @ Use
+    Assign((_4, move _11)) @ _4=move _11 @ Use
+    StorageDead(_11) @ StorageDead
+    Assign((_5, const ())) @ _5=const () @ Use
+    StorageDead(_10) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, &amp;_4)) @ _15=&amp;_4 @ Ref
+    _14 = filesystem::vfs::file::FileFlags::access_flags(move _15) -&gt; [return: bb4, unwind: bb62] @ Call: FnDid: 19170
 }
 bb 3 {
 CleanUp: false
+    StorageLive(_13) @ StorageLive
+    Assign((_13, system_error::SystemError::EBADF)) @ _13=system_error::SystemError::EBADF @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _13))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _13) @ Aggregate
+    StorageDead(_13) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 4 {
+CleanUp: false
     StorageDead(_15) @ StorageDead
-    Assign((_13, [move _14])) @ _13=[move _14] @ Aggregate
-    StorageDead(_14) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    Assign((_17, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _17=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _16 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _17) -&gt; [return: bb5, unwind: bb62] @ Call: FnDid: 5261
+}
+bb 5 {
+CleanUp: false
+    Assign((_114, const true)) @ _114=const true @ Use
+    StorageDead(_17) @ StorageDead
+    StorageLive(_18) @ StorageLive
     StorageLive(_19) @ StorageLive
     StorageLive(_20) @ StorageLive
+    Assign((_20, &amp;_14)) @ _20=&amp;_14 @ Ref
     StorageLive(_21) @ StorageLive
-    Assign((_140, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[9])) @ _140=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[9] @ Use
-    Assign((_21, &amp;(*_140))) @ _21=&amp;(*_140) @ Ref
-    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
-    Assign((_19, move _20 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _19=move _20 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    Assign((_113, const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close::promoted[2])) @ _113=const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close::promoted[2] @ Use
+    Assign((_21, &amp;(*_113))) @ _21=&amp;(*_113) @ Ref
+    _19 = &lt;filesystem::vfs::file::FileFlags as core::cmp::PartialEq&gt;::eq(move _20, move _21) -&gt; [return: bb6, unwind: bb67] @ Call: FnDid: 3170
+}
+bb 6 {
+CleanUp: false
+    switchInt(move _19) -&gt; [0: bb18, otherwise: bb7] @ SwitchInt
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
     StorageDead(_20) @ StorageDead
     StorageLive(_23) @ StorageLive
     StorageLive(_24) @ StorageLive
     StorageLive(_25) @ StorageLive
-    Assign((_25, &amp;_13)) @ _25=&amp;_13 @ Ref
-    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
-    Assign((_23, move _24 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _23=move _24 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_24) @ StorageDead
     StorageLive(_26) @ StorageLive
     StorageLive(_27) @ StorageLive
-    StorageLive(_28) @ StorageLive
-    Assign((_139, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[8])) @ _139=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[8] @ Use
-    Assign((_28, &amp;(*_139))) @ _28=&amp;(*_139) @ Ref
-    Assign((_27, &amp;(*_28))) @ _27=&amp;(*_28) @ Ref
-    Assign((_26, move _27 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _26=move _27 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_27) @ StorageDead
-    _12 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _19, move _23, move _26) -&gt; [return: bb4, unwind: bb38] @ Call: FnDid: 11842
-}
-bb 4 {
-CleanUp: false
-    StorageDead(_28) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    StorageDead(_25) @ StorageDead
-    StorageDead(_23) @ StorageDead
-    StorageDead(_21) @ StorageDead
-    StorageDead(_19) @ StorageDead
-    _11 = alloc::fmt::format(move _12) -&gt; [return: bb5, unwind: bb38] @ Call: FnDid: 5475
-}
-bb 5 {
-CleanUp: false
-    StorageDead(_17) @ StorageDead
-    StorageDead(_16) @ StorageDead
-    StorageDead(_13) @ StorageDead
-    StorageDead(_12) @ StorageDead
-    _10 = core::hint::must_use::&lt;alloc::string::String&gt;(move _11) -&gt; [return: bb6, unwind: bb38] @ Call: FnDid: 1455
-}
-bb 6 {
-CleanUp: false
-    StorageDead(_11) @ StorageDead
-    _9 = syscall::table::FormattedSyscallParam::new(const &#34;oldfd&#34;, move _10) -&gt; [return: bb7, unwind: bb38] @ Call: FnDid: 30792
-}
-bb 7 {
-CleanUp: false
-    StorageDead(_10) @ StorageDead
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    StorageLive(_35) @ StorageLive
-    StorageLive(_36) @ StorageLive
-    StorageLive(_37) @ StorageLive
-    StorageLive(_38) @ StorageLive
-    StorageLive(_39) @ StorageLive
-    StorageLive(_40) @ StorageLive
-    StorageLive(_41) @ StorageLive
-    StorageLive(_42) @ StorageLive
-    StorageLive(_43) @ StorageLive
-    Assign((_43, &amp;(*_2))) @ _43=&amp;(*_2) @ Ref
-    _42 = filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle::old_path(move _43) -&gt; [return: bb8, unwind: bb36] @ Call: FnDid: 20079
+    Assign((_27, &amp;_16)) @ _27=&amp;_16 @ Ref
+    _26 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _27) -&gt; [return: bb8, unwind: bb67] @ Call: FnDid: 3903
 }
 bb 8 {
 CleanUp: false
-    StorageDead(_43) @ StorageDead
-    Assign((_41, move _42 as usize (PointerExposeProvenance))) @ _41=move _42 as usize (PointerExposeProvenance) @ Cast
-    StorageDead(_42) @ StorageDead
-    Assign((_40, &amp;_41)) @ _40=&amp;_41 @ Ref
-    Assign((_39, &amp;(*_40))) @ _39=&amp;(*_40) @ Ref
-    _38 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _39) -&gt; [return: bb9, unwind: bb36] @ Call: FnDid: 11815
+    StorageDead(_27) @ StorageDead
+    Assign((_25, copy ((*_26).8: u32))) @ _25=copy ((*_26).8: u32) @ Use
+    Assign((_24, Gt(move _25, const 0_u32))) @ _24=Gt(move _25, const 0_u32) @ BinaryOp
+    switchInt(move _24) -&gt; [0: bb10, otherwise: bb9] @ SwitchInt
 }
 bb 9 {
 CleanUp: false
-    StorageDead(_39) @ StorageDead
-    Assign((_37, [move _38])) @ _37=[move _38] @ Aggregate
+    StorageDead(_25) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    Assign((_23, const ())) @ _23=const () @ Use
+    StorageDead(_24) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageLive(_29) @ StorageLive
+    StorageLive(_30) @ StorageLive
+    Assign((_30, &amp;mut _16)) @ _30=&amp;mut _16 @ Ref
+    _29 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _30) -&gt; [return: bb11, unwind: bb67] @ Call: FnDid: 3915
+}
+bb 10 {
+CleanUp: false
+    StorageDead(_25) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    _28 = core::panicking::panic(const &#34;assertion failed: guard.writer &gt; 0&#34;) -&gt; bb67 @ Call: FnDid: 10545
+}
+bb 11 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    Assign((_31, SubWithOverflow(copy ((*_29).8: u32), const 1_u32))) @ _31=SubWithOverflow(copy ((*_29).8: u32), const 1_u32) @ BinaryOp
+    assert(!move (_31.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_29).8: u32), const 1_u32) -&gt; [success: bb12, unwind: bb67] @ Assert
+}
+bb 12 {
+CleanUp: false
+    Assign((((*_29).8: u32), move (_31.0: u32))) @ ((*_29).8: u32)=move (_31.0: u32) @ Use
+    StorageDead(_29) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_16)) @ _35=&amp;_16 @ Ref
+    _34 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb13, unwind: bb67] @ Call: FnDid: 3903
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_35) @ StorageDead
+    Assign((_33, copy ((*_34).8: u32))) @ _33=copy ((*_34).8: u32) @ Use
+    Assign((_32, Eq(move _33, const 0_u32))) @ _32=Eq(move _33, const 0_u32) @ BinaryOp
+    switchInt(move _32) -&gt; [0: bb17, otherwise: bb14] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_114, const false)) @ _114=const false @ Use
+    Assign((_38, move _16)) @ _38=move _16 @ Use
+    _37 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _38) -&gt; [return: bb15, unwind: bb67] @ Call: FnDid: 2323
+}
+bb 15 {
+CleanUp: false
     StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;((*_1).1: libs::wait_queue::WaitQueue))) @ _40=&amp;((*_1).1: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_41) @ StorageLive
+    Assign((_41, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _41=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _39 = libs::wait_queue::WaitQueue::wakeup_all(move _40, move _41) -&gt; [return: bb16, unwind: bb67] @ Call: FnDid: 5651
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    Assign((_42, ())) @ _42=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _42))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _42) @ Aggregate
+    StorageDead(_42) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 17 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    Assign((_18, const ())) @ _18=const () @ Use
+    StorageDead(_32) @ StorageDead
+    goto -&gt; bb19 @ Goto
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    Assign((_18, const ())) @ _18=const () @ Use
+    goto -&gt; bb19 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_43) @ StorageLive
     StorageLive(_44) @ StorageLive
     StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;_14)) @ _45=&amp;_14 @ Ref
     StorageLive(_46) @ StorageLive
-    Assign((_138, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[7])) @ _138=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[7] @ Use
-    Assign((_46, &amp;(*_138))) @ _46=&amp;(*_138) @ Ref
-    Assign((_45, &amp;(*_46))) @ _45=&amp;(*_46) @ Ref
-    Assign((_44, move _45 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _44=move _45 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
+    Assign((_112, const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close::promoted[1])) @ _112=const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close::promoted[1] @ Use
+    Assign((_46, &amp;(*_112))) @ _46=&amp;(*_112) @ Ref
+    _44 = &lt;filesystem::vfs::file::FileFlags as core::cmp::PartialEq&gt;::eq(move _45, move _46) -&gt; [return: bb20, unwind: bb67] @ Call: FnDid: 3170
+}
+bb 20 {
+CleanUp: false
+    switchInt(move _44) -&gt; [0: bb32, otherwise: bb21] @ SwitchInt
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
     StorageDead(_45) @ StorageDead
     StorageLive(_48) @ StorageLive
     StorageLive(_49) @ StorageLive
     StorageLive(_50) @ StorageLive
-    Assign((_50, &amp;_37)) @ _50=&amp;_37 @ Ref
-    Assign((_49, &amp;(*_50))) @ _49=&amp;(*_50) @ Ref
-    Assign((_48, move _49 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _48=move _49 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_49) @ StorageDead
     StorageLive(_51) @ StorageLive
     StorageLive(_52) @ StorageLive
-    StorageLive(_53) @ StorageLive
-    Assign((_137, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[6])) @ _137=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[6] @ Use
-    Assign((_53, &amp;(*_137))) @ _53=&amp;(*_137) @ Ref
-    Assign((_52, &amp;(*_53))) @ _52=&amp;(*_53) @ Ref
-    Assign((_51, move _52 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _51=move _52 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_52) @ StorageDead
-    _36 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _44, move _48, move _51) -&gt; [return: bb10, unwind: bb36] @ Call: FnDid: 11842
-}
-bb 10 {
-CleanUp: false
-    StorageDead(_53) @ StorageDead
-    StorageDead(_51) @ StorageDead
-    StorageDead(_50) @ StorageDead
-    StorageDead(_48) @ StorageDead
-    StorageDead(_46) @ StorageDead
-    StorageDead(_44) @ StorageDead
-    _35 = alloc::fmt::format(move _36) -&gt; [return: bb11, unwind: bb36] @ Call: FnDid: 5475
-}
-bb 11 {
-CleanUp: false
-    StorageDead(_41) @ StorageDead
-    StorageDead(_40) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    StorageDead(_36) @ StorageDead
-    _34 = core::hint::must_use::&lt;alloc::string::String&gt;(move _35) -&gt; [return: bb12, unwind: bb36] @ Call: FnDid: 1455
-}
-bb 12 {
-CleanUp: false
-    StorageDead(_35) @ StorageDead
-    _33 = syscall::table::FormattedSyscallParam::new(const &#34;old&#34;, move _34) -&gt; [return: bb13, unwind: bb36] @ Call: FnDid: 30792
-}
-bb 13 {
-CleanUp: false
-    StorageDead(_34) @ StorageDead
-    StorageLive(_58) @ StorageLive
-    StorageLive(_59) @ StorageLive
-    StorageLive(_60) @ StorageLive
-    StorageLive(_61) @ StorageLive
-    StorageLive(_62) @ StorageLive
-    StorageLive(_63) @ StorageLive
-    StorageLive(_64) @ StorageLive
-    StorageLive(_65) @ StorageLive
-    StorageLive(_66) @ StorageLive
-    StorageLive(_67) @ StorageLive
-    Assign((_67, &amp;(*_2))) @ _67=&amp;(*_2) @ Ref
-    _66 = filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle::newfd(move _67) -&gt; [return: bb14, unwind: bb35] @ Call: FnDid: 20080
-}
-bb 14 {
-CleanUp: false
-    StorageDead(_67) @ StorageDead
-    Assign((_65, &amp;_66)) @ _65=&amp;_66 @ Ref
-    Assign((_64, &amp;(*_65))) @ _64=&amp;(*_65) @ Ref
-    _63 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;i32&gt;(move _64) -&gt; [return: bb15, unwind: bb35] @ Call: FnDid: 11815
-}
-bb 15 {
-CleanUp: false
-    StorageDead(_64) @ StorageDead
-    Assign((_62, [move _63])) @ _62=[move _63] @ Aggregate
-    StorageDead(_63) @ StorageDead
-    StorageLive(_68) @ StorageLive
-    StorageLive(_69) @ StorageLive
-    StorageLive(_70) @ StorageLive
-    Assign((_136, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[5])) @ _136=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[5] @ Use
-    Assign((_70, &amp;(*_136))) @ _70=&amp;(*_136) @ Ref
-    Assign((_69, &amp;(*_70))) @ _69=&amp;(*_70) @ Ref
-    Assign((_68, move _69 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _68=move _69 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_69) @ StorageDead
-    StorageLive(_72) @ StorageLive
-    StorageLive(_73) @ StorageLive
-    StorageLive(_74) @ StorageLive
-    Assign((_74, &amp;_62)) @ _74=&amp;_62 @ Ref
-    Assign((_73, &amp;(*_74))) @ _73=&amp;(*_74) @ Ref
-    Assign((_72, move _73 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _72=move _73 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_73) @ StorageDead
-    StorageLive(_75) @ StorageLive
-    StorageLive(_76) @ StorageLive
-    StorageLive(_77) @ StorageLive
-    Assign((_135, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[4])) @ _135=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[4] @ Use
-    Assign((_77, &amp;(*_135))) @ _77=&amp;(*_135) @ Ref
-    Assign((_76, &amp;(*_77))) @ _76=&amp;(*_77) @ Ref
-    Assign((_75, move _76 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _75=move _76 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_76) @ StorageDead
-    _61 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _68, move _72, move _75) -&gt; [return: bb16, unwind: bb35] @ Call: FnDid: 11842
-}
-bb 16 {
-CleanUp: false
-    StorageDead(_77) @ StorageDead
-    StorageDead(_75) @ StorageDead
-    StorageDead(_74) @ StorageDead
-    StorageDead(_72) @ StorageDead
-    StorageDead(_70) @ StorageDead
-    StorageDead(_68) @ StorageDead
-    _60 = alloc::fmt::format(move _61) -&gt; [return: bb17, unwind: bb35] @ Call: FnDid: 5475
-}
-bb 17 {
-CleanUp: false
-    StorageDead(_66) @ StorageDead
-    StorageDead(_65) @ StorageDead
-    StorageDead(_62) @ StorageDead
-    StorageDead(_61) @ StorageDead
-    _59 = core::hint::must_use::&lt;alloc::string::String&gt;(move _60) -&gt; [return: bb18, unwind: bb35] @ Call: FnDid: 1455
-}
-bb 18 {
-CleanUp: false
-    StorageDead(_60) @ StorageDead
-    _58 = syscall::table::FormattedSyscallParam::new(const &#34;newfd&#34;, move _59) -&gt; [return: bb19, unwind: bb35] @ Call: FnDid: 30792
-}
-bb 19 {
-CleanUp: false
-    StorageDead(_59) @ StorageDead
-    StorageLive(_82) @ StorageLive
-    StorageLive(_83) @ StorageLive
-    StorageLive(_84) @ StorageLive
-    StorageLive(_85) @ StorageLive
-    StorageLive(_86) @ StorageLive
-    StorageLive(_87) @ StorageLive
-    StorageLive(_88) @ StorageLive
-    StorageLive(_89) @ StorageLive
-    StorageLive(_90) @ StorageLive
-    StorageLive(_91) @ StorageLive
-    StorageLive(_92) @ StorageLive
-    Assign((_92, &amp;(*_2))) @ _92=&amp;(*_2) @ Ref
-    _91 = filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle::new_path(move _92) -&gt; [return: bb20, unwind: bb34] @ Call: FnDid: 20081
-}
-bb 20 {
-CleanUp: false
-    StorageDead(_92) @ StorageDead
-    Assign((_90, move _91 as usize (PointerExposeProvenance))) @ _90=move _91 as usize (PointerExposeProvenance) @ Cast
-    StorageDead(_91) @ StorageDead
-    Assign((_89, &amp;_90)) @ _89=&amp;_90 @ Ref
-    Assign((_88, &amp;(*_89))) @ _88=&amp;(*_89) @ Ref
-    _87 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _88) -&gt; [return: bb21, unwind: bb34] @ Call: FnDid: 11815
-}
-bb 21 {
-CleanUp: false
-    StorageDead(_88) @ StorageDead
-    Assign((_86, [move _87])) @ _86=[move _87] @ Aggregate
-    StorageDead(_87) @ StorageDead
-    StorageLive(_93) @ StorageLive
-    StorageLive(_94) @ StorageLive
-    StorageLive(_95) @ StorageLive
-    Assign((_134, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[3])) @ _134=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[3] @ Use
-    Assign((_95, &amp;(*_134))) @ _95=&amp;(*_134) @ Ref
-    Assign((_94, &amp;(*_95))) @ _94=&amp;(*_95) @ Ref
-    Assign((_93, move _94 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _93=move _94 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_94) @ StorageDead
-    StorageLive(_97) @ StorageLive
-    StorageLive(_98) @ StorageLive
-    StorageLive(_99) @ StorageLive
-    Assign((_99, &amp;_86)) @ _99=&amp;_86 @ Ref
-    Assign((_98, &amp;(*_99))) @ _98=&amp;(*_99) @ Ref
-    Assign((_97, move _98 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _97=move _98 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_98) @ StorageDead
-    StorageLive(_100) @ StorageLive
-    StorageLive(_101) @ StorageLive
-    StorageLive(_102) @ StorageLive
-    Assign((_133, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[2])) @ _133=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[2] @ Use
-    Assign((_102, &amp;(*_133))) @ _102=&amp;(*_133) @ Ref
-    Assign((_101, &amp;(*_102))) @ _101=&amp;(*_102) @ Ref
-    Assign((_100, move _101 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _100=move _101 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_101) @ StorageDead
-    _85 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _93, move _97, move _100) -&gt; [return: bb22, unwind: bb34] @ Call: FnDid: 11842
+    Assign((_52, &amp;_16)) @ _52=&amp;_16 @ Ref
+    _51 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _52) -&gt; [return: bb22, unwind: bb67] @ Call: FnDid: 3903
 }
 bb 22 {
 CleanUp: false
-    StorageDead(_102) @ StorageDead
-    StorageDead(_100) @ StorageDead
-    StorageDead(_99) @ StorageDead
-    StorageDead(_97) @ StorageDead
-    StorageDead(_95) @ StorageDead
-    StorageDead(_93) @ StorageDead
-    _84 = alloc::fmt::format(move _85) -&gt; [return: bb23, unwind: bb34] @ Call: FnDid: 5475
+    StorageDead(_52) @ StorageDead
+    Assign((_50, copy ((*_51).7: u32))) @ _50=copy ((*_51).7: u32) @ Use
+    Assign((_49, Gt(move _50, const 0_u32))) @ _49=Gt(move _50, const 0_u32) @ BinaryOp
+    switchInt(move _49) -&gt; [0: bb24, otherwise: bb23] @ SwitchInt
 }
 bb 23 {
 CleanUp: false
-    StorageDead(_90) @ StorageDead
-    StorageDead(_89) @ StorageDead
-    StorageDead(_86) @ StorageDead
-    StorageDead(_85) @ StorageDead
-    _83 = core::hint::must_use::&lt;alloc::string::String&gt;(move _84) -&gt; [return: bb24, unwind: bb34] @ Call: FnDid: 1455
+    StorageDead(_50) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    Assign((_48, const ())) @ _48=const () @ Use
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    StorageLive(_54) @ StorageLive
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;mut _16)) @ _55=&amp;mut _16 @ Ref
+    _54 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _55) -&gt; [return: bb25, unwind: bb67] @ Call: FnDid: 3915
 }
 bb 24 {
 CleanUp: false
-    StorageDead(_84) @ StorageDead
-    _82 = syscall::table::FormattedSyscallParam::new(const &#34;new&#34;, move _83) -&gt; [return: bb25, unwind: bb34] @ Call: FnDid: 30792
+    StorageDead(_50) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageLive(_53) @ StorageLive
+    _53 = core::panicking::panic(const &#34;assertion failed: guard.reader &gt; 0&#34;) -&gt; bb67 @ Call: FnDid: 10545
 }
 bb 25 {
 CleanUp: false
-    StorageDead(_83) @ StorageDead
-    StorageLive(_107) @ StorageLive
-    StorageLive(_108) @ StorageLive
-    StorageLive(_109) @ StorageLive
-    StorageLive(_110) @ StorageLive
-    StorageLive(_111) @ StorageLive
-    StorageLive(_112) @ StorageLive
-    StorageLive(_113) @ StorageLive
-    StorageLive(_114) @ StorageLive
-    StorageLive(_115) @ StorageLive
-    StorageLive(_116) @ StorageLive
-    Assign((_116, &amp;(*_2))) @ _116=&amp;(*_2) @ Ref
-    _115 = filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle::flags(move _116) -&gt; [return: bb26, unwind: bb33] @ Call: FnDid: 20082
+    StorageDead(_55) @ StorageDead
+    Assign((_56, SubWithOverflow(copy ((*_54).7: u32), const 1_u32))) @ _56=SubWithOverflow(copy ((*_54).7: u32), const 1_u32) @ BinaryOp
+    assert(!move (_56.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_54).7: u32), const 1_u32) -&gt; [success: bb26, unwind: bb67] @ Assert
 }
 bb 26 {
 CleanUp: false
-    StorageDead(_116) @ StorageDead
-    Assign((_114, &amp;_115)) @ _114=&amp;_115 @ Ref
-    Assign((_113, &amp;(*_114))) @ _113=&amp;(*_114) @ Ref
-    _112 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;i32&gt;(move _113) -&gt; [return: bb27, unwind: bb33] @ Call: FnDid: 11815
+    Assign((((*_54).7: u32), move (_56.0: u32))) @ ((*_54).7: u32)=move (_56.0: u32) @ Use
+    StorageDead(_54) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, &amp;_16)) @ _60=&amp;_16 @ Ref
+    _59 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _60) -&gt; [return: bb27, unwind: bb67] @ Call: FnDid: 3903
 }
 bb 27 {
 CleanUp: false
-    StorageDead(_113) @ StorageDead
-    Assign((_111, [move _112])) @ _111=[move _112] @ Aggregate
-    StorageDead(_112) @ StorageDead
-    StorageLive(_117) @ StorageLive
-    StorageLive(_118) @ StorageLive
-    StorageLive(_119) @ StorageLive
-    Assign((_132, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _132=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
-    Assign((_119, &amp;(*_132))) @ _119=&amp;(*_132) @ Ref
-    Assign((_118, &amp;(*_119))) @ _118=&amp;(*_119) @ Ref
-    Assign((_117, move _118 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _117=move _118 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_118) @ StorageDead
-    StorageLive(_121) @ StorageLive
-    StorageLive(_122) @ StorageLive
-    StorageLive(_123) @ StorageLive
-    Assign((_123, &amp;_111)) @ _123=&amp;_111 @ Ref
-    Assign((_122, &amp;(*_123))) @ _122=&amp;(*_123) @ Ref
-    Assign((_121, move _122 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _121=move _122 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_122) @ StorageDead
-    StorageLive(_124) @ StorageLive
-    StorageLive(_125) @ StorageLive
-    StorageLive(_126) @ StorageLive
-    Assign((_131, const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _131=const &lt;filesystem::vfs::syscall::sys_linkat::SysLinkAtHandle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
-    Assign((_126, &amp;(*_131))) @ _126=&amp;(*_131) @ Ref
-    Assign((_125, &amp;(*_126))) @ _125=&amp;(*_126) @ Ref
-    Assign((_124, move _125 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _124=move _125 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_125) @ StorageDead
-    _110 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _117, move _121, move _124) -&gt; [return: bb28, unwind: bb33] @ Call: FnDid: 11842
+    StorageDead(_60) @ StorageDead
+    Assign((_58, copy ((*_59).7: u32))) @ _58=copy ((*_59).7: u32) @ Use
+    Assign((_57, Eq(move _58, const 0_u32))) @ _57=Eq(move _58, const 0_u32) @ BinaryOp
+    switchInt(move _57) -&gt; [0: bb31, otherwise: bb28] @ SwitchInt
 }
 bb 28 {
 CleanUp: false
-    StorageDead(_126) @ StorageDead
-    StorageDead(_124) @ StorageDead
-    StorageDead(_123) @ StorageDead
-    StorageDead(_121) @ StorageDead
-    StorageDead(_119) @ StorageDead
-    StorageDead(_117) @ StorageDead
-    _109 = alloc::fmt::format(move _110) -&gt; [return: bb29, unwind: bb33] @ Call: FnDid: 5475
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    Assign((_114, const false)) @ _114=const false @ Use
+    Assign((_63, move _16)) @ _63=move _16 @ Use
+    _62 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _63) -&gt; [return: bb29, unwind: bb67] @ Call: FnDid: 2323
 }
 bb 29 {
 CleanUp: false
-    StorageDead(_115) @ StorageDead
-    StorageDead(_114) @ StorageDead
-    StorageDead(_111) @ StorageDead
-    StorageDead(_110) @ StorageDead
-    _108 = core::hint::must_use::&lt;alloc::string::String&gt;(move _109) -&gt; [return: bb30, unwind: bb33] @ Call: FnDid: 1455
+    StorageDead(_63) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;((*_1).2: libs::wait_queue::WaitQueue))) @ _65=&amp;((*_1).2: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_66) @ StorageLive
+    Assign((_66, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _66=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _64 = libs::wait_queue::WaitQueue::wakeup_all(move _65, move _66) -&gt; [return: bb30, unwind: bb67] @ Call: FnDid: 5651
 }
 bb 30 {
 CleanUp: false
-    StorageDead(_109) @ StorageDead
-    _107 = syscall::table::FormattedSyscallParam::new(const &#34;flags&#34;, move _108) -&gt; [return: bb31, unwind: bb33] @ Call: FnDid: 30792
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_64) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    Assign((_67, ())) @ _67=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _67))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _67) @ Aggregate
+    StorageDead(_67) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    goto -&gt; bb65 @ Goto
 }
 bb 31 {
 CleanUp: false
-    StorageDead(_108) @ StorageDead
-    Assign((_144, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute))) @ _144=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute) @ Cast
-    Assign((_145, copy _144 as *const () (PtrToPtr))) @ _145=copy _144 as *const () (PtrToPtr) @ Cast
-    Assign((_146, copy _145 as usize (Transmute))) @ _146=copy _145 as usize (Transmute) @ Cast
-    Assign((_147, AlignOf([syscall::table::FormattedSyscallParam; 5]))) @ _147=AlignOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
-    Assign((_148, Sub(copy _147, const 1_usize))) @ _148=Sub(copy _147, const 1_usize) @ BinaryOp
-    Assign((_149, BitAnd(copy _146, copy _148))) @ _149=BitAnd(copy _146, copy _148) @ BinaryOp
-    Assign((_150, Eq(copy _149, const 0_usize))) @ _150=Eq(copy _149, const 0_usize) @ BinaryOp
-    assert(copy _150, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _147, copy _146) -&gt; [success: bb39, unwind unreachable] @ Assert
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    Assign((_43, const ())) @ _43=const () @ Use
+    StorageDead(_57) @ StorageDead
+    goto -&gt; bb33 @ Goto
 }
 bb 32 {
 CleanUp: false
-    StorageDead(_3) @ StorageDead
-    return @ Return
+    StorageDead(_46) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    Assign((_43, const ())) @ _43=const () @ Use
+    goto -&gt; bb33 @ Goto
 }
 bb 33 {
-CleanUp: true
-    drop(_82) -&gt; [return: bb34, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, &amp;_14)) @ _70=&amp;_14 @ Ref
+    StorageLive(_71) @ StorageLive
+    Assign((_111, const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close::promoted[0])) @ _111=const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::close::promoted[0] @ Use
+    Assign((_71, &amp;(*_111))) @ _71=&amp;(*_111) @ Ref
+    _69 = &lt;filesystem::vfs::file::FileFlags as core::cmp::PartialEq&gt;::eq(move _70, move _71) -&gt; [return: bb34, unwind: bb67] @ Call: FnDid: 3170
 }
 bb 34 {
-CleanUp: true
-    drop(_58) -&gt; [return: bb35, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    switchInt(move _69) -&gt; [0: bb57, otherwise: bb35] @ SwitchInt
 }
 bb 35 {
-CleanUp: true
-    drop(_33) -&gt; [return: bb36, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    Assign((_77, &amp;_16)) @ _77=&amp;_16 @ Ref
+    _76 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _77) -&gt; [return: bb36, unwind: bb67] @ Call: FnDid: 3903
 }
 bb 36 {
-CleanUp: true
-    drop(_9) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_77) @ StorageDead
+    Assign((_75, copy ((*_76).7: u32))) @ _75=copy ((*_76).7: u32) @ Use
+    Assign((_74, Gt(move _75, const 0_u32))) @ _74=Gt(move _75, const 0_u32) @ BinaryOp
+    switchInt(move _74) -&gt; [0: bb38, otherwise: bb37] @ SwitchInt
 }
 bb 37 {
-CleanUp: true
-    resume @ UnwindResume
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    Assign((_73, const ())) @ _73=const () @ Use
+    StorageDead(_74) @ StorageDead
+    StorageDead(_73) @ StorageDead
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    StorageLive(_81) @ StorageLive
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;_16)) @ _83=&amp;_16 @ Ref
+    _82 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _83) -&gt; [return: bb39, unwind: bb67] @ Call: FnDid: 3903
 }
 bb 38 {
-CleanUp: true
-    Assign((_143, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute))) @ _143=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 5]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 5]&gt;) as *const [syscall::table::FormattedSyscallParam; 5] (Transmute) @ Cast
-    Assign((_141, &amp;mut _8)) @ _141=&amp;mut _8 @ Ref
-    _142 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 5]&gt; as core::ops::Drop&gt;::drop(move _141) -&gt; [return: bb41, unwind terminate(cleanup)] @ Call: FnDid: 3937
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageLive(_78) @ StorageLive
+    _78 = core::panicking::panic(const &#34;assertion failed: guard.reader &gt; 0&#34;) -&gt; bb67 @ Call: FnDid: 10545
 }
 bb 39 {
 CleanUp: false
-    Assign((_151, copy _144 as *const () (PtrToPtr))) @ _151=copy _144 as *const () (PtrToPtr) @ Cast
-    Assign((_152, copy _151 as usize (Transmute))) @ _152=copy _151 as usize (Transmute) @ Cast
-    Assign((_153, SizeOf([syscall::table::FormattedSyscallParam; 5]))) @ _153=SizeOf([syscall::table::FormattedSyscallParam; 5]) @ NullaryOp
-    Assign((_154, Ne(copy _153, const 0_usize))) @ _154=Ne(copy _153, const 0_usize) @ BinaryOp
-    Assign((_155, Eq(copy _152, const 0_usize))) @ _155=Eq(copy _152, const 0_usize) @ BinaryOp
-    Assign((_156, BitAnd(copy _155, copy _154))) @ _156=BitAnd(copy _155, copy _154) @ BinaryOp
-    Assign((_157, Not(copy _156))) @ _157=Not(copy _156) @ UnaryOp
-    assert(copy _157, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb40, unwind unreachable] @ Assert
+    StorageDead(_83) @ StorageDead
+    Assign((_81, copy ((*_82).8: u32))) @ _81=copy ((*_82).8: u32) @ Use
+    Assign((_80, Gt(move _81, const 0_u32))) @ _80=Gt(move _81, const 0_u32) @ BinaryOp
+    switchInt(move _80) -&gt; [0: bb41, otherwise: bb40] @ SwitchInt
 }
 bb 40 {
 CleanUp: false
-    Assign(((*_144), [move _9, move _33, move _58, move _82, move _107])) @ (*_144)=[move _9, move _33, move _58, move _82, move _107] @ Aggregate
-    StorageDead(_107) @ StorageDead
+    StorageDead(_81) @ StorageDead
     StorageDead(_82) @ StorageDead
-    StorageDead(_58) @ StorageDead
-    StorageDead(_33) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    Assign((_4, move _8)) @ _4=move _8 @ Use
-    Assign((_3, move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_8) @ StorageDead
-    StorageDead(_4) @ StorageDead
-    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _3) -&gt; [return: bb32, unwind: bb37] @ Call: FnDid: 6192
+    Assign((_79, const ())) @ _79=const () @ Use
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    Assign((_86, &amp;mut _16)) @ _86=&amp;mut _16 @ Ref
+    _85 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _86) -&gt; [return: bb42, unwind: bb67] @ Call: FnDid: 3915
 }
 bb 41 {
+CleanUp: false
+    StorageDead(_81) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    _84 = core::panicking::panic(const &#34;assertion failed: guard.writer &gt; 0&#34;) -&gt; bb67 @ Call: FnDid: 10545
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_86) @ StorageDead
+    Assign((_87, SubWithOverflow(copy ((*_85).7: u32), const 1_u32))) @ _87=SubWithOverflow(copy ((*_85).7: u32), const 1_u32) @ BinaryOp
+    assert(!move (_87.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_85).7: u32), const 1_u32) -&gt; [success: bb43, unwind: bb67] @ Assert
+}
+bb 43 {
+CleanUp: false
+    Assign((((*_85).7: u32), move (_87.0: u32))) @ ((*_85).7: u32)=move (_87.0: u32) @ Use
+    StorageDead(_85) @ StorageDead
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    Assign((_89, &amp;mut _16)) @ _89=&amp;mut _16 @ Ref
+    _88 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _89) -&gt; [return: bb44, unwind: bb67] @ Call: FnDid: 3915
+}
+bb 44 {
+CleanUp: false
+    StorageDead(_89) @ StorageDead
+    Assign((_90, SubWithOverflow(copy ((*_88).8: u32), const 1_u32))) @ _90=SubWithOverflow(copy ((*_88).8: u32), const 1_u32) @ BinaryOp
+    assert(!move (_90.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_88).8: u32), const 1_u32) -&gt; [success: bb45, unwind: bb67] @ Assert
+}
+bb 45 {
+CleanUp: false
+    Assign((((*_88).8: u32), move (_90.0: u32))) @ ((*_88).8: u32)=move (_90.0: u32) @ Use
+    StorageDead(_88) @ StorageDead
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    Assign((_94, &amp;_16)) @ _94=&amp;_16 @ Ref
+    _93 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _94) -&gt; [return: bb46, unwind: bb67] @ Call: FnDid: 3903
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_94) @ StorageDead
+    Assign((_92, copy ((*_93).8: u32))) @ _92=copy ((*_93).8: u32) @ Use
+    Assign((_91, Eq(move _92, const 0_u32))) @ _91=Eq(move _92, const 0_u32) @ BinaryOp
+    StorageDead(_92) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_98, &amp;_16)) @ _98=&amp;_16 @ Ref
+    _97 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _98) -&gt; [return: bb47, unwind: bb67] @ Call: FnDid: 3903
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    Assign((_96, copy ((*_97).7: u32))) @ _96=copy ((*_97).7: u32) @ Use
+    Assign((_95, Eq(move _96, const 0_u32))) @ _95=Eq(move _96, const 0_u32) @ BinaryOp
+    StorageDead(_96) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    Assign((_114, const false)) @ _114=const false @ Use
+    Assign((_100, move _16)) @ _100=move _16 @ Use
+    _99 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _100) -&gt; [return: bb48, unwind: bb67] @ Call: FnDid: 2323
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_100) @ StorageDead
+    StorageDead(_99) @ StorageDead
+    StorageLive(_101) @ StorageLive
+    StorageLive(_102) @ StorageLive
+    Assign((_102, copy _91)) @ _102=copy _91 @ Use
+    switchInt(move _102) -&gt; [0: bb51, otherwise: bb49] @ SwitchInt
+}
+bb 49 {
+CleanUp: false
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    Assign((_104, &amp;((*_1).1: libs::wait_queue::WaitQueue))) @ _104=&amp;((*_1).1: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_105) @ StorageLive
+    Assign((_105, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _105=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _103 = libs::wait_queue::WaitQueue::wakeup_all(move _104, move _105) -&gt; [return: bb50, unwind: bb67] @ Call: FnDid: 5651
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_105) @ StorageDead
+    StorageDead(_104) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    Assign((_101, const ())) @ _101=const () @ Use
+    goto -&gt; bb52 @ Goto
+}
+bb 51 {
+CleanUp: false
+    Assign((_101, const ())) @ _101=const () @ Use
+    goto -&gt; bb52 @ Goto
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    StorageLive(_106) @ StorageLive
+    Assign((_106, copy _95)) @ _106=copy _95 @ Use
+    switchInt(move _106) -&gt; [0: bb55, otherwise: bb53] @ SwitchInt
+}
+bb 53 {
+CleanUp: false
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    Assign((_108, &amp;((*_1).2: libs::wait_queue::WaitQueue))) @ _108=&amp;((*_1).2: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_109) @ StorageLive
+    Assign((_109, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _109=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _107 = libs::wait_queue::WaitQueue::wakeup_all(move _108, move _109) -&gt; [return: bb54, unwind: bb67] @ Call: FnDid: 5651
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_109) @ StorageDead
+    StorageDead(_108) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    Assign((_68, const ())) @ _68=const () @ Use
+    goto -&gt; bb56 @ Goto
+}
+bb 55 {
+CleanUp: false
+    Assign((_68, const ())) @ _68=const () @ Use
+    goto -&gt; bb56 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_106) @ StorageDead
+    StorageDead(_95) @ StorageDead
+    StorageDead(_91) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 57 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_68, const ())) @ _68=const () @ Use
+    goto -&gt; bb58 @ Goto
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageLive(_110) @ StorageLive
+    Assign((_110, ())) @ _110=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _110))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _110) @ Aggregate
+    StorageDead(_110) @ StorageDead
+    goto -&gt; bb65 @ Goto
+}
+bb 59 {
+CleanUp: false
+    Assign((_114, const false)) @ _114=const false @ Use
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb60 @ Goto
+}
+bb 60 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    drop(_2) -&gt; [return: bb61, unwind: bb63] @ Drop
+}
+bb 61 {
+CleanUp: false
+    return @ Return
+}
+bb 62 {
 CleanUp: true
-    goto -&gt; bb37 @ Goto
+    drop(_2) -&gt; [return: bb63, unwind terminate(cleanup)] @ Drop
+}
+bb 63 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 64 {
+CleanUp: false
+    drop(_16) -&gt; [return: bb59, unwind: bb62] @ Drop
+}
+bb 65 {
+CleanUp: false
+    switchInt(copy _114) -&gt; [0: bb59, otherwise: bb64] @ SwitchInt
+}
+bb 66 {
+CleanUp: true
+    drop(_16) -&gt; [return: bb62, unwind terminate(cleanup)] @ Drop
+}
+bb 67 {
+CleanUp: true
+    switchInt(copy _114) -&gt; [0: bb62, otherwise: bb66] @ SwitchInt
 }
 
 </div>

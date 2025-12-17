@@ -13,7 +13,7 @@
         <h1>
             Report #33
             
-                 <span class="func-name">driver::net::virtio_net::{impl#20}::new</span>
+                 <span class="func-name">driver::net::{impl#2}::poll</span>
             
         </h1>
 
@@ -25,98 +25,161 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:07:59|RAP|WARN|: Double free detected in function &#34;new&#34;
-warning: Double free detected during unwinding.
-   --&gt; src/driver/net/virtio_net.rs:519:1
+                    <pre id="logContent" class="code-block scrollable">22:07:59|RAP|WARN|: Dangling pointer detected in function &#34;poll&#34;
+warning: Dangling pointer detected.
+   --&gt; src/driver/net/mod.rs:256:1
     |
-519 | / pub fn new(mut device_inner: VirtIONicDeviceInner) -&gt; Arc&lt;Self&gt; {
-520 | |         let iface_id = generate_iface_id();
-521 | |         let mut iface_config = iface::Config::new(wire::HardwareAddress::Ethernet(
-522 | |             wire::EthernetAddress(device_inner.inner.lock().mac_address()),
-523 | |         ));
-524 | |         iface_config.random_seed = rand() as u64;
-525 | |
-526 | |         let iface = iface::Interface::new(iface_config, &amp;mut device_inner, Instant::now().into());
-527 | |
-528 | |         let flags = InterfaceFlags::UP
-529 | |             | InterfaceFlags::BROADCAST
-530 | |             | InterfaceFlags::RUNNING
-531 | |             | InterfaceFlags::MULTICAST
-532 | |             | InterfaceFlags::LOWER_UP;
-533 | |
-534 | |         let iface = Arc::new(VirtioInterface {
-535 | |             device_inner: VirtIONicDeviceInnerWrapper(UnsafeCell::new(device_inner)),
-536 | |             locked_kobj_state: LockedKObjectState::default(),
-537 | |             iface_name: format!(&#34;eth{}&#34;, iface_id),
-538 | |             iface_common: super::IfaceCommon::new(
-539 | |                 iface_id,
-540 | |                 crate::driver::net::types::InterfaceType::EETHER,
-541 | |                 flags,
-542 | |                 iface,
-543 | |             ),
-544 | |             inner: SpinLock::new(InnerVirtIOInterface {
-545 | |                 kobj_common: KObjectCommonData::default(),
-546 | |                 device_common: DeviceCommonData::default(),
-547 | |                 netdevice_common: NetDeviceCommonData::default(),
-548 | |             }),
-549 | |         });
-550 | |
-551 | |         // 设置napi struct
-552 | |         let napi_struct = NapiStruct::new(iface.clone(), 10);
-553 | |         *iface.common().napi_struct.write() = Some(napi_struct);
-554 | |
-555 | |         iface
-556 | |     }
-    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 519.
-    | MIR detail: Value _45(_, src/driver/net/virtio_net.rs:538) and _45(_, src/driver/net/virtio_net.rs:538) are alias.
-    | MIR detail: _45(_, src/driver/net/virtio_net.rs:538) is dropped at BB43(src/driver/net/virtio_net.rs:549); _45(_, src/driver/net/virtio_net.rs:538) is dropped at BB43(src/driver/net/virtio_net.rs:549).
+256 | / pub fn poll&lt;D&gt;(&amp;self, device: &amp;mut D) -&gt; bool
+257 | |     where
+258 | |         D: smoltcp::phy::Device + ?Sized,
+259 | |     {
+260 | |         let timestamp = crate::time::Instant::now().into();
+261 | |         let mut sockets = self.sockets.lock_irqsave();
+262 | |         let mut interface = self.smol_iface.lock_irqsave();
+263 | |
+264 | |         let (has_events, poll_at) = {
+265 | |             (
+266 | |                 matches!(
+267 | |                     interface.poll(timestamp, device, &amp;mut sockets),
+268 | |                     smoltcp::iface::PollResult::SocketStateChanged
+269 | |                 ),
+270 | |                 loop {
+271 | |                     let poll_at = interface.poll_at(timestamp, &amp;sockets);
+272 | |                     let Some(instant) = poll_at else {
+273 | |                         break poll_at;
+274 | |                     };
+275 | |                     if instant &gt; timestamp {
+276 | |                         break poll_at;
+277 | |                     }
+278 | |                 },
+279 | |             )
+280 | |         };
+281 | |
+282 | |         // drop sockets here to avoid deadlock
+283 | |         drop(interface);
+284 | |         drop(sockets);
+285 | |         // log::info!(
+286 | |         //     &#34;polling iface {}, has_events: {}, poll_at: {:?}&#34;,
+287 | |         //     self.iface_id,
+288 | |         //     has_events,
+289 | |         //     poll_at
+290 | |         // );
+291 | |
+292 | |         use core::sync::atomic::Ordering;
+293 | |         if let Some(instant) = poll_at {
+294 | |             let _old_instant = self.poll_at_ms.load(Ordering::Relaxed);
+295 | |             let new_instant = instant.total_millis() as u64;
+296 | |             self.poll_at_ms.store(new_instant, Ordering::Relaxed);
+297 | |
+298 | |             // TODO: poll at
+299 | |             // if old_instant == 0 || new_instant &lt; old_instant {
+300 | |             //     self.polling_wait_queue.wake_all();
+301 | |             // }
+302 | |         } else {
+303 | |             self.poll_at_ms.store(0, Ordering::Relaxed);
+304 | |         }
+305 | |
+306 | |         self.bounds.read_irqsave().iter().for_each(|bound_socket| {
+307 | |             // incase our inet socket missed the event, we manually notify it each time we poll
+308 | |             if has_events {
+309 | |                 bound_socket.notify();
+310 | |                 let _woke = bound_socket
+311 | |                     .wait_queue()
+312 | |                     .wakeup(Some(ProcessState::Blocked(true)));
+313 | |             }
+314 | |         });
+315 | |
+316 | |         // TODO: remove closed sockets
+317 | |         // let closed_sockets = self
+318 | |         //     .closing_sockets
+319 | |         //     .lock_irq_disabled()
+320 | |         //     .extract_if(|closing_socket| closing_socket.is_closed())
+321 | |         //     .collect::&lt;Vec&lt;_&gt;&gt;();
+322 | |         // drop(closed_sockets);
+323 | |         has_events
+324 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/net/mod.rs line 256.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in poll and _1(self, src/driver/net/mod.rs:256) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in poll is dropped at BB18446744073709551615(src/driver/net/mod.rs:256); _1(self, src/driver/net/mod.rs:256) became dangling.
     |
-warning: Double free detected during unwinding.
-   --&gt; src/driver/net/virtio_net.rs:519:1
+22:07:59|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;poll&#34;
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/driver/net/mod.rs:256:1
     |
-519 | / pub fn new(mut device_inner: VirtIONicDeviceInner) -&gt; Arc&lt;Self&gt; {
-520 | |         let iface_id = generate_iface_id();
-521 | |         let mut iface_config = iface::Config::new(wire::HardwareAddress::Ethernet(
-522 | |             wire::EthernetAddress(device_inner.inner.lock().mac_address()),
-523 | |         ));
-524 | |         iface_config.random_seed = rand() as u64;
-525 | |
-526 | |         let iface = iface::Interface::new(iface_config, &amp;mut device_inner, Instant::now().into());
-527 | |
-528 | |         let flags = InterfaceFlags::UP
-529 | |             | InterfaceFlags::BROADCAST
-530 | |             | InterfaceFlags::RUNNING
-531 | |             | InterfaceFlags::MULTICAST
-532 | |             | InterfaceFlags::LOWER_UP;
-533 | |
-534 | |         let iface = Arc::new(VirtioInterface {
-535 | |             device_inner: VirtIONicDeviceInnerWrapper(UnsafeCell::new(device_inner)),
-536 | |             locked_kobj_state: LockedKObjectState::default(),
-537 | |             iface_name: format!(&#34;eth{}&#34;, iface_id),
-538 | |             iface_common: super::IfaceCommon::new(
-539 | |                 iface_id,
-540 | |                 crate::driver::net::types::InterfaceType::EETHER,
-541 | |                 flags,
-542 | |                 iface,
-543 | |             ),
-544 | |             inner: SpinLock::new(InnerVirtIOInterface {
-545 | |                 kobj_common: KObjectCommonData::default(),
-546 | |                 device_common: DeviceCommonData::default(),
-547 | |                 netdevice_common: NetDeviceCommonData::default(),
-548 | |             }),
-549 | |         });
-550 | |
-551 | |         // 设置napi struct
-552 | |         let napi_struct = NapiStruct::new(iface.clone(), 10);
-553 | |         *iface.common().napi_struct.write() = Some(napi_struct);
-554 | |
-555 | |         iface
-556 | |     }
-    | |_____- Double free (confidence 99%): Location in file src/driver/net/virtio_net.rs line 519.
-    | MIR detail: Value _27(iface, src/driver/net/virtio_net.rs:534) and _27(iface, src/driver/net/virtio_net.rs:534) are alias.
-    | MIR detail: _27(iface, src/driver/net/virtio_net.rs:534) is dropped at BB40(src/driver/net/virtio_net.rs:556); _27(iface, src/driver/net/virtio_net.rs:534) is dropped at BB40(src/driver/net/virtio_net.rs:556).
+256 | / pub fn poll&lt;D&gt;(&amp;self, device: &amp;mut D) -&gt; bool
+257 | |     where
+258 | |         D: smoltcp::phy::Device + ?Sized,
+259 | |     {
+260 | |         let timestamp = crate::time::Instant::now().into();
+261 | |         let mut sockets = self.sockets.lock_irqsave();
+262 | |         let mut interface = self.smol_iface.lock_irqsave();
+263 | |
+264 | |         let (has_events, poll_at) = {
+265 | |             (
+266 | |                 matches!(
+267 | |                     interface.poll(timestamp, device, &amp;mut sockets),
+268 | |                     smoltcp::iface::PollResult::SocketStateChanged
+269 | |                 ),
+270 | |                 loop {
+271 | |                     let poll_at = interface.poll_at(timestamp, &amp;sockets);
+272 | |                     let Some(instant) = poll_at else {
+273 | |                         break poll_at;
+274 | |                     };
+275 | |                     if instant &gt; timestamp {
+276 | |                         break poll_at;
+277 | |                     }
+278 | |                 },
+279 | |             )
+280 | |         };
+281 | |
+282 | |         // drop sockets here to avoid deadlock
+283 | |         drop(interface);
+284 | |         drop(sockets);
+285 | |         // log::info!(
+286 | |         //     &#34;polling iface {}, has_events: {}, poll_at: {:?}&#34;,
+287 | |         //     self.iface_id,
+288 | |         //     has_events,
+289 | |         //     poll_at
+290 | |         // );
+291 | |
+292 | |         use core::sync::atomic::Ordering;
+293 | |         if let Some(instant) = poll_at {
+294 | |             let _old_instant = self.poll_at_ms.load(Ordering::Relaxed);
+295 | |             let new_instant = instant.total_millis() as u64;
+296 | |             self.poll_at_ms.store(new_instant, Ordering::Relaxed);
+297 | |
+298 | |             // TODO: poll at
+299 | |             // if old_instant == 0 || new_instant &lt; old_instant {
+300 | |             //     self.polling_wait_queue.wake_all();
+301 | |             // }
+302 | |         } else {
+303 | |             self.poll_at_ms.store(0, Ordering::Relaxed);
+304 | |         }
+305 | |
+306 | |         self.bounds.read_irqsave().iter().for_each(|bound_socket| {
+307 | |             // incase our inet socket missed the event, we manually notify it each time we poll
+308 | |             if has_events {
+309 | |                 bound_socket.notify();
+310 | |                 let _woke = bound_socket
+311 | |                     .wait_queue()
+312 | |                     .wakeup(Some(ProcessState::Blocked(true)));
+313 | |             }
+314 | |         });
+315 | |
+316 | |         // TODO: remove closed sockets
+317 | |         // let closed_sockets = self
+318 | |         //     .closing_sockets
+319 | |         //     .lock_irq_disabled()
+320 | |         //     .extract_if(|closing_socket| closing_socket.is_closed())
+321 | |         //     .collect::&lt;Vec&lt;_&gt;&gt;();
+322 | |         // drop(closed_sockets);
+323 | |         has_events
+324 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/driver/net/mod.rs line 256.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in poll and _1(self, src/driver/net/mod.rs:256) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in poll is dropped at BB18446744073709551615(src/driver/net/mod.rs:256); _1(self, src/driver/net/mod.rs:256) became dangling.
     |
-render dot for DefId(0:11670 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{impl#20}::new)
+render dot for DefId(0:11817 ~ dragonos_kernel[9e38]::driver::net::{impl#2}::poll)
 </pre>
                 </div>
             
@@ -127,388 +190,390 @@ render dot for DefId(0:11670 ~ dragonos_kernel[9e38]::driver::net::virtio_net::{
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/virtio_net.rs:520:13: 520:21
-bb1 at src/driver/net/virtio_net.rs:521:13: 521:29
-bb2 at src/driver/net/virtio_net.rs:522:35: 522:53
-bb3 at src/driver/net/virtio_net.rs:522:35: 522:60
-bb4 at src/driver/net/virtio_net.rs:522:35: 522:60
-bb5 at src/driver/net/virtio_net.rs:522:35: 522:60
-bb6 at src/driver/net/virtio_net.rs:522:73: 522:74
-bb7 at src/driver/net/virtio_net.rs:523:10: 523:11
-bb8 at src/driver/net/virtio_net.rs:523:11: 523:12
-bb9 at src/driver/net/virtio_net.rs:524:9: 524:49
-bb11 at src/driver/net/virtio_net.rs:526:96: 526:97
-bb12 at src/driver/net/virtio_net.rs:526:97: 526:98
-bb14 at src/driver/net/virtio_net.rs:530:37: 530:38
-bb15 at src/driver/net/virtio_net.rs:531:39: 531:40
-bb16 at src/driver/net/virtio_net.rs:532:38: 532:39
-bb17 at src/driver/net/virtio_net.rs:535:83: 535:84
-bb18 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:107:9: 109:11
-bb19 at src/driver/net/virtio_net.rs:537:38: 537:39
-bb20 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb21 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb23 at src/driver/net/virtio_net.rs:543:13: 543:14
-bb24 at src/driver/net/virtio_net.rs:546:32: 546:59
-bb25 at src/driver/net/virtio_net.rs:547:35: 547:65
-bb26 at src/driver/net/virtio_net.rs:544:34: 548:14
-bb27 at src/driver/net/virtio_net.rs:548:14: 548:15
-bb28 at src/driver/net/virtio_net.rs:549:10: 549:11
-bb29 at src/driver/net/virtio_net.rs:552:43: 552:56
-bb30 at src/driver/net/virtio_net.rs:552:60: 552:61
-bb31 at src/driver/net/virtio_net.rs:553:10: 553:15
-bb32 at src/driver/net/virtio_net.rs:553:23: 553:24
-bb33 at src/driver/net/virtio_net.rs:553:10: 553:44
-bb34 at src/driver/net/virtio_net.rs:553:43: 553:44
-bb35 at src/driver/net/virtio_net.rs:553:9: 553:44
-bb36 at src/driver/net/virtio_net.rs:553:9: 553:44
-bb37 at src/driver/net/virtio_net.rs:553:64: 553:65
-fn driver::net::virtio_net::VirtioInterface::new
-_0:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
-_1:  @ driver::net::virtio_net::VirtIONicDeviceInner 
-_2:  @ usize 
-_3:  @ smoltcp::iface::Config 
-_4:  @ smoltcp::wire::HardwareAddress 
-_5:  @ smoltcp::wire::EthernetAddress 
-_6:  @ [u8; 6_usize] 
-_7:  @ &amp;&#39;{erased} virtio_drivers::device::net::VirtIONet&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport, 2_usize&gt; 
-_8:  @ &amp;&#39;{erased} virtio_drivers::device::net::VirtIONet&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport, 2_usize&gt; 
-_9:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIoNetImpl 
-_10:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtIoNetImpl 
-_11:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::virtio_net::VirtIoNetImpl&gt; 
-_12:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::net::virtio_net::VirtIoNetImpl&gt; 
-_13:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::net::virtio_net::VirtIoNetImpl&gt; 
-_14:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::net::virtio_net::VirtIoNetImpl&gt; 
-_15:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::virtio_net::VirtIoNetImpl&gt;, alloc::alloc::Global&gt; 
-_16:  @ usize 
-_17:  @ smoltcp::iface::Interface 
-_18:  @ smoltcp::iface::Config 
-_19:  @ &amp;&#39;{erased} mut driver::net::virtio_net::VirtIONicDeviceInner 
-_20:  @ &amp;&#39;{erased} mut driver::net::virtio_net::VirtIONicDeviceInner 
-_21:  @ smoltcp::time::Instant 
-_22:  @ time::Instant 
-_23:  @ driver::net::types::InterfaceFlags 
-_24:  @ driver::net::types::InterfaceFlags 
-_25:  @ driver::net::types::InterfaceFlags 
-_26:  @ driver::net::types::InterfaceFlags 
-_27:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
-_28:  @ driver::net::virtio_net::VirtioInterface 
-_29:  @ driver::net::virtio_net::VirtIONicDeviceInnerWrapper 
-_30:  @ core::cell::UnsafeCell&lt;driver::net::virtio_net::VirtIONicDeviceInner&gt; 
-_31:  @ driver::net::virtio_net::VirtIONicDeviceInner 
-_32:  @ driver::base::kobject::LockedKObjectState 
-_33:  @ alloc::string::String 
-_34:  @ alloc::string::String 
-_35:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_36:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_37:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_38:  @ &amp;&#39;{erased} usize 
-_39:  @ &amp;&#39;{erased} usize 
-_40:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_41:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_42:  @ [&amp;&#39;{erased} str; 1_usize] 
-_43:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_44:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_45:  @ driver::net::IfaceCommon 
-_46:  @ usize 
-_47:  @ driver::net::types::InterfaceType 
-_48:  @ driver::net::types::InterfaceFlags 
-_49:  @ smoltcp::iface::Interface 
-_50:  @ libs::spinlock::SpinLock&lt;driver::net::virtio_net::InnerVirtIOInterface&gt; 
-_51:  @ driver::net::virtio_net::InnerVirtIOInterface 
-_52:  @ driver::base::kobject::KObjectCommonData 
-_53:  @ driver::base::device::DeviceCommonData 
-_54:  @ driver::net::NetDeviceCommonData 
-_55:  @ alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt; 
-_56:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::net::Iface), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_57:  @ alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
-_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
-_59:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt; 
-_60:  @ alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt; 
-_61:  @ &amp;&#39;{erased} mut core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt; 
-_62:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt;&gt; 
-_63:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt;&gt; 
-_64:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct, alloc::alloc::Global&gt;&gt;&gt; 
-_65:  @ &amp;&#39;{erased} driver::net::IfaceCommon 
-_66:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
-_67:  @ &amp;&#39;{erased} driver::net::virtio_net::VirtioInterface 
-_68:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface, alloc::alloc::Global&gt; 
-_69:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_70:  @ bool 
-_71:  @ bool 
-_72:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/net/mod.rs:260:13: 260:22
+bb2 at src/driver/net/mod.rs:260:58: 260:59
+bb3 at src/driver/net/mod.rs:261:53: 261:54
+bb4 at src/driver/net/mod.rs:262:58: 262:59
+bb5 at src/driver/net/mod.rs:267:21: 267:30
+bb6 at src/driver/net/mod.rs:267:55: 267:67
+bb7 at src/driver/net/mod.rs:267:67: 267:68
+bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:438:18: 438:23
+bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/macros/mod.rs:437:39: 437:43
+bb10 at src/driver/net/mod.rs:270:17: 278:18
+bb11 at src/driver/net/mod.rs:271:25: 271:32
+bb12 at src/driver/net/mod.rs:271:35: 271:44
+bb13 at src/driver/net/mod.rs:271:64: 271:72
+bb14 at src/driver/net/mod.rs:271:72: 271:73
+bb15 at src/driver/net/mod.rs:273:31: 273:38
+bb16 at src/driver/net/mod.rs:272:30: 272:37
+bb18 at src/driver/net/mod.rs:275:42: 275:43
+bb19 at src/driver/net/mod.rs:275:42: 275:43
+bb20 at src/driver/net/mod.rs:278:17: 278:18
+bb21 at src/driver/net/mod.rs:283:23: 283:24
+bb22 at src/driver/net/mod.rs:284:21: 284:22
+bb23 at src/driver/net/mod.rs:293:21: 293:28
+bb24 at src/driver/net/mod.rs:294:70: 294:71
+bb25 at src/driver/net/mod.rs:295:52: 295:53
+bb26 at src/driver/net/mod.rs:296:65: 296:66
+bb27 at src/driver/net/mod.rs:303:13: 303:56
+bb28 at src/driver/net/mod.rs:303:55: 303:56
+bb29 at src/driver/net/mod.rs:304:9: 304:10
+bb30 at src/driver/net/mod.rs:306:9: 306:35
+bb31 at src/driver/net/mod.rs:306:9: 306:35
+bb32 at src/driver/net/mod.rs:306:9: 306:35
+bb33 at src/driver/net/mod.rs:306:41: 306:42
+bb34 at src/driver/net/mod.rs:314:10: 314:11
+bb35 at src/driver/net/mod.rs:314:11: 314:12
+fn driver::net::IfaceCommon::poll
+_0:  @ bool 
+_1:  @ &amp;&#39;{erased} driver::net::IfaceCommon 
+_2:  @ &amp;&#39;{erased} mut D/#0 
+_3:  @ smoltcp::time::Instant 
+_4:  @ time::Instant 
+_5:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_6:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_7:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::Interface&gt; 
+_8:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;smoltcp::iface::Interface&gt; 
+_9:  @ bool 
+_10:  @ core::option::Option&lt;smoltcp::time::Instant&gt; 
+_11:  @ (bool, core::option::Option&lt;smoltcp::time::Instant&gt;) 
+_12:  @ bool 
+_13:  @ smoltcp::iface::PollResult 
+_14:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_15:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_16:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::Interface&gt; 
+_17:  @ smoltcp::time::Instant 
+_18:  @ &amp;&#39;{erased} mut D/#0 
+_19:  @ &amp;&#39;{erased} mut smoltcp::iface::SocketSet&lt;&#39;{erased}&gt; 
+_20:  @ &amp;&#39;{erased} mut smoltcp::iface::SocketSet&lt;&#39;{erased}&gt; 
+_21:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_22:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_23:  @ isize 
+_24:  @ core::option::Option&lt;smoltcp::time::Instant&gt; 
+_25:  @ () 
+_26:  @ core::option::Option&lt;smoltcp::time::Instant&gt; 
+_27:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_28:  @ &amp;&#39;{erased} mut smoltcp::iface::Interface 
+_29:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::Interface&gt; 
+_30:  @ smoltcp::time::Instant 
+_31:  @ &amp;&#39;{erased} smoltcp::iface::SocketSet&lt;&#39;{erased}&gt; 
+_32:  @ &amp;&#39;{erased} smoltcp::iface::SocketSet&lt;&#39;{erased}&gt; 
+_33:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_34:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_35:  @ ! 
+_36:  @ smoltcp::time::Instant 
+_37:  @ isize 
+_38:  @ bool 
+_39:  @ &amp;&#39;{erased} smoltcp::time::Instant 
+_40:  @ &amp;&#39;{erased} smoltcp::time::Instant 
+_41:  @ ! 
+_42:  @ () 
+_43:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::Interface&gt; 
+_44:  @ () 
+_45:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, smoltcp::iface::SocketSet&lt;&#39;{erased}&gt;&gt; 
+_46:  @ () 
+_47:  @ isize 
+_48:  @ smoltcp::time::Instant 
+_49:  @ u64 
+_50:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU64 
+_51:  @ core::sync::atomic::Ordering 
+_52:  @ u64 
+_53:  @ i64 
+_54:  @ &amp;&#39;{erased} smoltcp::time::Instant 
+_55:  @ () 
+_56:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU64 
+_57:  @ u64 
+_58:  @ core::sync::atomic::Ordering 
+_59:  @ () 
+_60:  @ &amp;&#39;{erased} core::sync::atomic::AtomicU64 
+_61:  @ core::sync::atomic::Ordering 
+_62:  @ () 
+_63:  @ core::slice::Iter&lt;&#39;{erased}, alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
+_64:  @ &amp;&#39;{erased} [alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;] 
+_65:  @ &amp;&#39;{erased} [alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;] 
+_66:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_67:  @ &amp;&#39;{erased} alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
+_68:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_69:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_70:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
+_71:  @ Closure(DefId(0:11820 ~ dragonos_kernel[9e38]::driver::net::{impl#2}::poll::{closure#0}), [D/#0, i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)), bound_vars: [] }, (&amp;&#39;{erased} bool,)]) 
+_72:  @ &amp;&#39;{erased} bool 
+_73:  @ bool 
+_74:  @ bool 
 
 bb 0 {
 CleanUp: false
-    Assign((_72, const false)) @ _72=const false @ Use
-    Assign((_71, const false)) @ _71=const false @ Use
-    Assign((_70, const false)) @ _70=const false @ Use
-    Assign((_72, const true)) @ _72=const true @ Use
-    StorageLive(_2) @ StorageLive
-    _2 = net::generate_iface_id() -&gt; [return: bb1, unwind: bb53] @ Call: FnDid: 27289
+    Assign((_74, const false)) @ _74=const false @ Use
+    Assign((_73, const false)) @ _73=const false @ Use
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    _4 = time::Instant::now() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 31615
 }
 bb 1 {
 CleanUp: false
-    StorageLive(_3) @ StorageLive
-    StorageLive(_4) @ StorageLive
+    _3 = &lt;time::Instant as core::convert::Into&lt;smoltcp::time::Instant&gt;&gt;::into(move _4) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 3387
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
     StorageLive(_5) @ StorageLive
     StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;((*_1).4: libs::spinlock::SpinLock&lt;smoltcp::iface::SocketSet&lt;&#39;_&gt;&gt;))) @ _6=&amp;((*_1).4: libs::spinlock::SpinLock&lt;smoltcp::iface::SocketSet&lt;&#39;_&gt;&gt;) @ Ref
+    Assign((_74, const true)) @ _74=const true @ Use
+    _5 = libs::spinlock::SpinLock::&lt;smoltcp::iface::SocketSet&lt;&#39;_&gt;&gt;::lock_irqsave(move _6) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 5263
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
     StorageLive(_7) @ StorageLive
     StorageLive(_8) @ StorageLive
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
+    Assign((_8, &amp;((*_1).3: libs::spinlock::SpinLock&lt;smoltcp::iface::Interface&gt;))) @ _8=&amp;((*_1).3: libs::spinlock::SpinLock&lt;smoltcp::iface::Interface&gt;) @ Ref
+    _7 = libs::spinlock::SpinLock::&lt;smoltcp::iface::Interface&gt;::lock_irqsave(move _8) -&gt; [return: bb4, unwind: bb41] @ Call: FnDid: 5263
+}
+bb 4 {
+CleanUp: false
+    Assign((_73, const true)) @ _73=const true @ Use
+    StorageDead(_8) @ StorageDead
     StorageLive(_11) @ StorageLive
     StorageLive(_12) @ StorageLive
     StorageLive(_13) @ StorageLive
     StorageLive(_14) @ StorageLive
     StorageLive(_15) @ StorageLive
-    Assign((_15, &amp;(_1.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::virtio_net::VirtIoNetImpl&gt;&gt;))) @ _15=&amp;(_1.0: alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::virtio_net::VirtIoNetImpl&gt;&gt;) @ Ref
-    _14 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::net::virtio_net::VirtIoNetImpl&gt;&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb2, unwind: bb53] @ Call: FnDid: 3903
-}
-bb 2 {
-CleanUp: false
-    Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
-    StorageDead(_15) @ StorageDead
-    _12 = libs::spinlock::SpinLock::&lt;driver::net::virtio_net::VirtIoNetImpl&gt;::lock(move _13) -&gt; [return: bb3, unwind: bb53] @ Call: FnDid: 5261
-}
-bb 3 {
-CleanUp: false
-    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
-    _10 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::net::virtio_net::VirtIoNetImpl&gt; as lazy_static::__Deref&gt;::deref(move _11) -&gt; [return: bb4, unwind: bb46] @ Call: FnDid: 3903
-}
-bb 4 {
-CleanUp: false
-    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
-    _8 = &lt;driver::net::virtio_net::VirtIoNetImpl as lazy_static::__Deref&gt;::deref(move _9) -&gt; [return: bb5, unwind: bb46] @ Call: FnDid: 3903
+    StorageLive(_16) @ StorageLive
+    Assign((_16, &amp;mut _7)) @ _16=&amp;mut _7 @ Ref
+    _15 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, smoltcp::iface::Interface&gt; as core::ops::DerefMut&gt;::deref_mut(move _16) -&gt; [return: bb5, unwind: bb39] @ Call: FnDid: 3915
 }
 bb 5 {
 CleanUp: false
-    Assign((_7, &amp;(*_8))) @ _7=&amp;(*_8) @ Ref
-    StorageDead(_13) @ StorageDead
-    StorageDead(_11) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    _6 = virtio_drivers::device::net::VirtIONet::&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport, 2&gt;::mac_address(move _7) -&gt; [return: bb6, unwind: bb46] @ Call: FnDid: 323
+    Assign((_14, &amp;mut (*_15))) @ _14=&amp;mut (*_15) @ Ref
+    StorageDead(_16) @ StorageDead
+    StorageLive(_17) @ StorageLive
+    Assign((_17, copy _3)) @ _17=copy _3 @ Use
+    StorageLive(_18) @ StorageLive
+    Assign((_18, &amp;mut (*_2))) @ _18=&amp;mut (*_2) @ Ref
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;mut _5)) @ _22=&amp;mut _5 @ Ref
+    Assign((_21, &amp;mut (*_22))) @ _21=&amp;mut (*_22) @ Ref
+    _20 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, smoltcp::iface::SocketSet&lt;&#39;_&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _21) -&gt; [return: bb6, unwind: bb39] @ Call: FnDid: 3915
 }
 bb 6 {
 CleanUp: false
-    StorageDead(_7) @ StorageDead
-    Assign((_5, smoltcp::wire::EthernetAddress(move _6))) @ _5=smoltcp::wire::EthernetAddress(move _6) @ Aggregate
-    StorageDead(_6) @ StorageDead
-    Assign((_4, smoltcp::wire::HardwareAddress::Ethernet(move _5))) @ _4=smoltcp::wire::HardwareAddress::Ethernet(move _5) @ Aggregate
-    StorageDead(_5) @ StorageDead
-    _3 = smoltcp::iface::Config::new(move _4) -&gt; [return: bb7, unwind: bb46] @ Call: FnDid: 295
+    Assign((_19, &amp;mut (*_20))) @ _19=&amp;mut (*_20) @ Ref
+    StorageDead(_21) @ StorageDead
+    _13 = smoltcp::iface::Interface::poll::&lt;D&gt;(move _14, move _17, move _18, move _19) -&gt; [return: bb7, unwind: bb39] @ Call: FnDid: 316
 }
 bb 7 {
 CleanUp: false
-    StorageDead(_4) @ StorageDead
-    drop(_12) -&gt; [return: bb8, unwind: bb53] @ Drop
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    Assign((_23, discriminant(_13))) @ _23=discriminant(_13) @ Discriminant
+    switchInt(move _23) -&gt; [1: bb9, otherwise: bb8] @ SwitchInt
 }
 bb 8 {
 CleanUp: false
-    StorageDead(_14) @ StorageDead
-    StorageDead(_12) @ StorageDead
-    StorageDead(_10) @ StorageDead
-    StorageDead(_8) @ StorageDead
-    StorageLive(_16) @ StorageLive
-    _16 = arch::x86_64::rand::rand() -&gt; [return: bb9, unwind: bb53] @ Call: FnDid: 2001
+    Assign((_12, const false)) @ _12=const false @ Use
+    goto -&gt; bb10 @ Goto
 }
 bb 9 {
 CleanUp: false
-    Assign(((_3.0: u64), move _16 as u64 (IntToInt))) @ (_3.0: u64)=move _16 as u64 (IntToInt) @ Cast
-    StorageDead(_16) @ StorageDead
-    StorageLive(_17) @ StorageLive
-    StorageLive(_18) @ StorageLive
-    Assign((_18, move _3)) @ _18=move _3 @ Use
-    StorageLive(_19) @ StorageLive
-    StorageLive(_20) @ StorageLive
-    Assign((_20, &amp;mut _1)) @ _20=&amp;mut _1 @ Ref
-    Assign((_19, &amp;mut (*_20))) @ _19=&amp;mut (*_20) @ Ref
-    StorageLive(_21) @ StorageLive
-    StorageLive(_22) @ StorageLive
-    _22 = time::Instant::now() -&gt; [return: bb10, unwind: bb53] @ Call: FnDid: 31615
+    Assign((_12, const true)) @ _12=const true @ Use
+    goto -&gt; bb10 @ Goto
 }
 bb 10 {
 CleanUp: false
-    _21 = &lt;time::Instant as core::convert::Into&lt;smoltcp::time::Instant&gt;&gt;::into(move _22) -&gt; [return: bb11, unwind: bb53] @ Call: FnDid: 3387
+    StorageLive(_24) @ StorageLive
+    goto -&gt; bb11 @ Goto
 }
 bb 11 {
 CleanUp: false
-    StorageDead(_22) @ StorageDead
-    _17 = smoltcp::iface::Interface::new::&lt;driver::net::virtio_net::VirtIONicDeviceInner&gt;(move _18, move _19, move _21) -&gt; [return: bb12, unwind: bb53] @ Call: FnDid: 297
-}
-bb 12 {
-CleanUp: false
-    Assign((_71, const true)) @ _71=const true @ Use
-    StorageDead(_21) @ StorageDead
-    StorageDead(_19) @ StorageDead
-    StorageDead(_18) @ StorageDead
-    StorageDead(_20) @ StorageDead
-    StorageLive(_23) @ StorageLive
-    StorageLive(_24) @ StorageLive
-    StorageLive(_25) @ StorageLive
     StorageLive(_26) @ StorageLive
-    _26 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(const driver::net::types::InterfaceFlags::UP, const driver::net::types::InterfaceFlags::BROADCAST) -&gt; [return: bb13, unwind: bb51] @ Call: FnDid: 39936
-}
-bb 13 {
-CleanUp: false
-    _25 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _26, const driver::net::types::InterfaceFlags::RUNNING) -&gt; [return: bb14, unwind: bb51] @ Call: FnDid: 39936
-}
-bb 14 {
-CleanUp: false
-    StorageDead(_26) @ StorageDead
-    _24 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _25, const driver::net::types::InterfaceFlags::MULTICAST) -&gt; [return: bb15, unwind: bb51] @ Call: FnDid: 39936
-}
-bb 15 {
-CleanUp: false
-    StorageDead(_25) @ StorageDead
-    _23 = &lt;driver::net::types::InterfaceFlags as core::ops::BitOr&gt;::bitor(move _24, const driver::net::types::InterfaceFlags::LOWER_UP) -&gt; [return: bb16, unwind: bb51] @ Call: FnDid: 39936
-}
-bb 16 {
-CleanUp: false
-    StorageDead(_24) @ StorageDead
     StorageLive(_27) @ StorageLive
     StorageLive(_28) @ StorageLive
     StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;mut _7)) @ _29=&amp;mut _7 @ Ref
+    _28 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, smoltcp::iface::Interface&gt; as core::ops::DerefMut&gt;::deref_mut(move _29) -&gt; [return: bb12, unwind: bb39] @ Call: FnDid: 3915
+}
+bb 12 {
+CleanUp: false
+    Assign((_27, &amp;mut (*_28))) @ _27=&amp;mut (*_28) @ Ref
+    StorageDead(_29) @ StorageDead
     StorageLive(_30) @ StorageLive
+    Assign((_30, copy _3)) @ _30=copy _3 @ Use
     StorageLive(_31) @ StorageLive
-    Assign((_72, const false)) @ _72=const false @ Use
-    Assign((_31, move _1)) @ _31=move _1 @ Use
-    _30 = core::cell::UnsafeCell::&lt;driver::net::virtio_net::VirtIONicDeviceInner&gt;::new(move _31) -&gt; [return: bb17, unwind: bb51] @ Call: FnDid: 5681
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &amp;_5)) @ _34=&amp;_5 @ Ref
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    _32 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, smoltcp::iface::SocketSet&lt;&#39;_&gt;&gt; as lazy_static::__Deref&gt;::deref(move _33) -&gt; [return: bb13, unwind: bb39] @ Call: FnDid: 3903
+}
+bb 13 {
+CleanUp: false
+    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
+    StorageDead(_33) @ StorageDead
+    _26 = smoltcp::iface::Interface::poll_at(move _27, move _30, move _31) -&gt; [return: bb14, unwind: bb39] @ Call: FnDid: 322
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    Assign((_37, discriminant(_26))) @ _37=discriminant(_26) @ Discriminant
+    switchInt(move _37) -&gt; [1: bb16, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    Assign((_24, copy _26)) @ _24=copy _26 @ Use
+    goto -&gt; bb20 @ Goto
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_36) @ StorageLive
+    Assign((_36, copy ((_26 as Some).0: smoltcp::time::Instant))) @ _36=copy ((_26 as Some).0: smoltcp::time::Instant) @ Use
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;_36)) @ _39=&amp;_36 @ Ref
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;_3)) @ _40=&amp;_3 @ Ref
+    _38 = &lt;smoltcp::time::Instant as core::cmp::PartialOrd&gt;::gt(move _39, move _40) -&gt; [return: bb17, unwind: bb39] @ Call: FnDid: 3216
 }
 bb 17 {
 CleanUp: false
-    StorageDead(_31) @ StorageDead
-    Assign((_29, driver::net::virtio_net::VirtIONicDeviceInnerWrapper(move _30))) @ _29=driver::net::virtio_net::VirtIONicDeviceInnerWrapper(move _30) @ Aggregate
-    StorageDead(_30) @ StorageDead
-    StorageLive(_32) @ StorageLive
-    _32 = &lt;driver::base::kobject::LockedKObjectState as core::default::Default&gt;::default() -&gt; [return: bb18, unwind: bb45] @ Call: FnDid: 3464
+    switchInt(move _38) -&gt; [0: bb19, otherwise: bb18] @ SwitchInt
 }
 bb 18 {
 CleanUp: false
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    StorageLive(_35) @ StorageLive
-    StorageLive(_36) @ StorageLive
-    StorageLive(_37) @ StorageLive
-    StorageLive(_38) @ StorageLive
-    StorageLive(_39) @ StorageLive
-    Assign((_39, &amp;_2)) @ _39=&amp;_2 @ Ref
-    Assign((_38, &amp;(*_39))) @ _38=&amp;(*_39) @ Ref
-    _37 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;usize&gt;(move _38) -&gt; [return: bb19, unwind: bb45] @ Call: FnDid: 11807
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    Assign((_24, copy _26)) @ _24=copy _26 @ Use
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    goto -&gt; bb20 @ Goto
 }
 bb 19 {
 CleanUp: false
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    Assign((_25, const ())) @ _25=const () @ Use
     StorageDead(_38) @ StorageDead
-    Assign((_36, [move _37])) @ _36=[move _37] @ Aggregate
-    StorageDead(_37) @ StorageDead
-    StorageLive(_40) @ StorageLive
-    StorageLive(_41) @ StorageLive
-    Assign((_69, const driver::net::virtio_net::VirtioInterface::new::promoted[0])) @ _69=const driver::net::virtio_net::VirtioInterface::new::promoted[0] @ Use
-    Assign((_41, &amp;(*_69))) @ _41=&amp;(*_69) @ Ref
-    Assign((_40, &amp;(*_41))) @ _40=&amp;(*_41) @ Ref
-    StorageLive(_43) @ StorageLive
-    StorageLive(_44) @ StorageLive
-    Assign((_44, &amp;_36)) @ _44=&amp;_36 @ Ref
-    Assign((_43, &amp;(*_44))) @ _43=&amp;(*_44) @ Ref
-    _35 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _40, move _43) -&gt; [return: bb20, unwind: bb45] @ Call: FnDid: 11836
+    StorageDead(_36) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    goto -&gt; bb11 @ Goto
 }
 bb 20 {
 CleanUp: false
-    StorageDead(_44) @ StorageDead
-    StorageDead(_43) @ StorageDead
-    StorageDead(_41) @ StorageDead
-    StorageDead(_40) @ StorageDead
-    _34 = alloc::fmt::format(move _35) -&gt; [return: bb21, unwind: bb45] @ Call: FnDid: 5475
+    StorageDead(_26) @ StorageDead
+    Assign((_11, (move _12, move _24))) @ _11=(move _12, move _24) @ Aggregate
+    StorageDead(_24) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy (_11.0: bool))) @ _9=copy (_11.0: bool) @ Use
+    StorageLive(_10) @ StorageLive
+    Assign((_10, copy (_11.1: core::option::Option&lt;smoltcp::time::Instant&gt;))) @ _10=copy (_11.1: core::option::Option&lt;smoltcp::time::Instant&gt;) @ Use
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_73, const false)) @ _73=const false @ Use
+    Assign((_43, move _7)) @ _43=move _7 @ Use
+    _42 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, smoltcp::iface::Interface&gt;&gt;(move _43) -&gt; [return: bb21, unwind: bb39] @ Call: FnDid: 2323
 }
 bb 21 {
 CleanUp: false
-    StorageDead(_39) @ StorageDead
-    StorageDead(_36) @ StorageDead
-    StorageDead(_35) @ StorageDead
-    _33 = core::hint::must_use::&lt;alloc::string::String&gt;(move _34) -&gt; [return: bb22, unwind: bb45] @ Call: FnDid: 1455
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_74, const false)) @ _74=const false @ Use
+    Assign((_45, move _5)) @ _45=move _5 @ Use
+    _44 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, smoltcp::iface::SocketSet&lt;&#39;_&gt;&gt;&gt;(move _45) -&gt; [return: bb22, unwind: bb39] @ Call: FnDid: 2323
 }
 bb 22 {
 CleanUp: false
-    StorageDead(_34) @ StorageDead
-    StorageLive(_45) @ StorageLive
+    StorageDead(_45) @ StorageDead
+    StorageDead(_44) @ StorageDead
     StorageLive(_46) @ StorageLive
-    Assign((_46, copy _2)) @ _46=copy _2 @ Use
-    StorageLive(_47) @ StorageLive
-    Assign((_47, driver::net::types::InterfaceType::EETHER)) @ _47=driver::net::types::InterfaceType::EETHER @ Aggregate
-    StorageLive(_48) @ StorageLive
-    Assign((_48, copy _23)) @ _48=copy _23 @ Use
-    StorageLive(_49) @ StorageLive
-    Assign((_71, const false)) @ _71=const false @ Use
-    Assign((_49, move _17)) @ _49=move _17 @ Use
-    _45 = driver::net::IfaceCommon::new(move _46, move _47, move _48, move _49) -&gt; [return: bb23, unwind: bb44] @ Call: FnDid: 11816
+    Assign((_47, discriminant(_10))) @ _47=discriminant(_10) @ Discriminant
+    switchInt(move _47) -&gt; [1: bb23, otherwise: bb27] @ SwitchInt
 }
 bb 23 {
 CleanUp: false
-    StorageDead(_49) @ StorageDead
-    StorageDead(_48) @ StorageDead
-    StorageDead(_47) @ StorageDead
-    StorageDead(_46) @ StorageDead
+    StorageLive(_48) @ StorageLive
+    Assign((_48, copy ((_10 as Some).0: smoltcp::time::Instant))) @ _48=copy ((_10 as Some).0: smoltcp::time::Instant) @ Use
+    StorageLive(_49) @ StorageLive
     StorageLive(_50) @ StorageLive
+    Assign((_50, &amp;((*_1).7: core::sync::atomic::AtomicU64))) @ _50=&amp;((*_1).7: core::sync::atomic::AtomicU64) @ Ref
     StorageLive(_51) @ StorageLive
-    StorageLive(_52) @ StorageLive
-    _52 = &lt;driver::base::kobject::KObjectCommonData as core::default::Default&gt;::default() -&gt; [return: bb24, unwind: bb43] @ Call: FnDid: 3464
+    Assign((_51, core::sync::atomic::Ordering::Relaxed)) @ _51=core::sync::atomic::Ordering::Relaxed @ Aggregate
+    _49 = core::sync::atomic::AtomicU64::load(move _50, move _51) -&gt; [return: bb24, unwind: bb39] @ Call: FnDid: 50292
 }
 bb 24 {
 CleanUp: false
+    StorageDead(_51) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageLive(_52) @ StorageLive
     StorageLive(_53) @ StorageLive
-    _53 = &lt;driver::base::device::DeviceCommonData as core::default::Default&gt;::default() -&gt; [return: bb25, unwind: bb42] @ Call: FnDid: 3464
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_48)) @ _54=&amp;_48 @ Ref
+    _53 = smoltcp::time::Instant::total_millis(move _54) -&gt; [return: bb25, unwind: bb39] @ Call: FnDid: 1591
 }
 bb 25 {
 CleanUp: false
-    StorageLive(_54) @ StorageLive
-    _54 = &lt;driver::net::NetDeviceCommonData as core::default::Default&gt;::default() -&gt; [return: bb26, unwind: bb41] @ Call: FnDid: 3464
+    StorageDead(_54) @ StorageDead
+    Assign((_52, move _53 as u64 (IntToInt))) @ _52=move _53 as u64 (IntToInt) @ Cast
+    StorageDead(_53) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;((*_1).7: core::sync::atomic::AtomicU64))) @ _56=&amp;((*_1).7: core::sync::atomic::AtomicU64) @ Ref
+    StorageLive(_57) @ StorageLive
+    Assign((_57, copy _52)) @ _57=copy _52 @ Use
+    StorageLive(_58) @ StorageLive
+    Assign((_58, core::sync::atomic::Ordering::Relaxed)) @ _58=core::sync::atomic::Ordering::Relaxed @ Aggregate
+    _55 = core::sync::atomic::AtomicU64::store(move _56, move _57, move _58) -&gt; [return: bb26, unwind: bb39] @ Call: FnDid: 50293
 }
 bb 26 {
 CleanUp: false
-    Assign((_51, driver::net::virtio_net::InnerVirtIOInterface { kobj_common: move _52, device_common: move _53, netdevice_common: move _54 })) @ _51=driver::net::virtio_net::InnerVirtIOInterface { kobj_common: move _52, device_common: move _53, netdevice_common: move _54 } @ Aggregate
-    StorageDead(_54) @ StorageDead
-    StorageDead(_53) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageDead(_57) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    Assign((_46, const ())) @ _46=const () @ Use
     StorageDead(_52) @ StorageDead
-    _50 = libs::spinlock::SpinLock::&lt;driver::net::virtio_net::InnerVirtIOInterface&gt;::new(move _51) -&gt; [return: bb27, unwind: bb43] @ Call: FnDid: 5260
+    StorageDead(_49) @ StorageDead
+    StorageDead(_48) @ StorageDead
+    goto -&gt; bb29 @ Goto
 }
 bb 27 {
 CleanUp: false
-    StorageDead(_51) @ StorageDead
-    Assign((_28, driver::net::virtio_net::VirtioInterface { device_inner: move _29, iface_name: move _33, iface_common: move _45, inner: move _50, locked_kobj_state: move _32 })) @ _28=driver::net::virtio_net::VirtioInterface { device_inner: move _29, iface_name: move _33, iface_common: move _45, inner: move _50, locked_kobj_state: move _32 } @ Aggregate
-    StorageDead(_50) @ StorageDead
-    StorageDead(_45) @ StorageDead
-    StorageDead(_33) @ StorageDead
-    StorageDead(_32) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    _27 = alloc::sync::Arc::&lt;driver::net::virtio_net::VirtioInterface&gt;::new(move _28) -&gt; [return: bb28, unwind: bb51] @ Call: FnDid: 6875
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    Assign((_60, &amp;((*_1).7: core::sync::atomic::AtomicU64))) @ _60=&amp;((*_1).7: core::sync::atomic::AtomicU64) @ Ref
+    StorageLive(_61) @ StorageLive
+    Assign((_61, core::sync::atomic::Ordering::Relaxed)) @ _61=core::sync::atomic::Ordering::Relaxed @ Aggregate
+    _59 = core::sync::atomic::AtomicU64::store(move _60, const 0_u64, move _61) -&gt; [return: bb28, unwind: bb39] @ Call: FnDid: 50293
 }
 bb 28 {
 CleanUp: false
-    StorageDead(_28) @ StorageDead
-    StorageLive(_55) @ StorageLive
-    StorageLive(_56) @ StorageLive
-    StorageLive(_57) @ StorageLive
-    StorageLive(_58) @ StorageLive
-    Assign((_58, &amp;_27)) @ _58=&amp;_27 @ Ref
-    _57 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as core::clone::Clone&gt;::clone(move _58) -&gt; [return: bb29, unwind: bb40] @ Call: FnDid: 3116
+    StorageDead(_61) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    Assign((_46, const ())) @ _46=const () @ Use
+    goto -&gt; bb29 @ Goto
 }
 bb 29 {
 CleanUp: false
-    Assign((_56, move _57 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)))) @ _56=move _57 as alloc::sync::Arc&lt;dyn driver::net::Iface&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_58) @ StorageDead
-    StorageDead(_57) @ StorageDead
-    _55 = driver::net::napi::NapiStruct::new(move _56, const 10_usize) -&gt; [return: bb30, unwind: bb40] @ Call: FnDid: 11131
-}
-bb 30 {
-CleanUp: false
-    StorageDead(_56) @ StorageDead
-    StorageLive(_59) @ StorageLive
-    StorageLive(_60) @ StorageLive
-    Assign((_60, move _55)) @ _60=move _55 @ Use
-    Assign((_70, const true)) @ _70=const true @ Use
-    Assign((_59, core::option::Option::&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;::Some(move _60))) @ _59=core::option::Option::&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;::Some(move _60) @ Aggregate
-    StorageDead(_60) @ StorageDead
-    StorageLive(_61) @ StorageLive
+    StorageDead(_46) @ StorageDead
     StorageLive(_62) @ StorageLive
     StorageLive(_63) @ StorageLive
     StorageLive(_64) @ StorageLive
@@ -516,125 +581,186 @@ CleanUp: false
     StorageLive(_66) @ StorageLive
     StorageLive(_67) @ StorageLive
     StorageLive(_68) @ StorageLive
-    Assign((_68, &amp;_27)) @ _68=&amp;_27 @ Ref
-    _67 = &lt;alloc::sync::Arc&lt;driver::net::virtio_net::VirtioInterface&gt; as lazy_static::__Deref&gt;::deref(move _68) -&gt; [return: bb31, unwind: bb39] @ Call: FnDid: 3903
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, &amp;((*_1).5: libs::rwlock::RwLock&lt;alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;&gt;&gt;))) @ _70=&amp;((*_1).5: libs::rwlock::RwLock&lt;alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;&gt;&gt;) @ Ref
+    _69 = libs::rwlock::RwLock::&lt;alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;&gt;&gt;::read_irqsave(move _70) -&gt; [return: bb30, unwind: bb39] @ Call: FnDid: 5157
+}
+bb 30 {
+CleanUp: false
+    Assign((_68, &amp;_69)) @ _68=&amp;_69 @ Ref
+    _67 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;&gt;&gt; as lazy_static::__Deref&gt;::deref(move _68) -&gt; [return: bb31, unwind: bb36] @ Call: FnDid: 3903
 }
 bb 31 {
 CleanUp: false
     Assign((_66, &amp;(*_67))) @ _66=&amp;(*_67) @ Ref
-    StorageDead(_68) @ StorageDead
-    _65 = &lt;driver::net::virtio_net::VirtioInterface as driver::net::Iface&gt;::common(move _66) -&gt; [return: bb32, unwind: bb39] @ Call: FnDid: 11776
+    _65 = &lt;alloc::vec::Vec&lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;&gt; as lazy_static::__Deref&gt;::deref(move _66) -&gt; [return: bb32, unwind: bb36] @ Call: FnDid: 3903
 }
 bb 32 {
 CleanUp: false
+    Assign((_64, &amp;(*_65))) @ _64=&amp;(*_65) @ Ref
+    StorageDead(_70) @ StorageDead
+    StorageDead(_68) @ StorageDead
     StorageDead(_66) @ StorageDead
-    Assign((_64, &amp;((*_65).10: libs::rwlock::RwLock&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt;))) @ _64=&amp;((*_65).10: libs::rwlock::RwLock&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt;) @ Ref
-    _63 = libs::rwlock::RwLock::&lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt;::write(move _64) -&gt; [return: bb33, unwind: bb39] @ Call: FnDid: 5165
+    _63 = core::slice::&lt;impl [alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;]&gt;::iter(move _64) -&gt; [return: bb33, unwind: bb36] @ Call: FnDid: 14037
 }
 bb 33 {
 CleanUp: false
-    Assign((_62, &amp;mut _63)) @ _62=&amp;mut _63 @ Ref
     StorageDead(_64) @ StorageDead
-    _61 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, core::option::Option&lt;alloc::sync::Arc&lt;driver::net::napi::NapiStruct&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _62) -&gt; [return: bb34, unwind: bb49] @ Call: FnDid: 3915
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_72, &amp;_9)) @ _72=&amp;_9 @ Ref
+    Assign((_71, {closure@src/driver/net/mod.rs:306:52: 306:66} { has_events: move _72 })) @ _71={closure@src/driver/net/mod.rs:306:52: 306:66} { has_events: move _72 } @ Aggregate
+    StorageDead(_72) @ StorageDead
+    _62 = &lt;core::slice::Iter&lt;&#39;_, alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt;&gt; as core::iter::Iterator&gt;::for_each::&lt;{closure@src/driver/net/mod.rs:306:52: 306:66}&gt;(move _63, move _71) -&gt; [return: bb34, unwind: bb36] @ Call: FnDid: 9388
 }
 bb 34 {
 CleanUp: false
-    StorageDead(_62) @ StorageDead
-    drop((*_61)) -&gt; [return: bb35, unwind: bb36] @ Drop
+    StorageDead(_71) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    drop(_69) -&gt; [return: bb35, unwind: bb39] @ Drop
 }
 bb 35 {
 CleanUp: false
-    Assign((_70, const false)) @ _70=const false @ Use
-    Assign(((*_61), move _59)) @ (*_61)=move _59 @ Use
-    Assign((_70, const false)) @ _70=const false @ Use
-    StorageDead(_59) @ StorageDead
-    drop(_63) -&gt; [return: bb37, unwind: bb40] @ Drop
+    StorageDead(_69) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    Assign((_0, copy _9)) @ _0=copy _9 @ Use
+    StorageDead(_10) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    Assign((_73, const false)) @ _73=const false @ Use
+    StorageDead(_7) @ StorageDead
+    Assign((_74, const false)) @ _74=const false @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
 }
 bb 36 {
 CleanUp: true
-    Assign((_70, const false)) @ _70=const false @ Use
-    Assign(((*_61), move _59)) @ (*_61)=move _59 @ Use
-    goto -&gt; bb49 @ Goto
+    drop(_69) -&gt; [return: bb39, unwind terminate(cleanup)] @ Drop
 }
 bb 37 {
-CleanUp: false
-    StorageDead(_67) @ StorageDead
-    StorageDead(_65) @ StorageDead
-    StorageDead(_63) @ StorageDead
-    StorageDead(_61) @ StorageDead
-    Assign((_0, move _27)) @ _0=move _27 @ Use
-    StorageDead(_55) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageDead(_23) @ StorageDead
-    Assign((_71, const false)) @ _71=const false @ Use
-    StorageDead(_17) @ StorageDead
-    StorageDead(_3) @ StorageDead
-    StorageDead(_2) @ StorageDead
-    return @ Return
-}
-bb 38 {
-CleanUp: true
-    drop(_63) -&gt; [return: bb40, unwind terminate(cleanup)] @ Drop
-}
-bb 39 {
-CleanUp: true
-    drop(_59) -&gt; [return: bb40, unwind terminate(cleanup)] @ Drop
-}
-bb 40 {
-CleanUp: true
-    drop(_27) -&gt; [return: bb51, unwind terminate(cleanup)] @ Drop
-}
-bb 41 {
-CleanUp: true
-    drop(_53) -&gt; [return: bb42, unwind terminate(cleanup)] @ Drop
-}
-bb 42 {
-CleanUp: true
-    drop(_52) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
-}
-bb 43 {
-CleanUp: true
-    drop(_45) -&gt; [return: bb44, unwind terminate(cleanup)] @ Drop
-}
-bb 44 {
-CleanUp: true
-    drop(_33) -&gt; [return: bb45, unwind terminate(cleanup)] @ Drop
-}
-bb 45 {
-CleanUp: true
-    drop(_29) -&gt; [return: bb51, unwind terminate(cleanup)] @ Drop
-}
-bb 46 {
-CleanUp: true
-    drop(_12) -&gt; [return: bb53, unwind terminate(cleanup)] @ Drop
-}
-bb 47 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 48 {
+bb 38 {
 CleanUp: true
-    drop(_59) -&gt; [return: bb38, unwind terminate(cleanup)] @ Drop
+    drop(_7) -&gt; [return: bb41, unwind terminate(cleanup)] @ Drop
 }
-bb 49 {
+bb 39 {
 CleanUp: true
-    switchInt(copy _70) -&gt; [0: bb38, otherwise: bb48] @ SwitchInt
+    switchInt(copy _73) -&gt; [0: bb41, otherwise: bb38] @ SwitchInt
 }
-bb 50 {
+bb 40 {
 CleanUp: true
-    drop(_17) -&gt; [return: bb53, unwind terminate(cleanup)] @ Drop
+    drop(_5) -&gt; [return: bb37, unwind terminate(cleanup)] @ Drop
 }
-bb 51 {
+bb 41 {
 CleanUp: true
-    switchInt(copy _71) -&gt; [0: bb53, otherwise: bb50] @ SwitchInt
+    switchInt(copy _74) -&gt; [0: bb37, otherwise: bb40] @ SwitchInt
 }
-bb 52 {
-CleanUp: true
-    drop(_1) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+
+bb0 at src/driver/net/mod.rs:308:16: 308:26
+bb1 at src/driver/net/mod.rs:309:17: 309:38
+bb2 at src/driver/net/mod.rs:309:17: 309:29
+bb3 at src/driver/net/mod.rs:309:37: 309:38
+bb4 at src/driver/net/mod.rs:310:29: 310:41
+bb5 at src/driver/net/mod.rs:310:29: 311:34
+bb6 at src/driver/net/mod.rs:312:62: 312:63
+bb7 at src/driver/net/mod.rs:313:14: 313:14
+bb8 at src/driver/net/mod.rs:313:13: 313:14
+fn driver::net::IfaceCommon::poll::{closure#0}
+_0:  @ () 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:11820 ~ dragonos_kernel[9e38]::driver::net::{impl#2}::poll::{closure#0}), [D/#0, i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;,)), bound_vars: [] }, (&amp;&#39;{erased} bool,)]) 
+_2:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_3:  @ bool 
+_4:  @ () 
+_5:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased} 
+_6:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased} 
+_7:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_8:  @ bool 
+_9:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_10:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_11:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased} 
+_12:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased} 
+_13:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(net::socket::inet::InetSocket), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_14:  @ core::option::Option&lt;process::ProcessState&gt; 
+_15:  @ process::ProcessState 
+_16:  @ &amp;&#39;{erased} bool 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    Assign((_16, deref_copy ((*_1).0: &amp;bool))) @ _16=deref_copy ((*_1).0: &amp;bool) @ CopyForDeref
+    Assign((_3, copy (*_16))) @ _3=copy (*_16) @ Use
+    switchInt(move _3) -&gt; [0: bb7, otherwise: bb1] @ SwitchInt
 }
-bb 53 {
-CleanUp: true
-    switchInt(copy _72) -&gt; [0: bb47, otherwise: bb52] @ SwitchInt
+bb 1 {
+CleanUp: false
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
+    Assign((_7, &amp;(*_2))) @ _7=&amp;(*_2) @ Ref
+    _6 = &lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt; as lazy_static::__Deref&gt;::deref(move _7) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 3903
+}
+bb 2 {
+CleanUp: false
+    Assign((_5, &amp;(*_6))) @ _5=&amp;(*_6) @ Ref
+    StorageDead(_7) @ StorageDead
+    _4 = &lt;dyn net::socket::inet::InetSocket as net::socket::inet::InetSocket&gt;::notify(move _5) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 26045
+}
+bb 3 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;(*_2))) @ _13=&amp;(*_2) @ Ref
+    _12 = &lt;alloc::sync::Arc&lt;dyn net::socket::inet::InetSocket&gt; as lazy_static::__Deref&gt;::deref(move _13) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 3903
+}
+bb 4 {
+CleanUp: false
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    StorageDead(_13) @ StorageDead
+    _10 = &lt;dyn net::socket::inet::InetSocket as net::socket::base::Socket&gt;::wait_queue(move _11) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 25592
+}
+bb 5 {
+CleanUp: false
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    StorageDead(_11) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
+    Assign((_15, process::ProcessState::Blocked(const true))) @ _15=process::ProcessState::Blocked(const true) @ Aggregate
+    Assign((_14, core::option::Option::&lt;process::ProcessState&gt;::Some(move _15))) @ _14=core::option::Option::&lt;process::ProcessState&gt;::Some(move _15) @ Aggregate
+    StorageDead(_15) @ StorageDead
+    _8 = libs::wait_queue::WaitQueue::wakeup(move _9, move _14) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 5650
+}
+bb 6 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    StorageDead(_8) @ StorageDead
+    goto -&gt; bb8 @ Goto
+}
+bb 7 {
+CleanUp: false
+    Assign((_0, const ())) @ _0=const () @ Use
+    goto -&gt; bb8 @ Goto
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_3) @ StorageDead
+    return @ Return
 }
 
 </div>

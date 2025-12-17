@@ -13,7 +13,7 @@
         <h1>
             Report #92
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_pread64::{impl#0}::handle</span>
+                 <span class="func-name">net::socket::inet::stream::inner::{impl#0}::listen</span>
             
         </h1>
 
@@ -25,99 +25,121 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:08|RAP|WARN|: Double free detected in function &#34;handle&#34;
-warning: Double free detected.
-  --&gt; src/filesystem/vfs/syscall/sys_pread64.rs:33:1
-   |
-33 | / fn handle(&amp;self, args: &amp;[usize], frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
-34 | |         let fd = Self::fd(args);
-35 | |         let buf_vaddr = Self::buf(args);
-36 | |         let len = Self::len(args);
-37 | |         let offset = Self::offset(args);
-38 | |
-39 | |         // 检查offset + len是否溢出 同时检查offset是否为负数
-40 | |
-41 | |         let end_pos = offset.checked_add(len).ok_or(SystemError::EINVAL)?;
-42 | |         if offset &gt; i64::MAX as usize || end_pos &gt; i64::MAX as usize {
-43 | |             return Err(SystemError::EINVAL);
-44 | |         }
-45 | |
-46 | |         let mut user_buffer_writer =
-47 | |             UserBufferWriter::new_checked(buf_vaddr, len, frame.is_from_user())?;
-48 | |         let user_buf = user_buffer_writer.buffer(0)?;
-49 | |
-50 | |         let binding = ProcessManager::current_pcb().fd_table();
-51 | |         let fd_table_guard = binding.read();
-52 | |
-53 | |         let file = fd_table_guard
-54 | |             .get_file_by_fd(fd)
-55 | |             .ok_or(SystemError::EBADF)?;
-56 | |
-57 | |         // Drop guard to avoid scheduling issues
-58 | |         drop(fd_table_guard);
-59 | |
-60 | |         // 检查是否是管道/Socket (ESPIPE)
-61 | |         let md = file.metadata()?;
-62 | |         if md.file_type == FileType::Pipe
-63 | |             || md.file_type == FileType::Socket
-64 | |             || md.file_type == FileType::CharDevice
-65 | |         {
-66 | |             return Err(SystemError::ESPIPE);
-67 | |         }
-68 | |
-69 | |         return file.pread(offset, len, user_buf);
-70 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 33.
-    | MIR detail: Value _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) and _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) are alias.
-    | MIR detail: _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) is dropped at BB38(src/filesystem/vfs/syscall/sys_pread64.rs:58); _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) is dropped at BB62(src/filesystem/vfs/syscall/sys_pread64.rs:70).
-   |
-22:08:08|RAP|WARN|: Double free detected in function &#34;handle&#34;
+                    <pre id="logContent" class="code-block scrollable">22:08:13|RAP|WARN|: Double free detected in function &#34;listen&#34;
 warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_pread64.rs:33:1
-   |
-33 | / fn handle(&amp;self, args: &amp;[usize], frame: &amp;mut TrapFrame) -&gt; Result&lt;usize, SystemError&gt; {
-34 | |         let fd = Self::fd(args);
-35 | |         let buf_vaddr = Self::buf(args);
-36 | |         let len = Self::len(args);
-37 | |         let offset = Self::offset(args);
-38 | |
-39 | |         // 检查offset + len是否溢出 同时检查offset是否为负数
-40 | |
-41 | |         let end_pos = offset.checked_add(len).ok_or(SystemError::EINVAL)?;
-42 | |         if offset &gt; i64::MAX as usize || end_pos &gt; i64::MAX as usize {
-43 | |             return Err(SystemError::EINVAL);
-44 | |         }
-45 | |
-46 | |         let mut user_buffer_writer =
-47 | |             UserBufferWriter::new_checked(buf_vaddr, len, frame.is_from_user())?;
-48 | |         let user_buf = user_buffer_writer.buffer(0)?;
-49 | |
-50 | |         let binding = ProcessManager::current_pcb().fd_table();
-51 | |         let fd_table_guard = binding.read();
-52 | |
-53 | |         let file = fd_table_guard
-54 | |             .get_file_by_fd(fd)
-55 | |             .ok_or(SystemError::EBADF)?;
-56 | |
-57 | |         // Drop guard to avoid scheduling issues
-58 | |         drop(fd_table_guard);
-59 | |
-60 | |         // 检查是否是管道/Socket (ESPIPE)
-61 | |         let md = file.metadata()?;
-62 | |         if md.file_type == FileType::Pipe
-63 | |             || md.file_type == FileType::Socket
-64 | |             || md.file_type == FileType::CharDevice
-65 | |         {
-66 | |             return Err(SystemError::ESPIPE);
-67 | |         }
-68 | |
-69 | |         return file.pread(offset, len, user_buf);
-70 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 33.
-    | MIR detail: Value _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) and _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) are alias.
-    | MIR detail: _79(_, src/filesystem/vfs/syscall/sys_pread64.rs:58) is dropped at BB38(src/filesystem/vfs/syscall/sys_pread64.rs:58); _55(binding, src/filesystem/vfs/syscall/sys_pread64.rs:50) is dropped at BB68(src/filesystem/vfs/syscall/sys_pread64.rs:70).
-   |
-render dot for DefId(0:20201 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pread64::{impl#0}::handle)
+   --&gt; src/net/socket/inet/stream/inner.rs:129:1
+    |
+129 | / pub(super) fn listen(self, backlog: usize) -&gt; Result&lt;Listening, (Self, SystemError)&gt; {
+130 | |         let (inner, local) = match self {
+131 | |             Init::Unbound(_) =&gt; {
+132 | |                 return Err((self, SystemError::EINVAL));
+133 | |             }
+134 | |             Init::Bound(inner) =&gt; inner,
+135 | |         };
+136 | |         let listen_addr = if local.addr.is_unspecified() {
+137 | |             smoltcp::wire::IpListenEndpoint::from(local.port)
+138 | |         } else {
+139 | |             smoltcp::wire::IpListenEndpoint::from(local)
+140 | |         };
+141 | |         log::debug!(&#34;listen at {:?}&#34;, listen_addr);
+142 | |         let mut inners = Vec::new();
+143 | |         if let Err(err) = || -&gt; Result&lt;(), SystemError&gt; {
+144 | |             for _ in 0..(backlog - 1) {
+145 | |                 // -1 because the first one is already bound
+146 | |                 let new_listen = socket::inet::BoundInner::bind(
+147 | |                     new_listen_smoltcp_socket(listen_addr),
+148 | |                     listen_addr
+149 | |                         .addr
+150 | |                         .as_ref()
+151 | |                         .unwrap_or(&amp;smoltcp::wire::IpAddress::from(
+152 | |                             smoltcp::wire::Ipv4Address::UNSPECIFIED,
+153 | |                         )),
+154 | |                     inner.netns(),
+155 | |                 )?;
+156 | |                 inners.push(new_listen);
+157 | |             }
+158 | |             Ok(())
+159 | |         }() {
+160 | |             return Err((Init::Bound((inner, local)), err));
+161 | |         }
+162 | |
+163 | |         if let Err(err) = inner.with_mut::&lt;smoltcp::socket::tcp::Socket, _, _&gt;(|socket| {
+164 | |             socket
+165 | |                 .listen(listen_addr)
+166 | |                 .map_err(|_| SystemError::ECONNREFUSED)
+167 | |         }) {
+168 | |             return Err((Init::Bound((inner, local)), err));
+169 | |         }
+170 | |
+171 | |         inners.push(inner);
+172 | |         return Ok(Listening {
+173 | |             inners,
+174 | |             connect: AtomicUsize::new(0),
+175 | |             listen_addr,
+176 | |         });
+177 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/net/socket/inet/stream/inner.rs line 129.
+    | MIR detail: Value _49(inners, src/net/socket/inet/stream/inner.rs:142) and _4(inner, src/net/socket/inet/stream/inner.rs:130) are alias.
+    | MIR detail: _49(inners, src/net/socket/inet/stream/inner.rs:142) is dropped at BB42(src/net/socket/inet/stream/inner.rs:177); _4(inner, src/net/socket/inet/stream/inner.rs:130) is dropped at BB44(src/net/socket/inet/stream/inner.rs:177).
+    |
+22:08:13|RAP|WARN|: Dangling pointer detected in function &#34;listen&#34;
+warning: Dangling pointer detected.
+   --&gt; src/net/socket/inet/stream/inner.rs:129:1
+    |
+129 | / pub(super) fn listen(self, backlog: usize) -&gt; Result&lt;Listening, (Self, SystemError)&gt; {
+130 | |         let (inner, local) = match self {
+131 | |             Init::Unbound(_) =&gt; {
+132 | |                 return Err((self, SystemError::EINVAL));
+133 | |             }
+134 | |             Init::Bound(inner) =&gt; inner,
+135 | |         };
+136 | |         let listen_addr = if local.addr.is_unspecified() {
+137 | |             smoltcp::wire::IpListenEndpoint::from(local.port)
+138 | |         } else {
+139 | |             smoltcp::wire::IpListenEndpoint::from(local)
+140 | |         };
+141 | |         log::debug!(&#34;listen at {:?}&#34;, listen_addr);
+142 | |         let mut inners = Vec::new();
+143 | |         if let Err(err) = || -&gt; Result&lt;(), SystemError&gt; {
+144 | |             for _ in 0..(backlog - 1) {
+145 | |                 // -1 because the first one is already bound
+146 | |                 let new_listen = socket::inet::BoundInner::bind(
+147 | |                     new_listen_smoltcp_socket(listen_addr),
+148 | |                     listen_addr
+149 | |                         .addr
+150 | |                         .as_ref()
+151 | |                         .unwrap_or(&amp;smoltcp::wire::IpAddress::from(
+152 | |                             smoltcp::wire::Ipv4Address::UNSPECIFIED,
+153 | |                         )),
+154 | |                     inner.netns(),
+155 | |                 )?;
+156 | |                 inners.push(new_listen);
+157 | |             }
+158 | |             Ok(())
+159 | |         }() {
+160 | |             return Err((Init::Bound((inner, local)), err));
+161 | |         }
+162 | |
+163 | |         if let Err(err) = inner.with_mut::&lt;smoltcp::socket::tcp::Socket, _, _&gt;(|socket| {
+164 | |             socket
+165 | |                 .listen(listen_addr)
+166 | |                 .map_err(|_| SystemError::ECONNREFUSED)
+167 | |         }) {
+168 | |             return Err((Init::Bound((inner, local)), err));
+169 | |         }
+170 | |
+171 | |         inners.push(inner);
+172 | |         return Ok(Listening {
+173 | |             inners,
+174 | |             connect: AtomicUsize::new(0),
+175 | |             listen_addr,
+176 | |         });
+177 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/stream/inner.rs line 129.
+    | MIR detail: Value _49(inners, src/net/socket/inet/stream/inner.rs:142) and _0(_, src/net/socket/inet/stream/inner.rs:129) are alias.
+    | MIR detail: _49(inners, src/net/socket/inet/stream/inner.rs:142) is dropped at BB38(src/net/socket/inet/stream/inner.rs:177); _0(_, src/net/socket/inet/stream/inner.rs:129) became dangling.
+    |
+render dot for DefId(0:25890 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen)
 </pre>
                 </div>
             
@@ -128,780 +150,929 @@ render dot for DefId(0:20201 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/vfs/syscall/sys_pread64.rs:34:13: 34:15
-bb1 at src/filesystem/vfs/syscall/sys_pread64.rs:34:31: 34:32
-bb2 at src/filesystem/vfs/syscall/sys_pread64.rs:35:39: 35:40
-bb3 at src/filesystem/vfs/syscall/sys_pread64.rs:36:33: 36:34
-bb4 at src/filesystem/vfs/syscall/sys_pread64.rs:37:39: 37:40
-bb5 at src/filesystem/vfs/syscall/sys_pread64.rs:41:45: 41:46
-bb6 at src/filesystem/vfs/syscall/sys_pread64.rs:41:72: 41:73
-bb7 at src/filesystem/vfs/syscall/sys_pread64.rs:41:73: 41:74
-bb9 at src/filesystem/vfs/syscall/sys_pread64.rs:41:23: 41:74
-bb10 at src/filesystem/vfs/syscall/sys_pread64.rs:41:73: 41:74
-bb11 at src/filesystem/vfs/syscall/sys_pread64.rs:41:73: 41:74
-bb12 at src/filesystem/vfs/syscall/sys_pread64.rs:42:37: 42:38
-bb13 at src/filesystem/vfs/syscall/sys_pread64.rs:42:37: 42:38
-bb14 at src/filesystem/vfs/syscall/sys_pread64.rs:42:68: 42:69
-bb15 at src/filesystem/vfs/syscall/sys_pread64.rs:42:68: 42:69
-bb16 at src/filesystem/vfs/syscall/sys_pread64.rs:43:24: 43:43
-bb17 at src/filesystem/vfs/syscall/sys_pread64.rs:47:78: 47:79
-bb18 at src/filesystem/vfs/syscall/sys_pread64.rs:47:79: 47:80
-bb19 at src/filesystem/vfs/syscall/sys_pread64.rs:47:80: 47:81
-bb20 at src/filesystem/vfs/syscall/sys_pread64.rs:47:13: 47:81
-bb21 at src/filesystem/vfs/syscall/sys_pread64.rs:47:80: 47:81
-bb22 at src/filesystem/vfs/syscall/sys_pread64.rs:47:80: 47:81
-bb23 at src/filesystem/vfs/syscall/sys_pread64.rs:48:51: 48:52
-bb24 at src/filesystem/vfs/syscall/sys_pread64.rs:48:52: 48:53
-bb25 at src/filesystem/vfs/syscall/sys_pread64.rs:48:24: 48:53
-bb26 at src/filesystem/vfs/syscall/sys_pread64.rs:48:52: 48:53
-bb27 at src/filesystem/vfs/syscall/sys_pread64.rs:48:52: 48:53
-bb28 at src/filesystem/vfs/syscall/sys_pread64.rs:50:23: 50:52
-bb29 at src/filesystem/vfs/syscall/sys_pread64.rs:50:23: 50:52
-bb30 at src/filesystem/vfs/syscall/sys_pread64.rs:50:62: 50:63
-bb31 at src/filesystem/vfs/syscall/sys_pread64.rs:50:63: 50:64
-bb32 at src/filesystem/vfs/syscall/sys_pread64.rs:51:30: 51:37
-bb33 at src/filesystem/vfs/syscall/sys_pread64.rs:51:43: 51:44
-bb34 at src/filesystem/vfs/syscall/sys_pread64.rs:53:20: 53:34
-bb35 at src/filesystem/vfs/syscall/sys_pread64.rs:54:31: 54:32
-bb36 at src/filesystem/vfs/syscall/sys_pread64.rs:55:38: 55:39
-bb37 at src/filesystem/vfs/syscall/sys_pread64.rs:55:39: 55:40
-bb38 at src/filesystem/vfs/syscall/sys_pread64.rs:53:20: 55:40
-bb39 at src/filesystem/vfs/syscall/sys_pread64.rs:55:39: 55:40
-bb40 at src/filesystem/vfs/syscall/sys_pread64.rs:55:39: 55:40
-bb41 at src/filesystem/vfs/syscall/sys_pread64.rs:58:28: 58:29
-bb42 at src/filesystem/vfs/syscall/sys_pread64.rs:61:18: 61:22
-bb43 at src/filesystem/vfs/syscall/sys_pread64.rs:61:32: 61:33
-bb44 at src/filesystem/vfs/syscall/sys_pread64.rs:61:33: 61:34
-bb45 at src/filesystem/vfs/syscall/sys_pread64.rs:61:18: 61:34
-bb46 at src/filesystem/vfs/syscall/sys_pread64.rs:61:33: 61:34
-bb47 at src/filesystem/vfs/syscall/sys_pread64.rs:61:33: 61:34
-bb49 at src/filesystem/vfs/syscall/sys_pread64.rs:62:41: 62:42
-bb50 at src/filesystem/vfs/syscall/sys_pread64.rs:62:41: 62:42
-bb52 at src/filesystem/vfs/syscall/sys_pread64.rs:63:47: 63:48
-bb53 at src/filesystem/vfs/syscall/sys_pread64.rs:63:47: 63:48
-bb55 at src/filesystem/vfs/syscall/sys_pread64.rs:64:51: 64:52
-bb56 at src/filesystem/vfs/syscall/sys_pread64.rs:66:24: 66:43
-bb57 at src/filesystem/vfs/syscall/sys_pread64.rs:64:51: 64:52
-bb58 at src/filesystem/vfs/syscall/sys_pread64.rs:69:16: 69:20
-bb59 at src/filesystem/vfs/syscall/sys_pread64.rs:69:48: 69:49
-bb60 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb61 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb62 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb63 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb64 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb65 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb66 at src/filesystem/vfs/syscall/sys_pread64.rs:70:5: 70:6
-bb72 at src/filesystem/vfs/syscall/sys_pread64.rs:55:40: 55:41
-fn &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle
-_0:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_pread64::SysPread64Handle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ &amp;&#39;{erased} mut arch::x86_64::interrupt::TrapFrame 
-_4:  @ ! 
-_5:  @ i32 
-_6:  @ &amp;&#39;{erased} [usize] 
-_7:  @ *mut u8 
-_8:  @ &amp;&#39;{erased} [usize] 
-_9:  @ usize 
-_10:  @ &amp;&#39;{erased} [usize] 
-_11:  @ usize 
-_12:  @ &amp;&#39;{erased} [usize] 
-_13:  @ usize 
-_14:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
-_15:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
-_16:  @ core::option::Option&lt;usize&gt; 
-_17:  @ usize 
-_18:  @ usize 
-_19:  @ system_error::SystemError 
-_20:  @ isize 
-_21:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_22:  @ ! 
-_23:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_24:  @ usize 
-_25:  @ () 
-_26:  @ bool 
-_27:  @ usize 
-_28:  @ usize 
-_29:  @ bool 
-_30:  @ usize 
-_31:  @ usize 
-_32:  @ ! 
-_33:  @ system_error::SystemError 
-_34:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
-_35:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;&gt; 
-_36:  @ core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt;, system_error::SystemError&gt; 
-_37:  @ *mut u8 
-_38:  @ usize 
-_39:  @ bool 
-_40:  @ &amp;&#39;{erased} arch::x86_64::interrupt::TrapFrame 
-_41:  @ isize 
-_42:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_43:  @ ! 
-_44:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_45:  @ syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
-_46:  @ &amp;&#39;{erased} mut [u8] 
-_47:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, &amp;&#39;{erased} mut [u8]&gt; 
-_48:  @ core::result::Result&lt;&amp;&#39;{erased} mut [u8], system_error::SystemError&gt; 
-_49:  @ &amp;&#39;{erased} mut syscall::user_access::UserBufferWriter&lt;&#39;{erased}&gt; 
-_50:  @ isize 
-_51:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_52:  @ ! 
-_53:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_54:  @ &amp;&#39;{erased} mut [u8] 
-_55:  @ alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
-_56:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_57:  @ &amp;&#39;{erased} process::ProcessControlBlock 
-_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_59:  @ alloc::sync::Arc&lt;process::ProcessControlBlock, alloc::alloc::Global&gt; 
-_60:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
-_61:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
-_62:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt; 
-_63:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;, alloc::alloc::Global&gt; 
-_64:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_65:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
-_66:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
-_67:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt;&gt; 
-_68:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
-_69:  @ &amp;&#39;{erased} filesystem::vfs::file::FileDescriptorVec 
-_70:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
-_71:  @ i32 
-_72:  @ system_error::SystemError 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/net/socket/inet/stream/inner.rs:130:30: 135:10
+bb2 at src/net/socket/inet/stream/inner.rs:134:25: 134:30
+bb3 at src/net/socket/inet/stream/inner.rs:132:28: 132:55
+bb5 at src/net/socket/inet/stream/inner.rs:136:56: 136:57
+bb6 at src/net/socket/inet/stream/inner.rs:137:61: 137:62
+bb7 at src/net/socket/inet/stream/inner.rs:136:56: 136:57
+bb8 at src/net/socket/inet/stream/inner.rs:139:56: 139:57
+bb9 at src/net/socket/inet/stream/inner.rs:140:9: 140:10
+bb11 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb12 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb14 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb15 at src/net/socket/inet/stream/inner.rs:141:35: 141:36
+bb16 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb17 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb18 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb19 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb20 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb21 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb22 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb23 at src/net/socket/inet/stream/inner.rs:143:9: 161:10
+bb24 at src/net/socket/inet/stream/inner.rs:159:11: 159:12
+bb25 at src/net/socket/inet/stream/inner.rs:143:20: 143:23
+bb26 at src/net/socket/inet/stream/inner.rs:161:10: 161:10
+bb27 at src/net/socket/inet/stream/inner.rs:167:10: 167:11
+bb28 at src/net/socket/inet/stream/inner.rs:163:20: 163:23
+bb29 at src/net/socket/inet/stream/inner.rs:169:10: 169:10
+bb30 at src/net/socket/inet/stream/inner.rs:171:26: 171:27
+bb31 at src/net/socket/inet/stream/inner.rs:175:13: 175:24
+bb33 at src/net/socket/inet/stream/inner.rs:177:5: 177:6
+bb36 at src/net/socket/inet/stream/inner.rs:177:5: 177:6
+bb39 at src/net/socket/inet/stream/inner.rs:177:5: 177:6
+bb41 at src/net/socket/inet/stream/inner.rs:177:5: 177:6
+fn net::socket::inet::stream::inner::Init::listen
+_0:  @ core::result::Result&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt; 
+_1:  @ net::socket::inet::stream::inner::Init 
+_2:  @ usize 
+_3:  @ ! 
+_4:  @ net::socket::inet::common::BoundInner 
+_5:  @ smoltcp::wire::IpEndpoint 
+_6:  @ (net::socket::inet::common::BoundInner, smoltcp::wire::IpEndpoint) 
+_7:  @ isize 
+_8:  @ ! 
+_9:  @ (net::socket::inet::stream::inner::Init, system_error::SystemError) 
+_10:  @ net::socket::inet::stream::inner::Init 
+_11:  @ system_error::SystemError 
+_12:  @ (net::socket::inet::common::BoundInner, smoltcp::wire::IpEndpoint) 
+_13:  @ smoltcp::wire::IpListenEndpoint 
+_14:  @ bool 
+_15:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+_16:  @ u16 
+_17:  @ smoltcp::wire::IpEndpoint 
+_18:  @ () 
+_19:  @ log::Level 
+_20:  @ bool 
+_21:  @ &amp;&#39;{erased} log::Level 
+_22:  @ &amp;&#39;{erased} log::LevelFilter 
+_23:  @ log::LevelFilter 
+_24:  @ bool 
+_25:  @ &amp;&#39;{erased} log::Level 
+_26:  @ &amp;&#39;{erased} log::LevelFilter 
+_27:  @ log::LevelFilter 
+_28:  @ () 
+_29:  @ log::__private_api::GlobalLogger 
+_30:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_31:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_32:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
+_33:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
+_34:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
+_35:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_36:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_37:  @ [&amp;&#39;{erased} str; 1_usize] 
+_38:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_39:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
+_40:  @ log::Level 
+_41:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_42:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_43:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_44:  @ &amp;&#39;{erased} str 
+_45:  @ &amp;&#39;{erased} str 
+_46:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_47:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_48:  @ () 
+_49:  @ alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt; 
+_50:  @ () 
+_51:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_52:  @ &amp;&#39;{erased} mut Closure(DefId(0:25891 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} usize, &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint, &amp;&#39;{erased} net::socket::inet::common::BoundInner, &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt;)]) 
+_53:  @ Closure(DefId(0:25891 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} usize, &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint, &amp;&#39;{erased} net::socket::inet::common::BoundInner, &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt;)]) 
+_54:  @ &amp;&#39;{erased} usize 
+_55:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
+_56:  @ &amp;&#39;{erased} net::socket::inet::common::BoundInner 
+_57:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt; 
+_58:  @ () 
+_59:  @ isize 
+_60:  @ system_error::SystemError 
+_61:  @ ! 
+_62:  @ (net::socket::inet::stream::inner::Init, system_error::SystemError) 
+_63:  @ net::socket::inet::stream::inner::Init 
+_64:  @ (net::socket::inet::common::BoundInner, smoltcp::wire::IpEndpoint) 
+_65:  @ net::socket::inet::common::BoundInner 
+_66:  @ smoltcp::wire::IpEndpoint 
+_67:  @ system_error::SystemError 
+_68:  @ () 
+_69:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_70:  @ &amp;&#39;{erased} net::socket::inet::common::BoundInner 
+_71:  @ Closure(DefId(0:25892 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut smoltcp::socket::tcp::Socket&lt;&#39;{erased}&gt;,)) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} smoltcp::wire::IpListenEndpoint,)]) 
+_72:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
 _73:  @ isize 
-_74:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_74:  @ system_error::SystemError 
 _75:  @ ! 
-_76:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_77:  @ alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_78:  @ () 
-_79:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, filesystem::vfs::file::FileDescriptorVec&gt; 
-_80:  @ filesystem::vfs::Metadata 
-_81:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, filesystem::vfs::Metadata&gt; 
-_82:  @ core::result::Result&lt;filesystem::vfs::Metadata, system_error::SystemError&gt; 
-_83:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
-_84:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
-_85:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_86:  @ isize 
-_87:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_88:  @ ! 
-_89:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
-_90:  @ filesystem::vfs::Metadata 
-_91:  @ () 
+_76:  @ (net::socket::inet::stream::inner::Init, system_error::SystemError) 
+_77:  @ net::socket::inet::stream::inner::Init 
+_78:  @ (net::socket::inet::common::BoundInner, smoltcp::wire::IpEndpoint) 
+_79:  @ net::socket::inet::common::BoundInner 
+_80:  @ smoltcp::wire::IpEndpoint 
+_81:  @ system_error::SystemError 
+_82:  @ () 
+_83:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt; 
+_84:  @ net::socket::inet::common::BoundInner 
+_85:  @ net::socket::inet::stream::inner::Listening 
+_86:  @ alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt; 
+_87:  @ core::sync::atomic::AtomicUsize 
+_88:  @ smoltcp::wire::IpListenEndpoint 
+_89:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_90:  @ &amp;&#39;{erased} log::LevelFilter 
+_91:  @ bool 
 _92:  @ bool 
-_93:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_94:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_95:  @ filesystem::vfs::FileType 
-_96:  @ bool 
-_97:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_98:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_99:  @ filesystem::vfs::FileType 
-_100:  @ bool 
-_101:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_102:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_103:  @ filesystem::vfs::FileType 
-_104:  @ ! 
-_105:  @ system_error::SystemError 
-_106:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
-_107:  @ &amp;&#39;{erased} filesystem::vfs::file::File 
-_108:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::vfs::file::File, alloc::alloc::Global&gt; 
-_109:  @ usize 
-_110:  @ usize 
-_111:  @ &amp;&#39;{erased} mut [u8] 
-_112:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_113:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_114:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
-_115:  @ bool 
-_116:  @ isize 
-_117:  @ isize 
-_118:  @ isize 
-_119:  @ isize 
-_120:  @ isize 
+_93:  @ bool 
+_94:  @ bool 
+_95:  @ isize 
+_96:  @ isize 
+_97:  @ isize 
 
 bb 0 {
 CleanUp: false
-    Assign((_115, const false)) @ _115=const false @ Use
-    StorageLive(_5) @ StorageLive
+    Assign((_92, const false)) @ _92=const false @ Use
+    Assign((_94, const false)) @ _94=const false @ Use
+    Assign((_91, const false)) @ _91=const false @ Use
+    Assign((_93, const false)) @ _93=const false @ Use
+    Assign((_92, const true)) @ _92=const true @ Use
+    Assign((_93, const true)) @ _93=const true @ Use
     StorageLive(_6) @ StorageLive
-    Assign((_6, &amp;(*_2))) @ _6=&amp;(*_2) @ Ref
-    _5 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::fd(move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 20204
+    Assign((_7, discriminant(_1))) @ _7=discriminant(_1) @ Discriminant
+    switchInt(move _7) -&gt; [0: bb3, 1: bb2, otherwise: bb1] @ SwitchInt
 }
 bb 1 {
 CleanUp: false
-    StorageDead(_6) @ StorageDead
-    StorageLive(_7) @ StorageLive
-    StorageLive(_8) @ StorageLive
-    Assign((_8, &amp;(*_2))) @ _8=&amp;(*_2) @ Ref
-    _7 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::buf(move _8) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 20205
+    unreachable @ Unreachable
 }
 bb 2 {
 CleanUp: false
-    StorageDead(_8) @ StorageDead
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    Assign((_10, &amp;(*_2))) @ _10=&amp;(*_2) @ Ref
-    _9 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::len(move _10) -&gt; [return: bb3, unwind continue] @ Call: FnDid: 20206
-}
-bb 3 {
-CleanUp: false
-    StorageDead(_10) @ StorageDead
-    StorageLive(_11) @ StorageLive
     StorageLive(_12) @ StorageLive
-    Assign((_12, &amp;(*_2))) @ _12=&amp;(*_2) @ Ref
-    _11 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::offset(move _12) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 20207
-}
-bb 4 {
-CleanUp: false
+    Assign((_12, move ((_1 as Bound).0: (net::socket::inet::common::BoundInner, smoltcp::wire::IpEndpoint)))) @ _12=move ((_1 as Bound).0: (net::socket::inet::common::BoundInner, smoltcp::wire::IpEndpoint)) @ Use
+    Assign((_6, move _12)) @ _6=move _12 @ Use
     StorageDead(_12) @ StorageDead
+    StorageLive(_4) @ StorageLive
+    Assign((_94, const true)) @ _94=const true @ Use
+    Assign((_4, move (_6.0: net::socket::inet::common::BoundInner))) @ _4=move (_6.0: net::socket::inet::common::BoundInner) @ Use
+    StorageLive(_5) @ StorageLive
+    Assign((_5, copy (_6.1: smoltcp::wire::IpEndpoint))) @ _5=copy (_6.1: smoltcp::wire::IpEndpoint) @ Use
+    StorageDead(_6) @ StorageDead
     StorageLive(_13) @ StorageLive
     StorageLive(_14) @ StorageLive
     StorageLive(_15) @ StorageLive
-    StorageLive(_16) @ StorageLive
-    StorageLive(_17) @ StorageLive
-    Assign((_17, copy _11)) @ _17=copy _11 @ Use
-    StorageLive(_18) @ StorageLive
-    Assign((_18, copy _9)) @ _18=copy _9 @ Use
-    _16 = core::num::&lt;impl usize&gt;::checked_add(move _17, move _18) -&gt; [return: bb5, unwind continue] @ Call: FnDid: 35595
+    Assign((_15, &amp;(_5.0: smoltcp::wire::IpAddress))) @ _15=&amp;(_5.0: smoltcp::wire::IpAddress) @ Ref
+    _14 = smoltcp::wire::IpAddress::is_unspecified(move _15) -&gt; [return: bb4, unwind: bb45] @ Call: FnDid: 2375
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_9) @ StorageLive
+    StorageLive(_10) @ StorageLive
+    Assign((_92, const false)) @ _92=const false @ Use
+    Assign((_93, const false)) @ _93=const false @ Use
+    Assign((_10, move _1)) @ _10=move _1 @ Use
+    StorageLive(_11) @ StorageLive
+    Assign((_11, system_error::SystemError::EINVAL)) @ _11=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_9, (move _10, move _11))) @ _9=(move _10, move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_0, core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Err(move _9))) @ _0=core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Err(move _9) @ Aggregate
+    StorageDead(_9) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    goto -&gt; bb34 @ Goto
+}
+bb 4 {
+CleanUp: false
+    switchInt(move _14) -&gt; [0: bb7, otherwise: bb5] @ SwitchInt
 }
 bb 5 {
 CleanUp: false
-    StorageDead(_18) @ StorageDead
-    StorageDead(_17) @ StorageDead
-    StorageLive(_19) @ StorageLive
-    Assign((_19, system_error::SystemError::EINVAL)) @ _19=system_error::SystemError::EINVAL @ Aggregate
-    _15 = core::option::Option::&lt;usize&gt;::ok_or::&lt;system_error::SystemError&gt;(move _16, move _19) -&gt; [return: bb6, unwind continue] @ Call: FnDid: 10178
+    StorageDead(_15) @ StorageDead
+    StorageLive(_16) @ StorageLive
+    Assign((_16, copy (_5.1: u16))) @ _16=copy (_5.1: u16) @ Use
+    _13 = &lt;smoltcp::wire::IpListenEndpoint as core::convert::From&lt;u16&gt;&gt;::from(move _16) -&gt; [return: bb6, unwind: bb45] @ Call: FnDid: 3390
 }
 bb 6 {
 CleanUp: false
-    StorageDead(_19) @ StorageDead
     StorageDead(_16) @ StorageDead
-    _14 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _15) -&gt; [return: bb7, unwind continue] @ Call: FnDid: 4199
+    goto -&gt; bb9 @ Goto
 }
 bb 7 {
 CleanUp: false
     StorageDead(_15) @ StorageDead
-    Assign((_20, discriminant(_14))) @ _20=discriminant(_14) @ Discriminant
-    switchInt(move _20) -&gt; [0: bb9, 1: bb10, otherwise: bb8] @ SwitchInt
+    StorageLive(_17) @ StorageLive
+    Assign((_17, copy _5)) @ _17=copy _5 @ Use
+    _13 = &lt;smoltcp::wire::IpListenEndpoint as core::convert::From&lt;smoltcp::wire::IpEndpoint&gt;&gt;::from(move _17) -&gt; [return: bb8, unwind: bb45] @ Call: FnDid: 3390
 }
 bb 8 {
 CleanUp: false
-    unreachable @ Unreachable
+    StorageDead(_17) @ StorageDead
+    goto -&gt; bb9 @ Goto
 }
 bb 9 {
 CleanUp: false
-    StorageLive(_24) @ StorageLive
-    Assign((_24, copy ((_14 as Continue).0: usize))) @ _24=copy ((_14 as Continue).0: usize) @ Use
-    Assign((_13, copy _24)) @ _13=copy _24 @ Use
-    StorageDead(_24) @ StorageDead
     StorageDead(_14) @ StorageDead
-    StorageLive(_25) @ StorageLive
-    StorageLive(_26) @ StorageLive
-    StorageLive(_27) @ StorageLive
-    Assign((_27, copy _11)) @ _27=copy _11 @ Use
-    StorageLive(_28) @ StorageLive
-    Assign((_28, const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt))) @ _28=const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt) @ Cast
-    Assign((_26, Gt(move _27, move _28))) @ _26=Gt(move _27, move _28) @ BinaryOp
-    switchInt(move _26) -&gt; [0: bb13, otherwise: bb12] @ SwitchInt
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, log::Level::Debug)) @ _19=log::Level::Debug @ Aggregate
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;_19)) @ _21=&amp;_19 @ Ref
+    StorageLive(_22) @ StorageLive
+    Assign((_90, const net::socket::inet::stream::inner::Init::listen::promoted[1])) @ _90=const net::socket::inet::stream::inner::Init::listen::promoted[1] @ Use
+    Assign((_22, &amp;(*_90))) @ _22=&amp;(*_90) @ Ref
+    _20 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _21, move _22) -&gt; [return: bb10, unwind: bb45] @ Call: FnDid: 3215
 }
 bb 10 {
 CleanUp: false
-    StorageLive(_21) @ StorageLive
-    Assign((_21, move ((_14 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _21=move ((_14 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_23) @ StorageLive
-    Assign((_23, move _21)) @ _23=move _21 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _23) -&gt; [return: bb11, unwind continue] @ Call: FnDid: 4202
+    switchInt(move _20) -&gt; [0: bb20, otherwise: bb11] @ SwitchInt
 }
 bb 11 {
 CleanUp: false
-    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
     StorageDead(_21) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    goto -&gt; bb66 @ Goto
+    StorageLive(_24) @ StorageLive
+    StorageLive(_25) @ StorageLive
+    Assign((_25, &amp;_19)) @ _25=&amp;_19 @ Ref
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    _27 = log::max_level() -&gt; [return: bb12, unwind: bb45] @ Call: FnDid: 134
 }
 bb 12 {
 CleanUp: false
-    StorageDead(_28) @ StorageDead
+    Assign((_26, &amp;_27)) @ _26=&amp;_27 @ Ref
+    _24 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _25, move _26) -&gt; [return: bb13, unwind: bb45] @ Call: FnDid: 3215
+}
+bb 13 {
+CleanUp: false
+    switchInt(move _24) -&gt; [0: bb19, otherwise: bb14] @ SwitchInt
+}
+bb 14 {
+CleanUp: false
     StorageDead(_27) @ StorageDead
-    goto -&gt; bb16 @ Goto
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, log::__private_api::GlobalLogger)) @ _29=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, &amp;_13)) @ _34=&amp;_13 @ Ref
+    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
+    _32 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_debug::&lt;smoltcp::wire::IpListenEndpoint&gt;(move _33) -&gt; [return: bb15, unwind: bb45] @ Call: FnDid: 11809
+}
+bb 15 {
+CleanUp: false
+    StorageDead(_33) @ StorageDead
+    Assign((_31, [move _32])) @ _31=[move _32] @ Aggregate
+    StorageDead(_32) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    Assign((_89, const net::socket::inet::stream::inner::Init::listen::promoted[0])) @ _89=const net::socket::inet::stream::inner::Init::listen::promoted[0] @ Use
+    Assign((_36, &amp;(*_89))) @ _36=&amp;(*_89) @ Ref
+    Assign((_35, &amp;(*_36))) @ _35=&amp;(*_36) @ Ref
+    StorageLive(_38) @ StorageLive
+    StorageLive(_39) @ StorageLive
+    Assign((_39, &amp;_31)) @ _39=&amp;_31 @ Ref
+    Assign((_38, &amp;(*_39))) @ _38=&amp;(*_39) @ Ref
+    _30 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;1, 1&gt;(move _35, move _38) -&gt; [return: bb16, unwind: bb45] @ Call: FnDid: 11836
+}
+bb 16 {
+CleanUp: false
+    StorageDead(_39) @ StorageDead
+    StorageDead(_38) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    Assign((_40, copy _19)) @ _40=copy _19 @ Use
+    StorageLive(_41) @ StorageLive
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, const &#34;dragonos_kernel::net::socket::inet::stream::inner&#34;)) @ _45=const &#34;dragonos_kernel::net::socket::inet::stream::inner&#34; @ Use
+    Assign((_44, &amp;(*_45))) @ _44=&amp;(*_45) @ Ref
+    StorageLive(_46) @ StorageLive
+    StorageLive(_47) @ StorageLive
+    _47 = log::__private_api::loc() -&gt; [return: bb17, unwind: bb45] @ Call: FnDid: 184
+}
+bb 17 {
+CleanUp: false
+    Assign((_46, &amp;(*_47))) @ _46=&amp;(*_47) @ Ref
+    Assign((_43, (move _44, const &#34;dragonos_kernel::net::socket::inet::stream::inner&#34;, move _46))) @ _43=(move _44, const &#34;dragonos_kernel::net::socket::inet::stream::inner&#34;, move _46) @ Aggregate
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    Assign((_42, &amp;_43)) @ _42=&amp;_43 @ Ref
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    StorageLive(_48) @ StorageLive
+    Assign((_48, ())) @ _48=() @ Aggregate
+    _28 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _29, move _30, move _40, move _41, move _48) -&gt; [return: bb18, unwind: bb45] @ Call: FnDid: 178
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_48) @ StorageDead
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageDead(_29) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    Assign((_18, const ())) @ _18=const () @ Use
+    goto -&gt; bb22 @ Goto
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_21) @ StorageDead
+    goto -&gt; bb21 @ Goto
+}
+bb 21 {
+CleanUp: false
+    Assign((_18, const ())) @ _18=const () @ Use
+    goto -&gt; bb22 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_18) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    _49 = alloc::vec::Vec::&lt;net::socket::inet::common::BoundInner&gt;::new() -&gt; [return: bb23, unwind: bb45] @ Call: FnDid: 8097
+}
+bb 23 {
+CleanUp: false
+    Assign((_91, const true)) @ _91=const true @ Use
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_2)) @ _54=&amp;_2 @ Ref
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;_13)) @ _55=&amp;_13 @ Ref
+    StorageLive(_56) @ StorageLive
+    Assign((_56, &amp;_4)) @ _56=&amp;_4 @ Ref
+    StorageLive(_57) @ StorageLive
+    Assign((_57, &amp;mut _49)) @ _57=&amp;mut _49 @ Ref
+    Assign((_53, {closure@src/net/socket/inet/stream/inner.rs:143:27: 143:56} { backlog: move _54, listen_addr: move _55, inner: move _56, inners: move _57 })) @ _53={closure@src/net/socket/inet/stream/inner.rs:143:27: 143:56} { backlog: move _54, listen_addr: move _55, inner: move _56, inners: move _57 } @ Aggregate
+    Assign((_52, &amp;mut _53)) @ _52=&amp;mut _53 @ Ref
+    StorageDead(_57) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageLive(_58) @ StorageLive
+    Assign((_58, ())) @ _58=() @ Aggregate
+    _51 = &lt;{closure@src/net/socket/inet/stream/inner.rs:143:27: 143:56} as core::ops::FnMut&lt;()&gt;&gt;::call_mut(move _52, move _58) -&gt; [return: bb24, unwind: bb43] @ Call: FnDid: 3945
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_58) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    Assign((_59, discriminant(_51))) @ _59=discriminant(_51) @ Discriminant
+    switchInt(move _59) -&gt; [1: bb25, otherwise: bb26] @ SwitchInt
+}
+bb 25 {
+CleanUp: false
+    StorageLive(_60) @ StorageLive
+    Assign((_60, move ((_51 as Err).0: system_error::SystemError))) @ _60=move ((_51 as Err).0: system_error::SystemError) @ Use
+    StorageLive(_62) @ StorageLive
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_94, const false)) @ _94=const false @ Use
+    Assign((_65, move _4)) @ _65=move _4 @ Use
+    StorageLive(_66) @ StorageLive
+    Assign((_66, copy _5)) @ _66=copy _5 @ Use
+    Assign((_64, (move _65, move _66))) @ _64=(move _65, move _66) @ Aggregate
+    StorageDead(_66) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    Assign((_63, net::socket::inet::stream::inner::Init::Bound(move _64))) @ _63=net::socket::inet::stream::inner::Init::Bound(move _64) @ Aggregate
+    StorageDead(_64) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    Assign((_67, move _60)) @ _67=move _60 @ Use
+    Assign((_62, (move _63, move _67))) @ _62=(move _63, move _67) @ Aggregate
+    StorageDead(_67) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    Assign((_0, core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Err(move _62))) @ _0=core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Err(move _62) @ Aggregate
+    StorageDead(_62) @ StorageDead
+    StorageDead(_60) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    goto -&gt; bb32 @ Goto
+}
+bb 26 {
+CleanUp: false
+    Assign((_50, const ())) @ _50=const () @ Use
+    StorageDead(_53) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageDead(_50) @ StorageDead
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, &amp;_4)) @ _70=&amp;_4 @ Ref
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_72, &amp;_13)) @ _72=&amp;_13 @ Ref
+    Assign((_71, {closure@src/net/socket/inet/stream/inner.rs:163:80: 163:88} { listen_addr: move _72 })) @ _71={closure@src/net/socket/inet/stream/inner.rs:163:80: 163:88} { listen_addr: move _72 } @ Aggregate
+    StorageDead(_72) @ StorageDead
+    _69 = net::socket::inet::common::BoundInner::with_mut::&lt;smoltcp::socket::tcp::Socket&lt;&#39;_&gt;, core::result::Result&lt;(), system_error::SystemError&gt;, {closure@src/net/socket/inet/stream/inner.rs:163:80: 163:88}&gt;(move _70, move _71) -&gt; [return: bb27, unwind: bb43] @ Call: FnDid: 25716
+}
+bb 27 {
+CleanUp: false
+    StorageDead(_71) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    Assign((_73, discriminant(_69))) @ _73=discriminant(_69) @ Discriminant
+    switchInt(move _73) -&gt; [1: bb28, otherwise: bb29] @ SwitchInt
+}
+bb 28 {
+CleanUp: false
+    StorageLive(_74) @ StorageLive
+    Assign((_74, move ((_69 as Err).0: system_error::SystemError))) @ _74=move ((_69 as Err).0: system_error::SystemError) @ Use
+    StorageLive(_76) @ StorageLive
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    Assign((_94, const false)) @ _94=const false @ Use
+    Assign((_79, move _4)) @ _79=move _4 @ Use
+    StorageLive(_80) @ StorageLive
+    Assign((_80, copy _5)) @ _80=copy _5 @ Use
+    Assign((_78, (move _79, move _80))) @ _78=(move _79, move _80) @ Aggregate
+    StorageDead(_80) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    Assign((_77, net::socket::inet::stream::inner::Init::Bound(move _78))) @ _77=net::socket::inet::stream::inner::Init::Bound(move _78) @ Aggregate
+    StorageDead(_78) @ StorageDead
+    StorageLive(_81) @ StorageLive
+    Assign((_81, move _74)) @ _81=move _74 @ Use
+    Assign((_76, (move _77, move _81))) @ _76=(move _77, move _81) @ Aggregate
+    StorageDead(_81) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    Assign((_0, core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Err(move _76))) @ _0=core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Err(move _76) @ Aggregate
+    StorageDead(_76) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    goto -&gt; bb32 @ Goto
+}
+bb 29 {
+CleanUp: false
+    Assign((_68, const ())) @ _68=const () @ Use
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;mut _49)) @ _83=&amp;mut _49 @ Ref
+    StorageLive(_84) @ StorageLive
+    Assign((_94, const false)) @ _94=const false @ Use
+    Assign((_84, move _4)) @ _84=move _4 @ Use
+    _82 = alloc::vec::Vec::&lt;net::socket::inet::common::BoundInner&gt;::push(move _83, move _84) -&gt; [return: bb30, unwind: bb43] @ Call: FnDid: 8180
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    Assign((_91, const false)) @ _91=const false @ Use
+    Assign((_86, move _49)) @ _86=move _49 @ Use
+    StorageLive(_87) @ StorageLive
+    _87 = core::sync::atomic::AtomicUsize::new(const 0_usize) -&gt; [return: bb31, unwind: bb35] @ Call: FnDid: 50366
+}
+bb 31 {
+CleanUp: false
+    StorageLive(_88) @ StorageLive
+    Assign((_88, copy _13)) @ _88=copy _13 @ Use
+    Assign((_85, net::socket::inet::stream::inner::Listening { inners: move _86, connect: move _87, listen_addr: move _88 })) @ _85=net::socket::inet::stream::inner::Listening { inners: move _86, connect: move _87, listen_addr: move _88 } @ Aggregate
+    StorageDead(_88) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageDead(_86) @ StorageDead
+    Assign((_0, core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Ok(move _85))) @ _0=core::result::Result::&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt;::Ok(move _85) @ Aggregate
+    StorageDead(_85) @ StorageDead
+    goto -&gt; bb32 @ Goto
+}
+bb 32 {
+CleanUp: false
+    switchInt(copy _91) -&gt; [0: bb33, otherwise: bb38] @ SwitchInt
+}
+bb 33 {
+CleanUp: false
+    Assign((_91, const false)) @ _91=const false @ Use
+    StorageDead(_49) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    Assign((_94, const false)) @ _94=const false @ Use
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb34 @ Goto
+}
+bb 34 {
+CleanUp: false
+    switchInt(copy _92) -&gt; [0: bb39, otherwise: bb41] @ SwitchInt
+}
+bb 35 {
+CleanUp: true
+    drop(_86) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
+}
+bb 36 {
+CleanUp: true
+    Assign((_97, discriminant(_1))) @ _97=discriminant(_1) @ Discriminant
+    switchInt(move _97) -&gt; [1: bb37, otherwise: bb46] @ SwitchInt
+}
+bb 37 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 38 {
+CleanUp: false
+    drop(_49) -&gt; [return: bb33, unwind: bb45] @ Drop
+}
+bb 39 {
+CleanUp: false
+    Assign((_92, const false)) @ _92=const false @ Use
+    return @ Return
+}
+bb 40 {
+CleanUp: false
+    drop(_1) -&gt; [return: bb39, unwind: bb37] @ Drop
+}
+bb 41 {
+CleanUp: false
+    Assign((_95, discriminant(_1))) @ _95=discriminant(_1) @ Discriminant
+    switchInt(move _95) -&gt; [1: bb39, otherwise: bb40] @ SwitchInt
+}
+bb 42 {
+CleanUp: true
+    drop(_49) -&gt; [return: bb45, unwind terminate(cleanup)] @ Drop
+}
+bb 43 {
+CleanUp: true
+    switchInt(copy _91) -&gt; [0: bb45, otherwise: bb42] @ SwitchInt
+}
+bb 44 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb36, unwind terminate(cleanup)] @ Drop
+}
+bb 45 {
+CleanUp: true
+    switchInt(copy _94) -&gt; [0: bb36, otherwise: bb44] @ SwitchInt
+}
+bb 46 {
+CleanUp: true
+    drop(_1) -&gt; [return: bb37, unwind terminate(cleanup)] @ Drop
+}
+
+bb0 at src/net/socket/inet/stream/inner.rs:144:13: 157:14
+bb1 at src/net/socket/inet/stream/inner.rs:144:25: 144:38
+bb2 at src/net/socket/inet/stream/inner.rs:144:37: 144:38
+bb3 at src/net/socket/inet/stream/inner.rs:144:22: 144:38
+bb4 at src/net/socket/inet/stream/inner.rs:144:37: 144:38
+bb6 at src/net/socket/inet/stream/inner.rs:146:21: 146:31
+bb7 at src/net/socket/inet/stream/inner.rs:144:13: 157:14
+bb8 at src/net/socket/inet/stream/inner.rs:147:58: 147:59
+bb9 at src/net/socket/inet/stream/inner.rs:150:33: 150:34
+bb10 at src/net/socket/inet/stream/inner.rs:151:36: 153:26
+bb11 at src/net/socket/inet/stream/inner.rs:148:21: 153:27
+bb12 at src/net/socket/inet/stream/inner.rs:154:33: 154:34
+bb13 at src/net/socket/inet/stream/inner.rs:155:17: 155:18
+bb14 at src/net/socket/inet/stream/inner.rs:155:18: 155:19
+bb15 at src/net/socket/inet/stream/inner.rs:146:34: 155:19
+bb16 at src/net/socket/inet/stream/inner.rs:155:18: 155:19
+bb17 at src/net/socket/inet/stream/inner.rs:155:18: 155:19
+bb18 at src/net/socket/inet/stream/inner.rs:156:39: 156:40
+bb23 at src/net/socket/inet/stream/inner.rs:155:19: 155:20
+fn net::socket::inet::stream::inner::Init::listen::{closure#0}
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:25891 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn(()) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [] }, (&amp;&#39;{erased} usize, &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint, &amp;&#39;{erased} net::socket::inet::common::BoundInner, &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt;)]) 
+_2:  @ () 
+_3:  @ core::ops::Range&lt;usize&gt; 
+_4:  @ core::ops::Range&lt;usize&gt; 
+_5:  @ usize 
+_6:  @ usize 
+_7:  @ (usize, bool) 
+_8:  @ core::ops::Range&lt;usize&gt; 
+_9:  @ () 
+_10:  @ () 
+_11:  @ core::option::Option&lt;usize&gt; 
+_12:  @ &amp;&#39;{erased} mut core::ops::Range&lt;usize&gt; 
+_13:  @ &amp;&#39;{erased} mut core::ops::Range&lt;usize&gt; 
+_14:  @ isize 
+_15:  @ ! 
+_16:  @ net::socket::inet::common::BoundInner 
+_17:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, net::socket::inet::common::BoundInner&gt; 
+_18:  @ core::result::Result&lt;net::socket::inet::common::BoundInner, system_error::SystemError&gt; 
+_19:  @ smoltcp::socket::tcp::Socket&lt;&#39;{erased}&gt; 
+_20:  @ smoltcp::wire::IpListenEndpoint 
+_21:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+_22:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+_23:  @ core::option::Option&lt;&amp;&#39;{erased} smoltcp::wire::IpAddress&gt; 
+_24:  @ &amp;&#39;{erased} core::option::Option&lt;smoltcp::wire::IpAddress&gt; 
+_25:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+_26:  @ &amp;&#39;{erased} smoltcp::wire::IpAddress 
+_27:  @ smoltcp::wire::IpAddress 
+_28:  @ alloc::sync::Arc&lt;process::namespace::net_namespace::NetNamespace, alloc::alloc::Global&gt; 
+_29:  @ &amp;&#39;{erased} net::socket::inet::common::BoundInner 
+_30:  @ isize 
+_31:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_32:  @ ! 
+_33:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_34:  @ net::socket::inet::common::BoundInner 
+_35:  @ () 
+_36:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt; 
+_37:  @ net::socket::inet::common::BoundInner 
+_38:  @ () 
+_39:  @ &amp;&#39;{erased} usize 
+_40:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
+_41:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
+_42:  @ &amp;&#39;{erased} net::socket::inet::common::BoundInner 
+_43:  @ &amp;&#39;{erased} mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner, alloc::alloc::Global&gt; 
+_44:  @ bool 
+_45:  @ bool 
+_46:  @ isize 
+_47:  @ isize 
+_48:  @ isize 
+_49:  @ isize 
+_50:  @ isize 
+
+bb 0 {
+CleanUp: false
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_45, const false)) @ _45=const false @ Use
+    StorageLive(_2) @ StorageLive
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_39, deref_copy ((*_1).0: &amp;usize))) @ _39=deref_copy ((*_1).0: &amp;usize) @ CopyForDeref
+    Assign((_6, copy (*_39))) @ _6=copy (*_39) @ Use
+    Assign((_7, SubWithOverflow(copy _6, const 1_usize))) @ _7=SubWithOverflow(copy _6, const 1_usize) @ BinaryOp
+    assert(!move (_7.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, move _6, const 1_usize) -&gt; [success: bb1, unwind continue] @ Assert
+}
+bb 1 {
+CleanUp: false
+    Assign((_5, move (_7.0: usize))) @ _5=move (_7.0: usize) @ Use
+    StorageDead(_6) @ StorageDead
+    Assign((_4, core::ops::Range::&lt;usize&gt; { start: const 0_usize, end: move _5 })) @ _4=core::ops::Range::&lt;usize&gt; { start: const 0_usize, end: move _5 } @ Aggregate
+    StorageDead(_5) @ StorageDead
+    _3 = &lt;core::ops::Range&lt;usize&gt; as core::iter::IntoIterator&gt;::into_iter(move _4) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 9224
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_4) @ StorageDead
+    StorageLive(_8) @ StorageLive
+    Assign((_8, move _3)) @ _8=move _3 @ Use
+    goto -&gt; bb3 @ Goto
+}
+bb 3 {
+CleanUp: false
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    StorageLive(_13) @ StorageLive
+    Assign((_13, &amp;mut _8)) @ _13=&amp;mut _8 @ Ref
+    Assign((_12, &amp;mut (*_13))) @ _12=&amp;mut (*_13) @ Ref
+    _11 = &lt;core::ops::Range&lt;usize&gt; as core::iter::Iterator&gt;::next(move _12) -&gt; [return: bb4, unwind continue] @ Call: FnDid: 9356
+}
+bb 4 {
+CleanUp: false
+    StorageDead(_12) @ StorageDead
+    Assign((_14, discriminant(_11))) @ _14=discriminant(_11) @ Discriminant
+    switchInt(move _14) -&gt; [0: bb7, 1: bb6, otherwise: bb5] @ SwitchInt
+}
+bb 5 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 6 {
+CleanUp: false
+    StorageLive(_16) @ StorageLive
+    StorageLive(_17) @ StorageLive
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    Assign((_40, deref_copy ((*_1).1: &amp;smoltcp::wire::IpListenEndpoint))) @ _40=deref_copy ((*_1).1: &amp;smoltcp::wire::IpListenEndpoint) @ CopyForDeref
+    Assign((_20, copy (*_40))) @ _20=copy (*_40) @ Use
+    Assign((_45, const true)) @ _45=const true @ Use
+    _19 = net::socket::inet::stream::inner::new_listen_smoltcp_socket::&lt;smoltcp::wire::IpListenEndpoint&gt;(move _20) -&gt; [return: bb8, unwind continue] @ Call: FnDid: 25877
+}
+bb 7 {
+CleanUp: false
+    Assign((_2, const ())) @ _2=const () @ Use
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    Assign((_38, ())) @ _38=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _38))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _38) @ Aggregate
+    StorageDead(_38) @ StorageDead
+    goto -&gt; bb19 @ Goto
+}
+bb 8 {
+CleanUp: false
+    StorageDead(_20) @ StorageDead
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_41, deref_copy ((*_1).1: &amp;smoltcp::wire::IpListenEndpoint))) @ _41=deref_copy ((*_1).1: &amp;smoltcp::wire::IpListenEndpoint) @ CopyForDeref
+    Assign((_24, &amp;((*_41).0: core::option::Option&lt;smoltcp::wire::IpAddress&gt;))) @ _24=&amp;((*_41).0: core::option::Option&lt;smoltcp::wire::IpAddress&gt;) @ Ref
+    _23 = core::option::Option::&lt;smoltcp::wire::IpAddress&gt;::as_ref(move _24) -&gt; [return: bb9, unwind: bb25] @ Call: FnDid: 10149
+}
+bb 9 {
+CleanUp: false
+    StorageDead(_24) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    _27 = &lt;smoltcp::wire::IpAddress as core::convert::From&lt;core::net::Ipv4Addr&gt;&gt;::from(const core::net::Ipv4Addr::UNSPECIFIED) -&gt; [return: bb10, unwind: bb25] @ Call: FnDid: 3390
+}
+bb 10 {
+CleanUp: false
+    Assign((_26, &amp;_27)) @ _26=&amp;_27 @ Ref
+    Assign((_25, &amp;(*_26))) @ _25=&amp;(*_26) @ Ref
+    _22 = core::option::Option::&lt;&amp;smoltcp::wire::IpAddress&gt;::unwrap_or(move _23, move _25) -&gt; [return: bb11, unwind: bb25] @ Call: FnDid: 10158
+}
+bb 11 {
+CleanUp: false
+    Assign((_21, &amp;(*_22))) @ _21=&amp;(*_22) @ Ref
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_42, deref_copy ((*_1).2: &amp;net::socket::inet::common::BoundInner))) @ _42=deref_copy ((*_1).2: &amp;net::socket::inet::common::BoundInner) @ CopyForDeref
+    Assign((_29, &amp;(*_42))) @ _29=&amp;(*_42) @ Ref
+    _28 = net::socket::inet::common::BoundInner::netns(move _29) -&gt; [return: bb12, unwind: bb25] @ Call: FnDid: 25726
+}
+bb 12 {
+CleanUp: false
+    StorageDead(_29) @ StorageDead
+    Assign((_45, const false)) @ _45=const false @ Use
+    _18 = net::socket::inet::common::BoundInner::bind::&lt;smoltcp::socket::tcp::Socket&lt;&#39;_&gt;&gt;(move _19, move _21, move _28) -&gt; [return: bb13, unwind: bb25] @ Call: FnDid: 25711
 }
 bb 13 {
 CleanUp: false
     StorageDead(_28) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    Assign((_30, copy _13)) @ _30=copy _13 @ Use
-    StorageLive(_31) @ StorageLive
-    Assign((_31, const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt))) @ _31=const core::num::&lt;impl i64&gt;::MAX as usize (IntToInt) @ Cast
-    Assign((_29, Gt(move _30, move _31))) @ _29=Gt(move _30, move _31) @ BinaryOp
-    switchInt(move _29) -&gt; [0: bb15, otherwise: bb14] @ SwitchInt
+    StorageDead(_21) @ StorageDead
+    Assign((_45, const false)) @ _45=const false @ Use
+    StorageDead(_19) @ StorageDead
+    _17 = &lt;core::result::Result&lt;net::socket::inet::common::BoundInner, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _18) -&gt; [return: bb14, unwind: bb20] @ Call: FnDid: 4199
 }
 bb 14 {
 CleanUp: false
-    StorageDead(_31) @ StorageDead
-    StorageDead(_30) @ StorageDead
-    goto -&gt; bb16 @ Goto
+    StorageDead(_18) @ StorageDead
+    Assign((_30, discriminant(_17))) @ _30=discriminant(_17) @ Discriminant
+    switchInt(move _30) -&gt; [0: bb15, 1: bb16, otherwise: bb5] @ SwitchInt
 }
 bb 15 {
 CleanUp: false
-    StorageDead(_31) @ StorageDead
-    StorageDead(_30) @ StorageDead
-    Assign((_25, const ())) @ _25=const () @ Use
-    StorageDead(_29) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    StorageDead(_25) @ StorageDead
     StorageLive(_34) @ StorageLive
+    Assign((_34, move ((_17 as Continue).0: net::socket::inet::common::BoundInner))) @ _34=move ((_17 as Continue).0: net::socket::inet::common::BoundInner) @ Use
+    Assign((_44, const true)) @ _44=const true @ Use
+    Assign((_16, move _34)) @ _16=move _34 @ Use
+    StorageDead(_34) @ StorageDead
+    Assign((_48, discriminant(_17))) @ _48=discriminant(_17) @ Discriminant
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_17) @ StorageDead
     StorageLive(_35) @ StorageLive
     StorageLive(_36) @ StorageLive
+    Assign((_43, deref_copy ((*_1).3: &amp;mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner&gt;))) @ _43=deref_copy ((*_1).3: &amp;mut alloc::vec::Vec&lt;net::socket::inet::common::BoundInner&gt;) @ CopyForDeref
+    Assign((_36, &amp;mut (*_43))) @ _36=&amp;mut (*_43) @ Ref
     StorageLive(_37) @ StorageLive
-    Assign((_37, copy _7)) @ _37=copy _7 @ Use
-    StorageLive(_38) @ StorageLive
-    Assign((_38, copy _9)) @ _38=copy _9 @ Use
-    StorageLive(_39) @ StorageLive
-    StorageLive(_40) @ StorageLive
-    Assign((_40, &amp;(*_3))) @ _40=&amp;(*_3) @ Ref
-    _39 = arch::x86_64::interrupt::TrapFrame::is_from_user(move _40) -&gt; [return: bb17, unwind continue] @ Call: FnDid: 1378
+    Assign((_44, const false)) @ _44=const false @ Use
+    Assign((_37, move _16)) @ _37=move _16 @ Use
+    _35 = alloc::vec::Vec::&lt;net::socket::inet::common::BoundInner&gt;::push(move _36, move _37) -&gt; [return: bb18, unwind: bb22] @ Call: FnDid: 8180
 }
 bb 16 {
 CleanUp: false
+    StorageLive(_31) @ StorageLive
+    Assign((_31, move ((_17 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _31=move ((_17 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
     StorageLive(_33) @ StorageLive
-    Assign((_33, system_error::SystemError::EINVAL)) @ _33=system_error::SystemError::EINVAL @ Aggregate
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _33))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _33) @ Aggregate
-    StorageDead(_33) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    StorageDead(_25) @ StorageDead
-    goto -&gt; bb66 @ Goto
+    Assign((_33, move _31)) @ _33=move _31 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _33) -&gt; [return: bb17, unwind: bb23] @ Call: FnDid: 4202
 }
 bb 17 {
 CleanUp: false
-    StorageDead(_40) @ StorageDead
-    _36 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::new_checked::&lt;u8&gt;(move _37, move _38, move _39) -&gt; [return: bb18, unwind continue] @ Call: FnDid: 30899
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    Assign((_46, discriminant(_17))) @ _46=discriminant(_17) @ Discriminant
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    StorageDead(_2) @ StorageDead
+    goto -&gt; bb19 @ Goto
 }
 bb 18 {
 CleanUp: false
-    StorageDead(_39) @ StorageDead
-    StorageDead(_38) @ StorageDead
     StorageDead(_37) @ StorageDead
-    _35 = &lt;core::result::Result&lt;syscall::user_access::UserBufferWriter&lt;&#39;_&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _36) -&gt; [return: bb19, unwind continue] @ Call: FnDid: 4199
+    StorageDead(_36) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    Assign((_10, const ())) @ _10=const () @ Use
+    Assign((_44, const false)) @ _44=const false @ Use
+    StorageDead(_16) @ StorageDead
+    StorageDead(_13) @ StorageDead
+    StorageDead(_11) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    Assign((_9, const ())) @ _9=const () @ Use
+    goto -&gt; bb3 @ Goto
 }
 bb 19 {
 CleanUp: false
-    StorageDead(_36) @ StorageDead
-    Assign((_41, discriminant(_35))) @ _41=discriminant(_35) @ Discriminant
-    switchInt(move _41) -&gt; [0: bb20, 1: bb21, otherwise: bb8] @ SwitchInt
-}
-bb 20 {
-CleanUp: false
-    StorageLive(_45) @ StorageLive
-    Assign((_45, move ((_35 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;))) @ _45=move ((_35 as Continue).0: syscall::user_access::UserBufferWriter&lt;&#39;_&gt;) @ Use
-    Assign((_34, move _45)) @ _34=move _45 @ Use
-    StorageDead(_45) @ StorageDead
-    StorageDead(_35) @ StorageDead
-    StorageLive(_46) @ StorageLive
-    StorageLive(_47) @ StorageLive
-    StorageLive(_48) @ StorageLive
-    StorageLive(_49) @ StorageLive
-    Assign((_49, &amp;mut _34)) @ _49=&amp;mut _34 @ Ref
-    _48 = syscall::user_access::UserBufferWriter::&lt;&#39;_&gt;::buffer::&lt;u8&gt;(move _49, const 0_usize) -&gt; [return: bb23, unwind continue] @ Call: FnDid: 30910
-}
-bb 21 {
-CleanUp: false
-    StorageLive(_42) @ StorageLive
-    Assign((_42, move ((_35 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _42=move ((_35 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_44) @ StorageLive
-    Assign((_44, move _42)) @ _44=move _42 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _44) -&gt; [return: bb22, unwind continue] @ Call: FnDid: 4202
-}
-bb 22 {
-CleanUp: false
-    StorageDead(_44) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    StorageDead(_35) @ StorageDead
-    goto -&gt; bb65 @ Goto
-}
-bb 23 {
-CleanUp: false
-    StorageDead(_49) @ StorageDead
-    _47 = &lt;core::result::Result&lt;&amp;mut [u8], system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _48) -&gt; [return: bb24, unwind continue] @ Call: FnDid: 4199
-}
-bb 24 {
-CleanUp: false
-    StorageDead(_48) @ StorageDead
-    Assign((_50, discriminant(_47))) @ _50=discriminant(_47) @ Discriminant
-    switchInt(move _50) -&gt; [0: bb25, 1: bb26, otherwise: bb8] @ SwitchInt
-}
-bb 25 {
-CleanUp: false
-    StorageLive(_54) @ StorageLive
-    Assign((_54, move ((_47 as Continue).0: &amp;mut [u8]))) @ _54=move ((_47 as Continue).0: &amp;mut [u8]) @ Use
-    Assign((_46, move _54)) @ _46=move _54 @ Use
-    StorageDead(_54) @ StorageDead
-    StorageDead(_47) @ StorageDead
-    StorageLive(_55) @ StorageLive
-    StorageLive(_56) @ StorageLive
-    StorageLive(_57) @ StorageLive
-    StorageLive(_58) @ StorageLive
-    StorageLive(_59) @ StorageLive
-    _59 = process::ProcessManager::current_pcb() -&gt; [return: bb28, unwind continue] @ Call: FnDid: 29866
-}
-bb 26 {
-CleanUp: false
-    StorageLive(_51) @ StorageLive
-    Assign((_51, move ((_47 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _51=move ((_47 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_53) @ StorageLive
-    Assign((_53, move _51)) @ _53=move _51 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _53) -&gt; [return: bb27, unwind continue] @ Call: FnDid: 4202
-}
-bb 27 {
-CleanUp: false
-    StorageDead(_53) @ StorageDead
-    StorageDead(_51) @ StorageDead
-    StorageDead(_47) @ StorageDead
-    goto -&gt; bb64 @ Goto
-}
-bb 28 {
-CleanUp: false
-    Assign((_58, &amp;_59)) @ _58=&amp;_59 @ Ref
-    _57 = &lt;alloc::sync::Arc&lt;process::ProcessControlBlock&gt; as lazy_static::__Deref&gt;::deref(move _58) -&gt; [return: bb29, unwind: bb69] @ Call: FnDid: 3903
-}
-bb 29 {
-CleanUp: false
-    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
-    StorageDead(_58) @ StorageDead
-    _55 = process::ProcessControlBlock::fd_table(move _56) -&gt; [return: bb30, unwind: bb69] @ Call: FnDid: 29947
-}
-bb 30 {
-CleanUp: false
-    StorageDead(_56) @ StorageDead
-    drop(_59) -&gt; [return: bb31, unwind: bb68] @ Drop
-}
-bb 31 {
-CleanUp: false
-    StorageDead(_59) @ StorageDead
-    StorageDead(_57) @ StorageDead
-    StorageLive(_60) @ StorageLive
-    StorageLive(_61) @ StorageLive
-    StorageLive(_62) @ StorageLive
-    StorageLive(_63) @ StorageLive
-    Assign((_63, &amp;_55)) @ _63=&amp;_55 @ Ref
-    _62 = &lt;alloc::sync::Arc&lt;libs::rwlock::RwLock&lt;filesystem::vfs::file::FileDescriptorVec&gt;&gt; as lazy_static::__Deref&gt;::deref(move _63) -&gt; [return: bb32, unwind: bb68] @ Call: FnDid: 3903
-}
-bb 32 {
-CleanUp: false
-    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
-    StorageDead(_63) @ StorageDead
-    _60 = libs::rwlock::RwLock::&lt;filesystem::vfs::file::FileDescriptorVec&gt;::read(move _61) -&gt; [return: bb33, unwind: bb68] @ Call: FnDid: 5156
-}
-bb 33 {
-CleanUp: false
-    Assign((_115, const true)) @ _115=const true @ Use
-    StorageDead(_61) @ StorageDead
-    StorageDead(_62) @ StorageDead
-    StorageLive(_64) @ StorageLive
-    StorageLive(_65) @ StorageLive
-    StorageLive(_66) @ StorageLive
-    StorageLive(_67) @ StorageLive
-    StorageLive(_68) @ StorageLive
-    StorageLive(_69) @ StorageLive
-    StorageLive(_70) @ StorageLive
-    Assign((_70, &amp;_60)) @ _70=&amp;_60 @ Ref
-    _69 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt; as lazy_static::__Deref&gt;::deref(move _70) -&gt; [return: bb34, unwind: bb74] @ Call: FnDid: 3903
-}
-bb 34 {
-CleanUp: false
-    Assign((_68, &amp;(*_69))) @ _68=&amp;(*_69) @ Ref
-    StorageDead(_70) @ StorageDead
-    StorageLive(_71) @ StorageLive
-    Assign((_71, copy _5)) @ _71=copy _5 @ Use
-    _67 = filesystem::vfs::file::FileDescriptorVec::get_file_by_fd(move _68, move _71) -&gt; [return: bb35, unwind: bb74] @ Call: FnDid: 19231
-}
-bb 35 {
-CleanUp: false
-    StorageDead(_71) @ StorageDead
-    StorageDead(_68) @ StorageDead
-    StorageLive(_72) @ StorageLive
-    Assign((_72, system_error::SystemError::EBADF)) @ _72=system_error::SystemError::EBADF @ Aggregate
-    _66 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _67, move _72) -&gt; [return: bb36, unwind: bb74] @ Call: FnDid: 10178
-}
-bb 36 {
-CleanUp: false
-    StorageDead(_72) @ StorageDead
-    StorageDead(_67) @ StorageDead
-    _65 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _66) -&gt; [return: bb37, unwind: bb74] @ Call: FnDid: 4199
-}
-bb 37 {
-CleanUp: false
-    StorageDead(_66) @ StorageDead
-    Assign((_73, discriminant(_65))) @ _73=discriminant(_65) @ Discriminant
-    switchInt(move _73) -&gt; [0: bb38, 1: bb39, otherwise: bb8] @ SwitchInt
-}
-bb 38 {
-CleanUp: false
-    StorageLive(_77) @ StorageLive
-    Assign((_77, move ((_65 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;))) @ _77=move ((_65 as Continue).0: alloc::sync::Arc&lt;filesystem::vfs::file::File&gt;) @ Use
-    Assign((_64, move _77)) @ _64=move _77 @ Use
-    StorageDead(_77) @ StorageDead
-    Assign((_118, discriminant(_65))) @ _118=discriminant(_65) @ Discriminant
-    StorageDead(_69) @ StorageDead
-    StorageDead(_65) @ StorageDead
-    StorageLive(_78) @ StorageLive
-    StorageLive(_79) @ StorageLive
-    Assign((_115, const false)) @ _115=const false @ Use
-    Assign((_79, move _60)) @ _79=move _60 @ Use
-    _78 = core::mem::drop::&lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, filesystem::vfs::file::FileDescriptorVec&gt;&gt;(move _79) -&gt; [return: bb41, unwind: bb67] @ Call: FnDid: 2323
-}
-bb 39 {
-CleanUp: false
-    StorageLive(_74) @ StorageLive
-    Assign((_74, move ((_65 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _74=move ((_65 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_76) @ StorageLive
-    Assign((_76, move _74)) @ _76=move _74 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _76) -&gt; [return: bb40, unwind: bb72] @ Call: FnDid: 4202
-}
-bb 40 {
-CleanUp: false
-    StorageDead(_76) @ StorageDead
-    StorageDead(_74) @ StorageDead
-    Assign((_116, discriminant(_65))) @ _116=discriminant(_65) @ Discriminant
-    StorageDead(_69) @ StorageDead
-    StorageDead(_65) @ StorageDead
-    goto -&gt; bb61 @ Goto
-}
-bb 41 {
-CleanUp: false
-    StorageDead(_79) @ StorageDead
-    StorageDead(_78) @ StorageDead
-    StorageLive(_80) @ StorageLive
-    StorageLive(_81) @ StorageLive
-    StorageLive(_82) @ StorageLive
-    StorageLive(_83) @ StorageLive
-    StorageLive(_84) @ StorageLive
-    StorageLive(_85) @ StorageLive
-    Assign((_85, &amp;_64)) @ _85=&amp;_64 @ Ref
-    _84 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _85) -&gt; [return: bb42, unwind: bb67] @ Call: FnDid: 3903
-}
-bb 42 {
-CleanUp: false
-    Assign((_83, &amp;(*_84))) @ _83=&amp;(*_84) @ Ref
-    StorageDead(_85) @ StorageDead
-    _82 = filesystem::vfs::file::File::metadata(move _83) -&gt; [return: bb43, unwind: bb67] @ Call: FnDid: 19191
-}
-bb 43 {
-CleanUp: false
-    StorageDead(_83) @ StorageDead
-    _81 = &lt;core::result::Result&lt;filesystem::vfs::Metadata, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _82) -&gt; [return: bb44, unwind: bb67] @ Call: FnDid: 4199
-}
-bb 44 {
-CleanUp: false
-    StorageDead(_82) @ StorageDead
-    Assign((_86, discriminant(_81))) @ _86=discriminant(_81) @ Discriminant
-    switchInt(move _86) -&gt; [0: bb45, 1: bb46, otherwise: bb8] @ SwitchInt
-}
-bb 45 {
-CleanUp: false
-    StorageLive(_90) @ StorageLive
-    Assign((_90, move ((_81 as Continue).0: filesystem::vfs::Metadata))) @ _90=move ((_81 as Continue).0: filesystem::vfs::Metadata) @ Use
-    Assign((_80, move _90)) @ _80=move _90 @ Use
-    StorageDead(_90) @ StorageDead
-    StorageDead(_84) @ StorageDead
-    StorageDead(_81) @ StorageDead
-    StorageLive(_91) @ StorageLive
-    StorageLive(_92) @ StorageLive
-    StorageLive(_93) @ StorageLive
-    Assign((_93, &amp;(_80.9: filesystem::vfs::FileType))) @ _93=&amp;(_80.9: filesystem::vfs::FileType) @ Ref
-    StorageLive(_94) @ StorageLive
-    Assign((_114, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[2])) @ _114=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[2] @ Use
-    Assign((_94, &amp;(*_114))) @ _94=&amp;(*_114) @ Ref
-    _92 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _93, move _94) -&gt; [return: bb48, unwind: bb67] @ Call: FnDid: 3170
-}
-bb 46 {
-CleanUp: false
-    StorageLive(_87) @ StorageLive
-    Assign((_87, move ((_81 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _87=move ((_81 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
-    StorageLive(_89) @ StorageLive
-    Assign((_89, move _87)) @ _89=move _87 @ Use
-    _0 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _89) -&gt; [return: bb47, unwind: bb67] @ Call: FnDid: 4202
-}
-bb 47 {
-CleanUp: false
-    StorageDead(_89) @ StorageDead
-    StorageDead(_87) @ StorageDead
-    StorageDead(_84) @ StorageDead
-    StorageDead(_81) @ StorageDead
-    goto -&gt; bb60 @ Goto
-}
-bb 48 {
-CleanUp: false
-    switchInt(move _92) -&gt; [0: bb50, otherwise: bb49] @ SwitchInt
-}
-bb 49 {
-CleanUp: false
-    StorageDead(_94) @ StorageDead
-    StorageDead(_93) @ StorageDead
-    goto -&gt; bb56 @ Goto
-}
-bb 50 {
-CleanUp: false
-    StorageDead(_94) @ StorageDead
-    StorageDead(_93) @ StorageDead
-    StorageLive(_96) @ StorageLive
-    StorageLive(_97) @ StorageLive
-    Assign((_97, &amp;(_80.9: filesystem::vfs::FileType))) @ _97=&amp;(_80.9: filesystem::vfs::FileType) @ Ref
-    StorageLive(_98) @ StorageLive
-    Assign((_113, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[1])) @ _113=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[1] @ Use
-    Assign((_98, &amp;(*_113))) @ _98=&amp;(*_113) @ Ref
-    _96 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _97, move _98) -&gt; [return: bb51, unwind: bb67] @ Call: FnDid: 3170
-}
-bb 51 {
-CleanUp: false
-    switchInt(move _96) -&gt; [0: bb53, otherwise: bb52] @ SwitchInt
-}
-bb 52 {
-CleanUp: false
-    StorageDead(_98) @ StorageDead
-    StorageDead(_97) @ StorageDead
-    goto -&gt; bb56 @ Goto
-}
-bb 53 {
-CleanUp: false
-    StorageDead(_98) @ StorageDead
-    StorageDead(_97) @ StorageDead
-    StorageLive(_100) @ StorageLive
-    StorageLive(_101) @ StorageLive
-    Assign((_101, &amp;(_80.9: filesystem::vfs::FileType))) @ _101=&amp;(_80.9: filesystem::vfs::FileType) @ Ref
-    StorageLive(_102) @ StorageLive
-    Assign((_112, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[0])) @ _112=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::handle::promoted[0] @ Use
-    Assign((_102, &amp;(*_112))) @ _102=&amp;(*_112) @ Ref
-    _100 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _101, move _102) -&gt; [return: bb54, unwind: bb67] @ Call: FnDid: 3170
-}
-bb 54 {
-CleanUp: false
-    switchInt(move _100) -&gt; [0: bb57, otherwise: bb55] @ SwitchInt
-}
-bb 55 {
-CleanUp: false
-    StorageDead(_102) @ StorageDead
-    StorageDead(_101) @ StorageDead
-    goto -&gt; bb56 @ Goto
-}
-bb 56 {
-CleanUp: false
-    StorageLive(_105) @ StorageLive
-    Assign((_105, system_error::SystemError::ESPIPE)) @ _105=system_error::SystemError::ESPIPE @ Aggregate
-    Assign((_0, core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _105))) @ _0=core::result::Result::&lt;usize, system_error::SystemError&gt;::Err(move _105) @ Aggregate
-    StorageDead(_105) @ StorageDead
-    StorageDead(_100) @ StorageDead
-    StorageDead(_96) @ StorageDead
-    StorageDead(_92) @ StorageDead
-    StorageDead(_91) @ StorageDead
-    goto -&gt; bb60 @ Goto
-}
-bb 57 {
-CleanUp: false
-    StorageDead(_102) @ StorageDead
-    StorageDead(_101) @ StorageDead
-    Assign((_91, const ())) @ _91=const () @ Use
-    StorageDead(_100) @ StorageDead
-    StorageDead(_96) @ StorageDead
-    StorageDead(_92) @ StorageDead
-    StorageDead(_91) @ StorageDead
-    StorageLive(_106) @ StorageLive
-    StorageLive(_107) @ StorageLive
-    StorageLive(_108) @ StorageLive
-    Assign((_108, &amp;_64)) @ _108=&amp;_64 @ Ref
-    _107 = &lt;alloc::sync::Arc&lt;filesystem::vfs::file::File&gt; as lazy_static::__Deref&gt;::deref(move _108) -&gt; [return: bb58, unwind: bb67] @ Call: FnDid: 3903
-}
-bb 58 {
-CleanUp: false
-    Assign((_106, &amp;(*_107))) @ _106=&amp;(*_107) @ Ref
-    StorageDead(_108) @ StorageDead
-    StorageLive(_109) @ StorageLive
-    Assign((_109, copy _11)) @ _109=copy _11 @ Use
-    StorageLive(_110) @ StorageLive
-    Assign((_110, copy _9)) @ _110=copy _9 @ Use
-    StorageLive(_111) @ StorageLive
-    Assign((_111, &amp;mut (*_46))) @ _111=&amp;mut (*_46) @ Ref
-    _0 = filesystem::vfs::file::File::pread(move _106, move _109, move _110, move _111) -&gt; [return: bb59, unwind: bb67] @ Call: FnDid: 19185
-}
-bb 59 {
-CleanUp: false
-    StorageDead(_111) @ StorageDead
-    StorageDead(_110) @ StorageDead
-    StorageDead(_109) @ StorageDead
-    StorageDead(_106) @ StorageDead
-    StorageDead(_107) @ StorageDead
-    goto -&gt; bb60 @ Goto
-}
-bb 60 {
-CleanUp: false
-    StorageDead(_80) @ StorageDead
-    drop(_64) -&gt; [return: bb61, unwind: bb74] @ Drop
-}
-bb 61 {
-CleanUp: false
-    StorageDead(_64) @ StorageDead
-    switchInt(copy _115) -&gt; [0: bb62, otherwise: bb71] @ SwitchInt
-}
-bb 62 {
-CleanUp: false
-    Assign((_115, const false)) @ _115=const false @ Use
-    StorageDead(_60) @ StorageDead
-    drop(_55) -&gt; [return: bb63, unwind: bb70] @ Drop
-}
-bb 63 {
-CleanUp: false
-    StorageDead(_55) @ StorageDead
-    goto -&gt; bb64 @ Goto
-}
-bb 64 {
-CleanUp: false
-    StorageDead(_46) @ StorageDead
-    goto -&gt; bb65 @ Goto
-}
-bb 65 {
-CleanUp: false
-    StorageDead(_34) @ StorageDead
-    goto -&gt; bb66 @ Goto
-}
-bb 66 {
-CleanUp: false
-    StorageDead(_13) @ StorageDead
-    StorageDead(_11) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    StorageDead(_7) @ StorageDead
-    StorageDead(_5) @ StorageDead
     return @ Return
 }
-bb 67 {
-CleanUp: true
-    drop(_64) -&gt; [return: bb74, unwind terminate(cleanup)] @ Drop
-}
-bb 68 {
-CleanUp: true
-    drop(_55) -&gt; [return: bb70, unwind terminate(cleanup)] @ Drop
-}
-bb 69 {
-CleanUp: true
-    drop(_59) -&gt; [return: bb70, unwind terminate(cleanup)] @ Drop
-}
-bb 70 {
+bb 20 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 71 {
+bb 21 {
+CleanUp: true
+    drop(_16) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
+}
+bb 22 {
+CleanUp: true
+    switchInt(copy _44) -&gt; [0: bb20, otherwise: bb21] @ SwitchInt
+}
+bb 23 {
+CleanUp: true
+    Assign((_50, discriminant(_17))) @ _50=discriminant(_17) @ Discriminant
+    goto -&gt; bb20 @ Goto
+}
+bb 24 {
+CleanUp: true
+    drop(_19) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
+}
+bb 25 {
+CleanUp: true
+    switchInt(copy _45) -&gt; [0: bb20, otherwise: bb24] @ SwitchInt
+}
+
+bb0 at src/net/socket/inet/stream/inner.rs:164:13: 165:37
+bb1 at src/net/socket/inet/stream/inner.rs:165:36: 165:37
+bb2 at src/net/socket/inet/stream/inner.rs:166:55: 166:56
+fn net::socket::inet::stream::inner::Init::listen::{closure#1}
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:25892 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 mut smoltcp::socket::tcp::Socket&lt;&#39;{erased}&gt;,)) -&gt; core::result::Result&lt;(), system_error::SystemError&gt;, bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} smoltcp::wire::IpListenEndpoint,)]) 
+_2:  @ &amp;&#39;{erased} mut smoltcp::socket::tcp::Socket&lt;&#39;{erased}&gt; 
+_3:  @ core::result::Result&lt;(), smoltcp::socket::tcp::ListenError&gt; 
+_4:  @ &amp;&#39;{erased} mut smoltcp::socket::tcp::Socket&lt;&#39;{erased}&gt; 
+_5:  @ smoltcp::wire::IpListenEndpoint 
+_6:  @ Closure(DefId(0:25893 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#1}::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((smoltcp::socket::tcp::ListenError,)) -&gt; system_error::SystemError, bound_vars: [] }, ()]) 
+_7:  @ &amp;&#39;{erased} smoltcp::wire::IpListenEndpoint 
+
+bb 0 {
 CleanUp: false
-    drop(_60) -&gt; [return: bb62, unwind: bb68] @ Drop
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    Assign((_4, &amp;mut (*_2))) @ _4=&amp;mut (*_2) @ Ref
+    StorageLive(_5) @ StorageLive
+    Assign((_7, deref_copy ((*_1).0: &amp;smoltcp::wire::IpListenEndpoint))) @ _7=deref_copy ((*_1).0: &amp;smoltcp::wire::IpListenEndpoint) @ CopyForDeref
+    Assign((_5, copy (*_7))) @ _5=copy (*_7) @ Use
+    _3 = smoltcp::socket::tcp::Socket::&lt;&#39;_&gt;::listen::&lt;smoltcp::wire::IpListenEndpoint&gt;(move _4, move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 1257
 }
-bb 72 {
-CleanUp: true
-    Assign((_120, discriminant(_65))) @ _120=discriminant(_65) @ Discriminant
-    goto -&gt; bb74 @ Goto
+bb 1 {
+CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    Assign((_6, {closure@src/net/socket/inet/stream/inner.rs:166:26: 166:29})) @ _6={closure@src/net/socket/inet/stream/inner.rs:166:26: 166:29} @ Aggregate
+    _0 = core::result::Result::&lt;(), smoltcp::socket::tcp::ListenError&gt;::map_err::&lt;system_error::SystemError, {closure@src/net/socket/inet/stream/inner.rs:166:26: 166:29}&gt;(move _3, move _6) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 11010
 }
-bb 73 {
-CleanUp: true
-    drop(_60) -&gt; [return: bb68, unwind terminate(cleanup)] @ Drop
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    return @ Return
 }
-bb 74 {
-CleanUp: true
-    switchInt(copy _115) -&gt; [0: bb68, otherwise: bb73] @ SwitchInt
+
+bb0 at src/net/socket/inet/stream/inner.rs:166:30: 166:55
+fn net::socket::inet::stream::inner::Init::listen::{closure#1}::{closure#0}
+_0:  @ system_error::SystemError 
+_1:  @ Closure(DefId(0:25893 ~ dragonos_kernel[9e38]::net::socket::inet::stream::inner::{impl#0}::listen::{closure#1}::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((smoltcp::socket::tcp::ListenError,)) -&gt; system_error::SystemError, bound_vars: [] }, ()]) 
+_2:  @ smoltcp::socket::tcp::ListenError 
+
+bb 0 {
+CleanUp: false
+    Assign((_0, system_error::SystemError::ECONNREFUSED)) @ _0=system_error::SystemError::ECONNREFUSED @ Aggregate
+    return @ Return
 }
 
 </div>

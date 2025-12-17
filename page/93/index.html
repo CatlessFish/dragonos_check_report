@@ -13,7 +13,7 @@
         <h1>
             Report #93
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_pread64::{impl#0}::entry_format</span>
+                 <span class="func-name">net::socket::inet::stream::{impl#0}::do_listen</span>
             
         </h1>
 
@@ -25,38 +25,65 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:08|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_pread64.rs:73:1
-   |
-73 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-74 | |         vec![
-75 | |             FormattedSyscallParam::new(&#34;fd&#34;, Self::fd(args).to_string()),
-76 | |             FormattedSyscallParam::new(&#34;buf&#34;, format!(&#34;{:#x}&#34;, Self::buf(args) as usize)),
-77 | |             FormattedSyscallParam::new(&#34;count&#34;, Self::len(args).to_string()),
-78 | |             FormattedSyscallParam::new(&#34;offset&#34;, Self::offset(args).to_string()),
-79 | |         ]
-80 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 73.
-    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_pread64.rs:76) and _9(_, src/filesystem/vfs/syscall/sys_pread64.rs:75) are alias.
-    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_pread64.rs:76) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_pread64.rs:75) is dropped at BB20(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-warning: Double free detected during unwinding.
-  --&gt; src/filesystem/vfs/syscall/sys_pread64.rs:73:1
-   |
-73 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-74 | |         vec![
-75 | |             FormattedSyscallParam::new(&#34;fd&#34;, Self::fd(args).to_string()),
-76 | |             FormattedSyscallParam::new(&#34;buf&#34;, format!(&#34;{:#x}&#34;, Self::buf(args) as usize)),
-77 | |             FormattedSyscallParam::new(&#34;count&#34;, Self::len(args).to_string()),
-78 | |             FormattedSyscallParam::new(&#34;offset&#34;, Self::offset(args).to_string()),
-79 | |         ]
-80 | |     }
-   | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_pread64.rs line 73.
-    | MIR detail: Value _39(_, src/filesystem/vfs/syscall/sys_pread64.rs:77) and _14(_, src/filesystem/vfs/syscall/sys_pread64.rs:76) are alias.
-    | MIR detail: _39(_, src/filesystem/vfs/syscall/sys_pread64.rs:77) is dropped at BB18(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _14(_, src/filesystem/vfs/syscall/sys_pread64.rs:76) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
-   |
-render dot for DefId(0:20202 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_pread64::{impl#0}::entry_format)
+                    <pre id="logContent" class="code-block scrollable">22:08:13|RAP|WARN|: Dangling pointer detected in function &#34;do_listen&#34;
+22:08:13|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;do_listen&#34;
+warning: Dangling pointer detected.
+   --&gt; src/net/socket/inet/stream/mod.rs:98:1
+    |
+ 98 | / pub fn do_listen(&amp;self, backlog: usize) -&gt; Result&lt;(), SystemError&gt; {
+ 99 | |         let mut writer = self.inner.write();
+100 | |         let inner = writer.take().expect(&#34;Tcp inner::Inner is None&#34;);
+101 | |         let (listening, err) = match inner {
+102 | |             inner::Inner::Init(init) =&gt; {
+103 | |                 let listen_result = init.listen(backlog);
+104 | |                 match listen_result {
+105 | |                     Ok(listening) =&gt; (inner::Inner::Listening(listening), None),
+106 | |                     Err((init, err)) =&gt; (inner::Inner::Init(init), Some(err)),
+107 | |                 }
+108 | |             }
+109 | |             _ =&gt; (inner, Some(SystemError::EINVAL)),
+110 | |         };
+111 | |         writer.replace(listening);
+112 | |         drop(writer);
+113 | |
+114 | |         if let Some(err) = err {
+115 | |             return Err(err);
+116 | |         }
+117 | |         return Ok(());
+118 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/stream/mod.rs line 98.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_listen and _1(self, src/net/socket/inet/stream/mod.rs:98) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_listen is dropped at BB18446744073709551615(src/net/socket/inet/stream/mod.rs:98); _1(self, src/net/socket/inet/stream/mod.rs:98) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/net/socket/inet/stream/mod.rs:98:1
+    |
+ 98 | / pub fn do_listen(&amp;self, backlog: usize) -&gt; Result&lt;(), SystemError&gt; {
+ 99 | |         let mut writer = self.inner.write();
+100 | |         let inner = writer.take().expect(&#34;Tcp inner::Inner is None&#34;);
+101 | |         let (listening, err) = match inner {
+102 | |             inner::Inner::Init(init) =&gt; {
+103 | |                 let listen_result = init.listen(backlog);
+104 | |                 match listen_result {
+105 | |                     Ok(listening) =&gt; (inner::Inner::Listening(listening), None),
+106 | |                     Err((init, err)) =&gt; (inner::Inner::Init(init), Some(err)),
+107 | |                 }
+108 | |             }
+109 | |             _ =&gt; (inner, Some(SystemError::EINVAL)),
+110 | |         };
+111 | |         writer.replace(listening);
+112 | |         drop(writer);
+113 | |
+114 | |         if let Some(err) = err {
+115 | |             return Err(err);
+116 | |         }
+117 | |         return Ok(());
+118 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/net/socket/inet/stream/mod.rs line 98.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in do_listen and _1(self, src/net/socket/inet/stream/mod.rs:98) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in do_listen is dropped at BB18446744073709551615(src/net/socket/inet/stream/mod.rs:98); _1(self, src/net/socket/inet/stream/mod.rs:98) became dangling.
+    |
+render dot for DefId(0:25971 ~ dragonos_kernel[9e38]::net::socket::inet::stream::{impl#0}::do_listen)
 </pre>
                 </div>
             
@@ -67,320 +94,373 @@ render dot for DefId(0:20202 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb2 at src/filesystem/vfs/syscall/sys_pread64.rs:75:46: 75:60
-bb3 at src/filesystem/vfs/syscall/sys_pread64.rs:75:71: 75:72
-bb4 at src/filesystem/vfs/syscall/sys_pread64.rs:75:72: 75:73
-bb5 at src/filesystem/vfs/syscall/sys_pread64.rs:76:78: 76:79
-bb6 at src/filesystem/vfs/syscall/sys_pread64.rs:76:60: 76:61
-bb7 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb10 at src/filesystem/vfs/syscall/sys_pread64.rs:76:89: 76:90
-bb11 at src/filesystem/vfs/syscall/sys_pread64.rs:77:49: 77:64
-bb12 at src/filesystem/vfs/syscall/sys_pread64.rs:77:75: 77:76
-bb13 at src/filesystem/vfs/syscall/sys_pread64.rs:77:76: 77:77
-bb14 at src/filesystem/vfs/syscall/sys_pread64.rs:78:50: 78:68
-bb15 at src/filesystem/vfs/syscall/sys_pread64.rs:78:79: 78:80
-bb16 at src/filesystem/vfs/syscall/sys_pread64.rs:78:80: 78:81
-bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
-bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
-bb23 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-bb24 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-fn &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::entry_format
-_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_pread64::SysPread64Handle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
-_4:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
-_5:  @ usize 
-_6:  @ usize 
-_7:  @ *mut u8 
-_8:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
-_9:  @ syscall::table::FormattedSyscallParam 
-_10:  @ alloc::string::String 
-_11:  @ &amp;&#39;{erased} i32 
-_12:  @ i32 
-_13:  @ &amp;&#39;{erased} [usize] 
-_14:  @ syscall::table::FormattedSyscallParam 
-_15:  @ alloc::string::String 
-_16:  @ alloc::string::String 
-_17:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_18:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_19:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_20:  @ &amp;&#39;{erased} usize 
-_21:  @ &amp;&#39;{erased} usize 
-_22:  @ usize 
-_23:  @ *mut u8 
-_24:  @ &amp;&#39;{erased} [usize] 
-_25:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_26:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_27:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_28:  @ [&amp;&#39;{erased} str; 1_usize] 
-_29:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_30:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_31:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_32:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_33:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_34:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_35:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_36:  @ core::fmt::rt::Placeholder 
-_37:  @ core::fmt::rt::Count 
-_38:  @ core::fmt::rt::Count 
-_39:  @ syscall::table::FormattedSyscallParam 
-_40:  @ alloc::string::String 
-_41:  @ &amp;&#39;{erased} usize 
-_42:  @ usize 
-_43:  @ &amp;&#39;{erased} [usize] 
-_44:  @ syscall::table::FormattedSyscallParam 
-_45:  @ alloc::string::String 
-_46:  @ &amp;&#39;{erased} usize 
-_47:  @ usize 
-_48:  @ &amp;&#39;{erased} [usize] 
-_49:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_50:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_51:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4_usize], alloc::alloc::Global&gt; 
-_52:  @ () 
-_53:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
-_54:  @ *const [syscall::table::FormattedSyscallParam; 4_usize] 
-_55:  @ *const () 
-_56:  @ usize 
-_57:  @ usize 
-_58:  @ usize 
-_59:  @ usize 
-_60:  @ bool 
-_61:  @ *const () 
-_62:  @ usize 
-_63:  @ usize 
-_64:  @ bool 
-_65:  @ bool 
-_66:  @ bool 
-_67:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/net/socket/inet/stream/mod.rs:99:13: 99:23
+bb1 at src/net/socket/inet/stream/mod.rs:99:43: 99:44
+bb2 at src/net/socket/inet/stream/mod.rs:100:21: 100:27
+bb3 at src/net/socket/inet/stream/mod.rs:100:33: 100:34
+bb4 at src/net/socket/inet/stream/mod.rs:100:68: 100:69
+bb5 at src/net/socket/inet/stream/mod.rs:109:19: 109:24
+bb6 at src/net/socket/inet/stream/mod.rs:102:32: 102:36
+bb7 at src/net/socket/inet/stream/mod.rs:103:56: 103:57
+bb9 at src/net/socket/inet/stream/mod.rs:106:26: 106:30
+bb10 at src/net/socket/inet/stream/mod.rs:105:24: 105:33
+bb11 at src/net/socket/inet/stream/mod.rs:108:13: 108:14
+bb12 at src/net/socket/inet/stream/mod.rs:101:14: 101:23
+bb13 at src/net/socket/inet/stream/mod.rs:111:9: 111:15
+bb14 at src/net/socket/inet/stream/mod.rs:111:33: 111:34
+bb15 at src/net/socket/inet/stream/mod.rs:111:34: 111:35
+bb16 at src/net/socket/inet/stream/mod.rs:112:20: 112:21
+bb17 at src/net/socket/inet/stream/mod.rs:114:21: 114:24
+bb18 at src/net/socket/inet/stream/mod.rs:116:10: 116:10
+bb19 at src/net/socket/inet/stream/mod.rs:118:5: 118:6
+bb21 at src/net/socket/inet/stream/mod.rs:108:13: 108:14
+bb22 at src/net/socket/inet/stream/mod.rs:108:13: 108:14
+bb23 at src/net/socket/inet/stream/mod.rs:118:5: 118:6
+bb25 at src/net/socket/inet/stream/mod.rs:118:5: 118:6
+bb29 at src/net/socket/inet/stream/mod.rs:118:5: 118:6
+fn net::socket::inet::stream::TcpSocket::do_listen
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} net::socket::inet::stream::TcpSocket 
+_2:  @ usize 
+_3:  @ ! 
+_4:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; 
+_5:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; 
+_6:  @ net::socket::inet::stream::inner::Inner 
+_7:  @ core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt; 
+_8:  @ &amp;&#39;{erased} mut core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt; 
+_9:  @ &amp;&#39;{erased} mut core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt; 
+_10:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; 
+_11:  @ &amp;&#39;{erased} str 
+_12:  @ &amp;&#39;{erased} str 
+_13:  @ net::socket::inet::stream::inner::Inner 
+_14:  @ core::option::Option&lt;system_error::SystemError&gt; 
+_15:  @ (net::socket::inet::stream::inner::Inner, core::option::Option&lt;system_error::SystemError&gt;) 
+_16:  @ isize 
+_17:  @ net::socket::inet::stream::inner::Init 
+_18:  @ core::result::Result&lt;net::socket::inet::stream::inner::Listening, (net::socket::inet::stream::inner::Init, system_error::SystemError)&gt; 
+_19:  @ net::socket::inet::stream::inner::Init 
+_20:  @ usize 
+_21:  @ isize 
+_22:  @ net::socket::inet::stream::inner::Listening 
+_23:  @ net::socket::inet::stream::inner::Inner 
+_24:  @ net::socket::inet::stream::inner::Listening 
+_25:  @ core::option::Option&lt;system_error::SystemError&gt; 
+_26:  @ net::socket::inet::stream::inner::Init 
+_27:  @ system_error::SystemError 
+_28:  @ net::socket::inet::stream::inner::Inner 
+_29:  @ net::socket::inet::stream::inner::Init 
+_30:  @ core::option::Option&lt;system_error::SystemError&gt; 
+_31:  @ system_error::SystemError 
+_32:  @ net::socket::inet::stream::inner::Inner 
+_33:  @ core::option::Option&lt;system_error::SystemError&gt; 
+_34:  @ system_error::SystemError 
+_35:  @ core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt; 
+_36:  @ &amp;&#39;{erased} mut core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt; 
+_37:  @ &amp;&#39;{erased} mut core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt; 
+_38:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; 
+_39:  @ net::socket::inet::stream::inner::Inner 
+_40:  @ () 
+_41:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; 
+_42:  @ () 
+_43:  @ isize 
+_44:  @ system_error::SystemError 
+_45:  @ ! 
+_46:  @ system_error::SystemError 
+_47:  @ () 
+_48:  @ bool 
+_49:  @ bool 
+_50:  @ bool 
+_51:  @ bool 
+_52:  @ bool 
+_53:  @ bool 
+_54:  @ bool 
+_55:  @ isize 
+_56:  @ isize 
+_57:  @ isize 
+_58:  @ isize 
+_59:  @ isize 
 
 bb 0 {
 CleanUp: false
-    StorageLive(_3) @ StorageLive
+    Assign((_54, const false)) @ _54=const false @ Use
+    Assign((_51, const false)) @ _51=const false @ Use
+    Assign((_53, const false)) @ _53=const false @ Use
+    Assign((_52, const false)) @ _52=const false @ Use
+    Assign((_49, const false)) @ _49=const false @ Use
+    Assign((_50, const false)) @ _50=const false @ Use
+    Assign((_48, const false)) @ _48=const false @ Use
     StorageLive(_4) @ StorageLive
-    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 147
+    StorageLive(_5) @ StorageLive
+    Assign((_5, &amp;((*_1).0: libs::rwlock::RwLock&lt;core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt;))) @ _5=&amp;((*_1).0: libs::rwlock::RwLock&lt;core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt;) @ Ref
+    Assign((_54, const true)) @ _54=const true @ Use
+    _4 = libs::rwlock::RwLock::&lt;core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt;::write(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5165
 }
 bb 1 {
 CleanUp: false
+    StorageDead(_5) @ StorageDead
+    StorageLive(_6) @ StorageLive
+    StorageLive(_7) @ StorageLive
     StorageLive(_8) @ StorageLive
-    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 4]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 4]) @ ShallowInitBox
     StorageLive(_9) @ StorageLive
     StorageLive(_10) @ StorageLive
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    Assign((_13, &amp;(*_2))) @ _13=&amp;(*_2) @ Ref
-    _12 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::fd(move _13) -&gt; [return: bb2, unwind: bb22] @ Call: FnDid: 20204
+    Assign((_10, &amp;mut _4)) @ _10=&amp;mut _4 @ Ref
+    _9 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _10) -&gt; [return: bb2, unwind: bb32] @ Call: FnDid: 3915
 }
 bb 2 {
 CleanUp: false
-    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
-    StorageDead(_13) @ StorageDead
-    _10 = &lt;i32 as alloc::string::ToString&gt;::to_string(move _11) -&gt; [return: bb3, unwind: bb22] @ Call: FnDid: 6626
+    Assign((_8, &amp;mut (*_9))) @ _8=&amp;mut (*_9) @ Ref
+    StorageDead(_10) @ StorageDead
+    _7 = core::option::Option::&lt;net::socket::inet::stream::inner::Inner&gt;::take(move _8) -&gt; [return: bb3, unwind: bb32] @ Call: FnDid: 10206
 }
 bb 3 {
 CleanUp: false
-    StorageDead(_11) @ StorageDead
-    _9 = syscall::table::FormattedSyscallParam::new(const &#34;fd&#34;, move _10) -&gt; [return: bb4, unwind: bb22] @ Call: FnDid: 30792
+    StorageDead(_8) @ StorageDead
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, const &#34;Tcp inner::Inner is None&#34;)) @ _12=const &#34;Tcp inner::Inner is None&#34; @ Use
+    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    _6 = core::option::Option::&lt;net::socket::inet::stream::inner::Inner&gt;::expect(move _7, move _11) -&gt; [return: bb4, unwind: bb32] @ Call: FnDid: 10156
 }
 bb 4 {
 CleanUp: false
-    StorageDead(_10) @ StorageDead
-    StorageLive(_14) @ StorageLive
+    Assign((_51, const true)) @ _51=const true @ Use
+    Assign((_52, const true)) @ _52=const true @ Use
+    StorageDead(_11) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_12) @ StorageDead
+    StorageDead(_9) @ StorageDead
     StorageLive(_15) @ StorageLive
-    StorageLive(_16) @ StorageLive
-    StorageLive(_17) @ StorageLive
-    StorageLive(_18) @ StorageLive
-    StorageLive(_19) @ StorageLive
-    StorageLive(_20) @ StorageLive
-    StorageLive(_21) @ StorageLive
-    StorageLive(_22) @ StorageLive
-    StorageLive(_23) @ StorageLive
-    StorageLive(_24) @ StorageLive
-    Assign((_24, &amp;(*_2))) @ _24=&amp;(*_2) @ Ref
-    _23 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::buf(move _24) -&gt; [return: bb5, unwind: bb20] @ Call: FnDid: 20205
+    Assign((_16, discriminant(_6))) @ _16=discriminant(_6) @ Discriminant
+    switchInt(move _16) -&gt; [0: bb6, otherwise: bb5] @ SwitchInt
 }
 bb 5 {
 CleanUp: false
-    StorageDead(_24) @ StorageDead
-    Assign((_22, move _23 as usize (PointerExposeProvenance))) @ _22=move _23 as usize (PointerExposeProvenance) @ Cast
-    StorageDead(_23) @ StorageDead
-    Assign((_21, &amp;_22)) @ _21=&amp;_22 @ Ref
-    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
-    _19 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _20) -&gt; [return: bb6, unwind: bb20] @ Call: FnDid: 11815
+    StorageLive(_32) @ StorageLive
+    Assign((_51, const false)) @ _51=const false @ Use
+    Assign((_52, const false)) @ _52=const false @ Use
+    Assign((_32, move _6)) @ _32=move _6 @ Use
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    Assign((_34, system_error::SystemError::EINVAL)) @ _34=system_error::SystemError::EINVAL @ Aggregate
+    Assign((_33, core::option::Option::&lt;system_error::SystemError&gt;::Some(move _34))) @ _33=core::option::Option::&lt;system_error::SystemError&gt;::Some(move _34) @ Aggregate
+    StorageDead(_34) @ StorageDead
+    Assign((_15, (move _32, move _33))) @ _15=(move _32, move _33) @ Aggregate
+    StorageDead(_33) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    goto -&gt; bb12 @ Goto
 }
 bb 6 {
 CleanUp: false
-    StorageDead(_20) @ StorageDead
-    Assign((_18, [move _19])) @ _18=[move _19] @ Aggregate
-    StorageDead(_19) @ StorageDead
-    StorageLive(_25) @ StorageLive
-    StorageLive(_26) @ StorageLive
-    StorageLive(_27) @ StorageLive
-    Assign((_50, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _50=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
-    Assign((_27, &amp;(*_50))) @ _27=&amp;(*_50) @ Ref
-    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
-    Assign((_25, move _26 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _25=move _26 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_26) @ StorageDead
-    StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    StorageLive(_31) @ StorageLive
-    Assign((_31, &amp;_18)) @ _31=&amp;_18 @ Ref
-    Assign((_30, &amp;(*_31))) @ _30=&amp;(*_31) @ Ref
-    Assign((_29, move _30 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _29=move _30 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_30) @ StorageDead
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    StorageLive(_34) @ StorageLive
-    Assign((_49, const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _49=const &lt;filesystem::vfs::syscall::sys_pread64::SysPread64Handle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
-    Assign((_34, &amp;(*_49))) @ _34=&amp;(*_49) @ Ref
-    Assign((_33, &amp;(*_34))) @ _33=&amp;(*_34) @ Ref
-    Assign((_32, move _33 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _32=move _33 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_33) @ StorageDead
-    _17 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _25, move _29, move _32) -&gt; [return: bb7, unwind: bb20] @ Call: FnDid: 11842
+    StorageLive(_17) @ StorageLive
+    Assign((_17, move ((_6 as Init).0: net::socket::inet::stream::inner::Init))) @ _17=move ((_6 as Init).0: net::socket::inet::stream::inner::Init) @ Use
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    Assign((_19, move _17)) @ _19=move _17 @ Use
+    StorageLive(_20) @ StorageLive
+    Assign((_20, copy _2)) @ _20=copy _2 @ Use
+    _18 = net::socket::inet::stream::inner::Init::listen(move _19, move _20) -&gt; [return: bb7, unwind: bb30] @ Call: FnDid: 25890
 }
 bb 7 {
 CleanUp: false
-    StorageDead(_34) @ StorageDead
-    StorageDead(_32) @ StorageDead
-    StorageDead(_31) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageDead(_25) @ StorageDead
-    _16 = alloc::fmt::format(move _17) -&gt; [return: bb8, unwind: bb20] @ Call: FnDid: 5475
+    Assign((_48, const true)) @ _48=const true @ Use
+    Assign((_49, const true)) @ _49=const true @ Use
+    Assign((_50, const true)) @ _50=const true @ Use
+    StorageDead(_20) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    Assign((_21, discriminant(_18))) @ _21=discriminant(_18) @ Discriminant
+    switchInt(move _21) -&gt; [0: bb10, 1: bb9, otherwise: bb8] @ SwitchInt
 }
 bb 8 {
 CleanUp: false
-    StorageDead(_22) @ StorageDead
-    StorageDead(_21) @ StorageDead
-    StorageDead(_18) @ StorageDead
-    StorageDead(_17) @ StorageDead
-    _15 = core::hint::must_use::&lt;alloc::string::String&gt;(move _16) -&gt; [return: bb9, unwind: bb20] @ Call: FnDid: 1455
+    unreachable @ Unreachable
 }
 bb 9 {
 CleanUp: false
-    StorageDead(_16) @ StorageDead
-    _14 = syscall::table::FormattedSyscallParam::new(const &#34;buf&#34;, move _15) -&gt; [return: bb10, unwind: bb20] @ Call: FnDid: 30792
+    StorageLive(_26) @ StorageLive
+    Assign((_26, move (((_18 as Err).0: (net::socket::inet::stream::inner::Init, system_error::SystemError)).0: net::socket::inet::stream::inner::Init))) @ _26=move (((_18 as Err).0: (net::socket::inet::stream::inner::Init, system_error::SystemError)).0: net::socket::inet::stream::inner::Init) @ Use
+    StorageLive(_27) @ StorageLive
+    Assign((_27, move (((_18 as Err).0: (net::socket::inet::stream::inner::Init, system_error::SystemError)).1: system_error::SystemError))) @ _27=move (((_18 as Err).0: (net::socket::inet::stream::inner::Init, system_error::SystemError)).1: system_error::SystemError) @ Use
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, move _26)) @ _29=move _26 @ Use
+    Assign((_28, net::socket::inet::stream::inner::Inner::Init(move _29))) @ _28=net::socket::inet::stream::inner::Inner::Init(move _29) @ Aggregate
+    StorageDead(_29) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, move _27)) @ _31=move _27 @ Use
+    Assign((_30, core::option::Option::&lt;system_error::SystemError&gt;::Some(move _31))) @ _30=core::option::Option::&lt;system_error::SystemError&gt;::Some(move _31) @ Aggregate
+    StorageDead(_31) @ StorageDead
+    Assign((_15, (move _28, move _30))) @ _15=(move _28, move _30) @ Aggregate
+    StorageDead(_30) @ StorageDead
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_26) @ StorageDead
+    goto -&gt; bb11 @ Goto
 }
 bb 10 {
 CleanUp: false
-    StorageDead(_15) @ StorageDead
-    StorageLive(_39) @ StorageLive
-    StorageLive(_40) @ StorageLive
-    StorageLive(_41) @ StorageLive
-    StorageLive(_42) @ StorageLive
-    StorageLive(_43) @ StorageLive
-    Assign((_43, &amp;(*_2))) @ _43=&amp;(*_2) @ Ref
-    _42 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::len(move _43) -&gt; [return: bb11, unwind: bb19] @ Call: FnDid: 20206
+    StorageLive(_22) @ StorageLive
+    Assign((_22, move ((_18 as Ok).0: net::socket::inet::stream::inner::Listening))) @ _22=move ((_18 as Ok).0: net::socket::inet::stream::inner::Listening) @ Use
+    StorageLive(_23) @ StorageLive
+    StorageLive(_24) @ StorageLive
+    Assign((_24, move _22)) @ _24=move _22 @ Use
+    Assign((_23, net::socket::inet::stream::inner::Inner::Listening(move _24))) @ _23=net::socket::inet::stream::inner::Inner::Listening(move _24) @ Aggregate
+    StorageDead(_24) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    Assign((_25, core::option::Option::&lt;system_error::SystemError&gt;::None)) @ _25=core::option::Option::&lt;system_error::SystemError&gt;::None @ Aggregate
+    Assign((_15, (move _23, move _25))) @ _15=(move _23, move _25) @ Aggregate
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    goto -&gt; bb11 @ Goto
 }
 bb 11 {
 CleanUp: false
-    Assign((_41, &amp;_42)) @ _41=&amp;_42 @ Ref
-    StorageDead(_43) @ StorageDead
-    _40 = &lt;usize as alloc::string::ToString&gt;::to_string(move _41) -&gt; [return: bb12, unwind: bb19] @ Call: FnDid: 6626
+    Assign((_55, discriminant(_18))) @ _55=discriminant(_18) @ Discriminant
+    switchInt(move _55) -&gt; [0: bb21, otherwise: bb22] @ SwitchInt
 }
 bb 12 {
 CleanUp: false
-    StorageDead(_41) @ StorageDead
-    _39 = syscall::table::FormattedSyscallParam::new(const &#34;count&#34;, move _40) -&gt; [return: bb13, unwind: bb19] @ Call: FnDid: 30792
+    StorageLive(_13) @ StorageLive
+    Assign((_53, const true)) @ _53=const true @ Use
+    Assign((_13, move (_15.0: net::socket::inet::stream::inner::Inner))) @ _13=move (_15.0: net::socket::inet::stream::inner::Inner) @ Use
+    StorageLive(_14) @ StorageLive
+    Assign((_14, move (_15.1: core::option::Option&lt;system_error::SystemError&gt;))) @ _14=move (_15.1: core::option::Option&lt;system_error::SystemError&gt;) @ Use
+    StorageDead(_15) @ StorageDead
+    StorageLive(_35) @ StorageLive
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    StorageLive(_38) @ StorageLive
+    Assign((_38, &amp;mut _4)) @ _38=&amp;mut _4 @ Ref
+    _37 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _38) -&gt; [return: bb13, unwind: bb27] @ Call: FnDid: 3915
 }
 bb 13 {
 CleanUp: false
-    StorageDead(_40) @ StorageDead
-    StorageLive(_44) @ StorageLive
-    StorageLive(_45) @ StorageLive
-    StorageLive(_46) @ StorageLive
-    StorageLive(_47) @ StorageLive
-    StorageLive(_48) @ StorageLive
-    Assign((_48, &amp;(*_2))) @ _48=&amp;(*_2) @ Ref
-    _47 = filesystem::vfs::syscall::sys_pread64::SysPread64Handle::offset(move _48) -&gt; [return: bb14, unwind: bb18] @ Call: FnDid: 20207
+    Assign((_36, &amp;mut (*_37))) @ _36=&amp;mut (*_37) @ Ref
+    StorageDead(_38) @ StorageDead
+    StorageLive(_39) @ StorageLive
+    Assign((_53, const false)) @ _53=const false @ Use
+    Assign((_39, move _13)) @ _39=move _13 @ Use
+    _35 = core::option::Option::&lt;net::socket::inet::stream::inner::Inner&gt;::replace(move _36, move _39) -&gt; [return: bb14, unwind: bb27] @ Call: FnDid: 10209
 }
 bb 14 {
 CleanUp: false
-    Assign((_46, &amp;_47)) @ _46=&amp;_47 @ Ref
-    StorageDead(_48) @ StorageDead
-    _45 = &lt;usize as alloc::string::ToString&gt;::to_string(move _46) -&gt; [return: bb15, unwind: bb18] @ Call: FnDid: 6626
+    StorageDead(_39) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_35) -&gt; [return: bb15, unwind: bb27] @ Drop
 }
 bb 15 {
 CleanUp: false
-    StorageDead(_46) @ StorageDead
-    _44 = syscall::table::FormattedSyscallParam::new(const &#34;offset&#34;, move _45) -&gt; [return: bb16, unwind: bb18] @ Call: FnDid: 30792
+    StorageDead(_37) @ StorageDead
+    StorageDead(_35) @ StorageDead
+    StorageLive(_40) @ StorageLive
+    StorageLive(_41) @ StorageLive
+    Assign((_54, const false)) @ _54=const false @ Use
+    Assign((_41, move _4)) @ _41=move _4 @ Use
+    _40 = core::mem::drop::&lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, core::option::Option&lt;net::socket::inet::stream::inner::Inner&gt;&gt;&gt;(move _41) -&gt; [return: bb16, unwind: bb27] @ Call: FnDid: 2323
 }
 bb 16 {
 CleanUp: false
-    StorageDead(_45) @ StorageDead
-    Assign((_54, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _54=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
-    Assign((_55, copy _54 as *const () (PtrToPtr))) @ _55=copy _54 as *const () (PtrToPtr) @ Cast
-    Assign((_56, copy _55 as usize (Transmute))) @ _56=copy _55 as usize (Transmute) @ Cast
-    Assign((_57, AlignOf([syscall::table::FormattedSyscallParam; 4]))) @ _57=AlignOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    Assign((_58, Sub(copy _57, const 1_usize))) @ _58=Sub(copy _57, const 1_usize) @ BinaryOp
-    Assign((_59, BitAnd(copy _56, copy _58))) @ _59=BitAnd(copy _56, copy _58) @ BinaryOp
-    Assign((_60, Eq(copy _59, const 0_usize))) @ _60=Eq(copy _59, const 0_usize) @ BinaryOp
-    assert(copy _60, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _57, copy _56) -&gt; [success: bb23, unwind unreachable] @ Assert
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    Assign((_43, discriminant(_14))) @ _43=discriminant(_14) @ Discriminant
+    switchInt(move _43) -&gt; [1: bb17, otherwise: bb18] @ SwitchInt
 }
 bb 17 {
 CleanUp: false
-    StorageDead(_3) @ StorageDead
-    StorageDead(_47) @ StorageDead
+    StorageLive(_44) @ StorageLive
+    Assign((_44, move ((_14 as Some).0: system_error::SystemError))) @ _44=move ((_14 as Some).0: system_error::SystemError) @ Use
+    StorageLive(_46) @ StorageLive
+    Assign((_46, move _44)) @ _46=move _44 @ Use
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _46))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _46) @ Aggregate
+    StorageDead(_46) @ StorageDead
+    StorageDead(_44) @ StorageDead
     StorageDead(_42) @ StorageDead
-    StorageDead(_12) @ StorageDead
-    return @ Return
+    goto -&gt; bb19 @ Goto
 }
 bb 18 {
-CleanUp: true
-    drop(_39) -&gt; [return: bb19, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    Assign((_42, const ())) @ _42=const () @ Use
+    StorageDead(_42) @ StorageDead
+    StorageLive(_47) @ StorageLive
+    Assign((_47, ())) @ _47=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _47))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _47) @ Aggregate
+    StorageDead(_47) @ StorageDead
+    goto -&gt; bb19 @ Goto
 }
 bb 19 {
-CleanUp: true
-    drop(_14) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    Assign((_53, const false)) @ _53=const false @ Use
+    StorageDead(_13) @ StorageDead
+    switchInt(copy _51) -&gt; [0: bb23, otherwise: bb25] @ SwitchInt
 }
 bb 20 {
 CleanUp: true
-    drop(_9) -&gt; [return: bb22, unwind terminate(cleanup)] @ Drop
-}
-bb 21 {
-CleanUp: true
     resume @ UnwindResume
 }
+bb 21 {
+CleanUp: false
+    Assign((_48, const false)) @ _48=const false @ Use
+    Assign((_49, const false)) @ _49=const false @ Use
+    Assign((_50, const false)) @ _50=const false @ Use
+    StorageDead(_18) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    goto -&gt; bb12 @ Goto
+}
 bb 22 {
-CleanUp: true
-    Assign((_53, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute))) @ _53=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 4]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 4]&gt;) as *const [syscall::table::FormattedSyscallParam; 4] (Transmute) @ Cast
-    Assign((_51, &amp;mut _8)) @ _51=&amp;mut _8 @ Ref
-    _52 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 4]&gt; as core::ops::Drop&gt;::drop(move _51) -&gt; [return: bb25, unwind terminate(cleanup)] @ Call: FnDid: 3937
+CleanUp: false
+    Assign((_50, const false)) @ _50=const false @ Use
+    goto -&gt; bb21 @ Goto
 }
 bb 23 {
 CleanUp: false
-    Assign((_61, copy _54 as *const () (PtrToPtr))) @ _61=copy _54 as *const () (PtrToPtr) @ Cast
-    Assign((_62, copy _61 as usize (Transmute))) @ _62=copy _61 as usize (Transmute) @ Cast
-    Assign((_63, SizeOf([syscall::table::FormattedSyscallParam; 4]))) @ _63=SizeOf([syscall::table::FormattedSyscallParam; 4]) @ NullaryOp
-    Assign((_64, Ne(copy _63, const 0_usize))) @ _64=Ne(copy _63, const 0_usize) @ BinaryOp
-    Assign((_65, Eq(copy _62, const 0_usize))) @ _65=Eq(copy _62, const 0_usize) @ BinaryOp
-    Assign((_66, BitAnd(copy _65, copy _64))) @ _66=BitAnd(copy _65, copy _64) @ BinaryOp
-    Assign((_67, Not(copy _66))) @ _67=Not(copy _66) @ UnaryOp
-    assert(copy _67, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb24, unwind unreachable] @ Assert
+    Assign((_51, const false)) @ _51=const false @ Use
+    Assign((_51, const false)) @ _51=const false @ Use
+    Assign((_52, const false)) @ _52=const false @ Use
+    StorageDead(_6) @ StorageDead
+    Assign((_54, const false)) @ _54=const false @ Use
+    StorageDead(_4) @ StorageDead
+    return @ Return
 }
 bb 24 {
 CleanUp: false
-    Assign(((*_54), [move _9, move _14, move _39, move _44])) @ (*_54)=[move _9, move _14, move _39, move _44] @ Aggregate
-    StorageDead(_44) @ StorageDead
-    StorageDead(_39) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    Assign((_4, move _8)) @ _4=move _8 @ Use
-    Assign((_3, move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_8) @ StorageDead
-    StorageDead(_4) @ StorageDead
-    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _3) -&gt; [return: bb17, unwind: bb21] @ Call: FnDid: 6192
+    drop(_6) -&gt; [return: bb23, unwind: bb32] @ Drop
 }
 bb 25 {
+CleanUp: false
+    Assign((_57, discriminant(_6))) @ _57=discriminant(_6) @ Discriminant
+    switchInt(move _57) -&gt; [0: bb23, otherwise: bb24] @ SwitchInt
+}
+bb 26 {
 CleanUp: true
-    goto -&gt; bb21 @ Goto
+    drop(_13) -&gt; [return: bb30, unwind terminate(cleanup)] @ Drop
+}
+bb 27 {
+CleanUp: true
+    switchInt(copy _53) -&gt; [0: bb30, otherwise: bb26] @ SwitchInt
+}
+bb 28 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb32, unwind terminate(cleanup)] @ Drop
+}
+bb 29 {
+CleanUp: true
+    Assign((_59, discriminant(_6))) @ _59=discriminant(_6) @ Discriminant
+    switchInt(move _59) -&gt; [0: bb32, otherwise: bb28] @ SwitchInt
+}
+bb 30 {
+CleanUp: true
+    switchInt(copy _51) -&gt; [0: bb32, otherwise: bb29] @ SwitchInt
+}
+bb 31 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
+}
+bb 32 {
+CleanUp: true
+    switchInt(copy _54) -&gt; [0: bb20, otherwise: bb31] @ SwitchInt
 }
 
 </div>

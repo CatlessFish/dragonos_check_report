@@ -13,7 +13,7 @@
         <h1>
             Report #25
             
-                 <span class="func-name">driver::base::device::{impl#19}::class_dir_create_and_add</span>
+                 <span class="func-name">driver::char::virtio_console::{impl#10}::install</span>
             
         </h1>
 
@@ -25,79 +25,268 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:07:57|RAP|WARN|: Double free detected in function &#34;class_dir_create_and_add&#34;
-warning: Double free detected.
-   --&gt; src/driver/base/device/mod.rs:638:1
-    |
-638 | / fn class_dir_create_and_add(
-639 | |         &amp;self,
-640 | |         class: Arc&lt;dyn Class&gt;,
-641 | |         kobject_parent: Arc&lt;dyn KObject&gt;,
-642 | |     ) -&gt; Arc&lt;dyn KObject&gt; {
-643 | |         let mut guard = CLASS_DIR_KSET_INSTANCE.write();
-644 | |         let class_name: String = class.name().to_string();
-645 | |         let kobject_parent_name = kobject_parent.name();
-646 | |         let key = format!(&#34;{}-{}&#34;, class_name, kobject_parent_name);
-647 | |
-648 | |         // 检查设备类目录是否已经存在
-649 | |         if let Some(class_dir) = guard.get(&amp;key) {
-650 | |             return class_dir.clone();
-651 | |         }
-652 | |
-653 | |         let class_dir: Arc&lt;ClassDir&gt; = ClassDir::new();
-654 | |
-655 | |         class_dir.set_name(class_name.clone());
-656 | |         class_dir.set_kobj_type(Some(&amp;ClassKObjbectType));
-657 | |         class_dir.set_parent(Some(Arc::downgrade(&amp;kobject_parent)));
-658 | |
-659 | |         KObjectManager::add_kobj(class_dir.clone() as Arc&lt;dyn KObject&gt;)
-660 | |             .expect(&#34;add class dir failed&#34;);
-661 | |
-662 | |         guard.insert(key, class_dir.clone());
-663 | |
-664 | |         return class_dir;
-665 | |     }
-    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/mod.rs line 638.
-    | MIR detail: Value _16(kobject_parent_name, src/driver/base/device/mod.rs:645) and _10(class_name, src/driver/base/device/mod.rs:644) are alias.
-    | MIR detail: _16(kobject_parent_name, src/driver/base/device/mod.rs:645) is dropped at BB35(src/driver/base/device/mod.rs:665); _10(class_name, src/driver/base/device/mod.rs:644) is dropped at BB36(src/driver/base/device/mod.rs:665).
-    |
-22:07:57|RAP|WARN|: Double free detected in function &#34;class_dir_create_and_add&#34;
+                    <pre id="logContent" class="code-block scrollable">22:07:57|RAP|WARN|: Double free detected in function &#34;install&#34;
 warning: Double free detected during unwinding.
-   --&gt; src/driver/base/device/mod.rs:638:1
+   --&gt; src/driver/char/virtio_console.rs:504:1
     |
-638 | / fn class_dir_create_and_add(
-639 | |         &amp;self,
-640 | |         class: Arc&lt;dyn Class&gt;,
-641 | |         kobject_parent: Arc&lt;dyn KObject&gt;,
-642 | |     ) -&gt; Arc&lt;dyn KObject&gt; {
-643 | |         let mut guard = CLASS_DIR_KSET_INSTANCE.write();
-644 | |         let class_name: String = class.name().to_string();
-645 | |         let kobject_parent_name = kobject_parent.name();
-646 | |         let key = format!(&#34;{}-{}&#34;, class_name, kobject_parent_name);
-647 | |
-648 | |         // 检查设备类目录是否已经存在
-649 | |         if let Some(class_dir) = guard.get(&amp;key) {
-650 | |             return class_dir.clone();
-651 | |         }
-652 | |
-653 | |         let class_dir: Arc&lt;ClassDir&gt; = ClassDir::new();
-654 | |
-655 | |         class_dir.set_name(class_name.clone());
-656 | |         class_dir.set_kobj_type(Some(&amp;ClassKObjbectType));
-657 | |         class_dir.set_parent(Some(Arc::downgrade(&amp;kobject_parent)));
-658 | |
-659 | |         KObjectManager::add_kobj(class_dir.clone() as Arc&lt;dyn KObject&gt;)
-660 | |             .expect(&#34;add class dir failed&#34;);
-661 | |
-662 | |         guard.insert(key, class_dir.clone());
-663 | |
-664 | |         return class_dir;
-665 | |     }
-    | |_____- Double free (confidence 99%): Location in file src/driver/base/device/mod.rs line 638.
-    | MIR detail: Value _16(kobject_parent_name, src/driver/base/device/mod.rs:645) and _10(class_name, src/driver/base/device/mod.rs:644) are alias.
-    | MIR detail: _16(kobject_parent_name, src/driver/base/device/mod.rs:645) is dropped at BB42(src/driver/base/device/mod.rs:665); _10(class_name, src/driver/base/device/mod.rs:644) is dropped at BB43(src/driver/base/device/mod.rs:665).
+504 | / fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 | |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 | |             return Err(SystemError::ENODEV);
+507 | |         }
+508 | |
+509 | |         let dev = self.devices.read()[tty.core().index()]
+510 | |             .clone()
+511 | |             .ok_or(SystemError::ENODEV)?;
+512 | |         let info = dev.inner().device_inner.info();
+513 | |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 | |
+515 | |         *tty.core().window_size_write() = winsize;
+516 | |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 | |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 | |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 | |         vc_data_guard.init(
+520 | |             Some(tty.core().window_size().row.into()),
+521 | |             Some(tty.core().window_size().col.into()),
+522 | |             true,
+523 | |         );
+524 | |         drop(vc_data_guard);
+525 | |
+526 | |         let vc = VirtConsole::new(Some(vc_data));
+527 | |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 | |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 | |             vc_manager().free(vc_index);
+530 | |         })?;
+531 | |
+532 | |         Ok(())
+533 | |     }
+    | |_____- Double free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 504.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _56(vc_data, src/driver/char/virtio_console.rs:516) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _56(vc_data, src/driver/char/virtio_console.rs:516) is dropped at BB99(src/driver/char/virtio_console.rs:533).
     |
-render dot for DefId(0:8186 ~ dragonos_kernel[9e38]::driver::base::device::{impl#19}::class_dir_create_and_add)
+22:07:57|RAP|WARN|: Use-after-free detected in function &#34;install&#34;
+warning: Use-after-free detected.
+   --&gt; src/driver/char/virtio_console.rs:526:18
+    |
+504 | fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+    |                  ------------------------------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 526.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _103(_, src/driver/char/virtio_console.rs:526) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _103(_, src/driver/char/virtio_console.rs:526) is used at BB55(src/driver/char/virtio_console.rs:526).
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/char/virtio_console.rs:527:43
+    |
+504 | fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+    |                                           ---------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 527.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _112(_, src/driver/char/virtio_console.rs:527) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _112(_, src/driver/char/virtio_console.rs:527) is used at BB57(src/driver/char/virtio_console.rs:527).
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/char/virtio_console.rs:528:38
+    |
+504 | fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+    |                                      ---------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 528.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _127(_, src/driver/char/virtio_console.rs:528) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _127(_, src/driver/char/virtio_console.rs:528) is used at BB62(src/driver/char/virtio_console.rs:528).
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/char/virtio_console.rs:526:40
+    |
+504 | fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+    |                                        ------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 526.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _56(vc_data, src/driver/char/virtio_console.rs:516) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _56(vc_data, src/driver/char/virtio_console.rs:516) is used at BB55(src/driver/char/virtio_console.rs:526).
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/char/virtio_console.rs:526:35
+    |
+504 | fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+    |                                   ------------- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 526.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _104(_, src/driver/char/virtio_console.rs:526) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _104(_, src/driver/char/virtio_console.rs:526) is used at BB55(src/driver/char/virtio_console.rs:526).
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/driver/char/virtio_console.rs:527:43
+    |
+504 | fn install(&amp;self, driver: Arc&lt;TtyDriver&gt;, tty: Arc&lt;TtyCore&gt;) -&gt; Result&lt;(), SystemError&gt; {
+505 |         if tty.core().index() &gt;= VirtIOConsoleDriver::MAX_DEVICES {
+506 |             return Err(SystemError::ENODEV);
+507 |         }
+508 |
+509 |         let dev = self.devices.read()[tty.core().index()]
+510 |             .clone()
+511 |             .ok_or(SystemError::ENODEV)?;
+512 |         let info = dev.inner().device_inner.info();
+513 |         let winsize = WindowSize::new(info.rows, info.columns, 1, 1);
+514 |
+515 |         *tty.core().window_size_write() = winsize;
+516 |         let vc_data = Arc::new(SpinLock::new(VirtualConsoleData::new(usize::MAX)));
+517 |         let mut vc_data_guard = vc_data.lock_irqsave();
+518 |         vc_data_guard.set_driver_funcs(Arc::downgrade(&amp;dummy_console()) as Weak&lt;dyn ConsoleSwitch&gt;);
+519 |         vc_data_guard.init(
+520 |             Some(tty.core().window_size().row.into()),
+521 |             Some(tty.core().window_size().col.into()),
+522 |             true,
+523 |         );
+524 |         drop(vc_data_guard);
+525 |
+526 |         let vc = VirtConsole::new(Some(vc_data));
+527 |         let vc_index = vc_manager().alloc(vc.clone()).ok_or(SystemError::EBUSY)?;
+    |                                           -- Use-after-free (confidence 99%): Location in file src/driver/char/virtio_console.rs line 527.
+    | MIR detail: Value _101(_, src/driver/char/virtio_console.rs:524) and _102(vc, src/driver/char/virtio_console.rs:526) are alias.
+    | MIR detail: _101(_, src/driver/char/virtio_console.rs:524) is dropped at BB54(src/driver/char/virtio_console.rs:524); _102(vc, src/driver/char/virtio_console.rs:526) is used at BB57(src/driver/char/virtio_console.rs:527).
+528 |         self.do_install(driver, tty, vc.clone()).inspect_err(|_| {
+529 |             vc_manager().free(vc_index);
+530 |         })?;
+531 |
+532 |         Ok(())
+533 |     }
+    |
+render dot for DefId(0:9327 ~ dragonos_kernel[9e38]::driver::char::virtio_console::{impl#10}::install)
 </pre>
                 </div>
             
@@ -108,585 +297,1065 @@ render dot for DefId(0:8186 ~ dragonos_kernel[9e38]::driver::base::device::{impl
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/base/device/mod.rs:643:13: 643:22
-bb1 at src/driver/base/device/mod.rs:643:25: 643:48
-bb2 at src/driver/base/device/mod.rs:643:55: 643:56
-bb3 at src/driver/base/device/mod.rs:644:34: 644:39
-bb4 at src/driver/base/device/mod.rs:644:34: 644:46
-bb5 at src/driver/base/device/mod.rs:644:57: 644:58
-bb6 at src/driver/base/device/mod.rs:645:35: 645:49
-bb7 at src/driver/base/device/mod.rs:645:55: 645:56
-bb8 at src/driver/base/device/mod.rs:646:29: 646:30
-bb9 at src/driver/base/device/mod.rs:646:32: 646:33
-bb10 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb11 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb12 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb13 at src/driver/base/device/mod.rs:649:34: 649:39
-bb14 at src/driver/base/device/mod.rs:649:48: 649:49
-bb15 at src/driver/base/device/mod.rs:649:21: 649:30
-bb16 at src/driver/base/device/mod.rs:650:20: 650:37
-bb17 at src/driver/base/device/mod.rs:651:10: 651:10
-bb18 at src/driver/base/device/mod.rs:655:9: 655:47
-bb19 at src/driver/base/device/mod.rs:655:9: 655:18
-bb20 at src/driver/base/device/mod.rs:655:45: 655:46
-bb21 at src/driver/base/device/mod.rs:655:46: 655:47
-bb22 at src/driver/base/device/mod.rs:656:9: 656:18
-bb23 at src/driver/base/device/mod.rs:656:57: 656:58
-bb24 at src/driver/base/device/mod.rs:657:9: 657:18
-bb25 at src/driver/base/device/mod.rs:657:35: 657:66
-bb26 at src/driver/base/device/mod.rs:657:67: 657:68
-bb27 at src/driver/base/device/mod.rs:659:34: 659:71
-bb28 at src/driver/base/device/mod.rs:659:71: 659:72
-bb29 at src/driver/base/device/mod.rs:660:43: 660:44
-bb30 at src/driver/base/device/mod.rs:662:9: 662:14
-bb31 at src/driver/base/device/mod.rs:662:43: 662:44
-bb32 at src/driver/base/device/mod.rs:662:44: 662:45
-bb33 at src/driver/base/device/mod.rs:662:45: 662:46
-bb35 at src/driver/base/device/mod.rs:665:5: 665:6
-bb36 at src/driver/base/device/mod.rs:665:5: 665:6
-bb37 at src/driver/base/device/mod.rs:665:5: 665:6
-bb38 at src/driver/base/device/mod.rs:665:5: 665:6
-fn driver::base::device::DeviceManager::class_dir_create_and_add
-_0:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_1:  @ &amp;&#39;{erased} driver::base::device::DeviceManager 
-_2:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_3:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_4:  @ ! 
-_5:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_6:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_7:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_8:  @ &amp;&#39;{erased} driver::base::device::CLASS_DIR_KSET_INSTANCE 
-_9:  @ &amp;&#39;{erased} driver::base::device::CLASS_DIR_KSET_INSTANCE 
-_10:  @ alloc::string::String 
-_11:  @ &amp;&#39;{erased} str 
-_12:  @ &amp;&#39;{erased} str 
-_13:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased} 
-_14:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased} 
-_15:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::class::Class), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_16:  @ alloc::string::String 
-_17:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
-_18:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased} 
-_19:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_20:  @ alloc::string::String 
-_21:  @ alloc::string::String 
-_22:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_23:  @ (&amp;&#39;{erased} alloc::string::String, &amp;&#39;{erased} alloc::string::String) 
-_24:  @ &amp;&#39;{erased} alloc::string::String 
-_25:  @ &amp;&#39;{erased} alloc::string::String 
-_26:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
-_27:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_28:  @ &amp;&#39;{erased} alloc::string::String 
-_29:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_30:  @ &amp;&#39;{erased} alloc::string::String 
-_31:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
-_32:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
-_33:  @ [&amp;&#39;{erased} str; 2_usize] 
-_34:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
-_35:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 2_usize] 
-_36:  @ () 
-_37:  @ core::option::Option&lt;&amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;&gt; 
-_38:  @ &amp;&#39;{erased} alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
-_39:  @ &amp;&#39;{erased} alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
-_40:  @ &amp;&#39;{erased} libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_41:  @ &amp;&#39;{erased} alloc::string::String 
-_42:  @ &amp;&#39;{erased} alloc::string::String 
-_43:  @ isize 
-_44:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_45:  @ ! 
-_46:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_47:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_48:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_49:  @ () 
-_50:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
-_51:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
-_52:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_53:  @ alloc::string::String 
-_54:  @ &amp;&#39;{erased} alloc::string::String 
-_55:  @ () 
-_56:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
-_57:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
-_58:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_59:  @ core::option::Option&lt;&amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObjType), bound_vars: [] }] + &#39;{erased}&gt; 
-_60:  @ &amp;&#39;{erased} dyn [Binder { value: Trait(driver::base::kobject::KObjType), bound_vars: [] }] + &#39;{erased} 
-_61:  @ &amp;&#39;{erased} driver::base::class::ClassKObjbectType 
-_62:  @ &amp;&#39;{erased} driver::base::class::ClassKObjbectType 
-_63:  @ driver::base::class::ClassKObjbectType 
-_64:  @ () 
-_65:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
-_66:  @ &amp;&#39;{erased} driver::base::device::ClassDir 
-_67:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_68:  @ core::option::Option&lt;alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt;&gt; 
-_69:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_70:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_71:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_72:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_73:  @ () 
-_74:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
-_75:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_76:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_77:  @ alloc::sync::Arc&lt;dyn [Binder { value: Trait(driver::base::kobject::KObject), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
-_78:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_79:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_80:  @ &amp;&#39;{erased} str 
-_81:  @ &amp;&#39;{erased} str 
-_82:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;&gt; 
-_83:  @ &amp;&#39;{erased} mut alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
-_84:  @ &amp;&#39;{erased} mut alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt; 
-_85:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt;, alloc::alloc::Global&gt;&gt; 
-_86:  @ alloc::string::String 
-_87:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_88:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_89:  @ alloc::sync::Arc&lt;driver::base::device::ClassDir, alloc::alloc::Global&gt; 
-_90:  @ &amp;&#39;{erased} driver::base::class::ClassKObjbectType 
-_91:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 2_usize] 
-_92:  @ &amp;&#39;{erased} alloc::string::String 
-_93:  @ &amp;&#39;{erased} alloc::string::String 
-_94:  @ bool 
-_95:  @ bool 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/driver/char/virtio_console.rs:505:9: 507:10
+bb1 at src/driver/char/virtio_console.rs:505:12: 505:15
+bb2 at src/driver/char/virtio_console.rs:505:12: 505:22
+bb3 at src/driver/char/virtio_console.rs:505:29: 505:30
+bb4 at src/driver/char/virtio_console.rs:505:65: 505:66
+bb5 at src/driver/char/virtio_console.rs:505:65: 505:66
+bb6 at src/driver/char/virtio_console.rs:509:19: 509:38
+bb7 at src/driver/char/virtio_console.rs:509:37: 509:38
+bb8 at src/driver/char/virtio_console.rs:509:39: 509:42
+bb9 at src/driver/char/virtio_console.rs:509:39: 509:49
+bb10 at src/driver/char/virtio_console.rs:509:56: 509:57
+bb11 at src/driver/char/virtio_console.rs:509:19: 509:58
+bb12 at src/driver/char/virtio_console.rs:510:20: 510:21
+bb13 at src/driver/char/virtio_console.rs:511:39: 511:40
+bb14 at src/driver/char/virtio_console.rs:511:40: 511:41
+bb16 at src/driver/char/virtio_console.rs:509:19: 511:41
+bb17 at src/driver/char/virtio_console.rs:511:40: 511:41
+bb18 at src/driver/char/virtio_console.rs:511:40: 511:41
+bb19 at src/driver/char/virtio_console.rs:511:41: 511:42
+bb20 at src/driver/char/virtio_console.rs:512:20: 512:23
+bb21 at src/driver/char/virtio_console.rs:512:20: 512:31
+bb22 at src/driver/char/virtio_console.rs:512:30: 512:31
+bb23 at src/driver/char/virtio_console.rs:512:50: 512:51
+bb24 at src/driver/char/virtio_console.rs:512:51: 512:52
+bb25 at src/driver/char/virtio_console.rs:513:68: 513:69
+bb26 at src/driver/char/virtio_console.rs:515:10: 515:13
+bb27 at src/driver/char/virtio_console.rs:515:10: 515:20
+bb28 at src/driver/char/virtio_console.rs:515:10: 515:40
+bb29 at src/driver/char/virtio_console.rs:515:39: 515:40
+bb30 at src/driver/char/virtio_console.rs:515:50: 515:51
+bb32 at src/driver/char/virtio_console.rs:516:81: 516:82
+bb33 at src/driver/char/virtio_console.rs:516:82: 516:83
+bb34 at src/driver/char/virtio_console.rs:517:33: 517:40
+bb35 at src/driver/char/virtio_console.rs:517:54: 517:55
+bb36 at src/driver/char/virtio_console.rs:518:9: 518:22
+bb37 at src/driver/char/virtio_console.rs:518:55: 518:71
+bb38 at src/driver/char/virtio_console.rs:518:40: 518:99
+bb39 at src/driver/char/virtio_console.rs:518:99: 518:100
+bb40 at src/driver/char/virtio_console.rs:518:100: 518:101
+bb41 at src/driver/char/virtio_console.rs:519:9: 519:22
+bb42 at src/driver/char/virtio_console.rs:520:18: 520:21
+bb43 at src/driver/char/virtio_console.rs:520:18: 520:28
+bb44 at src/driver/char/virtio_console.rs:520:18: 520:42
+bb45 at src/driver/char/virtio_console.rs:520:41: 520:42
+bb46 at src/driver/char/virtio_console.rs:520:52: 520:53
+bb47 at src/driver/char/virtio_console.rs:521:18: 521:21
+bb48 at src/driver/char/virtio_console.rs:521:18: 521:28
+bb49 at src/driver/char/virtio_console.rs:521:18: 521:42
+bb50 at src/driver/char/virtio_console.rs:521:41: 521:42
+bb51 at src/driver/char/virtio_console.rs:521:52: 521:53
+bb52 at src/driver/char/virtio_console.rs:523:9: 523:10
+bb53 at src/driver/char/virtio_console.rs:523:10: 523:11
+bb54 at src/driver/char/virtio_console.rs:523:10: 523:11
+bb55 at src/driver/char/virtio_console.rs:524:27: 524:28
+bb56 at src/driver/char/virtio_console.rs:526:48: 526:49
+bb57 at src/driver/char/virtio_console.rs:527:24: 527:36
+bb58 at src/driver/char/virtio_console.rs:527:52: 527:53
+bb59 at src/driver/char/virtio_console.rs:527:53: 527:54
+bb60 at src/driver/char/virtio_console.rs:527:79: 527:80
+bb61 at src/driver/char/virtio_console.rs:527:80: 527:81
+bb62 at src/driver/char/virtio_console.rs:527:24: 527:81
+bb63 at src/driver/char/virtio_console.rs:527:80: 527:81
+bb64 at src/driver/char/virtio_console.rs:527:80: 527:81
+bb65 at src/driver/char/virtio_console.rs:528:47: 528:48
+bb66 at src/driver/char/virtio_console.rs:528:48: 528:49
+bb67 at src/driver/char/virtio_console.rs:530:10: 530:11
+bb68 at src/driver/char/virtio_console.rs:530:11: 530:12
+bb69 at src/driver/char/virtio_console.rs:528:9: 530:12
+bb70 at src/driver/char/virtio_console.rs:530:11: 530:12
+bb71 at src/driver/char/virtio_console.rs:530:11: 530:12
+bb72 at src/driver/char/virtio_console.rs:533:5: 533:6
+bb73 at src/driver/char/virtio_console.rs:533:5: 533:6
+bb74 at src/driver/char/virtio_console.rs:533:5: 533:6
+bb75 at src/driver/char/virtio_console.rs:533:5: 533:6
+bb76 at src/driver/char/virtio_console.rs:511:41: 511:42
+bb77 at src/driver/char/virtio_console.rs:533:5: 533:6
+bb101 at src/driver/char/virtio_console.rs:511:41: 511:42
+fn &lt;driver::char::virtio_console::VirtIOConsoleDriver as driver::tty::tty_driver::TtyOperation&gt;::install
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} driver::char::virtio_console::VirtIOConsoleDriver 
+_2:  @ alloc::sync::Arc&lt;driver::tty::tty_driver::TtyDriver, alloc::alloc::Global&gt; 
+_3:  @ alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_4:  @ () 
+_5:  @ bool 
+_6:  @ usize 
+_7:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_8:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_9:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_10:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_11:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_12:  @ ! 
+_13:  @ system_error::SystemError 
+_14:  @ alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt; 
+_15:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt; 
+_16:  @ core::result::Result&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_17:  @ core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt; 
+_18:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt; 
+_19:  @ &amp;&#39;{erased} [core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt;; 32_usize] 
+_20:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, [core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt;; 32_usize]&gt; 
+_21:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, [core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt;; 32_usize]&gt; 
+_22:  @ &amp;&#39;{erased} libs::rwlock::RwLock&lt;[core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt;&gt;; 32_usize]&gt; 
+_23:  @ usize 
+_24:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_25:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_26:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_27:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_28:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_29:  @ bool 
+_30:  @ system_error::SystemError 
+_31:  @ isize 
+_32:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_33:  @ ! 
+_34:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_35:  @ alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt; 
+_36:  @ virtio_drivers::device::console::ConsoleInfo 
+_37:  @ &amp;&#39;{erased} virtio_drivers::device::console::VirtIOConsole&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport&gt; 
+_38:  @ &amp;&#39;{erased} driver::char::virtio_console::InnerVirtIOConsoleDevice 
+_39:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::char::virtio_console::InnerVirtIOConsoleDevice&gt; 
+_40:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::char::virtio_console::InnerVirtIOConsoleDevice&gt; 
+_41:  @ &amp;&#39;{erased} driver::char::virtio_console::VirtIOConsoleDevice 
+_42:  @ &amp;&#39;{erased} driver::char::virtio_console::VirtIOConsoleDevice 
+_43:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice, alloc::alloc::Global&gt; 
+_44:  @ driver::tty::termios::WindowSize 
+_45:  @ u16 
+_46:  @ u16 
+_47:  @ driver::tty::termios::WindowSize 
+_48:  @ &amp;&#39;{erased} mut driver::tty::termios::WindowSize 
+_49:  @ &amp;&#39;{erased} mut libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, driver::tty::termios::WindowSize&gt; 
+_50:  @ libs::rwlock::RwLockWriteGuard&lt;&#39;{erased}, driver::tty::termios::WindowSize&gt; 
+_51:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_52:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_53:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_54:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_55:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_56:  @ alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;, alloc::alloc::Global&gt; 
+_57:  @ libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_58:  @ driver::tty::virtual_terminal::virtual_console::VirtualConsoleData 
+_59:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_60:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_61:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_62:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;, alloc::alloc::Global&gt; 
+_63:  @ () 
+_64:  @ &amp;&#39;{erased} mut driver::tty::virtual_terminal::virtual_console::VirtualConsoleData 
+_65:  @ &amp;&#39;{erased} mut driver::tty::virtual_terminal::virtual_console::VirtualConsoleData 
+_66:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_67:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::tty::console::ConsoleSwitch), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_68:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::tty::console::ConsoleSwitch), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_69:  @ alloc::sync::Weak&lt;dyn [Binder { value: Trait(driver::tty::console::ConsoleSwitch), bound_vars: [] }] + &#39;{erased}, alloc::alloc::Global&gt; 
+_70:  @ alloc::sync::Weak&lt;driver::video::console::dummycon::DummyConsole, alloc::alloc::Global&gt; 
+_71:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::video::console::dummycon::DummyConsole, alloc::alloc::Global&gt; 
+_72:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::video::console::dummycon::DummyConsole, alloc::alloc::Global&gt; 
+_73:  @ alloc::sync::Arc&lt;driver::video::console::dummycon::DummyConsole, alloc::alloc::Global&gt; 
+_74:  @ () 
+_75:  @ &amp;&#39;{erased} mut driver::tty::virtual_terminal::virtual_console::VirtualConsoleData 
+_76:  @ &amp;&#39;{erased} mut driver::tty::virtual_terminal::virtual_console::VirtualConsoleData 
+_77:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_78:  @ core::option::Option&lt;usize&gt; 
+_79:  @ usize 
+_80:  @ u16 
+_81:  @ &amp;&#39;{erased} driver::tty::termios::WindowSize 
+_82:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, driver::tty::termios::WindowSize&gt; 
+_83:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, driver::tty::termios::WindowSize&gt; 
+_84:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_85:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_86:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_87:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_88:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_89:  @ core::option::Option&lt;usize&gt; 
+_90:  @ usize 
+_91:  @ u16 
+_92:  @ &amp;&#39;{erased} driver::tty::termios::WindowSize 
+_93:  @ &amp;&#39;{erased} libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, driver::tty::termios::WindowSize&gt; 
+_94:  @ libs::rwlock::RwLockReadGuard&lt;&#39;{erased}, driver::tty::termios::WindowSize&gt; 
+_95:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_96:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCoreData 
+_97:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_98:  @ &amp;&#39;{erased} driver::tty::tty_core::TtyCore 
+_99:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_100:  @ () 
+_101:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; 
+_102:  @ alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole, alloc::alloc::Global&gt; 
+_103:  @ core::option::Option&lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;, alloc::alloc::Global&gt;&gt; 
+_104:  @ alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;, alloc::alloc::Global&gt; 
+_105:  @ usize 
+_106:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, usize&gt; 
+_107:  @ core::result::Result&lt;usize, system_error::SystemError&gt; 
+_108:  @ core::option::Option&lt;usize&gt; 
+_109:  @ &amp;&#39;{erased} driver::tty::virtual_terminal::VirtConsoleManager 
+_110:  @ &amp;&#39;{erased} driver::tty::virtual_terminal::VirtConsoleManager 
+_111:  @ alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole, alloc::alloc::Global&gt; 
+_112:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole, alloc::alloc::Global&gt; 
+_113:  @ system_error::SystemError 
+_114:  @ isize 
+_115:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_116:  @ ! 
+_117:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_118:  @ usize 
+_119:  @ () 
+_120:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, ()&gt; 
+_121:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_122:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_123:  @ &amp;&#39;{erased} driver::char::virtio_console::VirtIOConsoleDriver 
+_124:  @ alloc::sync::Arc&lt;driver::tty::tty_driver::TtyDriver, alloc::alloc::Global&gt; 
+_125:  @ alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore, alloc::alloc::Global&gt; 
+_126:  @ alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole, alloc::alloc::Global&gt; 
+_127:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole, alloc::alloc::Global&gt; 
+_128:  @ Closure(DefId(0:9328 ~ dragonos_kernel[9e38]::driver::char::virtio_console::{impl#10}::install::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} usize,)]) 
+_129:  @ &amp;&#39;{erased} usize 
+_130:  @ isize 
+_131:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_132:  @ ! 
+_133:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_134:  @ () 
+_135:  @ () 
+_136:  @ bool 
+_137:  @ bool 
+_138:  @ bool 
+_139:  @ bool 
+_140:  @ bool 
+_141:  @ bool 
+_142:  @ isize 
+_143:  @ isize 
+_144:  @ isize 
+_145:  @ isize 
+_146:  @ isize 
 
 bb 0 {
 CleanUp: false
-    Assign((_94, const false)) @ _94=const false @ Use
-    Assign((_95, const false)) @ _95=const false @ Use
+    Assign((_137, const false)) @ _137=const false @ Use
+    Assign((_136, const false)) @ _136=const false @ Use
+    Assign((_141, const false)) @ _141=const false @ Use
+    Assign((_140, const false)) @ _140=const false @ Use
+    Assign((_139, const false)) @ _139=const false @ Use
+    Assign((_138, const false)) @ _138=const false @ Use
+    Assign((_137, const true)) @ _137=const true @ Use
+    Assign((_136, const true)) @ _136=const true @ Use
+    StorageLive(_4) @ StorageLive
     StorageLive(_5) @ StorageLive
     StorageLive(_6) @ StorageLive
     StorageLive(_7) @ StorageLive
     StorageLive(_8) @ StorageLive
     StorageLive(_9) @ StorageLive
-    Assign((_9, const {alloc153170: &amp;driver::base::device::CLASS_DIR_KSET_INSTANCE})) @ _9=const {alloc153170: &amp;driver::base::device::CLASS_DIR_KSET_INSTANCE} @ Use
-    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
-    _7 = &lt;driver::base::device::CLASS_DIR_KSET_INSTANCE as lazy_static::__Deref&gt;::deref(move _8) -&gt; [return: bb1, unwind: bb45] @ Call: FnDid: 3903
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &amp;_3)) @ _11=&amp;_3 @ Ref
+    _10 = &lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt; as lazy_static::__Deref&gt;::deref(move _11) -&gt; [return: bb1, unwind: bb103] @ Call: FnDid: 3903
 }
 bb 1 {
 CleanUp: false
-    Assign((_6, &amp;(*_7))) @ _6=&amp;(*_7) @ Ref
-    StorageDead(_8) @ StorageDead
-    _5 = libs::rwlock::RwLock::&lt;alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;&gt;::write(move _6) -&gt; [return: bb2, unwind: bb45] @ Call: FnDid: 5165
+    Assign((_9, &amp;(*_10))) @ _9=&amp;(*_10) @ Ref
+    StorageDead(_11) @ StorageDead
+    _8 = driver::tty::tty_core::TtyCore::core(move _9) -&gt; [return: bb2, unwind: bb103] @ Call: FnDid: 13766
 }
 bb 2 {
 CleanUp: false
-    StorageDead(_6) @ StorageDead
+    Assign((_7, &amp;(*_8))) @ _7=&amp;(*_8) @ Ref
     StorageDead(_9) @ StorageDead
-    StorageDead(_7) @ StorageDead
-    StorageLive(_10) @ StorageLive
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    StorageLive(_14) @ StorageLive
-    StorageLive(_15) @ StorageLive
-    Assign((_15, &amp;_2)) @ _15=&amp;_2 @ Ref
-    _14 = &lt;alloc::sync::Arc&lt;dyn driver::base::class::Class&gt; as lazy_static::__Deref&gt;::deref(move _15) -&gt; [return: bb3, unwind: bb44] @ Call: FnDid: 3903
+    _6 = driver::tty::tty_core::TtyCoreData::index(move _7) -&gt; [return: bb3, unwind: bb103] @ Call: FnDid: 13788
 }
 bb 3 {
 CleanUp: false
-    Assign((_13, &amp;(*_14))) @ _13=&amp;(*_14) @ Ref
-    StorageDead(_15) @ StorageDead
-    _12 = &lt;dyn driver::base::class::Class as driver::base::class::Class&gt;::name(move _13) -&gt; [return: bb4, unwind: bb44] @ Call: FnDid: 7507
+    StorageDead(_7) @ StorageDead
+    Assign((_5, Ge(move _6, const driver::char::virtio_console::VirtIOConsoleDriver::MAX_DEVICES))) @ _5=Ge(move _6, const driver::char::virtio_console::VirtIOConsoleDriver::MAX_DEVICES) @ BinaryOp
+    switchInt(move _5) -&gt; [0: bb5, otherwise: bb4] @ SwitchInt
 }
 bb 4 {
 CleanUp: false
-    Assign((_11, &amp;(*_12))) @ _11=&amp;(*_12) @ Ref
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    Assign((_13, system_error::SystemError::ENODEV)) @ _13=system_error::SystemError::ENODEV @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _13))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _13) @ Aggregate
     StorageDead(_13) @ StorageDead
-    _10 = &lt;str as alloc::string::ToString&gt;::to_string(move _11) -&gt; [return: bb5, unwind: bb44] @ Call: FnDid: 6626
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    goto -&gt; bb92 @ Goto
 }
 bb 5 {
 CleanUp: false
-    StorageDead(_11) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    StorageDead(_12) @ StorageDead
+    StorageDead(_10) @ StorageDead
+    StorageDead(_8) @ StorageDead
+    StorageDead(_6) @ StorageDead
+    Assign((_4, const ())) @ _4=const () @ Use
+    StorageDead(_5) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageLive(_14) @ StorageLive
+    StorageLive(_15) @ StorageLive
     StorageLive(_16) @ StorageLive
     StorageLive(_17) @ StorageLive
     StorageLive(_18) @ StorageLive
     StorageLive(_19) @ StorageLive
-    Assign((_19, &amp;_3)) @ _19=&amp;_3 @ Ref
-    _18 = &lt;alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; as lazy_static::__Deref&gt;::deref(move _19) -&gt; [return: bb6, unwind: bb43] @ Call: FnDid: 3903
-}
-bb 6 {
-CleanUp: false
-    Assign((_17, &amp;(*_18))) @ _17=&amp;(*_18) @ Ref
-    StorageDead(_19) @ StorageDead
-    _16 = &lt;dyn driver::base::kobject::KObject as driver::base::kobject::KObject&gt;::name(move _17) -&gt; [return: bb7, unwind: bb43] @ Call: FnDid: 8338
-}
-bb 7 {
-CleanUp: false
-    StorageDead(_17) @ StorageDead
-    StorageDead(_18) @ StorageDead
     StorageLive(_20) @ StorageLive
     StorageLive(_21) @ StorageLive
     StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;((*_1).1: libs::rwlock::RwLock&lt;[core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;&gt;; 32]&gt;))) @ _22=&amp;((*_1).1: libs::rwlock::RwLock&lt;[core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;&gt;; 32]&gt;) @ Ref
+    _21 = libs::rwlock::RwLock::&lt;[core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;&gt;; 32]&gt;::read(move _22) -&gt; [return: bb6, unwind: bb103] @ Call: FnDid: 5156
+}
+bb 6 {
+CleanUp: false
+    Assign((_20, &amp;_21)) @ _20=&amp;_21 @ Ref
+    _19 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, [core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;&gt;; 32]&gt; as lazy_static::__Deref&gt;::deref(move _20) -&gt; [return: bb7, unwind: bb88] @ Call: FnDid: 3903
+}
+bb 7 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    StorageDead(_20) @ StorageDead
     StorageLive(_23) @ StorageLive
     StorageLive(_24) @ StorageLive
-    Assign((_24, &amp;_10)) @ _24=&amp;_10 @ Ref
     StorageLive(_25) @ StorageLive
-    Assign((_25, &amp;_16)) @ _25=&amp;_16 @ Ref
-    Assign((_23, (move _24, move _25))) @ _23=(move _24, move _25) @ Aggregate
-    StorageDead(_25) @ StorageDead
-    StorageDead(_24) @ StorageDead
     StorageLive(_26) @ StorageLive
     StorageLive(_27) @ StorageLive
     StorageLive(_28) @ StorageLive
-    Assign((_92, deref_copy (_23.0: &amp;alloc::string::String))) @ _92=deref_copy (_23.0: &amp;alloc::string::String) @ CopyForDeref
-    Assign((_28, &amp;(*_92))) @ _28=&amp;(*_92) @ Ref
-    _27 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;alloc::string::String&gt;(move _28) -&gt; [return: bb8, unwind: bb42] @ Call: FnDid: 11807
+    Assign((_28, &amp;_3)) @ _28=&amp;_3 @ Ref
+    _27 = &lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt; as lazy_static::__Deref&gt;::deref(move _28) -&gt; [return: bb8, unwind: bb88] @ Call: FnDid: 3903
 }
 bb 8 {
 CleanUp: false
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
     StorageDead(_28) @ StorageDead
-    StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    Assign((_93, deref_copy (_23.1: &amp;alloc::string::String))) @ _93=deref_copy (_23.1: &amp;alloc::string::String) @ CopyForDeref
-    Assign((_30, &amp;(*_93))) @ _30=&amp;(*_93) @ Ref
-    _29 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_display::&lt;alloc::string::String&gt;(move _30) -&gt; [return: bb9, unwind: bb42] @ Call: FnDid: 11807
+    _25 = driver::tty::tty_core::TtyCore::core(move _26) -&gt; [return: bb9, unwind: bb88] @ Call: FnDid: 13766
 }
 bb 9 {
 CleanUp: false
-    StorageDead(_30) @ StorageDead
-    Assign((_26, [move _27, move _29])) @ _26=[move _27, move _29] @ Aggregate
-    StorageDead(_29) @ StorageDead
-    StorageDead(_27) @ StorageDead
-    StorageLive(_31) @ StorageLive
-    StorageLive(_32) @ StorageLive
-    Assign((_91, const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[1])) @ _91=const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[1] @ Use
-    Assign((_32, &amp;(*_91))) @ _32=&amp;(*_91) @ Ref
-    Assign((_31, &amp;(*_32))) @ _31=&amp;(*_32) @ Ref
-    StorageLive(_34) @ StorageLive
-    StorageLive(_35) @ StorageLive
-    Assign((_35, &amp;_26)) @ _35=&amp;_26 @ Ref
-    Assign((_34, &amp;(*_35))) @ _34=&amp;(*_35) @ Ref
-    _22 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1::&lt;2, 2&gt;(move _31, move _34) -&gt; [return: bb10, unwind: bb42] @ Call: FnDid: 11836
+    Assign((_24, &amp;(*_25))) @ _24=&amp;(*_25) @ Ref
+    StorageDead(_26) @ StorageDead
+    _23 = driver::tty::tty_core::TtyCoreData::index(move _24) -&gt; [return: bb10, unwind: bb88] @ Call: FnDid: 13788
 }
 bb 10 {
 CleanUp: false
-    StorageDead(_35) @ StorageDead
-    StorageDead(_34) @ StorageDead
-    StorageDead(_32) @ StorageDead
-    StorageDead(_31) @ StorageDead
-    _21 = alloc::fmt::format(move _22) -&gt; [return: bb11, unwind: bb42] @ Call: FnDid: 5475
+    StorageDead(_24) @ StorageDead
+    Assign((_29, Lt(copy _23, const 32_usize))) @ _29=Lt(copy _23, const 32_usize) @ BinaryOp
+    assert(move _29, &#34;index out of bounds: the length is {} but the index is {}&#34;, const 32_usize, copy _23) -&gt; [success: bb11, unwind: bb88] @ Assert
 }
 bb 11 {
 CleanUp: false
-    StorageDead(_26) @ StorageDead
-    StorageDead(_23) @ StorageDead
-    StorageDead(_22) @ StorageDead
-    _20 = core::hint::must_use::&lt;alloc::string::String&gt;(move _21) -&gt; [return: bb12, unwind: bb42] @ Call: FnDid: 1455
+    Assign((_18, &amp;(*_19)[_23])) @ _18=&amp;(*_19)[_23] @ Ref
+    _17 = &lt;core::option::Option&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;&gt; as core::clone::Clone&gt;::clone(move _18) -&gt; [return: bb12, unwind: bb88] @ Call: FnDid: 3116
 }
 bb 12 {
 CleanUp: false
-    Assign((_94, const true)) @ _94=const true @ Use
+    StorageDead(_18) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    Assign((_30, system_error::SystemError::ENODEV)) @ _30=system_error::SystemError::ENODEV @ Aggregate
+    _16 = core::option::Option::&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;&gt;::ok_or::&lt;system_error::SystemError&gt;(move _17, move _30) -&gt; [return: bb13, unwind: bb88] @ Call: FnDid: 10178
+}
+bb 13 {
+CleanUp: false
+    StorageDead(_30) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    _15 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _16) -&gt; [return: bb14, unwind: bb88] @ Call: FnDid: 4199
+}
+bb 14 {
+CleanUp: false
+    StorageDead(_16) @ StorageDead
+    Assign((_31, discriminant(_15))) @ _31=discriminant(_15) @ Discriminant
+    switchInt(move _31) -&gt; [0: bb16, 1: bb17, otherwise: bb15] @ SwitchInt
+}
+bb 15 {
+CleanUp: false
+    unreachable @ Unreachable
+}
+bb 16 {
+CleanUp: false
+    StorageLive(_35) @ StorageLive
+    Assign((_35, move ((_15 as Continue).0: alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;))) @ _35=move ((_15 as Continue).0: alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt;) @ Use
+    Assign((_14, move _35)) @ _14=move _35 @ Use
+    StorageDead(_35) @ StorageDead
+    Assign((_144, discriminant(_15))) @ _144=discriminant(_15) @ Discriminant
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    drop(_21) -&gt; [return: bb19, unwind: bb87] @ Drop
+}
+bb 17 {
+CleanUp: false
+    StorageLive(_32) @ StorageLive
+    Assign((_32, move ((_15 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _32=move ((_15 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_34) @ StorageLive
+    Assign((_34, move _32)) @ _34=move _32 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _34) -&gt; [return: bb18, unwind: bb101] @ Call: FnDid: 4202
+}
+bb 18 {
+CleanUp: false
+    StorageDead(_34) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    Assign((_142, discriminant(_15))) @ _142=discriminant(_15) @ Discriminant
+    StorageDead(_27) @ StorageDead
+    StorageDead(_25) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    drop(_21) -&gt; [return: bb76, unwind: bb103] @ Drop
+}
+bb 19 {
+CleanUp: false
     StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_15) @ StorageDead
     StorageLive(_36) @ StorageLive
     StorageLive(_37) @ StorageLive
     StorageLive(_38) @ StorageLive
     StorageLive(_39) @ StorageLive
     StorageLive(_40) @ StorageLive
-    Assign((_40, &amp;_5)) @ _40=&amp;_5 @ Ref
-    _39 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;&gt; as lazy_static::__Deref&gt;::deref(move _40) -&gt; [return: bb13, unwind: bb52] @ Call: FnDid: 3903
-}
-bb 13 {
-CleanUp: false
-    Assign((_38, &amp;(*_39))) @ _38=&amp;(*_39) @ Ref
-    StorageDead(_40) @ StorageDead
     StorageLive(_41) @ StorageLive
     StorageLive(_42) @ StorageLive
-    Assign((_42, &amp;_20)) @ _42=&amp;_20 @ Ref
-    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
-    _37 = alloc::collections::BTreeMap::&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;::get::&lt;alloc::string::String&gt;(move _38, move _41) -&gt; [return: bb14, unwind: bb52] @ Call: FnDid: 1921
+    StorageLive(_43) @ StorageLive
+    Assign((_43, &amp;_14)) @ _43=&amp;_14 @ Ref
+    _42 = &lt;alloc::sync::Arc&lt;driver::char::virtio_console::VirtIOConsoleDevice&gt; as lazy_static::__Deref&gt;::deref(move _43) -&gt; [return: bb20, unwind: bb87] @ Call: FnDid: 3903
 }
-bb 14 {
+bb 20 {
+CleanUp: false
+    Assign((_41, &amp;(*_42))) @ _41=&amp;(*_42) @ Ref
+    StorageDead(_43) @ StorageDead
+    _40 = driver::char::virtio_console::VirtIOConsoleDevice::inner(move _41) -&gt; [return: bb21, unwind: bb87] @ Call: FnDid: 9255
+}
+bb 21 {
+CleanUp: false
+    Assign((_39, &amp;_40)) @ _39=&amp;_40 @ Ref
+    _38 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::char::virtio_console::InnerVirtIOConsoleDevice&gt; as lazy_static::__Deref&gt;::deref(move _39) -&gt; [return: bb22, unwind: bb86] @ Call: FnDid: 3903
+}
+bb 22 {
 CleanUp: false
     StorageDead(_41) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    Assign((_37, &amp;((*_38).0: virtio_drivers::device::console::VirtIOConsole&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport&gt;))) @ _37=&amp;((*_38).0: virtio_drivers::device::console::VirtIOConsole&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport&gt;) @ Ref
+    _36 = virtio_drivers::device::console::VirtIOConsole::&lt;driver::virtio::virtio_impl::HalImpl, driver::virtio::transport::VirtIOTransport&gt;::info(move _37) -&gt; [return: bb23, unwind: bb86] @ Call: FnDid: 122
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_37) @ StorageDead
+    drop(_40) -&gt; [return: bb24, unwind: bb87] @ Drop
+}
+bb 24 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    StorageDead(_40) @ StorageDead
     StorageDead(_38) @ StorageDead
-    Assign((_43, discriminant(_37))) @ _43=discriminant(_37) @ Discriminant
-    switchInt(move _43) -&gt; [1: bb15, otherwise: bb17] @ SwitchInt
-}
-bb 15 {
-CleanUp: false
     StorageLive(_44) @ StorageLive
-    Assign((_44, copy ((_37 as Some).0: &amp;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;))) @ _44=copy ((_37 as Some).0: &amp;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;) @ Use
+    StorageLive(_45) @ StorageLive
+    Assign((_45, copy (_36.0: u16))) @ _45=copy (_36.0: u16) @ Use
     StorageLive(_46) @ StorageLive
-    StorageLive(_47) @ StorageLive
-    Assign((_47, &amp;(*_44))) @ _47=&amp;(*_44) @ Ref
-    _46 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as core::clone::Clone&gt;::clone(move _47) -&gt; [return: bb16, unwind: bb52] @ Call: FnDid: 3116
+    Assign((_46, copy (_36.1: u16))) @ _46=copy (_36.1: u16) @ Use
+    _44 = driver::tty::termios::WindowSize::new(move _45, move _46, const 1_u16, const 1_u16) -&gt; [return: bb25, unwind: bb87] @ Call: FnDid: 13668
 }
-bb 16 {
+bb 25 {
 CleanUp: false
-    Assign((_0, move _46 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _0=move _46 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_47) @ StorageDead
     StorageDead(_46) @ StorageDead
-    StorageDead(_44) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    StorageDead(_39) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    StorageDead(_36) @ StorageDead
-    goto -&gt; bb34 @ Goto
-}
-bb 17 {
-CleanUp: false
-    Assign((_36, const ())) @ _36=const () @ Use
-    StorageDead(_42) @ StorageDead
-    StorageDead(_39) @ StorageDead
-    StorageDead(_37) @ StorageDead
-    StorageDead(_36) @ StorageDead
+    StorageDead(_45) @ StorageDead
+    StorageLive(_47) @ StorageLive
+    Assign((_47, copy _44)) @ _47=copy _44 @ Use
     StorageLive(_48) @ StorageLive
-    _48 = driver::base::device::ClassDir::new() -&gt; [return: bb18, unwind: bb52] @ Call: FnDid: 8243
-}
-bb 18 {
-CleanUp: false
     StorageLive(_49) @ StorageLive
     StorageLive(_50) @ StorageLive
     StorageLive(_51) @ StorageLive
     StorageLive(_52) @ StorageLive
-    Assign((_52, &amp;_48)) @ _52=&amp;_48 @ Ref
-    _51 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as lazy_static::__Deref&gt;::deref(move _52) -&gt; [return: bb19, unwind: bb41] @ Call: FnDid: 3903
-}
-bb 19 {
-CleanUp: false
-    Assign((_50, &amp;(*_51))) @ _50=&amp;(*_51) @ Ref
-    StorageDead(_52) @ StorageDead
     StorageLive(_53) @ StorageLive
     StorageLive(_54) @ StorageLive
-    Assign((_54, &amp;_10)) @ _54=&amp;_10 @ Ref
-    _53 = &lt;alloc::string::String as core::clone::Clone&gt;::clone(move _54) -&gt; [return: bb20, unwind: bb41] @ Call: FnDid: 3116
+    StorageLive(_55) @ StorageLive
+    Assign((_55, &amp;_3)) @ _55=&amp;_3 @ Ref
+    _54 = &lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt; as lazy_static::__Deref&gt;::deref(move _55) -&gt; [return: bb26, unwind: bb87] @ Call: FnDid: 3903
 }
-bb 20 {
+bb 26 {
+CleanUp: false
+    Assign((_53, &amp;(*_54))) @ _53=&amp;(*_54) @ Ref
+    StorageDead(_55) @ StorageDead
+    _52 = driver::tty::tty_core::TtyCore::core(move _53) -&gt; [return: bb27, unwind: bb87] @ Call: FnDid: 13766
+}
+bb 27 {
+CleanUp: false
+    Assign((_51, &amp;(*_52))) @ _51=&amp;(*_52) @ Ref
+    StorageDead(_53) @ StorageDead
+    _50 = driver::tty::tty_core::TtyCoreData::window_size_write(move _51) -&gt; [return: bb28, unwind: bb87] @ Call: FnDid: 13805
+}
+bb 28 {
+CleanUp: false
+    Assign((_49, &amp;mut _50)) @ _49=&amp;mut _50 @ Ref
+    StorageDead(_51) @ StorageDead
+    _48 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, driver::tty::termios::WindowSize&gt; as core::ops::DerefMut&gt;::deref_mut(move _49) -&gt; [return: bb29, unwind: bb85] @ Call: FnDid: 3915
+}
+bb 29 {
+CleanUp: false
+    StorageDead(_49) @ StorageDead
+    Assign(((*_48), move _47)) @ (*_48)=move _47 @ Use
+    StorageDead(_47) @ StorageDead
+    drop(_50) -&gt; [return: bb30, unwind: bb87] @ Drop
+}
+bb 30 {
 CleanUp: false
     StorageDead(_54) @ StorageDead
-    _49 = &lt;driver::base::device::ClassDir as driver::base::kobject::KObject&gt;::set_name(move _50, move _53) -&gt; [return: bb21, unwind: bb41] @ Call: FnDid: 8339
-}
-bb 21 {
-CleanUp: false
-    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
     StorageDead(_50) @ StorageDead
-    StorageDead(_51) @ StorageDead
-    StorageDead(_49) @ StorageDead
-    StorageLive(_55) @ StorageLive
+    StorageDead(_48) @ StorageDead
     StorageLive(_56) @ StorageLive
     StorageLive(_57) @ StorageLive
     StorageLive(_58) @ StorageLive
-    Assign((_58, &amp;_48)) @ _58=&amp;_48 @ Ref
-    _57 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as lazy_static::__Deref&gt;::deref(move _58) -&gt; [return: bb22, unwind: bb41] @ Call: FnDid: 3903
+    _58 = driver::tty::virtual_terminal::virtual_console::VirtualConsoleData::new(const core::num::&lt;impl usize&gt;::MAX) -&gt; [return: bb31, unwind: bb87] @ Call: FnDid: 14481
 }
-bb 22 {
+bb 31 {
 CleanUp: false
-    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
+    _57 = libs::spinlock::SpinLock::&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;::new(move _58) -&gt; [return: bb32, unwind: bb87] @ Call: FnDid: 5260
+}
+bb 32 {
+CleanUp: false
     StorageDead(_58) @ StorageDead
+    _56 = alloc::sync::Arc::&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;&gt;::new(move _57) -&gt; [return: bb33, unwind: bb87] @ Call: FnDid: 6875
+}
+bb 33 {
+CleanUp: false
+    Assign((_141, const true)) @ _141=const true @ Use
+    StorageDead(_57) @ StorageDead
     StorageLive(_59) @ StorageLive
     StorageLive(_60) @ StorageLive
     StorageLive(_61) @ StorageLive
     StorageLive(_62) @ StorageLive
-    Assign((_90, const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[0])) @ _90=const driver::base::device::DeviceManager::class_dir_create_and_add::promoted[0] @ Use
-    Assign((_62, &amp;(*_90))) @ _62=&amp;(*_90) @ Ref
-    Assign((_61, &amp;(*_62))) @ _61=&amp;(*_62) @ Ref
-    Assign((_60, move _61 as &amp;dyn driver::base::kobject::KObjType (PointerCoercion(Unsize, Implicit)))) @ _60=move _61 as &amp;dyn driver::base::kobject::KObjType (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_61) @ StorageDead
-    Assign((_59, core::option::Option::&lt;&amp;dyn driver::base::kobject::KObjType&gt;::Some(move _60))) @ _59=core::option::Option::&lt;&amp;dyn driver::base::kobject::KObjType&gt;::Some(move _60) @ Aggregate
-    StorageDead(_60) @ StorageDead
-    _55 = &lt;driver::base::device::ClassDir as driver::base::kobject::KObject&gt;::set_kobj_type(move _56, move _59) -&gt; [return: bb23, unwind: bb41] @ Call: FnDid: 8337
+    Assign((_62, &amp;_56)) @ _62=&amp;_56 @ Ref
+    _61 = &lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;&gt; as lazy_static::__Deref&gt;::deref(move _62) -&gt; [return: bb34, unwind: bb100] @ Call: FnDid: 3903
 }
-bb 23 {
+bb 34 {
 CleanUp: false
-    StorageDead(_59) @ StorageDead
-    StorageDead(_56) @ StorageDead
+    Assign((_60, &amp;(*_61))) @ _60=&amp;(*_61) @ Ref
     StorageDead(_62) @ StorageDead
-    StorageDead(_57) @ StorageDead
-    StorageDead(_55) @ StorageDead
+    _59 = libs::spinlock::SpinLock::&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;::lock_irqsave(move _60) -&gt; [return: bb35, unwind: bb100] @ Call: FnDid: 5263
+}
+bb 35 {
+CleanUp: false
+    Assign((_140, const true)) @ _140=const true @ Use
+    StorageDead(_60) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    StorageLive(_63) @ StorageLive
     StorageLive(_64) @ StorageLive
     StorageLive(_65) @ StorageLive
     StorageLive(_66) @ StorageLive
-    StorageLive(_67) @ StorageLive
-    Assign((_67, &amp;_48)) @ _67=&amp;_48 @ Ref
-    _66 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as lazy_static::__Deref&gt;::deref(move _67) -&gt; [return: bb24, unwind: bb41] @ Call: FnDid: 3903
+    Assign((_66, &amp;mut _59)) @ _66=&amp;mut _59 @ Ref
+    _65 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; as core::ops::DerefMut&gt;::deref_mut(move _66) -&gt; [return: bb36, unwind: bb98] @ Call: FnDid: 3915
 }
-bb 24 {
+bb 36 {
 CleanUp: false
-    Assign((_65, &amp;(*_66))) @ _65=&amp;(*_66) @ Ref
-    StorageDead(_67) @ StorageDead
+    Assign((_64, &amp;mut (*_65))) @ _64=&amp;mut (*_65) @ Ref
+    StorageDead(_66) @ StorageDead
+    StorageLive(_67) @ StorageLive
     StorageLive(_68) @ StorageLive
     StorageLive(_69) @ StorageLive
     StorageLive(_70) @ StorageLive
     StorageLive(_71) @ StorageLive
     StorageLive(_72) @ StorageLive
-    Assign((_72, &amp;_3)) @ _72=&amp;_3 @ Ref
-    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
-    _70 = alloc::sync::Arc::&lt;dyn driver::base::kobject::KObject&gt;::downgrade(move _71) -&gt; [return: bb25, unwind: bb41] @ Call: FnDid: 6946
+    StorageLive(_73) @ StorageLive
+    _73 = driver::video::console::dummycon::dummy_console() -&gt; [return: bb37, unwind: bb98] @ Call: FnDid: 14659
 }
-bb 25 {
+bb 37 {
 CleanUp: false
-    Assign((_69, move _70 as alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _69=move _70 as alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
+    Assign((_72, &amp;_73)) @ _72=&amp;_73 @ Ref
+    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
+    _70 = alloc::sync::Arc::&lt;driver::video::console::dummycon::DummyConsole&gt;::downgrade(move _71) -&gt; [return: bb38, unwind: bb84] @ Call: FnDid: 6946
+}
+bb 38 {
+CleanUp: false
+    Assign((_69, move _70 as alloc::sync::Weak&lt;dyn driver::tty::console::ConsoleSwitch&gt; (PointerCoercion(Unsize, AsCast)))) @ _69=move _70 as alloc::sync::Weak&lt;dyn driver::tty::console::ConsoleSwitch&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
     StorageDead(_71) @ StorageDead
     StorageDead(_70) @ StorageDead
-    Assign((_68, core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _69))) @ _68=core::option::Option::&lt;alloc::sync::Weak&lt;dyn driver::base::kobject::KObject&gt;&gt;::Some(move _69) @ Aggregate
-    StorageDead(_69) @ StorageDead
-    _64 = &lt;driver::base::device::ClassDir as driver::base::kobject::KObject&gt;::set_parent(move _65, move _68) -&gt; [return: bb26, unwind: bb41] @ Call: FnDid: 8333
-}
-bb 26 {
-CleanUp: false
+    Assign((_68, move _69)) @ _68=move _69 @ Use
+    Assign((_67, move _68 as alloc::sync::Weak&lt;dyn driver::tty::console::ConsoleSwitch&gt; (PointerCoercion(Unsize, Implicit)))) @ _67=move _68 as alloc::sync::Weak&lt;dyn driver::tty::console::ConsoleSwitch&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
     StorageDead(_68) @ StorageDead
-    StorageDead(_65) @ StorageDead
-    StorageDead(_72) @ StorageDead
-    StorageDead(_66) @ StorageDead
+    _63 = driver::tty::virtual_terminal::virtual_console::VirtualConsoleData::set_driver_funcs(move _64, move _67) -&gt; [return: bb39, unwind: bb84] @ Call: FnDid: 14488
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_67) @ StorageDead
     StorageDead(_64) @ StorageDead
-    StorageLive(_73) @ StorageLive
+    drop(_73) -&gt; [return: bb40, unwind: bb98] @ Drop
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_73) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_63) @ StorageDead
     StorageLive(_74) @ StorageLive
     StorageLive(_75) @ StorageLive
     StorageLive(_76) @ StorageLive
     StorageLive(_77) @ StorageLive
+    Assign((_77, &amp;mut _59)) @ _77=&amp;mut _59 @ Ref
+    _76 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt; as core::ops::DerefMut&gt;::deref_mut(move _77) -&gt; [return: bb41, unwind: bb98] @ Call: FnDid: 3915
+}
+bb 41 {
+CleanUp: false
+    Assign((_75, &amp;mut (*_76))) @ _75=&amp;mut (*_76) @ Ref
+    StorageDead(_77) @ StorageDead
     StorageLive(_78) @ StorageLive
     StorageLive(_79) @ StorageLive
-    Assign((_79, &amp;_48)) @ _79=&amp;_48 @ Ref
-    _78 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as core::clone::Clone&gt;::clone(move _79) -&gt; [return: bb27, unwind: bb41] @ Call: FnDid: 3116
-}
-bb 27 {
-CleanUp: false
-    Assign((_77, move _78 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)))) @ _77=move _78 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, AsCast)) @ Cast
-    StorageDead(_79) @ StorageDead
-    StorageDead(_78) @ StorageDead
-    Assign((_76, move _77)) @ _76=move _77 @ Use
-    Assign((_75, move _76 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _75=move _76 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_76) @ StorageDead
-    _74 = driver::base::kobject::KObjectManager::add_kobj(move _75) -&gt; [return: bb28, unwind: bb41] @ Call: FnDid: 8369
-}
-bb 28 {
-CleanUp: false
-    StorageDead(_75) @ StorageDead
     StorageLive(_80) @ StorageLive
     StorageLive(_81) @ StorageLive
-    Assign((_81, const &#34;add class dir failed&#34;)) @ _81=const &#34;add class dir failed&#34; @ Use
-    Assign((_80, &amp;(*_81))) @ _80=&amp;(*_81) @ Ref
-    _73 = core::result::Result::&lt;(), system_error::SystemError&gt;::expect(move _74, move _80) -&gt; [return: bb29, unwind: bb41] @ Call: FnDid: 11023
-}
-bb 29 {
-CleanUp: false
-    StorageDead(_80) @ StorageDead
-    StorageDead(_74) @ StorageDead
-    StorageDead(_81) @ StorageDead
-    StorageDead(_77) @ StorageDead
-    StorageDead(_73) @ StorageDead
     StorageLive(_82) @ StorageLive
     StorageLive(_83) @ StorageLive
     StorageLive(_84) @ StorageLive
     StorageLive(_85) @ StorageLive
-    Assign((_85, &amp;mut _5)) @ _85=&amp;mut _5 @ Ref
-    _84 = &lt;libs::rwlock::RwLockWriteGuard&lt;&#39;_, alloc::collections::BTreeMap&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;&gt; as core::ops::DerefMut&gt;::deref_mut(move _85) -&gt; [return: bb30, unwind: bb41] @ Call: FnDid: 3915
-}
-bb 30 {
-CleanUp: false
-    Assign((_83, &amp;mut (*_84))) @ _83=&amp;mut (*_84) @ Ref
-    StorageDead(_85) @ StorageDead
     StorageLive(_86) @ StorageLive
-    Assign((_94, const false)) @ _94=const false @ Use
-    Assign((_95, const true)) @ _95=const true @ Use
-    Assign((_86, move _20)) @ _86=move _20 @ Use
     StorageLive(_87) @ StorageLive
     StorageLive(_88) @ StorageLive
-    Assign((_88, &amp;_48)) @ _88=&amp;_48 @ Ref
-    _87 = &lt;alloc::sync::Arc&lt;driver::base::device::ClassDir&gt; as core::clone::Clone&gt;::clone(move _88) -&gt; [return: bb31, unwind: bb50] @ Call: FnDid: 3116
+    Assign((_88, &amp;_3)) @ _88=&amp;_3 @ Ref
+    _87 = &lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt; as lazy_static::__Deref&gt;::deref(move _88) -&gt; [return: bb42, unwind: bb98] @ Call: FnDid: 3903
 }
-bb 31 {
+bb 42 {
 CleanUp: false
+    Assign((_86, &amp;(*_87))) @ _86=&amp;(*_87) @ Ref
     StorageDead(_88) @ StorageDead
-    Assign((_95, const false)) @ _95=const false @ Use
-    _82 = alloc::collections::BTreeMap::&lt;alloc::string::String, alloc::sync::Arc&lt;driver::base::device::ClassDir&gt;&gt;::insert(move _83, move _86, move _87) -&gt; [return: bb32, unwind: bb50] @ Call: FnDid: 1937
+    _85 = driver::tty::tty_core::TtyCore::core(move _86) -&gt; [return: bb43, unwind: bb98] @ Call: FnDid: 13766
 }
-bb 32 {
+bb 43 {
 CleanUp: false
-    StorageDead(_87) @ StorageDead
-    Assign((_95, const false)) @ _95=const false @ Use
+    Assign((_84, &amp;(*_85))) @ _84=&amp;(*_85) @ Ref
     StorageDead(_86) @ StorageDead
-    StorageDead(_83) @ StorageDead
-    drop(_82) -&gt; [return: bb33, unwind: bb41] @ Drop
+    _83 = driver::tty::tty_core::TtyCoreData::window_size(move _84) -&gt; [return: bb44, unwind: bb98] @ Call: FnDid: 13804
 }
-bb 33 {
+bb 44 {
+CleanUp: false
+    Assign((_82, &amp;_83)) @ _82=&amp;_83 @ Ref
+    _81 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, driver::tty::termios::WindowSize&gt; as lazy_static::__Deref&gt;::deref(move _82) -&gt; [return: bb45, unwind: bb83] @ Call: FnDid: 3903
+}
+bb 45 {
 CleanUp: false
     StorageDead(_84) @ StorageDead
     StorageDead(_82) @ StorageDead
-    StorageLive(_89) @ StorageLive
-    Assign((_89, move _48)) @ _89=move _48 @ Use
-    Assign((_0, move _89 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)))) @ _0=move _89 as alloc::sync::Arc&lt;dyn driver::base::kobject::KObject&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_89) @ StorageDead
-    StorageDead(_48) @ StorageDead
-    goto -&gt; bb34 @ Goto
-}
-bb 34 {
-CleanUp: false
-    switchInt(copy _94) -&gt; [0: bb35, otherwise: bb48] @ SwitchInt
-}
-bb 35 {
-CleanUp: false
-    Assign((_94, const false)) @ _94=const false @ Use
-    StorageDead(_20) @ StorageDead
-    drop(_16) -&gt; [return: bb36, unwind: bb43] @ Drop
-}
-bb 36 {
-CleanUp: false
-    StorageDead(_16) @ StorageDead
-    drop(_10) -&gt; [return: bb37, unwind: bb44] @ Drop
-}
-bb 37 {
-CleanUp: false
-    StorageDead(_10) @ StorageDead
-    drop(_5) -&gt; [return: bb38, unwind: bb45] @ Drop
-}
-bb 38 {
-CleanUp: false
-    StorageDead(_5) @ StorageDead
-    drop(_3) -&gt; [return: bb39, unwind: bb46] @ Drop
-}
-bb 39 {
-CleanUp: false
-    drop(_2) -&gt; [return: bb40, unwind: bb47] @ Drop
-}
-bb 40 {
-CleanUp: false
-    return @ Return
-}
-bb 41 {
-CleanUp: true
-    drop(_48) -&gt; [return: bb52, unwind terminate(cleanup)] @ Drop
-}
-bb 42 {
-CleanUp: true
-    drop(_16) -&gt; [return: bb43, unwind terminate(cleanup)] @ Drop
-}
-bb 43 {
-CleanUp: true
-    drop(_10) -&gt; [return: bb44, unwind terminate(cleanup)] @ Drop
-}
-bb 44 {
-CleanUp: true
-    drop(_5) -&gt; [return: bb45, unwind terminate(cleanup)] @ Drop
-}
-bb 45 {
-CleanUp: true
-    drop(_3) -&gt; [return: bb46, unwind terminate(cleanup)] @ Drop
+    Assign((_80, copy ((*_81).0: u16))) @ _80=copy ((*_81).0: u16) @ Use
+    _79 = &lt;u16 as core::convert::Into&lt;usize&gt;&gt;::into(move _80) -&gt; [return: bb46, unwind: bb83] @ Call: FnDid: 3387
 }
 bb 46 {
-CleanUp: true
-    drop(_2) -&gt; [return: bb47, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    Assign((_78, core::option::Option::&lt;usize&gt;::Some(move _79))) @ _78=core::option::Option::&lt;usize&gt;::Some(move _79) @ Aggregate
+    StorageDead(_79) @ StorageDead
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    Assign((_99, &amp;_3)) @ _99=&amp;_3 @ Ref
+    _98 = &lt;alloc::sync::Arc&lt;driver::tty::tty_core::TtyCore&gt; as lazy_static::__Deref&gt;::deref(move _99) -&gt; [return: bb47, unwind: bb83] @ Call: FnDid: 3903
 }
 bb 47 {
-CleanUp: true
-    resume @ UnwindResume
+CleanUp: false
+    Assign((_97, &amp;(*_98))) @ _97=&amp;(*_98) @ Ref
+    StorageDead(_99) @ StorageDead
+    _96 = driver::tty::tty_core::TtyCore::core(move _97) -&gt; [return: bb48, unwind: bb83] @ Call: FnDid: 13766
 }
 bb 48 {
 CleanUp: false
-    drop(_20) -&gt; [return: bb35, unwind: bb42] @ Drop
+    Assign((_95, &amp;(*_96))) @ _95=&amp;(*_96) @ Ref
+    StorageDead(_97) @ StorageDead
+    _94 = driver::tty::tty_core::TtyCoreData::window_size(move _95) -&gt; [return: bb49, unwind: bb83] @ Call: FnDid: 13804
 }
 bb 49 {
-CleanUp: true
-    drop(_86) -&gt; [return: bb41, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    Assign((_93, &amp;_94)) @ _93=&amp;_94 @ Ref
+    _92 = &lt;libs::rwlock::RwLockReadGuard&lt;&#39;_, driver::tty::termios::WindowSize&gt; as lazy_static::__Deref&gt;::deref(move _93) -&gt; [return: bb50, unwind: bb82] @ Call: FnDid: 3903
 }
 bb 50 {
-CleanUp: true
-    switchInt(copy _95) -&gt; [0: bb41, otherwise: bb49] @ SwitchInt
+CleanUp: false
+    StorageDead(_95) @ StorageDead
+    StorageDead(_93) @ StorageDead
+    Assign((_91, copy ((*_92).1: u16))) @ _91=copy ((*_92).1: u16) @ Use
+    _90 = &lt;u16 as core::convert::Into&lt;usize&gt;&gt;::into(move _91) -&gt; [return: bb51, unwind: bb82] @ Call: FnDid: 3387
 }
 bb 51 {
-CleanUp: true
-    drop(_20) -&gt; [return: bb42, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    Assign((_89, core::option::Option::&lt;usize&gt;::Some(move _90))) @ _89=core::option::Option::&lt;usize&gt;::Some(move _90) @ Aggregate
+    StorageDead(_90) @ StorageDead
+    _74 = driver::tty::virtual_terminal::virtual_console::VirtualConsoleData::init(move _75, move _78, move _89, const true) -&gt; [return: bb52, unwind: bb82] @ Call: FnDid: 14484
 }
 bb 52 {
+CleanUp: false
+    StorageDead(_89) @ StorageDead
+    StorageDead(_78) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    drop(_94) -&gt; [return: bb53, unwind: bb83] @ Drop
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_98) @ StorageDead
+    StorageDead(_96) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    StorageDead(_92) @ StorageDead
+    drop(_83) -&gt; [return: bb54, unwind: bb98] @ Drop
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    StorageDead(_85) @ StorageDead
+    StorageDead(_83) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_76) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    Assign((_140, const false)) @ _140=const false @ Use
+    Assign((_101, move _59)) @ _101=move _59 @ Use
+    _100 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;&gt;(move _101) -&gt; [return: bb55, unwind: bb98] @ Call: FnDid: 2323
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    StorageDead(_100) @ StorageDead
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    Assign((_141, const false)) @ _141=const false @ Use
+    Assign((_104, move _56)) @ _104=move _56 @ Use
+    Assign((_103, core::option::Option::&lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;&gt;&gt;::Some(move _104))) @ _103=core::option::Option::&lt;alloc::sync::Arc&lt;libs::spinlock::SpinLock&lt;driver::tty::virtual_terminal::virtual_console::VirtualConsoleData&gt;&gt;&gt;::Some(move _104) @ Aggregate
+    StorageDead(_104) @ StorageDead
+    _102 = driver::tty::virtual_terminal::VirtConsole::new(move _103) -&gt; [return: bb56, unwind: bb98] @ Call: FnDid: 14561
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_103) @ StorageDead
+    StorageLive(_105) @ StorageLive
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    StorageLive(_109) @ StorageLive
+    StorageLive(_110) @ StorageLive
+    _110 = driver::tty::virtual_terminal::vc_manager() -&gt; [return: bb57, unwind: bb81] @ Call: FnDid: 14552
+}
+bb 57 {
+CleanUp: false
+    Assign((_109, &amp;(*_110))) @ _109=&amp;(*_110) @ Ref
+    StorageLive(_111) @ StorageLive
+    StorageLive(_112) @ StorageLive
+    Assign((_112, &amp;_102)) @ _112=&amp;_102 @ Ref
+    _111 = &lt;alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole&gt; as core::clone::Clone&gt;::clone(move _112) -&gt; [return: bb58, unwind: bb81] @ Call: FnDid: 3116
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_112) @ StorageDead
+    _108 = driver::tty::virtual_terminal::VirtConsoleManager::alloc(move _109, move _111) -&gt; [return: bb59, unwind: bb81] @ Call: FnDid: 14579
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_111) @ StorageDead
+    StorageDead(_109) @ StorageDead
+    StorageLive(_113) @ StorageLive
+    Assign((_113, system_error::SystemError::EBUSY)) @ _113=system_error::SystemError::EBUSY @ Aggregate
+    _107 = core::option::Option::&lt;usize&gt;::ok_or::&lt;system_error::SystemError&gt;(move _108, move _113) -&gt; [return: bb60, unwind: bb81] @ Call: FnDid: 10178
+}
+bb 60 {
+CleanUp: false
+    StorageDead(_113) @ StorageDead
+    StorageDead(_108) @ StorageDead
+    _106 = &lt;core::result::Result&lt;usize, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _107) -&gt; [return: bb61, unwind: bb81] @ Call: FnDid: 4199
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_107) @ StorageDead
+    Assign((_114, discriminant(_106))) @ _114=discriminant(_106) @ Discriminant
+    switchInt(move _114) -&gt; [0: bb62, 1: bb63, otherwise: bb15] @ SwitchInt
+}
+bb 62 {
+CleanUp: false
+    StorageLive(_118) @ StorageLive
+    Assign((_118, copy ((_106 as Continue).0: usize))) @ _118=copy ((_106 as Continue).0: usize) @ Use
+    Assign((_105, copy _118)) @ _105=copy _118 @ Use
+    StorageDead(_118) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageLive(_119) @ StorageLive
+    StorageLive(_120) @ StorageLive
+    StorageLive(_121) @ StorageLive
+    StorageLive(_122) @ StorageLive
+    StorageLive(_123) @ StorageLive
+    Assign((_123, &amp;(*_1))) @ _123=&amp;(*_1) @ Ref
+    StorageLive(_124) @ StorageLive
+    Assign((_137, const false)) @ _137=const false @ Use
+    Assign((_139, const true)) @ _139=const true @ Use
+    Assign((_124, move _2)) @ _124=move _2 @ Use
+    StorageLive(_125) @ StorageLive
+    Assign((_136, const false)) @ _136=const false @ Use
+    Assign((_138, const true)) @ _138=const true @ Use
+    Assign((_125, move _3)) @ _125=move _3 @ Use
+    StorageLive(_126) @ StorageLive
+    StorageLive(_127) @ StorageLive
+    Assign((_127, &amp;_102)) @ _127=&amp;_102 @ Ref
+    _126 = &lt;alloc::sync::Arc&lt;driver::tty::virtual_terminal::VirtConsole&gt; as core::clone::Clone&gt;::clone(move _127) -&gt; [return: bb65, unwind: bb95] @ Call: FnDid: 3116
+}
+bb 63 {
+CleanUp: false
+    StorageLive(_115) @ StorageLive
+    Assign((_115, move ((_106 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _115=move ((_106 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_117) @ StorageLive
+    Assign((_117, move _115)) @ _117=move _115 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _117) -&gt; [return: bb64, unwind: bb81] @ Call: FnDid: 4202
+}
+bb 64 {
+CleanUp: false
+    StorageDead(_117) @ StorageDead
+    StorageDead(_115) @ StorageDead
+    StorageDead(_110) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    goto -&gt; bb74 @ Goto
+}
+bb 65 {
+CleanUp: false
+    StorageDead(_127) @ StorageDead
+    Assign((_139, const false)) @ _139=const false @ Use
+    Assign((_138, const false)) @ _138=const false @ Use
+    _122 = driver::char::virtio_console::VirtIOConsoleDriver::do_install(move _123, move _124, move _125, move _126) -&gt; [return: bb66, unwind: bb95] @ Call: FnDid: 9315
+}
+bb 66 {
+CleanUp: false
+    StorageDead(_126) @ StorageDead
+    Assign((_138, const false)) @ _138=const false @ Use
+    StorageDead(_125) @ StorageDead
+    Assign((_139, const false)) @ _139=const false @ Use
+    StorageDead(_124) @ StorageDead
+    StorageDead(_123) @ StorageDead
+    StorageLive(_128) @ StorageLive
+    StorageLive(_129) @ StorageLive
+    Assign((_129, &amp;_105)) @ _129=&amp;_105 @ Ref
+    Assign((_128, {closure@src/driver/char/virtio_console.rs:528:62: 528:65} { vc_index: move _129 })) @ _128={closure@src/driver/char/virtio_console.rs:528:62: 528:65} { vc_index: move _129 } @ Aggregate
+    StorageDead(_129) @ StorageDead
+    _121 = core::result::Result::&lt;(), system_error::SystemError&gt;::inspect_err::&lt;{closure@src/driver/char/virtio_console.rs:528:62: 528:65}&gt;(move _122, move _128) -&gt; [return: bb67, unwind: bb81] @ Call: FnDid: 11015
+}
+bb 67 {
+CleanUp: false
+    StorageDead(_128) @ StorageDead
+    StorageDead(_122) @ StorageDead
+    _120 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _121) -&gt; [return: bb68, unwind: bb81] @ Call: FnDid: 4199
+}
+bb 68 {
+CleanUp: false
+    StorageDead(_121) @ StorageDead
+    Assign((_130, discriminant(_120))) @ _130=discriminant(_120) @ Discriminant
+    switchInt(move _130) -&gt; [0: bb69, 1: bb70, otherwise: bb15] @ SwitchInt
+}
+bb 69 {
+CleanUp: false
+    StorageLive(_134) @ StorageLive
+    Assign((_134, copy ((_120 as Continue).0: ()))) @ _134=copy ((_120 as Continue).0: ()) @ Use
+    Assign((_119, copy _134)) @ _119=copy _134 @ Use
+    StorageDead(_134) @ StorageDead
+    StorageDead(_120) @ StorageDead
+    StorageDead(_119) @ StorageDead
+    StorageLive(_135) @ StorageLive
+    Assign((_135, ())) @ _135=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _135))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _135) @ Aggregate
+    StorageDead(_135) @ StorageDead
+    StorageDead(_105) @ StorageDead
+    drop(_102) -&gt; [return: bb72, unwind: bb98] @ Drop
+}
+bb 70 {
+CleanUp: false
+    StorageLive(_131) @ StorageLive
+    Assign((_131, move ((_120 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _131=move ((_120 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_133) @ StorageLive
+    Assign((_133, move _131)) @ _133=move _131 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _133) -&gt; [return: bb71, unwind: bb81] @ Call: FnDid: 4202
+}
+bb 71 {
+CleanUp: false
+    StorageDead(_133) @ StorageDead
+    StorageDead(_131) @ StorageDead
+    StorageDead(_120) @ StorageDead
+    StorageDead(_119) @ StorageDead
+    goto -&gt; bb74 @ Goto
+}
+bb 72 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    Assign((_140, const false)) @ _140=const false @ Use
+    StorageDead(_59) @ StorageDead
+    Assign((_141, const false)) @ _141=const false @ Use
+    StorageDead(_56) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_14) -&gt; [return: bb73, unwind: bb103] @ Drop
+}
+bb 73 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb79 @ Goto
+}
+bb 74 {
+CleanUp: false
+    StorageDead(_105) @ StorageDead
+    drop(_102) -&gt; [return: bb75, unwind: bb98] @ Drop
+}
+bb 75 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    Assign((_140, const false)) @ _140=const false @ Use
+    StorageDead(_59) @ StorageDead
+    Assign((_141, const false)) @ _141=const false @ Use
+    StorageDead(_56) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    drop(_14) -&gt; [return: bb77, unwind: bb103] @ Drop
+}
+bb 76 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_19) @ StorageDead
+    StorageDead(_15) @ StorageDead
+    goto -&gt; bb77 @ Goto
+}
+bb 77 {
+CleanUp: false
+    StorageDead(_14) @ StorageDead
+    goto -&gt; bb92 @ Goto
+}
+bb 78 {
+CleanUp: false
+    switchInt(copy _137) -&gt; [0: bb79, otherwise: bb93] @ SwitchInt
+}
+bb 79 {
+CleanUp: false
+    return @ Return
+}
+bb 80 {
 CleanUp: true
-    switchInt(copy _94) -&gt; [0: bb42, otherwise: bb51] @ SwitchInt
+    switchInt(copy _139) -&gt; [0: bb81, otherwise: bb96] @ SwitchInt
+}
+bb 81 {
+CleanUp: true
+    drop(_102) -&gt; [return: bb98, unwind terminate(cleanup)] @ Drop
+}
+bb 82 {
+CleanUp: true
+    drop(_94) -&gt; [return: bb83, unwind terminate(cleanup)] @ Drop
+}
+bb 83 {
+CleanUp: true
+    drop(_83) -&gt; [return: bb98, unwind terminate(cleanup)] @ Drop
+}
+bb 84 {
+CleanUp: true
+    drop(_73) -&gt; [return: bb98, unwind terminate(cleanup)] @ Drop
+}
+bb 85 {
+CleanUp: true
+    drop(_50) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 86 {
+CleanUp: true
+    drop(_40) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 87 {
+CleanUp: true
+    drop(_14) -&gt; [return: bb103, unwind terminate(cleanup)] @ Drop
+}
+bb 88 {
+CleanUp: true
+    drop(_21) -&gt; [return: bb103, unwind terminate(cleanup)] @ Drop
+}
+bb 89 {
+CleanUp: true
+    switchInt(copy _137) -&gt; [0: bb90, otherwise: bb104] @ SwitchInt
+}
+bb 90 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 91 {
+CleanUp: false
+    drop(_3) -&gt; [return: bb78, unwind: bb89] @ Drop
+}
+bb 92 {
+CleanUp: false
+    switchInt(copy _136) -&gt; [0: bb78, otherwise: bb91] @ SwitchInt
+}
+bb 93 {
+CleanUp: false
+    drop(_2) -&gt; [return: bb79, unwind: bb90] @ Drop
+}
+bb 94 {
+CleanUp: true
+    drop(_125) -&gt; [return: bb80, unwind terminate(cleanup)] @ Drop
+}
+bb 95 {
+CleanUp: true
+    switchInt(copy _138) -&gt; [0: bb80, otherwise: bb94] @ SwitchInt
+}
+bb 96 {
+CleanUp: true
+    drop(_124) -&gt; [return: bb81, unwind terminate(cleanup)] @ Drop
+}
+bb 97 {
+CleanUp: true
+    drop(_59) -&gt; [return: bb100, unwind terminate(cleanup)] @ Drop
+}
+bb 98 {
+CleanUp: true
+    switchInt(copy _140) -&gt; [0: bb100, otherwise: bb97] @ SwitchInt
+}
+bb 99 {
+CleanUp: true
+    drop(_56) -&gt; [return: bb87, unwind terminate(cleanup)] @ Drop
+}
+bb 100 {
+CleanUp: true
+    switchInt(copy _141) -&gt; [0: bb87, otherwise: bb99] @ SwitchInt
+}
+bb 101 {
+CleanUp: true
+    Assign((_146, discriminant(_15))) @ _146=discriminant(_15) @ Discriminant
+    goto -&gt; bb88 @ Goto
+}
+bb 102 {
+CleanUp: true
+    drop(_3) -&gt; [return: bb89, unwind terminate(cleanup)] @ Drop
+}
+bb 103 {
+CleanUp: true
+    switchInt(copy _136) -&gt; [0: bb89, otherwise: bb102] @ SwitchInt
+}
+bb 104 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb90, unwind terminate(cleanup)] @ Drop
+}
+
+bb0 at src/driver/char/virtio_console.rs:529:13: 529:40
+bb1 at src/driver/char/virtio_console.rs:529:13: 529:25
+bb2 at src/driver/char/virtio_console.rs:529:39: 529:40
+fn &lt;driver::char::virtio_console::VirtIOConsoleDriver as driver::tty::tty_driver::TtyOperation&gt;::install::{closure#0}
+_0:  @ () 
+_1:  @ Closure(DefId(0:9328 ~ dragonos_kernel[9e38]::driver::char::virtio_console::{impl#10}::install::{closure#0}), [i32, Binder { value: extern &#34;RustCall&#34; fn((&amp;&#39;^0 system_error::SystemError,)), bound_vars: [Region(BrAnon)] }, (&amp;&#39;{erased} usize,)]) 
+_2:  @ &amp;&#39;{erased} system_error::SystemError 
+_3:  @ () 
+_4:  @ &amp;&#39;{erased} driver::tty::virtual_terminal::VirtConsoleManager 
+_5:  @ &amp;&#39;{erased} driver::tty::virtual_terminal::VirtConsoleManager 
+_6:  @ usize 
+_7:  @ &amp;&#39;{erased} usize 
+
+bb 0 {
+CleanUp: false
+    StorageLive(_3) @ StorageLive
+    StorageLive(_4) @ StorageLive
+    StorageLive(_5) @ StorageLive
+    _5 = driver::tty::virtual_terminal::vc_manager() -&gt; [return: bb1, unwind continue] @ Call: FnDid: 14552
+}
+bb 1 {
+CleanUp: false
+    Assign((_4, &amp;(*_5))) @ _4=&amp;(*_5) @ Ref
+    StorageLive(_6) @ StorageLive
+    Assign((_7, deref_copy (_1.0: &amp;usize))) @ _7=deref_copy (_1.0: &amp;usize) @ CopyForDeref
+    Assign((_6, copy (*_7))) @ _6=copy (*_7) @ Use
+    _3 = driver::tty::virtual_terminal::VirtConsoleManager::free(move _4, move _6) -&gt; [return: bb2, unwind continue] @ Call: FnDid: 14580
+}
+bb 2 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageDead(_4) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    StorageDead(_3) @ StorageDead
+    Assign((_0, const ())) @ _0=const () @ Use
+    return @ Return
 }
 
 </div>

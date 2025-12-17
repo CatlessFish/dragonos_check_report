@@ -13,7 +13,7 @@
         <h1>
             Report #51
             
-                 <span class="func-name">filesystem::fat::entry::{impl#8}::eq_name</span>
+                 <span class="func-name">filesystem::fat::fs::{impl#12}::unlink</span>
             
         </h1>
 
@@ -25,69 +25,91 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:05|RAP|WARN|: Double free detected in function &#34;eq_name&#34;
+                    <pre id="logContent" class="code-block scrollable">22:08:05|RAP|WARN|: Double free detected in function &#34;unlink&#34;
+22:08:05|RAP|WARN|: Double free detected in function &#34;unlink&#34;
+warning: Double free detected.
+    --&gt; src/filesystem/fat/fs.rs:1861:1
+     |
+1861 | / fn unlink(&amp;self, name: &amp;str) -&gt; Result&lt;(), SystemError&gt; {
+1862 | |         let mut guard: SpinLockGuard&lt;FATInode&gt; = self.0.lock();
+1863 | |         let target: Arc&lt;LockedFATInode&gt; = guard.find(name)?;
+1864 | |         // 对目标inode上锁，以防更改
+1865 | |         let target_guard: SpinLockGuard&lt;FATInode&gt; = target.0.lock();
+1866 | |         // 先从缓存删除
+1867 | |         let nod = guard.children.remove(&amp;to_search_name(name));
+1868 | |
+1869 | |         // 若删除缓存中为管道的文件，则不需要再到磁盘删除
+1870 | |         if nod.is_some() {
+1871 | |             let file_type = target_guard.metadata.file_type;
+1872 | |             if file_type == FileType::Pipe {
+1873 | |                 return Ok(());
+1874 | |             }
+1875 | |         }
+1876 | |
+1877 | |         let dir = match &amp;guard.inode_type {
+1878 | |             FATDirEntry::File(_) | FATDirEntry::VolId(_) =&gt; {
+1879 | |                 return Err(SystemError::ENOTDIR);
+1880 | |             }
+1881 | |             FATDirEntry::Dir(d) =&gt; d,
+1882 | |             FATDirEntry::UnInit =&gt; {
+1883 | |                 error!(&#34;FATFS: param: Inode_type uninitialized.&#34;);
+1884 | |                 return Err(SystemError::EROFS);
+1885 | |             }
+1886 | |         };
+1887 | |         // 检查文件是否存在
+1888 | |         dir.check_existence(name, Some(false), guard.fs.upgrade().unwrap())?;
+1889 | |
+1890 | |         // 再从磁盘删除
+1891 | |         let r = dir.remove(guard.fs.upgrade().unwrap().clone(), name, true);
+1892 | |         drop(target_guard);
+1893 | |         return r;
+1894 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1861.
+    | MIR detail: Value _104(_, src/filesystem/fat/fs.rs:1892) and _20(_, src/filesystem/fat/fs.rs:1865) are alias.
+    | MIR detail: _104(_, src/filesystem/fat/fs.rs:1892) is dropped at BB53(src/filesystem/fat/fs.rs:1892); _20(_, src/filesystem/fat/fs.rs:1865) is dropped at BB59(src/filesystem/fat/fs.rs:1894).
+     |
 warning: Double free detected during unwinding.
-    --&gt; src/filesystem/fat/entry.rs:1810:1
+    --&gt; src/filesystem/fat/fs.rs:1861:1
      |
-1810 | / pub fn eq_name(&amp;self, name: &amp;str) -&gt; bool {
-1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
-1812 | |         let binding = self.short_name();
-1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
-1814 | |         let binding = self.name();
-1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
-1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
-1817 | |
-1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
-1819 | |         let short_name_matches: bool = short_name.eq(name);
-1820 | |
-1821 | |         return long_name_matches || short_name_matches;
-1822 | |     }
-     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
-    | MIR detail: Value _6(short_name, src/filesystem/fat/entry.rs:1813) and _4(binding, src/filesystem/fat/entry.rs:1812) are alias.
-    | MIR detail: _6(short_name, src/filesystem/fat/entry.rs:1813) is dropped at BB28(src/filesystem/fat/entry.rs:1822); _4(binding, src/filesystem/fat/entry.rs:1812) is dropped at BB20(src/filesystem/fat/entry.rs:1822).
+1861 | / fn unlink(&amp;self, name: &amp;str) -&gt; Result&lt;(), SystemError&gt; {
+1862 | |         let mut guard: SpinLockGuard&lt;FATInode&gt; = self.0.lock();
+1863 | |         let target: Arc&lt;LockedFATInode&gt; = guard.find(name)?;
+1864 | |         // 对目标inode上锁，以防更改
+1865 | |         let target_guard: SpinLockGuard&lt;FATInode&gt; = target.0.lock();
+1866 | |         // 先从缓存删除
+1867 | |         let nod = guard.children.remove(&amp;to_search_name(name));
+1868 | |
+1869 | |         // 若删除缓存中为管道的文件，则不需要再到磁盘删除
+1870 | |         if nod.is_some() {
+1871 | |             let file_type = target_guard.metadata.file_type;
+1872 | |             if file_type == FileType::Pipe {
+1873 | |                 return Ok(());
+1874 | |             }
+1875 | |         }
+1876 | |
+1877 | |         let dir = match &amp;guard.inode_type {
+1878 | |             FATDirEntry::File(_) | FATDirEntry::VolId(_) =&gt; {
+1879 | |                 return Err(SystemError::ENOTDIR);
+1880 | |             }
+1881 | |             FATDirEntry::Dir(d) =&gt; d,
+1882 | |             FATDirEntry::UnInit =&gt; {
+1883 | |                 error!(&#34;FATFS: param: Inode_type uninitialized.&#34;);
+1884 | |                 return Err(SystemError::EROFS);
+1885 | |             }
+1886 | |         };
+1887 | |         // 检查文件是否存在
+1888 | |         dir.check_existence(name, Some(false), guard.fs.upgrade().unwrap())?;
+1889 | |
+1890 | |         // 再从磁盘删除
+1891 | |         let r = dir.remove(guard.fs.upgrade().unwrap().clone(), name, true);
+1892 | |         drop(target_guard);
+1893 | |         return r;
+1894 | |     }
+     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/fs.rs line 1861.
+    | MIR detail: Value _104(_, src/filesystem/fat/fs.rs:1892) and _20(_, src/filesystem/fat/fs.rs:1865) are alias.
+    | MIR detail: _104(_, src/filesystem/fat/fs.rs:1892) is dropped at BB53(src/filesystem/fat/fs.rs:1892); _20(_, src/filesystem/fat/fs.rs:1865) is dropped at BB65(src/filesystem/fat/fs.rs:1894).
      |
-22:08:05|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;eq_name&#34;
-warning: Double free detected during unwinding.
-    --&gt; src/filesystem/fat/entry.rs:1810:1
-     |
-1810 | / pub fn eq_name(&amp;self, name: &amp;str) -&gt; bool {
-1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
-1812 | |         let binding = self.short_name();
-1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
-1814 | |         let binding = self.name();
-1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
-1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
-1817 | |
-1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
-1819 | |         let short_name_matches: bool = short_name.eq(name);
-1820 | |
-1821 | |         return long_name_matches || short_name_matches;
-1822 | |     }
-     | |_____- Double free (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
-    | MIR detail: Value _25(_, src/filesystem/fat/entry.rs:1818) and _12(binding, src/filesystem/fat/entry.rs:1814) are alias.
-    | MIR detail: _25(_, src/filesystem/fat/entry.rs:1818) is dropped at BB22(src/filesystem/fat/entry.rs:1818); _12(binding, src/filesystem/fat/entry.rs:1814) is dropped at BB19(src/filesystem/fat/entry.rs:1822).
-     |
-warning: Dangling pointer detected during unwinding.
-    --&gt; src/filesystem/fat/entry.rs:1810:1
-     |
-1810 | / pub fn eq_name(&amp;self, name: &amp;str) -&gt; bool {
-1811 | |         // 由于FAT32对大小写不敏感，因此将字符都转为大写，然后比较。
-1812 | |         let binding = self.short_name();
-1813 | |         let short_name = binding.chars().flat_map(|c| c.to_uppercase());
-1814 | |         let binding = self.name();
-1815 | |         let long_name = binding.chars().flat_map(|c| c.to_uppercase());
-1816 | |         let name = name.chars().flat_map(|c| c.to_uppercase());
-1817 | |
-1818 | |         let long_name_matches: bool = long_name.eq(name.clone());
-1819 | |         let short_name_matches: bool = short_name.eq(name);
-1820 | |
-1821 | |         return long_name_matches || short_name_matches;
-1822 | |     }
-     | |_____- Dangling pointer (confidence 99%): Location in file src/filesystem/fat/entry.rs line 1810.
-    | MIR detail: Value _20(name, src/filesystem/fat/entry.rs:1816) and _2(name, src/filesystem/fat/entry.rs:1810) are alias.
-    | MIR detail: _20(name, src/filesystem/fat/entry.rs:1816) is dropped at BB24(src/filesystem/fat/entry.rs:1822); _2(name, src/filesystem/fat/entry.rs:1810) became dangling.
-     |
-render dot for DefId(0:17720 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name)
+render dot for DefId(0:17962 ~ dragonos_kernel[9e38]::filesystem::fat::fs::{impl#12}::unlink)
 </pre>
                 </div>
             
@@ -98,73 +120,196 @@ render dot for DefId(0:17720 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{i
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/fat/entry.rs:1812:13: 1812:20
-bb1 at src/filesystem/fat/entry.rs:1812:39: 1812:40
-bb2 at src/filesystem/fat/entry.rs:1813:26: 1813:33
-bb3 at src/filesystem/fat/entry.rs:1813:40: 1813:41
-bb4 at src/filesystem/fat/entry.rs:1813:71: 1813:72
-bb5 at src/filesystem/fat/entry.rs:1814:33: 1814:34
-bb6 at src/filesystem/fat/entry.rs:1815:25: 1815:32
-bb7 at src/filesystem/fat/entry.rs:1815:39: 1815:40
-bb8 at src/filesystem/fat/entry.rs:1815:70: 1815:71
-bb9 at src/filesystem/fat/entry.rs:1816:31: 1816:32
-bb10 at src/filesystem/fat/entry.rs:1816:62: 1816:63
-bb11 at src/filesystem/fat/entry.rs:1818:63: 1818:64
-bb12 at src/filesystem/fat/entry.rs:1818:64: 1818:65
-bb13 at src/filesystem/fat/entry.rs:1819:58: 1819:59
-bb14 at src/filesystem/fat/entry.rs:1821:16: 1821:55
-bb15 at src/filesystem/fat/entry.rs:1821:37: 1821:55
-bb16 at src/filesystem/fat/entry.rs:1821:54: 1821:55
-bb17 at src/filesystem/fat/entry.rs:1822:5: 1822:6
-bb18 at src/filesystem/fat/entry.rs:1822:5: 1822:6
-fn filesystem::fat::entry::FATDirEntry::eq_name
-_0:  @ bool 
-_1:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/filesystem/fat/fs.rs:1862:13: 1862:22
+bb1 at src/filesystem/fat/fs.rs:1862:62: 1862:63
+bb2 at src/filesystem/fat/fs.rs:1863:43: 1863:48
+bb3 at src/filesystem/fat/fs.rs:1863:58: 1863:59
+bb4 at src/filesystem/fat/fs.rs:1863:59: 1863:60
+bb6 at src/filesystem/fat/fs.rs:1863:43: 1863:60
+bb7 at src/filesystem/fat/fs.rs:1863:59: 1863:60
+bb8 at src/filesystem/fat/fs.rs:1863:59: 1863:60
+bb9 at src/filesystem/fat/fs.rs:1865:58: 1865:59
+bb10 at src/filesystem/fat/fs.rs:1865:67: 1865:68
+bb11 at src/filesystem/fat/fs.rs:1867:23: 1867:24
+bb12 at src/filesystem/fat/fs.rs:1867:61: 1867:62
+bb13 at src/filesystem/fat/fs.rs:1867:62: 1867:63
+bb14 at src/filesystem/fat/fs.rs:1867:63: 1867:64
+bb16 at src/filesystem/fat/fs.rs:1870:24: 1870:25
+bb17 at src/filesystem/fat/fs.rs:1871:40: 1871:41
+bb19 at src/filesystem/fat/fs.rs:1872:42: 1872:43
+bb20 at src/filesystem/fat/fs.rs:1872:42: 1872:43
+bb21 at src/filesystem/fat/fs.rs:1870:24: 1870:25
+bb22 at src/filesystem/fat/fs.rs:1875:9: 1875:10
+bb23 at src/filesystem/fat/fs.rs:1877:30: 1877:31
+bb24 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:107:34: 114:6
+bb25 at src/filesystem/fat/fs.rs:1881:30: 1881:31
+bb26 at src/filesystem/fat/fs.rs:1879:28: 1879:48
+bb28 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb29 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:54: 137:73
+bb31 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb32 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:140:61: 140:62
+bb33 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:142:67: 142:95
+bb34 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:144:13: 144:14
+bb35 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:72: 137:73
+bb36 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:137:42: 137:43
+bb37 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:10: 145:10
+bb38 at /home/yuzhili/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/macros.rs:145:9: 145:10
+bb39 at src/filesystem/fat/fs.rs:1888:52: 1888:53
+bb40 at src/filesystem/fat/fs.rs:1888:65: 1888:66
+bb41 at src/filesystem/fat/fs.rs:1888:74: 1888:75
+bb42 at src/filesystem/fat/fs.rs:1888:75: 1888:76
+bb43 at src/filesystem/fat/fs.rs:1888:76: 1888:77
+bb44 at src/filesystem/fat/fs.rs:1888:9: 1888:77
+bb45 at src/filesystem/fat/fs.rs:1888:76: 1888:77
+bb46 at src/filesystem/fat/fs.rs:1888:76: 1888:77
+bb47 at src/filesystem/fat/fs.rs:1888:77: 1888:78
+bb48 at src/filesystem/fat/fs.rs:1891:32: 1891:33
+bb49 at src/filesystem/fat/fs.rs:1891:45: 1891:46
+bb50 at src/filesystem/fat/fs.rs:1891:28: 1891:55
+bb51 at src/filesystem/fat/fs.rs:1891:62: 1891:63
+bb52 at src/filesystem/fat/fs.rs:1891:75: 1891:76
+bb53 at src/filesystem/fat/fs.rs:1891:76: 1891:77
+bb54 at src/filesystem/fat/fs.rs:1892:26: 1892:27
+bb55 at src/filesystem/fat/fs.rs:1886:10: 1886:11
+bb56 at src/filesystem/fat/fs.rs:1894:5: 1894:6
+bb58 at src/filesystem/fat/fs.rs:1894:5: 1894:6
+bb59 at src/filesystem/fat/fs.rs:1894:5: 1894:6
+bb60 at src/filesystem/fat/fs.rs:1894:5: 1894:6
+bb61 at src/filesystem/fat/fs.rs:1894:5: 1894:6
+bb69 at src/filesystem/fat/fs.rs:1888:77: 1888:78
+bb72 at src/filesystem/fat/fs.rs:1863:60: 1863:61
+fn &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} filesystem::fat::fs::LockedFATInode 
 _2:  @ &amp;&#39;{erased} str 
 _3:  @ ! 
-_4:  @ alloc::string::String 
-_5:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
-_6:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_7:  @ core::str::Chars&lt;&#39;{erased}&gt; 
-_8:  @ &amp;&#39;{erased} str 
-_9:  @ &amp;&#39;{erased} str 
-_10:  @ &amp;&#39;{erased} alloc::string::String 
-_11:  @ Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
-_12:  @ alloc::string::String 
-_13:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
-_14:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_15:  @ core::str::Chars&lt;&#39;{erased}&gt; 
-_16:  @ &amp;&#39;{erased} str 
-_17:  @ &amp;&#39;{erased} str 
-_18:  @ &amp;&#39;{erased} alloc::string::String 
-_19:  @ Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
-_20:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_21:  @ core::str::Chars&lt;&#39;{erased}&gt; 
-_22:  @ &amp;&#39;{erased} str 
-_23:  @ Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
-_24:  @ bool 
-_25:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_26:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_27:  @ &amp;&#39;{erased} core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_28:  @ bool 
-_29:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
-_30:  @ core::iter::FlatMap&lt;core::str::Chars&lt;&#39;{erased}&gt;, core::char::ToUppercase, Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()])&gt; 
+_4:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_5:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt; 
+_6:  @ alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt; 
+_7:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt;&gt; 
+_8:  @ core::result::Result&lt;alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt;, system_error::SystemError&gt; 
+_9:  @ &amp;&#39;{erased} mut filesystem::fat::fs::FATInode 
+_10:  @ &amp;&#39;{erased} mut filesystem::fat::fs::FATInode 
+_11:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_12:  @ &amp;&#39;{erased} str 
+_13:  @ isize 
+_14:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_15:  @ ! 
+_16:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_17:  @ alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt; 
+_18:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_19:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt; 
+_20:  @ &amp;&#39;{erased} filesystem::fat::fs::LockedFATInode 
+_21:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt; 
+_22:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt;&gt; 
+_23:  @ &amp;&#39;{erased} mut hashbrown::HashMap&lt;alloc::string::String, alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt;, core::hash::BuildHasherDefault&lt;ahash::fallback_hash::AHasher&gt;, hashbrown::raw::alloc::inner::Global&gt; 
+_24:  @ &amp;&#39;{erased} mut filesystem::fat::fs::FATInode 
+_25:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_26:  @ &amp;&#39;{erased} alloc::string::String 
+_27:  @ &amp;&#39;{erased} alloc::string::String 
+_28:  @ alloc::string::String 
+_29:  @ &amp;&#39;{erased} str 
+_30:  @ () 
 _31:  @ bool 
-_32:  @ bool 
-_33:  @ bool 
-_34:  @ bool 
-_35:  @ bool 
+_32:  @ &amp;&#39;{erased} core::option::Option&lt;alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode, alloc::alloc::Global&gt;&gt; 
+_33:  @ filesystem::vfs::FileType 
+_34:  @ &amp;&#39;{erased} filesystem::fat::fs::FATInode 
+_35:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_36:  @ bool 
+_37:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_38:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_39:  @ filesystem::vfs::FileType 
+_40:  @ ! 
+_41:  @ () 
+_42:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDir 
+_43:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDirEntry 
+_44:  @ &amp;&#39;{erased} filesystem::fat::fs::FATInode 
+_45:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_46:  @ isize 
+_47:  @ ! 
+_48:  @ system_error::SystemError 
+_49:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDir 
+_50:  @ ! 
+_51:  @ () 
+_52:  @ log::Level 
+_53:  @ bool 
+_54:  @ &amp;&#39;{erased} log::Level 
+_55:  @ &amp;&#39;{erased} log::LevelFilter 
+_56:  @ log::LevelFilter 
+_57:  @ bool 
+_58:  @ &amp;&#39;{erased} log::Level 
+_59:  @ &amp;&#39;{erased} log::LevelFilter 
+_60:  @ log::LevelFilter 
+_61:  @ () 
+_62:  @ log::__private_api::GlobalLogger 
+_63:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
+_64:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_65:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_66:  @ [&amp;&#39;{erased} str; 1_usize] 
+_67:  @ log::Level 
+_68:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_69:  @ &amp;&#39;{erased} (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_70:  @ (&amp;&#39;{erased} str, &amp;&#39;{erased} str, &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt;) 
+_71:  @ &amp;&#39;{erased} str 
+_72:  @ &amp;&#39;{erased} str 
+_73:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_74:  @ &amp;&#39;{erased} core::panic::Location&lt;&#39;{erased}&gt; 
+_75:  @ () 
+_76:  @ system_error::SystemError 
+_77:  @ filesystem::fat::entry::FATDirEntryOrShortName 
+_78:  @ core::ops::ControlFlow&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;, filesystem::fat::entry::FATDirEntryOrShortName&gt; 
+_79:  @ core::result::Result&lt;filesystem::fat::entry::FATDirEntryOrShortName, system_error::SystemError&gt; 
+_80:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDir 
+_81:  @ &amp;&#39;{erased} str 
+_82:  @ core::option::Option&lt;bool&gt; 
+_83:  @ alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt; 
+_84:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt;&gt; 
+_85:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt; 
+_86:  @ &amp;&#39;{erased} filesystem::fat::fs::FATInode 
+_87:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_88:  @ isize 
+_89:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_90:  @ ! 
+_91:  @ core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt; 
+_92:  @ filesystem::fat::entry::FATDirEntryOrShortName 
+_93:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_94:  @ &amp;&#39;{erased} filesystem::fat::entry::FATDir 
+_95:  @ alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt; 
+_96:  @ &amp;&#39;{erased} alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt; 
+_97:  @ alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt; 
+_98:  @ core::option::Option&lt;alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt;&gt; 
+_99:  @ &amp;&#39;{erased} alloc::sync::Weak&lt;filesystem::fat::fs::FATFileSystem, alloc::alloc::Global&gt; 
+_100:  @ &amp;&#39;{erased} filesystem::fat::fs::FATInode 
+_101:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_102:  @ &amp;&#39;{erased} str 
+_103:  @ () 
+_104:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::fat::fs::FATInode&gt; 
+_105:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
+_106:  @ &amp;&#39;{erased} log::LevelFilter 
+_107:  @ &amp;&#39;{erased} filesystem::vfs::FileType 
+_108:  @ bool 
+_109:  @ bool 
+_110:  @ bool 
+_111:  @ isize 
+_112:  @ isize 
+_113:  @ isize 
+_114:  @ isize 
+_115:  @ isize 
+_116:  @ isize 
+_117:  @ isize 
+_118:  @ isize 
+_119:  @ isize 
+_120:  @ isize 
 
 bb 0 {
 CleanUp: false
-    Assign((_35, const false)) @ _35=const false @ Use
-    Assign((_34, const false)) @ _34=const false @ Use
-    Assign((_33, const false)) @ _33=const false @ Use
-    Assign((_32, const false)) @ _32=const false @ Use
+    Assign((_108, const false)) @ _108=const false @ Use
+    Assign((_110, const false)) @ _110=const false @ Use
+    Assign((_109, const false)) @ _109=const false @ Use
     StorageLive(_4) @ StorageLive
     StorageLive(_5) @ StorageLive
-    Assign((_5, &amp;(*_1))) @ _5=&amp;(*_1) @ Ref
-    _4 = filesystem::fat::entry::FATDirEntry::short_name(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 17709
+    Assign((_5, &amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt;))) @ _5=&amp;((*_1).0: libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt;) @ Ref
+    _4 = libs::spinlock::SpinLock::&lt;filesystem::fat::fs::FATInode&gt;::lock(move _5) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5261
 }
 bb 1 {
 CleanUp: false
@@ -174,255 +319,568 @@ CleanUp: false
     StorageLive(_8) @ StorageLive
     StorageLive(_9) @ StorageLive
     StorageLive(_10) @ StorageLive
-    Assign((_10, &amp;_4)) @ _10=&amp;_4 @ Ref
-    _9 = &lt;alloc::string::String as lazy_static::__Deref&gt;::deref(move _10) -&gt; [return: bb2, unwind: bb20] @ Call: FnDid: 3903
+    StorageLive(_11) @ StorageLive
+    Assign((_11, &amp;mut _4)) @ _11=&amp;mut _4 @ Ref
+    _10 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _11) -&gt; [return: bb2, unwind: bb66] @ Call: FnDid: 3915
 }
 bb 2 {
 CleanUp: false
-    Assign((_8, &amp;(*_9))) @ _8=&amp;(*_9) @ Ref
-    StorageDead(_10) @ StorageDead
-    _7 = core::str::&lt;impl str&gt;::chars(move _8) -&gt; [return: bb3, unwind: bb20] @ Call: FnDid: 15113
+    Assign((_9, &amp;mut (*_10))) @ _9=&amp;mut (*_10) @ Ref
+    StorageDead(_11) @ StorageDead
+    StorageLive(_12) @ StorageLive
+    Assign((_12, &amp;(*_2))) @ _12=&amp;(*_2) @ Ref
+    _8 = filesystem::fat::fs::FATInode::find(move _9, move _12) -&gt; [return: bb3, unwind: bb66] @ Call: FnDid: 17872
 }
 bb 3 {
 CleanUp: false
-    StorageDead(_8) @ StorageDead
-    StorageLive(_11) @ StorageLive
-    Assign((_11, {closure@src/filesystem/fat/entry.rs:1813:51: 1813:54})) @ _11={closure@src/filesystem/fat/entry.rs:1813:51: 1813:54} @ Aggregate
-    _6 = &lt;core::str::Chars&lt;&#39;_&gt; as core::iter::Iterator&gt;::flat_map::&lt;core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1813:51: 1813:54}&gt;(move _7, move _11) -&gt; [return: bb4, unwind: bb20] @ Call: FnDid: 9415
+    StorageDead(_12) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    _7 = &lt;core::result::Result&lt;alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _8) -&gt; [return: bb4, unwind: bb66] @ Call: FnDid: 4199
 }
 bb 4 {
 CleanUp: false
-    Assign((_35, const true)) @ _35=const true @ Use
-    StorageDead(_11) @ StorageDead
-    StorageDead(_7) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    Assign((_13, &amp;(*_1))) @ _13=&amp;(*_1) @ Ref
-    _12 = filesystem::fat::entry::FATDirEntry::name(move _13) -&gt; [return: bb5, unwind: bb29] @ Call: FnDid: 17716
+    StorageDead(_8) @ StorageDead
+    Assign((_13, discriminant(_7))) @ _13=discriminant(_7) @ Discriminant
+    switchInt(move _13) -&gt; [0: bb6, 1: bb7, otherwise: bb5] @ SwitchInt
 }
 bb 5 {
 CleanUp: false
-    StorageDead(_13) @ StorageDead
-    StorageLive(_14) @ StorageLive
-    StorageLive(_15) @ StorageLive
-    StorageLive(_16) @ StorageLive
-    StorageLive(_17) @ StorageLive
-    StorageLive(_18) @ StorageLive
-    Assign((_18, &amp;_12)) @ _18=&amp;_12 @ Ref
-    _17 = &lt;alloc::string::String as lazy_static::__Deref&gt;::deref(move _18) -&gt; [return: bb6, unwind: bb19] @ Call: FnDid: 3903
+    unreachable @ Unreachable
 }
 bb 6 {
 CleanUp: false
-    Assign((_16, &amp;(*_17))) @ _16=&amp;(*_17) @ Ref
-    StorageDead(_18) @ StorageDead
-    _15 = core::str::&lt;impl str&gt;::chars(move _16) -&gt; [return: bb7, unwind: bb19] @ Call: FnDid: 15113
+    StorageLive(_17) @ StorageLive
+    Assign((_17, move ((_7 as Continue).0: alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;))) @ _17=move ((_7 as Continue).0: alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;) @ Use
+    Assign((_6, move _17)) @ _6=move _17 @ Use
+    StorageDead(_17) @ StorageDead
+    Assign((_113, discriminant(_7))) @ _113=discriminant(_7) @ Discriminant
+    StorageDead(_10) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageLive(_18) @ StorageLive
+    StorageLive(_19) @ StorageLive
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    Assign((_21, &amp;_6)) @ _21=&amp;_6 @ Ref
+    _20 = &lt;alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt; as lazy_static::__Deref&gt;::deref(move _21) -&gt; [return: bb9, unwind: bb65] @ Call: FnDid: 3903
 }
 bb 7 {
 CleanUp: false
-    StorageDead(_16) @ StorageDead
-    StorageLive(_19) @ StorageLive
-    Assign((_19, {closure@src/filesystem/fat/entry.rs:1815:50: 1815:53})) @ _19={closure@src/filesystem/fat/entry.rs:1815:50: 1815:53} @ Aggregate
-    _14 = &lt;core::str::Chars&lt;&#39;_&gt; as core::iter::Iterator&gt;::flat_map::&lt;core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1815:50: 1815:53}&gt;(move _15, move _19) -&gt; [return: bb8, unwind: bb19] @ Call: FnDid: 9415
+    StorageLive(_14) @ StorageLive
+    Assign((_14, move ((_7 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _14=move ((_7 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_16) @ StorageLive
+    Assign((_16, move _14)) @ _16=move _14 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _16) -&gt; [return: bb8, unwind: bb72] @ Call: FnDid: 4202
 }
 bb 8 {
 CleanUp: false
-    Assign((_34, const true)) @ _34=const true @ Use
-    StorageDead(_19) @ StorageDead
-    StorageDead(_15) @ StorageDead
-    StorageDead(_17) @ StorageDead
-    StorageLive(_20) @ StorageLive
-    StorageLive(_21) @ StorageLive
-    StorageLive(_22) @ StorageLive
-    Assign((_22, &amp;(*_2))) @ _22=&amp;(*_2) @ Ref
-    _21 = core::str::&lt;impl str&gt;::chars(move _22) -&gt; [return: bb9, unwind: bb27] @ Call: FnDid: 15113
+    StorageDead(_16) @ StorageDead
+    StorageDead(_14) @ StorageDead
+    Assign((_111, discriminant(_7))) @ _111=discriminant(_7) @ Discriminant
+    StorageDead(_10) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    goto -&gt; bb60 @ Goto
 }
 bb 9 {
 CleanUp: false
-    StorageDead(_22) @ StorageDead
-    StorageLive(_23) @ StorageLive
-    Assign((_23, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45})) @ _23={closure@src/filesystem/fat/entry.rs:1816:42: 1816:45} @ Aggregate
-    _20 = &lt;core::str::Chars&lt;&#39;_&gt; as core::iter::Iterator&gt;::flat_map::&lt;core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt;(move _21, move _23) -&gt; [return: bb10, unwind: bb27] @ Call: FnDid: 9415
+    StorageDead(_21) @ StorageDead
+    Assign((_19, &amp;((*_20).0: libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt;))) @ _19=&amp;((*_20).0: libs::spinlock::SpinLock&lt;filesystem::fat::fs::FATInode&gt;) @ Ref
+    _18 = libs::spinlock::SpinLock::&lt;filesystem::fat::fs::FATInode&gt;::lock(move _19) -&gt; [return: bb10, unwind: bb65] @ Call: FnDid: 5261
 }
 bb 10 {
 CleanUp: false
-    Assign((_33, const true)) @ _33=const true @ Use
-    StorageDead(_23) @ StorageDead
-    StorageDead(_21) @ StorageDead
+    Assign((_108, const true)) @ _108=const true @ Use
+    StorageDead(_19) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageLive(_22) @ StorageLive
+    StorageLive(_23) @ StorageLive
     StorageLive(_24) @ StorageLive
     StorageLive(_25) @ StorageLive
-    Assign((_34, const false)) @ _34=const false @ Use
-    Assign((_32, const true)) @ _32=const true @ Use
-    Assign((_25, move _14)) @ _25=move _14 @ Use
-    StorageLive(_26) @ StorageLive
-    StorageLive(_27) @ StorageLive
-    Assign((_27, &amp;_20)) @ _27=&amp;_20 @ Ref
-    _26 = &lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt; as core::clone::Clone&gt;::clone(move _27) -&gt; [return: bb11, unwind: bb23] @ Call: FnDid: 3116
+    Assign((_25, &amp;mut _4)) @ _25=&amp;mut _4 @ Ref
+    _24 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _25) -&gt; [return: bb11, unwind: bb71] @ Call: FnDid: 3915
 }
 bb 11 {
 CleanUp: false
-    StorageDead(_27) @ StorageDead
-    Assign((_32, const false)) @ _32=const false @ Use
-    _24 = &lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1815:50: 1815:53}&gt; as core::iter::Iterator&gt;::eq::&lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt;&gt;(move _25, move _26) -&gt; [return: bb12, unwind: bb23] @ Call: FnDid: 9621
+    StorageDead(_25) @ StorageDead
+    Assign((_23, &amp;mut ((*_24).2: hashbrown::HashMap&lt;alloc::string::String, alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;&gt;))) @ _23=&amp;mut ((*_24).2: hashbrown::HashMap&lt;alloc::string::String, alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;&gt;) @ Ref
+    StorageLive(_26) @ StorageLive
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    StorageLive(_29) @ StorageLive
+    Assign((_29, &amp;(*_2))) @ _29=&amp;(*_2) @ Ref
+    _28 = filesystem::fat::utils::to_search_name(move _29) -&gt; [return: bb12, unwind: bb71] @ Call: FnDid: 18016
 }
 bb 12 {
 CleanUp: false
-    StorageDead(_26) @ StorageDead
-    Assign((_32, const false)) @ _32=const false @ Use
-    StorageDead(_25) @ StorageDead
-    StorageLive(_28) @ StorageLive
-    StorageLive(_29) @ StorageLive
-    Assign((_35, const false)) @ _35=const false @ Use
-    Assign((_29, move _6)) @ _29=move _6 @ Use
-    StorageLive(_30) @ StorageLive
-    Assign((_33, const false)) @ _33=const false @ Use
-    Assign((_30, move _20)) @ _30=move _20 @ Use
-    _28 = &lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1813:51: 1813:54}&gt; as core::iter::Iterator&gt;::eq::&lt;core::iter::FlatMap&lt;core::str::Chars&lt;&#39;_&gt;, core::char::ToUppercase, {closure@src/filesystem/fat/entry.rs:1816:42: 1816:45}&gt;&gt;(move _29, move _30) -&gt; [return: bb13, unwind: bb25] @ Call: FnDid: 9621
+    StorageDead(_29) @ StorageDead
+    Assign((_27, &amp;_28)) @ _27=&amp;_28 @ Ref
+    Assign((_26, &amp;(*_27))) @ _26=&amp;(*_27) @ Ref
+    _22 = hashbrown::HashMap::&lt;alloc::string::String, alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;&gt;::remove::&lt;alloc::string::String&gt;(move _23, move _26) -&gt; [return: bb13, unwind: bb64] @ Call: FnDid: 625
 }
 bb 13 {
 CleanUp: false
-    StorageDead(_30) @ StorageDead
-    StorageDead(_29) @ StorageDead
-    StorageLive(_31) @ StorageLive
-    Assign((_31, copy _24)) @ _31=copy _24 @ Use
-    switchInt(move _31) -&gt; [0: bb15, otherwise: bb14] @ SwitchInt
+    StorageDead(_26) @ StorageDead
+    StorageDead(_23) @ StorageDead
+    drop(_28) -&gt; [return: bb14, unwind: bb63] @ Drop
 }
 bb 14 {
 CleanUp: false
-    Assign((_0, const true)) @ _0=const true @ Use
-    goto -&gt; bb16 @ Goto
+    StorageDead(_28) @ StorageDead
+    StorageDead(_27) @ StorageDead
+    StorageDead(_24) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    StorageLive(_32) @ StorageLive
+    Assign((_32, &amp;_22)) @ _32=&amp;_22 @ Ref
+    _31 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::fat::fs::LockedFATInode&gt;&gt;::is_some(move _32) -&gt; [return: bb15, unwind: bb63] @ Call: FnDid: 10143
 }
 bb 15 {
 CleanUp: false
-    Assign((_0, copy _28)) @ _0=copy _28 @ Use
-    goto -&gt; bb16 @ Goto
+    switchInt(move _31) -&gt; [0: bb21, otherwise: bb16] @ SwitchInt
 }
 bb 16 {
 CleanUp: false
-    StorageDead(_31) @ StorageDead
-    StorageDead(_28) @ StorageDead
-    StorageDead(_24) @ StorageDead
-    Assign((_33, const false)) @ _33=const false @ Use
-    StorageDead(_20) @ StorageDead
-    Assign((_34, const false)) @ _34=const false @ Use
-    StorageDead(_14) @ StorageDead
-    drop(_12) -&gt; [return: bb17, unwind: bb29] @ Drop
+    StorageDead(_32) @ StorageDead
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_18)) @ _35=&amp;_18 @ Ref
+    _34 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb17, unwind: bb63] @ Call: FnDid: 3903
 }
 bb 17 {
 CleanUp: false
-    StorageDead(_12) @ StorageDead
-    Assign((_35, const false)) @ _35=const false @ Use
-    StorageDead(_6) @ StorageDead
-    drop(_4) -&gt; [return: bb18, unwind: bb21] @ Drop
+    StorageDead(_35) @ StorageDead
+    Assign((_33, copy (((*_34).3: filesystem::vfs::Metadata).9: filesystem::vfs::FileType))) @ _33=copy (((*_34).3: filesystem::vfs::Metadata).9: filesystem::vfs::FileType) @ Use
+    StorageDead(_34) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_37, &amp;_33)) @ _37=&amp;_33 @ Ref
+    StorageLive(_38) @ StorageLive
+    Assign((_107, const &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink::promoted[2])) @ _107=const &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink::promoted[2] @ Use
+    Assign((_38, &amp;(*_107))) @ _38=&amp;(*_107) @ Ref
+    _36 = &lt;filesystem::vfs::FileType as core::cmp::PartialEq&gt;::eq(move _37, move _38) -&gt; [return: bb18, unwind: bb63] @ Call: FnDid: 3170
 }
 bb 18 {
+CleanUp: false
+    switchInt(move _36) -&gt; [0: bb20, otherwise: bb19] @ SwitchInt
+}
+bb 19 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    StorageLive(_41) @ StorageLive
+    Assign((_41, ())) @ _41=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _41))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _41) @ Aggregate
+    StorageDead(_41) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    goto -&gt; bb57 @ Goto
+}
+bb 20 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageDead(_37) @ StorageDead
+    Assign((_30, const ())) @ _30=const () @ Use
+    StorageDead(_36) @ StorageDead
+    StorageDead(_33) @ StorageDead
+    goto -&gt; bb22 @ Goto
+}
+bb 21 {
+CleanUp: false
+    StorageDead(_32) @ StorageDead
+    Assign((_30, const ())) @ _30=const () @ Use
+    goto -&gt; bb22 @ Goto
+}
+bb 22 {
+CleanUp: false
+    StorageDead(_31) @ StorageDead
+    StorageDead(_30) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    StorageLive(_44) @ StorageLive
+    StorageLive(_45) @ StorageLive
+    Assign((_45, &amp;_4)) @ _45=&amp;_4 @ Ref
+    _44 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as lazy_static::__Deref&gt;::deref(move _45) -&gt; [return: bb23, unwind: bb63] @ Call: FnDid: 3903
+}
+bb 23 {
+CleanUp: false
+    StorageDead(_45) @ StorageDead
+    Assign((_43, &amp;((*_44).5: filesystem::fat::entry::FATDirEntry))) @ _43=&amp;((*_44).5: filesystem::fat::entry::FATDirEntry) @ Ref
+    Assign((_46, discriminant((*_43)))) @ _46=discriminant((*_43)) @ Discriminant
+    switchInt(move _46) -&gt; [0: bb26, 1: bb26, 2: bb25, 3: bb24, otherwise: bb5] @ SwitchInt
+}
+bb 24 {
+CleanUp: false
+    StorageLive(_51) @ StorageLive
+    StorageLive(_52) @ StorageLive
+    Assign((_52, log::Level::Error)) @ _52=log::Level::Error @ Aggregate
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;_52)) @ _54=&amp;_52 @ Ref
+    StorageLive(_55) @ StorageLive
+    Assign((_106, const &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink::promoted[1])) @ _106=const &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink::promoted[1] @ Use
+    Assign((_55, &amp;(*_106))) @ _55=&amp;(*_106) @ Ref
+    _53 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _54, move _55) -&gt; [return: bb27, unwind: bb63] @ Call: FnDid: 3215
+}
+bb 25 {
+CleanUp: false
+    StorageLive(_49) @ StorageLive
+    Assign((_49, &amp;(((*_43) as Dir).0: filesystem::fat::entry::FATDir))) @ _49=&amp;(((*_43) as Dir).0: filesystem::fat::entry::FATDir) @ Ref
+    Assign((_42, copy _49)) @ _42=copy _49 @ Use
+    StorageDead(_49) @ StorageDead
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    Assign((_80, &amp;(*_42))) @ _80=&amp;(*_42) @ Ref
+    StorageLive(_81) @ StorageLive
+    Assign((_81, &amp;(*_2))) @ _81=&amp;(*_2) @ Ref
+    StorageLive(_82) @ StorageLive
+    Assign((_82, core::option::Option::&lt;bool&gt;::Some(const false))) @ _82=core::option::Option::&lt;bool&gt;::Some(const false) @ Aggregate
+    StorageLive(_83) @ StorageLive
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    StorageLive(_86) @ StorageLive
+    StorageLive(_87) @ StorageLive
+    Assign((_87, &amp;_4)) @ _87=&amp;_4 @ Ref
+    _86 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as lazy_static::__Deref&gt;::deref(move _87) -&gt; [return: bb39, unwind: bb63] @ Call: FnDid: 3903
+}
+bb 26 {
+CleanUp: false
+    StorageLive(_48) @ StorageLive
+    Assign((_48, system_error::SystemError::ENOTDIR)) @ _48=system_error::SystemError::ENOTDIR @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _48))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _48) @ Aggregate
+    StorageDead(_48) @ StorageDead
+    goto -&gt; bb55 @ Goto
+}
+bb 27 {
+CleanUp: false
+    switchInt(move _53) -&gt; [0: bb36, otherwise: bb28] @ SwitchInt
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    StorageLive(_57) @ StorageLive
+    StorageLive(_58) @ StorageLive
+    Assign((_58, &amp;_52)) @ _58=&amp;_52 @ Ref
+    StorageLive(_59) @ StorageLive
+    StorageLive(_60) @ StorageLive
+    _60 = log::max_level() -&gt; [return: bb29, unwind: bb63] @ Call: FnDid: 134
+}
+bb 29 {
+CleanUp: false
+    Assign((_59, &amp;_60)) @ _59=&amp;_60 @ Ref
+    _57 = &lt;log::Level as core::cmp::PartialOrd&lt;log::LevelFilter&gt;&gt;::le(move _58, move _59) -&gt; [return: bb30, unwind: bb63] @ Call: FnDid: 3215
+}
+bb 30 {
+CleanUp: false
+    switchInt(move _57) -&gt; [0: bb35, otherwise: bb31] @ SwitchInt
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_62, log::__private_api::GlobalLogger)) @ _62=log::__private_api::GlobalLogger @ Aggregate
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_105, const &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink::promoted[0])) @ _105=const &lt;filesystem::fat::fs::LockedFATInode as filesystem::vfs::IndexNode&gt;::unlink::promoted[0] @ Use
+    Assign((_65, &amp;(*_105))) @ _65=&amp;(*_105) @ Ref
+    Assign((_64, &amp;(*_65))) @ _64=&amp;(*_65) @ Ref
+    _63 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_const::&lt;1&gt;(move _64) -&gt; [return: bb32, unwind: bb63] @ Call: FnDid: 11832
+}
+bb 32 {
+CleanUp: false
+    StorageDead(_64) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    Assign((_67, copy _52)) @ _67=copy _52 @ Use
+    StorageLive(_68) @ StorageLive
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    StorageLive(_71) @ StorageLive
+    StorageLive(_72) @ StorageLive
+    Assign((_72, const &#34;dragonos_kernel::filesystem::fat::fs&#34;)) @ _72=const &#34;dragonos_kernel::filesystem::fat::fs&#34; @ Use
+    Assign((_71, &amp;(*_72))) @ _71=&amp;(*_72) @ Ref
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    _74 = log::__private_api::loc() -&gt; [return: bb33, unwind: bb63] @ Call: FnDid: 184
+}
+bb 33 {
+CleanUp: false
+    Assign((_73, &amp;(*_74))) @ _73=&amp;(*_74) @ Ref
+    Assign((_70, (move _71, const &#34;dragonos_kernel::filesystem::fat::fs&#34;, move _73))) @ _70=(move _71, const &#34;dragonos_kernel::filesystem::fat::fs&#34;, move _73) @ Aggregate
+    StorageDead(_73) @ StorageDead
+    StorageDead(_71) @ StorageDead
+    Assign((_69, &amp;_70)) @ _69=&amp;_70 @ Ref
+    Assign((_68, &amp;(*_69))) @ _68=&amp;(*_69) @ Ref
+    StorageLive(_75) @ StorageLive
+    Assign((_75, ())) @ _75=() @ Aggregate
+    _61 = log::__private_api::log::&lt;&#39;_, (), log::__private_api::GlobalLogger&gt;(move _62, move _63, move _67, move _68, move _75) -&gt; [return: bb34, unwind: bb63] @ Call: FnDid: 178
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_75) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageDead(_62) @ StorageDead
+    StorageDead(_74) @ StorageDead
+    StorageDead(_72) @ StorageDead
+    StorageDead(_70) @ StorageDead
+    StorageDead(_69) @ StorageDead
+    StorageDead(_65) @ StorageDead
+    StorageDead(_61) @ StorageDead
+    Assign((_51, const ())) @ _51=const () @ Use
+    goto -&gt; bb38 @ Goto
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_60) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageDead(_58) @ StorageDead
+    goto -&gt; bb37 @ Goto
+}
+bb 36 {
+CleanUp: false
+    StorageDead(_55) @ StorageDead
+    StorageDead(_54) @ StorageDead
+    goto -&gt; bb37 @ Goto
+}
+bb 37 {
+CleanUp: false
+    Assign((_51, const ())) @ _51=const () @ Use
+    goto -&gt; bb38 @ Goto
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_57) @ StorageDead
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    StorageDead(_51) @ StorageDead
+    StorageLive(_76) @ StorageLive
+    Assign((_76, system_error::SystemError::EROFS)) @ _76=system_error::SystemError::EROFS @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _76))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _76) @ Aggregate
+    StorageDead(_76) @ StorageDead
+    goto -&gt; bb55 @ Goto
+}
+bb 39 {
+CleanUp: false
+    StorageDead(_87) @ StorageDead
+    Assign((_85, &amp;((*_86).4: alloc::sync::Weak&lt;filesystem::fat::fs::FATFileSystem&gt;))) @ _85=&amp;((*_86).4: alloc::sync::Weak&lt;filesystem::fat::fs::FATFileSystem&gt;) @ Ref
+    _84 = alloc::sync::Weak::&lt;filesystem::fat::fs::FATFileSystem&gt;::upgrade(move _85) -&gt; [return: bb40, unwind: bb63] @ Call: FnDid: 7077
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    _83 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem&gt;&gt;::unwrap(move _84) -&gt; [return: bb41, unwind: bb63] @ Call: FnDid: 10157
+}
+bb 41 {
+CleanUp: false
+    StorageDead(_84) @ StorageDead
+    _79 = filesystem::fat::entry::FATDir::check_existence(move _80, move _81, move _82, move _83) -&gt; [return: bb42, unwind: bb63] @ Call: FnDid: 17653
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_83) @ StorageDead
+    StorageDead(_82) @ StorageDead
+    StorageDead(_81) @ StorageDead
+    StorageDead(_80) @ StorageDead
+    _78 = &lt;core::result::Result&lt;filesystem::fat::entry::FATDirEntryOrShortName, system_error::SystemError&gt; as core::ops::Try&gt;::branch(move _79) -&gt; [return: bb43, unwind: bb63] @ Call: FnDid: 4199
+}
+bb 43 {
+CleanUp: false
+    Assign((_109, const true)) @ _109=const true @ Use
+    Assign((_110, const true)) @ _110=const true @ Use
+    StorageDead(_79) @ StorageDead
+    Assign((_88, discriminant(_78))) @ _88=discriminant(_78) @ Discriminant
+    switchInt(move _88) -&gt; [0: bb44, 1: bb45, otherwise: bb5] @ SwitchInt
+}
+bb 44 {
+CleanUp: false
+    StorageLive(_92) @ StorageLive
+    Assign((_92, move ((_78 as Continue).0: filesystem::fat::entry::FATDirEntryOrShortName))) @ _92=move ((_78 as Continue).0: filesystem::fat::entry::FATDirEntryOrShortName) @ Use
+    Assign((_77, move _92)) @ _77=move _92 @ Use
+    StorageDead(_92) @ StorageDead
+    drop(_77) -&gt; [return: bb47, unwind: bb69] @ Drop
+}
+bb 45 {
+CleanUp: false
+    StorageLive(_89) @ StorageLive
+    Assign((_89, move ((_78 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;))) @ _89=move ((_78 as Break).0: core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;) @ Use
+    StorageLive(_91) @ StorageLive
+    Assign((_91, move _89)) @ _91=move _89 @ Use
+    _0 = &lt;core::result::Result&lt;(), system_error::SystemError&gt; as core::ops::FromResidual&lt;core::result::Result&lt;core::convert::Infallible, system_error::SystemError&gt;&gt;&gt;::from_residual(move _91) -&gt; [return: bb46, unwind: bb69] @ Call: FnDid: 4202
+}
+bb 46 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    Assign((_115, discriminant(_78))) @ _115=discriminant(_78) @ Discriminant
+    StorageDead(_86) @ StorageDead
+    Assign((_109, const false)) @ _109=const false @ Use
+    Assign((_110, const false)) @ _110=const false @ Use
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 47 {
+CleanUp: false
+    Assign((_117, discriminant(_78))) @ _117=discriminant(_78) @ Discriminant
+    StorageDead(_86) @ StorageDead
+    Assign((_109, const false)) @ _109=const false @ Use
+    Assign((_110, const false)) @ _110=const false @ Use
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    StorageLive(_93) @ StorageLive
+    StorageLive(_94) @ StorageLive
+    Assign((_94, &amp;(*_42))) @ _94=&amp;(*_42) @ Ref
+    StorageLive(_95) @ StorageLive
+    StorageLive(_96) @ StorageLive
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    StorageLive(_99) @ StorageLive
+    StorageLive(_100) @ StorageLive
+    StorageLive(_101) @ StorageLive
+    Assign((_101, &amp;_4)) @ _101=&amp;_4 @ Ref
+    _100 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt; as lazy_static::__Deref&gt;::deref(move _101) -&gt; [return: bb48, unwind: bb63] @ Call: FnDid: 3903
+}
+bb 48 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    Assign((_99, &amp;((*_100).4: alloc::sync::Weak&lt;filesystem::fat::fs::FATFileSystem&gt;))) @ _99=&amp;((*_100).4: alloc::sync::Weak&lt;filesystem::fat::fs::FATFileSystem&gt;) @ Ref
+    _98 = alloc::sync::Weak::&lt;filesystem::fat::fs::FATFileSystem&gt;::upgrade(move _99) -&gt; [return: bb49, unwind: bb63] @ Call: FnDid: 7077
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    _97 = core::option::Option::&lt;alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem&gt;&gt;::unwrap(move _98) -&gt; [return: bb50, unwind: bb63] @ Call: FnDid: 10157
+}
+bb 50 {
+CleanUp: false
+    Assign((_96, &amp;_97)) @ _96=&amp;_97 @ Ref
+    StorageDead(_98) @ StorageDead
+    _95 = &lt;alloc::sync::Arc&lt;filesystem::fat::fs::FATFileSystem&gt; as core::clone::Clone&gt;::clone(move _96) -&gt; [return: bb51, unwind: bb62] @ Call: FnDid: 3116
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_96) @ StorageDead
+    StorageLive(_102) @ StorageLive
+    Assign((_102, &amp;(*_2))) @ _102=&amp;(*_2) @ Ref
+    _93 = filesystem::fat::entry::FATDir::remove(move _94, move _95, move _102, const true) -&gt; [return: bb52, unwind: bb62] @ Call: FnDid: 17657
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_102) @ StorageDead
+    StorageDead(_95) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    drop(_97) -&gt; [return: bb53, unwind: bb63] @ Drop
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_100) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    StorageLive(_103) @ StorageLive
+    StorageLive(_104) @ StorageLive
+    Assign((_108, const false)) @ _108=const false @ Use
+    Assign((_104, move _18)) @ _104=move _18 @ Use
+    _103 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::fat::fs::FATInode&gt;&gt;(move _104) -&gt; [return: bb54, unwind: bb63] @ Call: FnDid: 2323
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_104) @ StorageDead
+    StorageDead(_103) @ StorageDead
+    Assign((_0, move _93)) @ _0=move _93 @ Use
+    StorageDead(_93) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_44) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_42) @ StorageDead
+    goto -&gt; bb57 @ Goto
+}
+bb 57 {
+CleanUp: false
+    drop(_22) -&gt; [return: bb58, unwind: bb71] @ Drop
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_22) @ StorageDead
+    switchInt(copy _108) -&gt; [0: bb59, otherwise: bb68] @ SwitchInt
+}
+bb 59 {
+CleanUp: false
+    Assign((_108, const false)) @ _108=const false @ Use
+    StorageDead(_18) @ StorageDead
+    drop(_6) -&gt; [return: bb60, unwind: bb66] @ Drop
+}
+bb 60 {
+CleanUp: false
+    StorageDead(_6) @ StorageDead
+    drop(_4) -&gt; [return: bb61, unwind: bb67] @ Drop
+}
+bb 61 {
 CleanUp: false
     StorageDead(_4) @ StorageDead
     return @ Return
 }
-bb 19 {
+bb 62 {
 CleanUp: true
-    drop(_12) -&gt; [return: bb29, unwind terminate(cleanup)] @ Drop
+    drop(_97) -&gt; [return: bb63, unwind terminate(cleanup)] @ Drop
 }
-bb 20 {
+bb 63 {
 CleanUp: true
-    drop(_4) -&gt; [return: bb21, unwind terminate(cleanup)] @ Drop
+    drop(_22) -&gt; [return: bb71, unwind terminate(cleanup)] @ Drop
 }
-bb 21 {
+bb 64 {
+CleanUp: true
+    drop(_28) -&gt; [return: bb71, unwind terminate(cleanup)] @ Drop
+}
+bb 65 {
+CleanUp: true
+    drop(_6) -&gt; [return: bb66, unwind terminate(cleanup)] @ Drop
+}
+bb 66 {
+CleanUp: true
+    drop(_4) -&gt; [return: bb67, unwind terminate(cleanup)] @ Drop
+}
+bb 67 {
 CleanUp: true
     resume @ UnwindResume
 }
-bb 22 {
-CleanUp: true
-    drop(_25) -&gt; [return: bb25, unwind terminate(cleanup)] @ Drop
-}
-bb 23 {
-CleanUp: true
-    switchInt(copy _32) -&gt; [0: bb25, otherwise: bb22] @ SwitchInt
-}
-bb 24 {
-CleanUp: true
-    drop(_20) -&gt; [return: bb27, unwind terminate(cleanup)] @ Drop
-}
-bb 25 {
-CleanUp: true
-    switchInt(copy _33) -&gt; [0: bb27, otherwise: bb24] @ SwitchInt
-}
-bb 26 {
-CleanUp: true
-    drop(_14) -&gt; [return: bb19, unwind terminate(cleanup)] @ Drop
-}
-bb 27 {
-CleanUp: true
-    switchInt(copy _34) -&gt; [0: bb19, otherwise: bb26] @ SwitchInt
-}
-bb 28 {
-CleanUp: true
-    drop(_6) -&gt; [return: bb20, unwind terminate(cleanup)] @ Drop
-}
-bb 29 {
-CleanUp: true
-    switchInt(copy _35) -&gt; [0: bb20, otherwise: bb28] @ SwitchInt
-}
-
-bb0 at src/filesystem/fat/entry.rs:1813:55: 1813:56
-bb1 at src/filesystem/fat/entry.rs:1813:70: 1813:71
-fn filesystem::fat::entry::FATDirEntry::eq_name::{closure#0}
-_0:  @ core::char::ToUppercase 
-_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:17721 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#0}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
-_2:  @ char 
-_3:  @ char 
-
-bb 0 {
+bb 68 {
 CleanUp: false
-    StorageLive(_3) @ StorageLive
-    Assign((_3, copy _2)) @ _3=copy _2 @ Use
-    _0 = core::char::methods::&lt;impl char&gt;::to_uppercase(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5847
+    drop(_18) -&gt; [return: bb59, unwind: bb65] @ Drop
 }
-bb 1 {
-CleanUp: false
-    StorageDead(_3) @ StorageDead
-    return @ Return
+bb 69 {
+CleanUp: true
+    Assign((_119, discriminant(_78))) @ _119=discriminant(_78) @ Discriminant
+    goto -&gt; bb63 @ Goto
 }
-
-bb0 at src/filesystem/fat/entry.rs:1815:54: 1815:55
-bb1 at src/filesystem/fat/entry.rs:1815:69: 1815:70
-fn filesystem::fat::entry::FATDirEntry::eq_name::{closure#1}
-_0:  @ core::char::ToUppercase 
-_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:17722 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#1}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
-_2:  @ char 
-_3:  @ char 
-
-bb 0 {
-CleanUp: false
-    StorageLive(_3) @ StorageLive
-    Assign((_3, copy _2)) @ _3=copy _2 @ Use
-    _0 = core::char::methods::&lt;impl char&gt;::to_uppercase(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5847
+bb 70 {
+CleanUp: true
+    drop(_18) -&gt; [return: bb65, unwind terminate(cleanup)] @ Drop
 }
-bb 1 {
-CleanUp: false
-    StorageDead(_3) @ StorageDead
-    return @ Return
+bb 71 {
+CleanUp: true
+    switchInt(copy _108) -&gt; [0: bb65, otherwise: bb70] @ SwitchInt
 }
-
-bb0 at src/filesystem/fat/entry.rs:1816:46: 1816:47
-bb1 at src/filesystem/fat/entry.rs:1816:61: 1816:62
-fn filesystem::fat::entry::FATDirEntry::eq_name::{closure#2}
-_0:  @ core::char::ToUppercase 
-_1:  @ &amp;&#39;{erased} mut Closure(DefId(0:17723 ~ dragonos_kernel[9e38]::filesystem::fat::entry::{impl#8}::eq_name::{closure#2}), [i16, Binder { value: extern &#34;RustCall&#34; fn((char,)) -&gt; core::char::ToUppercase, bound_vars: [] }, ()]) 
-_2:  @ char 
-_3:  @ char 
-
-bb 0 {
-CleanUp: false
-    StorageLive(_3) @ StorageLive
-    Assign((_3, copy _2)) @ _3=copy _2 @ Use
-    _0 = core::char::methods::&lt;impl char&gt;::to_uppercase(move _3) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 5847
-}
-bb 1 {
-CleanUp: false
-    StorageDead(_3) @ StorageDead
-    return @ Return
+bb 72 {
+CleanUp: true
+    Assign((_120, discriminant(_7))) @ _120=discriminant(_7) @ Discriminant
+    goto -&gt; bb66 @ Goto
 }
 
 </div>

@@ -13,7 +13,7 @@
         <h1>
             Report #85
             
-                 <span class="func-name">filesystem::vfs::syscall::sys_ioctl::{impl#0}::entry_format</span>
+                 <span class="func-name">ipc::pipe::{impl#6}::open</span>
             
         </h1>
 
@@ -25,22 +25,1596 @@
                         <h2>Log Content</h2>
                         <button class="copy-btn" onclick="copyText('logContent')">Copy</button>
                     </div>
-                    <pre id="logContent" class="code-block scrollable">22:08:07|RAP|WARN|: Double free detected in function &#34;entry_format&#34;
-warning: Double free detected during unwinding.
-   --&gt; src/filesystem/vfs/syscall/sys_ioctl.rs:110:1
+                    <pre id="logContent" class="code-block scrollable">22:08:10|RAP|WARN|: Use-after-free detected in function &#34;open&#34;
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:512:25
     |
-110 | / fn entry_format(&amp;self, args: &amp;[usize]) -&gt; Vec&lt;FormattedSyscallParam&gt; {
-111 | |         vec![
-112 | |             FormattedSyscallParam::new(&#34;fd&#34;, Self::fd(args).to_string()),
-113 | |             FormattedSyscallParam::new(&#34;cmd&#34;, format!(&#34;{:#x}&#34;, Self::cmd(args))),
-114 | |             FormattedSyscallParam::new(&#34;data&#34;, format!(&#34;{:#x}&#34;, Self::data(args))),
-115 | |         ]
-116 | |     }
-    | |_____- Double free (confidence 99%): Location in file src/filesystem/vfs/syscall/sys_ioctl.rs line 110.
-    | MIR detail: Value _14(_, src/filesystem/vfs/syscall/sys_ioctl.rs:113) and _9(_, src/filesystem/vfs/syscall/sys_ioctl.rs:112) are alias.
-    | MIR detail: _14(_, src/filesystem/vfs/syscall/sys_ioctl.rs:113) is dropped at BB18(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53); _9(_, src/filesystem/vfs/syscall/sys_ioctl.rs:112) is dropped at BB19(/home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53).
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+    |                         ------------ Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 512.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _85(_, src/ipc/pipe.rs:512) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _85(_, src/ipc/pipe.rs:512) is used at BB46(src/ipc/pipe.rs:512).
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
     |
-render dot for DefId(0:20049 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::sys_ioctl::{impl#0}::entry_format)
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:556:21
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+    |                     ----------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 556.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _169(_, src/ipc/pipe.rs:556) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _169(_, src/ipc/pipe.rs:556) is used at BB104(src/ipc/pipe.rs:556).
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:516:25
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+    |                         ----------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 516.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _95(_, src/ipc/pipe.rs:516) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _95(_, src/ipc/pipe.rs:516) is used at BB53(src/ipc/pipe.rs:516).
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:513:28
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+    |                            ------------ Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 513.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _91(_, src/ipc/pipe.rs:513) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _91(_, src/ipc/pipe.rs:513) is used at BB48(src/ipc/pipe.rs:513).
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:511:41
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+    |                                         ----------------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 511.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _83(_, src/ipc/pipe.rs:511) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _83(_, src/ipc/pipe.rs:511) is used at BB45(src/ipc/pipe.rs:511).
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:554:37
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+    |                                     ----------------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 554.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _164(_, src/ipc/pipe.rs:554) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _164(_, src/ipc/pipe.rs:554) is used at BB101(src/ipc/pipe.rs:554).
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:554:37
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+    |                                     ---------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 554.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _1(self, src/ipc/pipe.rs:469) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _1(self, src/ipc/pipe.rs:469) is used at BB101(src/ipc/pipe.rs:554).
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:555:21
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+    |                     ----- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 555.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _163(guard, src/ipc/pipe.rs:554) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _163(guard, src/ipc/pipe.rs:554) is used at BB102(src/ipc/pipe.rs:555).
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:512:25
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+    |                         ----- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 512.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _82(guard, src/ipc/pipe.rs:511) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _82(guard, src/ipc/pipe.rs:511) is used at BB46(src/ipc/pipe.rs:512).
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+22:08:10|RAP|WARN|: Dangling pointer detected in function &#34;open&#34;
+22:08:10|RAP|WARN|: Dangling pointer detected during unwinding in function &#34;open&#34;
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:514:29
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+    |                             ---------------- Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 514.
+    | MIR detail: Value _37(_, src/ipc/pipe.rs:491) and _93(_, src/ipc/pipe.rs:514) are alias.
+    | MIR detail: _37(_, src/ipc/pipe.rs:491) is dropped at BB15(src/ipc/pipe.rs:491); _93(_, src/ipc/pipe.rs:514) is used at BB50(src/ipc/pipe.rs:514).
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Use-after-free detected.
+   --&gt; src/ipc/pipe.rs:555:21
+    |
+468 | fn open(
+469 |         &amp;self,
+470 |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 |         let accflags = flags.access_flags();
+474 |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 |         let flags_copy = *flags;
+476 |
+477 |         // 先设置 private_data（在可能的睡眠之前）
+478 |         // 这样即使睡眠，数据也已经设置好了
+479 |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 |
+481 |         // 检查是否为命名管道（FIFO）
+482 |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 |         let is_fifo = self.inner.lock().is_fifo;
+484 |
+485 |         if accflags == FileFlags::O_RDONLY {
+486 |             // 读端打开
+487 |             let mut guard = self.inner.lock();
+488 |             guard.reader += 1;
+489 |             guard.had_reader = true;
+490 |             let has_writer = guard.writer &gt; 0;
+491 |             drop(guard);
+492 |
+493 |             // 只有 FIFO 才需要处理阻塞等待
+494 |             if is_fifo {
+495 |                 // 唤醒可能在等待读端的写者
+496 |                 self.open_wait_queue.wakeup_all(None);
+497 |
+498 |                 // 如果是非阻塞模式，立即返回
+499 |                 if is_nonblock {
+500 |                     return Ok(());
+501 |                 }
+502 |
+503 |                 // 阻塞模式：等待写端打开
+504 |                 if !has_writer {
+505 |                     // 在睡眠前必须释放 data 锁
+506 |                     drop(data);
+507 |                     let r =
+508 |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 |                     if r.is_err() {
+510 |                         // 被信号中断，需要回滚 reader 计数
+511 |                         let mut guard = self.inner.lock();
+512 |                         guard.reader -= 1;
+513 |                         if guard.reader == 0 {
+514 |                             guard.had_reader = false;
+515 |                         }
+516 |                         drop(guard);
+517 |                         return Err(SystemError::EINTR);
+518 |                     }
+519 |                 }
+520 |             }
+521 |         } else if accflags == FileFlags::O_WRONLY {
+522 |             // 写端打开
+523 |             if is_fifo {
+524 |                 // FIFO 语义
+525 |                 if is_nonblock {
+526 |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 |                     let mut guard = self.inner.lock();
+528 |                     if guard.reader == 0 {
+529 |                         return Err(SystemError::ENXIO);
+530 |                     }
+531 |                     guard.writer += 1;
+532 |                     drop(guard);
+533 |                 } else {
+534 |                     // 阻塞模式：等待读端
+535 |                     let guard = self.inner.lock();
+536 |                     let has_reader = guard.reader &gt; 0;
+537 |                     drop(guard);
+538 |
+539 |                     if !has_reader {
+540 |                         // 在睡眠前必须释放 data 锁
+541 |                         drop(data);
+542 |                         // 等待读端打开
+543 |                         let r = wq_wait_event_interruptible!(
+544 |                             self.open_wait_queue,
+545 |                             self.has_reader(),
+546 |                             {}
+547 |                         );
+548 |                         if r.is_err() {
+549 |                             return Err(SystemError::EINTR);
+550 |                         }
+551 |                     }
+552 |
+553 |                     // 现在有读端了，增加写端计数
+554 |                     let mut guard = self.inner.lock();
+555 |                     guard.writer += 1;
+    |                     ------------ Use-after-free (confidence 99%): Location in file src/ipc/pipe.rs line 555.
+    | MIR detail: Value _125(_, src/ipc/pipe.rs:537) and _166(_, src/ipc/pipe.rs:555) are alias.
+    | MIR detail: _125(_, src/ipc/pipe.rs:537) is dropped at BB73(src/ipc/pipe.rs:537); _166(_, src/ipc/pipe.rs:555) is used at BB102(src/ipc/pipe.rs:555).
+556 |                     drop(guard);
+557 |                 }
+558 |
+559 |                 // 唤醒可能在等待写端的读者
+560 |                 self.open_wait_queue.wakeup_all(None);
+561 |             } else {
+562 |                 // 匿名管道：直接增加写端计数
+563 |                 let mut guard = self.inner.lock();
+564 |                 guard.writer += 1;
+565 |                 drop(guard);
+566 |             }
+567 |         } else if accflags == FileFlags::O_RDWR {
+568 |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 |             let mut guard = self.inner.lock();
+570 |             guard.reader += 1;
+571 |             guard.writer += 1;
+572 |             guard.had_reader = true;
+573 |             drop(guard);
+574 |
+575 |             // 只有 FIFO 才需要唤醒等待的进程
+576 |             if is_fifo {
+577 |                 self.open_wait_queue.wakeup_all(None);
+578 |             }
+579 |         }
+580 |
+581 |         return Ok(());
+582 |     }
+    |
+warning: Dangling pointer detected.
+   --&gt; src/ipc/pipe.rs:468:1
+    |
+468 | / fn open(
+469 | |         &amp;self,
+470 | |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 | |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 | |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 | |         let accflags = flags.access_flags();
+474 | |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 | |         let flags_copy = *flags;
+476 | |
+477 | |         // 先设置 private_data（在可能的睡眠之前）
+478 | |         // 这样即使睡眠，数据也已经设置好了
+479 | |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 | |
+481 | |         // 检查是否为命名管道（FIFO）
+482 | |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 | |         let is_fifo = self.inner.lock().is_fifo;
+484 | |
+485 | |         if accflags == FileFlags::O_RDONLY {
+486 | |             // 读端打开
+487 | |             let mut guard = self.inner.lock();
+488 | |             guard.reader += 1;
+489 | |             guard.had_reader = true;
+490 | |             let has_writer = guard.writer &gt; 0;
+491 | |             drop(guard);
+492 | |
+493 | |             // 只有 FIFO 才需要处理阻塞等待
+494 | |             if is_fifo {
+495 | |                 // 唤醒可能在等待读端的写者
+496 | |                 self.open_wait_queue.wakeup_all(None);
+497 | |
+498 | |                 // 如果是非阻塞模式，立即返回
+499 | |                 if is_nonblock {
+500 | |                     return Ok(());
+501 | |                 }
+502 | |
+503 | |                 // 阻塞模式：等待写端打开
+504 | |                 if !has_writer {
+505 | |                     // 在睡眠前必须释放 data 锁
+506 | |                     drop(data);
+507 | |                     let r =
+508 | |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 | |                     if r.is_err() {
+510 | |                         // 被信号中断，需要回滚 reader 计数
+511 | |                         let mut guard = self.inner.lock();
+512 | |                         guard.reader -= 1;
+513 | |                         if guard.reader == 0 {
+514 | |                             guard.had_reader = false;
+515 | |                         }
+516 | |                         drop(guard);
+517 | |                         return Err(SystemError::EINTR);
+518 | |                     }
+519 | |                 }
+520 | |             }
+521 | |         } else if accflags == FileFlags::O_WRONLY {
+522 | |             // 写端打开
+523 | |             if is_fifo {
+524 | |                 // FIFO 语义
+525 | |                 if is_nonblock {
+526 | |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 | |                     let mut guard = self.inner.lock();
+528 | |                     if guard.reader == 0 {
+529 | |                         return Err(SystemError::ENXIO);
+530 | |                     }
+531 | |                     guard.writer += 1;
+532 | |                     drop(guard);
+533 | |                 } else {
+534 | |                     // 阻塞模式：等待读端
+535 | |                     let guard = self.inner.lock();
+536 | |                     let has_reader = guard.reader &gt; 0;
+537 | |                     drop(guard);
+538 | |
+539 | |                     if !has_reader {
+540 | |                         // 在睡眠前必须释放 data 锁
+541 | |                         drop(data);
+542 | |                         // 等待读端打开
+543 | |                         let r = wq_wait_event_interruptible!(
+544 | |                             self.open_wait_queue,
+545 | |                             self.has_reader(),
+546 | |                             {}
+547 | |                         );
+548 | |                         if r.is_err() {
+549 | |                             return Err(SystemError::EINTR);
+550 | |                         }
+551 | |                     }
+552 | |
+553 | |                     // 现在有读端了，增加写端计数
+554 | |                     let mut guard = self.inner.lock();
+555 | |                     guard.writer += 1;
+556 | |                     drop(guard);
+557 | |                 }
+558 | |
+559 | |                 // 唤醒可能在等待写端的读者
+560 | |                 self.open_wait_queue.wakeup_all(None);
+561 | |             } else {
+562 | |                 // 匿名管道：直接增加写端计数
+563 | |                 let mut guard = self.inner.lock();
+564 | |                 guard.writer += 1;
+565 | |                 drop(guard);
+566 | |             }
+567 | |         } else if accflags == FileFlags::O_RDWR {
+568 | |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 | |             let mut guard = self.inner.lock();
+570 | |             guard.reader += 1;
+571 | |             guard.writer += 1;
+572 | |             guard.had_reader = true;
+573 | |             drop(guard);
+574 | |
+575 | |             // 只有 FIFO 才需要唤醒等待的进程
+576 | |             if is_fifo {
+577 | |                 self.open_wait_queue.wakeup_all(None);
+578 | |             }
+579 | |         }
+580 | |
+581 | |         return Ok(());
+582 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 468.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in open and _1(self, src/ipc/pipe.rs:469) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in open is dropped at BB18446744073709551615(src/ipc/pipe.rs:468); _1(self, src/ipc/pipe.rs:469) became dangling.
+    |
+warning: Dangling pointer detected during unwinding.
+   --&gt; src/ipc/pipe.rs:468:1
+    |
+468 | / fn open(
+469 | |         &amp;self,
+470 | |         mut data: SpinLockGuard&lt;FilePrivateData&gt;,
+471 | |         flags: &amp;crate::filesystem::vfs::file::FileFlags,
+472 | |     ) -&gt; Result&lt;(), SystemError&gt; {
+473 | |         let accflags = flags.access_flags();
+474 | |         let is_nonblock = flags.contains(FileFlags::O_NONBLOCK);
+475 | |         let flags_copy = *flags;
+476 | |
+477 | |         // 先设置 private_data（在可能的睡眠之前）
+478 | |         // 这样即使睡眠，数据也已经设置好了
+479 | |         *data = FilePrivateData::Pipefs(PipeFsPrivateData { flags: flags_copy });
+480 | |
+481 | |         // 检查是否为命名管道（FIFO）
+482 | |         // 只有 FIFO 才需要阻塞等待另一端打开
+483 | |         let is_fifo = self.inner.lock().is_fifo;
+484 | |
+485 | |         if accflags == FileFlags::O_RDONLY {
+486 | |             // 读端打开
+487 | |             let mut guard = self.inner.lock();
+488 | |             guard.reader += 1;
+489 | |             guard.had_reader = true;
+490 | |             let has_writer = guard.writer &gt; 0;
+491 | |             drop(guard);
+492 | |
+493 | |             // 只有 FIFO 才需要处理阻塞等待
+494 | |             if is_fifo {
+495 | |                 // 唤醒可能在等待读端的写者
+496 | |                 self.open_wait_queue.wakeup_all(None);
+497 | |
+498 | |                 // 如果是非阻塞模式，立即返回
+499 | |                 if is_nonblock {
+500 | |                     return Ok(());
+501 | |                 }
+502 | |
+503 | |                 // 阻塞模式：等待写端打开
+504 | |                 if !has_writer {
+505 | |                     // 在睡眠前必须释放 data 锁
+506 | |                     drop(data);
+507 | |                     let r =
+508 | |                         wq_wait_event_interruptible!(self.open_wait_queue, self.has_writer(), {});
+509 | |                     if r.is_err() {
+510 | |                         // 被信号中断，需要回滚 reader 计数
+511 | |                         let mut guard = self.inner.lock();
+512 | |                         guard.reader -= 1;
+513 | |                         if guard.reader == 0 {
+514 | |                             guard.had_reader = false;
+515 | |                         }
+516 | |                         drop(guard);
+517 | |                         return Err(SystemError::EINTR);
+518 | |                     }
+519 | |                 }
+520 | |             }
+521 | |         } else if accflags == FileFlags::O_WRONLY {
+522 | |             // 写端打开
+523 | |             if is_fifo {
+524 | |                 // FIFO 语义
+525 | |                 if is_nonblock {
+526 | |                     // 非阻塞模式：如果没有读端，返回 ENXIO
+527 | |                     let mut guard = self.inner.lock();
+528 | |                     if guard.reader == 0 {
+529 | |                         return Err(SystemError::ENXIO);
+530 | |                     }
+531 | |                     guard.writer += 1;
+532 | |                     drop(guard);
+533 | |                 } else {
+534 | |                     // 阻塞模式：等待读端
+535 | |                     let guard = self.inner.lock();
+536 | |                     let has_reader = guard.reader &gt; 0;
+537 | |                     drop(guard);
+538 | |
+539 | |                     if !has_reader {
+540 | |                         // 在睡眠前必须释放 data 锁
+541 | |                         drop(data);
+542 | |                         // 等待读端打开
+543 | |                         let r = wq_wait_event_interruptible!(
+544 | |                             self.open_wait_queue,
+545 | |                             self.has_reader(),
+546 | |                             {}
+547 | |                         );
+548 | |                         if r.is_err() {
+549 | |                             return Err(SystemError::EINTR);
+550 | |                         }
+551 | |                     }
+552 | |
+553 | |                     // 现在有读端了，增加写端计数
+554 | |                     let mut guard = self.inner.lock();
+555 | |                     guard.writer += 1;
+556 | |                     drop(guard);
+557 | |                 }
+558 | |
+559 | |                 // 唤醒可能在等待写端的读者
+560 | |                 self.open_wait_queue.wakeup_all(None);
+561 | |             } else {
+562 | |                 // 匿名管道：直接增加写端计数
+563 | |                 let mut guard = self.inner.lock();
+564 | |                 guard.writer += 1;
+565 | |                 drop(guard);
+566 | |             }
+567 | |         } else if accflags == FileFlags::O_RDWR {
+568 | |             // O_RDWR 模式：同时作为读端和写端，不阻塞
+569 | |             let mut guard = self.inner.lock();
+570 | |             guard.reader += 1;
+571 | |             guard.writer += 1;
+572 | |             guard.had_reader = true;
+573 | |             drop(guard);
+574 | |
+575 | |             // 只有 FIFO 才需要唤醒等待的进程
+576 | |             if is_fifo {
+577 | |                 self.open_wait_queue.wakeup_all(None);
+578 | |             }
+579 | |         }
+580 | |
+581 | |         return Ok(());
+582 | |     }
+    | |_____- Dangling pointer (confidence 99%): Location in file src/ipc/pipe.rs line 468.
+    | MIR detail: Value UNKNWON(_18446744073709551615) in open and _1(self, src/ipc/pipe.rs:469) are alias.
+    | MIR detail: UNKNWON(_18446744073709551615) in open is dropped at BB18446744073709551615(src/ipc/pipe.rs:468); _1(self, src/ipc/pipe.rs:469) became dangling.
+    |
+render dot for DefId(0:22427 ~ dragonos_kernel[9e38]::ipc::pipe::{impl#6}::open)
 </pre>
                 </div>
             
@@ -51,357 +1625,1602 @@ render dot for DefId(0:20049 ~ dragonos_kernel[9e38]::filesystem::vfs::syscall::
                         <h2>MIR Content</h2>
                         <button class="copy-btn" onclick="copyText('mirContent')">Copy</button>
                     </div>
-                    <div id="mirContent" class="mir-content scrollable">bb0 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb1 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:13: 53:46
-bb2 at src/filesystem/vfs/syscall/sys_ioctl.rs:112:46: 112:60
-bb3 at src/filesystem/vfs/syscall/sys_ioctl.rs:112:71: 112:72
-bb4 at src/filesystem/vfs/syscall/sys_ioctl.rs:112:72: 112:73
-bb5 at src/filesystem/vfs/syscall/sys_ioctl.rs:113:78: 113:79
-bb6 at src/filesystem/vfs/syscall/sys_ioctl.rs:113:60: 113:61
-bb7 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb8 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb9 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb10 at src/filesystem/vfs/syscall/sys_ioctl.rs:113:80: 113:81
-bb11 at src/filesystem/vfs/syscall/sys_ioctl.rs:114:80: 114:81
-bb12 at src/filesystem/vfs/syscall/sys_ioctl.rs:114:61: 114:62
-bb13 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:72: 108:73
-bb14 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:108:73: 108:74
-bb15 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:109:10: 109:11
-bb16 at src/filesystem/vfs/syscall/sys_ioctl.rs:114:82: 114:83
-bb17 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:54:9: 54:10
-bb21 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:45: 53:46
-bb22 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-bb23 at /home/yuzhili/.rustup/toolchains/nightly-2025-08-10-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/macros.rs:53:36: 53:45
-fn &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format
-_0:  @ alloc::vec::Vec&lt;syscall::table::FormattedSyscallParam, alloc::alloc::Global&gt; 
-_1:  @ &amp;&#39;{erased} filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle 
-_2:  @ &amp;&#39;{erased} [usize] 
-_3:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam], alloc::alloc::Global&gt; 
-_4:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3_usize], alloc::alloc::Global&gt; 
-_5:  @ usize 
-_6:  @ usize 
-_7:  @ *mut u8 
-_8:  @ alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3_usize], alloc::alloc::Global&gt; 
-_9:  @ syscall::table::FormattedSyscallParam 
-_10:  @ alloc::string::String 
-_11:  @ &amp;&#39;{erased} usize 
-_12:  @ usize 
-_13:  @ &amp;&#39;{erased} [usize] 
-_14:  @ syscall::table::FormattedSyscallParam 
-_15:  @ alloc::string::String 
-_16:  @ alloc::string::String 
-_17:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_18:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_19:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_20:  @ &amp;&#39;{erased} u32 
-_21:  @ &amp;&#39;{erased} u32 
-_22:  @ u32 
-_23:  @ &amp;&#39;{erased} [usize] 
-_24:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_25:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_26:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_27:  @ [&amp;&#39;{erased} str; 1_usize] 
-_28:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_29:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_30:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_31:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_32:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_33:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_34:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_35:  @ core::fmt::rt::Placeholder 
-_36:  @ core::fmt::rt::Count 
-_37:  @ core::fmt::rt::Count 
-_38:  @ syscall::table::FormattedSyscallParam 
-_39:  @ alloc::string::String 
-_40:  @ alloc::string::String 
-_41:  @ core::fmt::Arguments&lt;&#39;{erased}&gt; 
-_42:  @ [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_43:  @ core::fmt::rt::Argument&lt;&#39;{erased}&gt; 
-_44:  @ &amp;&#39;{erased} usize 
-_45:  @ &amp;&#39;{erased} usize 
-_46:  @ usize 
-_47:  @ &amp;&#39;{erased} [usize] 
-_48:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str] 
-_49:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_50:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_51:  @ [&amp;&#39;{erased} str; 1_usize] 
-_52:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;] 
-_53:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_54:  @ &amp;&#39;{erased} [core::fmt::rt::Argument&lt;&#39;{erased}&gt;; 1_usize] 
-_55:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder] 
-_56:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_57:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_58:  @ [core::fmt::rt::Placeholder; 1_usize] 
-_59:  @ core::fmt::rt::Placeholder 
-_60:  @ core::fmt::rt::Count 
-_61:  @ core::fmt::rt::Count 
-_62:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_63:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_64:  @ &amp;&#39;{erased} [core::fmt::rt::Placeholder; 1_usize] 
-_65:  @ &amp;&#39;{erased} [&amp;&#39;{erased} str; 1_usize] 
-_66:  @ &amp;&#39;{erased} mut alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3_usize], alloc::alloc::Global&gt; 
+                    <div id="mirContent" class="mir-content scrollable">bb0 at src/ipc/pipe.rs:473:13: 473:21
+bb1 at src/ipc/pipe.rs:473:43: 473:44
+bb2 at src/ipc/pipe.rs:474:63: 474:64
+bb3 at src/ipc/pipe.rs:479:13: 479:14
+bb4 at src/ipc/pipe.rs:479:9: 479:14
+bb5 at src/ipc/pipe.rs:479:9: 479:14
+bb6 at src/ipc/pipe.rs:483:23: 483:40
+bb7 at src/ipc/pipe.rs:483:39: 483:40
+bb8 at src/ipc/pipe.rs:483:48: 483:49
+bb10 at src/ipc/pipe.rs:485:42: 485:43
+bb11 at src/ipc/pipe.rs:487:45: 487:46
+bb12 at src/ipc/pipe.rs:488:17: 488:18
+bb13 at src/ipc/pipe.rs:488:13: 488:30
+bb14 at src/ipc/pipe.rs:489:17: 489:18
+bb15 at src/ipc/pipe.rs:490:34: 490:35
+bb16 at src/ipc/pipe.rs:491:23: 491:24
+bb17 at src/ipc/pipe.rs:496:17: 496:54
+bb18 at src/ipc/pipe.rs:496:53: 496:54
+bb19 at src/ipc/pipe.rs:500:31: 500:33
+bb20 at src/ipc/pipe.rs:501:18: 501:18
+bb21 at src/ipc/pipe.rs:519:18: 519:18
+bb22 at src/ipc/pipe.rs:506:21: 506:31
+bb23 at src/ipc/pipe.rs:506:30: 506:31
+bb25 at src/ipc/pipe.rs:508:92: 508:93
+bb26 at src/ipc/pipe.rs:508:92: 508:93
+bb27 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:41:17: 41:18
+bb28 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:41:61: 41:62
+bb30 at src/ipc/pipe.rs:508:92: 508:93
+bb31 at src/ipc/pipe.rs:508:92: 508:93
+bb32 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:35: 46:44
+bb34 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:43: 46:44
+bb35 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:43: 46:44
+bb36 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:50:14: 50:14
+bb37 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:52:17: 52:18
+bb38 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:53:9: 53:10
+bb39 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:55:13: 55:30
+bb40 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:55:29: 55:30
+bb41 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:56:10: 56:10
+bb42 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:56:9: 56:10
+bb43 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:18:9: 18:10
+bb45 at src/ipc/pipe.rs:509:33: 509:34
+bb46 at src/ipc/pipe.rs:511:57: 511:58
+bb47 at src/ipc/pipe.rs:512:29: 512:30
+bb48 at src/ipc/pipe.rs:512:25: 512:42
+bb49 at src/ipc/pipe.rs:513:32: 513:33
+bb50 at src/ipc/pipe.rs:513:44: 513:45
+bb51 at src/ipc/pipe.rs:514:33: 514:34
+bb52 at src/ipc/pipe.rs:513:44: 513:45
+bb53 at src/ipc/pipe.rs:515:25: 515:26
+bb54 at src/ipc/pipe.rs:516:35: 516:36
+bb55 at src/ipc/pipe.rs:509:33: 509:34
+bb56 at src/ipc/pipe.rs:519:17: 519:18
+bb57 at src/ipc/pipe.rs:520:14: 520:14
+bb58 at src/ipc/pipe.rs:520:13: 520:14
+bb59 at src/ipc/pipe.rs:485:42: 485:43
+bb61 at src/ipc/pipe.rs:521:49: 521:50
+bb62 at src/ipc/pipe.rs:525:17: 557:18
+bb63 at src/ipc/pipe.rs:527:25: 527:34
+bb64 at src/ipc/pipe.rs:527:53: 527:54
+bb65 at src/ipc/pipe.rs:528:28: 528:29
+bb66 at src/ipc/pipe.rs:528:40: 528:41
+bb67 at src/ipc/pipe.rs:528:40: 528:41
+bb68 at src/ipc/pipe.rs:531:25: 531:26
+bb69 at src/ipc/pipe.rs:531:21: 531:38
+bb70 at src/ipc/pipe.rs:532:31: 532:32
+bb71 at src/ipc/pipe.rs:535:25: 535:30
+bb72 at src/ipc/pipe.rs:535:49: 535:50
+bb73 at src/ipc/pipe.rs:536:42: 536:43
+bb74 at src/ipc/pipe.rs:537:31: 537:32
+bb75 at src/ipc/pipe.rs:541:25: 541:35
+bb76 at src/ipc/pipe.rs:541:34: 541:35
+bb78 at src/ipc/pipe.rs:545:45: 545:46
+bb79 at src/ipc/pipe.rs:545:45: 545:46
+bb80 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:41:17: 41:18
+bb81 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:41:61: 41:62
+bb83 at src/ipc/pipe.rs:545:45: 545:46
+bb84 at src/ipc/pipe.rs:545:45: 545:46
+bb85 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:35: 46:44
+bb87 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:43: 46:44
+bb88 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:46:43: 46:44
+bb89 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:50:14: 50:14
+bb90 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:52:17: 52:18
+bb91 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:53:9: 53:10
+bb92 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:55:13: 55:30
+bb93 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:55:29: 55:30
+bb94 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:56:10: 56:10
+bb95 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:56:9: 56:10
+bb96 at /home/yuzhili/DragonOS/kernel/crates/wait_queue_macros/src/lib.rs:18:9: 18:10
+bb98 at src/ipc/pipe.rs:548:37: 548:38
+bb99 at src/ipc/pipe.rs:548:37: 548:38
+bb100 at src/ipc/pipe.rs:551:22: 551:22
+bb101 at src/ipc/pipe.rs:551:21: 551:22
+bb102 at src/ipc/pipe.rs:554:53: 554:54
+bb103 at src/ipc/pipe.rs:555:25: 555:26
+bb104 at src/ipc/pipe.rs:555:21: 555:38
+bb105 at src/ipc/pipe.rs:556:31: 556:32
+bb106 at src/ipc/pipe.rs:557:17: 557:18
+bb107 at src/ipc/pipe.rs:560:53: 560:54
+bb108 at src/ipc/pipe.rs:563:21: 563:30
+bb109 at src/ipc/pipe.rs:563:49: 563:50
+bb110 at src/ipc/pipe.rs:564:21: 564:22
+bb111 at src/ipc/pipe.rs:564:17: 564:34
+bb112 at src/ipc/pipe.rs:565:27: 565:28
+bb113 at src/ipc/pipe.rs:566:13: 566:14
+bb114 at src/ipc/pipe.rs:521:49: 521:50
+bb116 at src/ipc/pipe.rs:567:47: 567:48
+bb117 at src/ipc/pipe.rs:569:45: 569:46
+bb118 at src/ipc/pipe.rs:570:17: 570:18
+bb119 at src/ipc/pipe.rs:570:13: 570:30
+bb120 at src/ipc/pipe.rs:571:17: 571:18
+bb121 at src/ipc/pipe.rs:571:13: 571:30
+bb122 at src/ipc/pipe.rs:572:17: 572:18
+bb123 at src/ipc/pipe.rs:573:23: 573:24
+bb124 at src/ipc/pipe.rs:577:17: 577:54
+bb125 at src/ipc/pipe.rs:577:53: 577:54
+bb126 at src/ipc/pipe.rs:578:14: 578:14
+bb127 at src/ipc/pipe.rs:578:13: 578:14
+bb128 at src/ipc/pipe.rs:567:47: 567:48
+bb129 at src/ipc/pipe.rs:579:9: 579:10
+bb130 at src/ipc/pipe.rs:579:9: 579:10
+bb131 at src/ipc/pipe.rs:579:9: 579:10
+bb132 at src/ipc/pipe.rs:533:17: 533:18
+bb133 at src/ipc/pipe.rs:557:17: 557:18
+bb134 at src/ipc/pipe.rs:520:13: 520:14
+bb135 at src/ipc/pipe.rs:579:9: 579:10
+bb136 at src/ipc/pipe.rs:582:5: 582:6
+fn &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open
+_0:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_1:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_2:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_3:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_4:  @ ! 
+_5:  @ filesystem::vfs::file::FileFlags 
+_6:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_7:  @ bool 
+_8:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_9:  @ filesystem::vfs::file::FileFlags 
+_10:  @ filesystem::vfs::file::FilePrivateData 
+_11:  @ ipc::pipe::PipeFsPrivateData 
+_12:  @ filesystem::vfs::file::FileFlags 
+_13:  @ &amp;&#39;{erased} mut filesystem::vfs::file::FilePrivateData 
+_14:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_15:  @ bool 
+_16:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_17:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_18:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_19:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_20:  @ () 
+_21:  @ bool 
+_22:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_23:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_24:  @ filesystem::vfs::file::FileFlags 
+_25:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_26:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_27:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_28:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_29:  @ (u32, bool) 
+_30:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_31:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_32:  @ bool 
+_33:  @ u32 
+_34:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_35:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_36:  @ () 
+_37:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_38:  @ bool 
+_39:  @ () 
+_40:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_41:  @ core::option::Option&lt;process::ProcessState&gt; 
+_42:  @ () 
+_43:  @ bool 
+_44:  @ ! 
+_45:  @ () 
+_46:  @ bool 
+_47:  @ () 
+_48:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_49:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_50:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_51:  @ () 
+_52:  @ () 
+_53:  @ bool 
+_54:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_55:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_56:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_57:  @ () 
+_58:  @ bool 
+_59:  @ () 
+_60:  @ () 
+_61:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_62:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_63:  @ () 
+_64:  @ bool 
+_65:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_66:  @ ! 
 _67:  @ () 
-_68:  @ *const [syscall::table::FormattedSyscallParam; 3_usize] 
-_69:  @ *const [syscall::table::FormattedSyscallParam; 3_usize] 
-_70:  @ *const () 
-_71:  @ usize 
-_72:  @ usize 
-_73:  @ usize 
-_74:  @ usize 
-_75:  @ bool 
-_76:  @ *const () 
-_77:  @ usize 
-_78:  @ usize 
+_68:  @ bool 
+_69:  @ bool 
+_70:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_71:  @ ! 
+_72:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_73:  @ () 
+_74:  @ () 
+_75:  @ () 
+_76:  @ bool 
+_77:  @ () 
+_78:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
 _79:  @ bool 
-_80:  @ bool 
-_81:  @ bool 
-_82:  @ bool 
+_80:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_81:  @ ! 
+_82:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_83:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_84:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_85:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_86:  @ (u32, bool) 
+_87:  @ () 
+_88:  @ bool 
+_89:  @ u32 
+_90:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_91:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_92:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_93:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_94:  @ () 
+_95:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_96:  @ system_error::SystemError 
+_97:  @ bool 
+_98:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_99:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_100:  @ filesystem::vfs::file::FileFlags 
+_101:  @ bool 
+_102:  @ () 
+_103:  @ bool 
+_104:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_105:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_106:  @ () 
+_107:  @ bool 
+_108:  @ u32 
+_109:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_110:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_111:  @ ! 
+_112:  @ system_error::SystemError 
+_113:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_114:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_115:  @ (u32, bool) 
+_116:  @ () 
+_117:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_118:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_119:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_120:  @ bool 
+_121:  @ u32 
+_122:  @ &amp;&#39;{erased} ipc::pipe::InnerPipeInode 
+_123:  @ &amp;&#39;{erased} libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_124:  @ () 
+_125:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_126:  @ () 
+_127:  @ bool 
+_128:  @ () 
+_129:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, filesystem::vfs::file::FilePrivateData&gt; 
+_130:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_131:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_132:  @ () 
+_133:  @ () 
+_134:  @ bool 
+_135:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_136:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_137:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_138:  @ () 
+_139:  @ bool 
+_140:  @ () 
+_141:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_142:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_143:  @ () 
+_144:  @ bool 
+_145:  @ &amp;&#39;{erased} ipc::pipe::LockedPipeInode 
+_146:  @ ! 
+_147:  @ () 
+_148:  @ bool 
+_149:  @ bool 
+_150:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_151:  @ ! 
+_152:  @ core::result::Result&lt;(), system_error::SystemError&gt; 
+_153:  @ () 
+_154:  @ () 
+_155:  @ () 
+_156:  @ bool 
+_157:  @ () 
+_158:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_159:  @ bool 
+_160:  @ &amp;&#39;{erased} core::result::Result&lt;(), system_error::SystemError&gt; 
+_161:  @ ! 
+_162:  @ system_error::SystemError 
+_163:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_164:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_165:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_166:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_167:  @ (u32, bool) 
+_168:  @ () 
+_169:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_170:  @ () 
+_171:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_172:  @ core::option::Option&lt;process::ProcessState&gt; 
+_173:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_174:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_175:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_176:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_177:  @ (u32, bool) 
+_178:  @ () 
+_179:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_180:  @ bool 
+_181:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_182:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_183:  @ filesystem::vfs::file::FileFlags 
+_184:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_185:  @ &amp;&#39;{erased} libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt; 
+_186:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_187:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_188:  @ (u32, bool) 
+_189:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_190:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_191:  @ (u32, bool) 
+_192:  @ &amp;&#39;{erased} mut ipc::pipe::InnerPipeInode 
+_193:  @ &amp;&#39;{erased} mut libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_194:  @ () 
+_195:  @ libs::spinlock::SpinLockGuard&lt;&#39;{erased}, ipc::pipe::InnerPipeInode&gt; 
+_196:  @ bool 
+_197:  @ () 
+_198:  @ &amp;&#39;{erased} libs::wait_queue::WaitQueue 
+_199:  @ core::option::Option&lt;process::ProcessState&gt; 
+_200:  @ () 
+_201:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_202:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_203:  @ &amp;&#39;{erased} filesystem::vfs::file::FileFlags 
+_204:  @ bool 
+_205:  @ bool 
+_206:  @ bool 
+_207:  @ bool 
+_208:  @ bool 
+_209:  @ bool 
+_210:  @ bool 
+_211:  @ bool 
+_212:  @ bool 
 
 bb 0 {
 CleanUp: false
-    StorageLive(_3) @ StorageLive
-    StorageLive(_4) @ StorageLive
-    Assign((_5, SizeOf([syscall::table::FormattedSyscallParam; 3]))) @ _5=SizeOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    Assign((_6, AlignOf([syscall::table::FormattedSyscallParam; 3]))) @ _6=AlignOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    _7 = alloc::alloc::exchange_malloc(move _5, move _6) -&gt; [return: bb1, unwind continue] @ Call: FnDid: 147
+    Assign((_204, const false)) @ _204=const false @ Use
+    Assign((_212, const false)) @ _212=const false @ Use
+    Assign((_211, const false)) @ _211=const false @ Use
+    Assign((_210, const false)) @ _210=const false @ Use
+    Assign((_209, const false)) @ _209=const false @ Use
+    Assign((_208, const false)) @ _208=const false @ Use
+    Assign((_207, const false)) @ _207=const false @ Use
+    Assign((_206, const false)) @ _206=const false @ Use
+    Assign((_205, const false)) @ _205=const false @ Use
+    Assign((_204, const true)) @ _204=const true @ Use
+    StorageLive(_5) @ StorageLive
+    StorageLive(_6) @ StorageLive
+    Assign((_6, &amp;(*_3))) @ _6=&amp;(*_3) @ Ref
+    _5 = filesystem::vfs::file::FileFlags::access_flags(move _6) -&gt; [return: bb1, unwind: bb158] @ Call: FnDid: 19170
 }
 bb 1 {
 CleanUp: false
+    StorageDead(_6) @ StorageDead
+    StorageLive(_7) @ StorageLive
     StorageLive(_8) @ StorageLive
-    Assign((_8, ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 3]))) @ _8=ShallowInitBox(move _7, [syscall::table::FormattedSyscallParam; 3]) @ ShallowInitBox
-    StorageLive(_9) @ StorageLive
-    StorageLive(_10) @ StorageLive
-    StorageLive(_11) @ StorageLive
-    StorageLive(_12) @ StorageLive
-    StorageLive(_13) @ StorageLive
-    Assign((_13, &amp;(*_2))) @ _13=&amp;(*_2) @ Ref
-    _12 = filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle::fd(move _13) -&gt; [return: bb2, unwind: bb21] @ Call: FnDid: 20051
+    Assign((_8, &amp;(*_3))) @ _8=&amp;(*_3) @ Ref
+    _7 = filesystem::vfs::file::FileFlags::contains(move _8, const filesystem::vfs::file::FileFlags::O_NONBLOCK) -&gt; [return: bb2, unwind: bb158] @ Call: FnDid: 53562
 }
 bb 2 {
 CleanUp: false
-    Assign((_11, &amp;_12)) @ _11=&amp;_12 @ Ref
-    StorageDead(_13) @ StorageDead
-    _10 = &lt;usize as alloc::string::ToString&gt;::to_string(move _11) -&gt; [return: bb3, unwind: bb21] @ Call: FnDid: 6626
+    StorageDead(_8) @ StorageDead
+    StorageLive(_9) @ StorageLive
+    Assign((_9, copy (*_3))) @ _9=copy (*_3) @ Use
+    StorageLive(_10) @ StorageLive
+    StorageLive(_11) @ StorageLive
+    StorageLive(_12) @ StorageLive
+    Assign((_12, copy _9)) @ _12=copy _9 @ Use
+    Assign((_11, ipc::pipe::PipeFsPrivateData { flags: move _12 })) @ _11=ipc::pipe::PipeFsPrivateData { flags: move _12 } @ Aggregate
+    StorageDead(_12) @ StorageDead
+    Assign((_212, const true)) @ _212=const true @ Use
+    Assign((_10, filesystem::vfs::file::FilePrivateData::Pipefs(move _11))) @ _10=filesystem::vfs::file::FilePrivateData::Pipefs(move _11) @ Aggregate
+    StorageDead(_11) @ StorageDead
+    StorageLive(_13) @ StorageLive
+    StorageLive(_14) @ StorageLive
+    Assign((_14, &amp;mut _2)) @ _14=&amp;mut _2 @ Ref
+    _13 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt; as core::ops::DerefMut&gt;::deref_mut(move _14) -&gt; [return: bb3, unwind: bb156] @ Call: FnDid: 3915
 }
 bb 3 {
 CleanUp: false
-    StorageDead(_11) @ StorageDead
-    _9 = syscall::table::FormattedSyscallParam::new(const &#34;fd&#34;, move _10) -&gt; [return: bb4, unwind: bb21] @ Call: FnDid: 30792
+    StorageDead(_14) @ StorageDead
+    drop((*_13)) -&gt; [return: bb4, unwind: bb5] @ Drop
 }
 bb 4 {
 CleanUp: false
+    Assign((_212, const false)) @ _212=const false @ Use
+    Assign(((*_13), move _10)) @ (*_13)=move _10 @ Use
+    Assign((_212, const false)) @ _212=const false @ Use
     StorageDead(_10) @ StorageDead
-    StorageLive(_14) @ StorageLive
+    StorageDead(_13) @ StorageDead
     StorageLive(_15) @ StorageLive
     StorageLive(_16) @ StorageLive
     StorageLive(_17) @ StorageLive
     StorageLive(_18) @ StorageLive
     StorageLive(_19) @ StorageLive
-    StorageLive(_20) @ StorageLive
-    StorageLive(_21) @ StorageLive
-    StorageLive(_22) @ StorageLive
-    StorageLive(_23) @ StorageLive
-    Assign((_23, &amp;(*_2))) @ _23=&amp;(*_2) @ Ref
-    _22 = filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle::cmd(move _23) -&gt; [return: bb5, unwind: bb19] @ Call: FnDid: 20052
+    Assign((_19, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _19=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _18 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _19) -&gt; [return: bb6, unwind: bb158] @ Call: FnDid: 5261
 }
 bb 5 {
-CleanUp: false
-    StorageDead(_23) @ StorageDead
-    Assign((_21, &amp;_22)) @ _21=&amp;_22 @ Ref
-    Assign((_20, &amp;(*_21))) @ _20=&amp;(*_21) @ Ref
-    _19 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;u32&gt;(move _20) -&gt; [return: bb6, unwind: bb19] @ Call: FnDid: 11815
+CleanUp: true
+    Assign((_212, const false)) @ _212=const false @ Use
+    Assign(((*_13), move _10)) @ (*_13)=move _10 @ Use
+    goto -&gt; bb156 @ Goto
 }
 bb 6 {
 CleanUp: false
-    StorageDead(_20) @ StorageDead
-    Assign((_18, [move _19])) @ _18=[move _19] @ Aggregate
-    StorageDead(_19) @ StorageDead
-    StorageLive(_24) @ StorageLive
-    StorageLive(_25) @ StorageLive
-    StorageLive(_26) @ StorageLive
-    Assign((_65, const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[3])) @ _65=const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[3] @ Use
-    Assign((_26, &amp;(*_65))) @ _26=&amp;(*_65) @ Ref
-    Assign((_25, &amp;(*_26))) @ _25=&amp;(*_26) @ Ref
-    Assign((_24, move _25 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _24=move _25 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_25) @ StorageDead
-    StorageLive(_28) @ StorageLive
-    StorageLive(_29) @ StorageLive
-    StorageLive(_30) @ StorageLive
-    Assign((_30, &amp;_18)) @ _30=&amp;_18 @ Ref
-    Assign((_29, &amp;(*_30))) @ _29=&amp;(*_30) @ Ref
-    Assign((_28, move _29 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _28=move _29 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_29) @ StorageDead
-    StorageLive(_31) @ StorageLive
-    StorageLive(_32) @ StorageLive
-    StorageLive(_33) @ StorageLive
-    Assign((_64, const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[2])) @ _64=const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[2] @ Use
-    Assign((_33, &amp;(*_64))) @ _33=&amp;(*_64) @ Ref
-    Assign((_32, &amp;(*_33))) @ _32=&amp;(*_33) @ Ref
-    Assign((_31, move _32 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _31=move _32 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_32) @ StorageDead
-    _17 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _24, move _28, move _31) -&gt; [return: bb7, unwind: bb19] @ Call: FnDid: 11842
+    Assign((_17, &amp;_18)) @ _17=&amp;_18 @ Ref
+    _16 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _17) -&gt; [return: bb7, unwind: bb138] @ Call: FnDid: 3903
 }
 bb 7 {
 CleanUp: false
-    StorageDead(_33) @ StorageDead
-    StorageDead(_31) @ StorageDead
-    StorageDead(_30) @ StorageDead
-    StorageDead(_28) @ StorageDead
-    StorageDead(_26) @ StorageDead
-    StorageDead(_24) @ StorageDead
-    _16 = alloc::fmt::format(move _17) -&gt; [return: bb8, unwind: bb19] @ Call: FnDid: 5475
+    StorageDead(_19) @ StorageDead
+    StorageDead(_17) @ StorageDead
+    Assign((_15, copy ((*_16).10: bool))) @ _15=copy ((*_16).10: bool) @ Use
+    drop(_18) -&gt; [return: bb8, unwind: bb158] @ Drop
 }
 bb 8 {
 CleanUp: false
-    StorageDead(_22) @ StorageDead
-    StorageDead(_21) @ StorageDead
     StorageDead(_18) @ StorageDead
-    StorageDead(_17) @ StorageDead
-    _15 = core::hint::must_use::&lt;alloc::string::String&gt;(move _16) -&gt; [return: bb9, unwind: bb19] @ Call: FnDid: 1455
+    StorageDead(_16) @ StorageDead
+    StorageLive(_20) @ StorageLive
+    StorageLive(_21) @ StorageLive
+    StorageLive(_22) @ StorageLive
+    Assign((_22, &amp;_5)) @ _22=&amp;_5 @ Ref
+    StorageLive(_23) @ StorageLive
+    Assign((_203, const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open::promoted[2])) @ _203=const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open::promoted[2] @ Use
+    Assign((_23, &amp;(*_203))) @ _23=&amp;(*_203) @ Ref
+    _21 = &lt;filesystem::vfs::file::FileFlags as core::cmp::PartialEq&gt;::eq(move _22, move _23) -&gt; [return: bb9, unwind: bb158] @ Call: FnDid: 3170
 }
 bb 9 {
 CleanUp: false
-    StorageDead(_16) @ StorageDead
-    _14 = syscall::table::FormattedSyscallParam::new(const &#34;cmd&#34;, move _15) -&gt; [return: bb10, unwind: bb19] @ Call: FnDid: 30792
+    switchInt(move _21) -&gt; [0: bb59, otherwise: bb10] @ SwitchInt
 }
 bb 10 {
 CleanUp: false
-    StorageDead(_15) @ StorageDead
-    StorageLive(_38) @ StorageLive
-    StorageLive(_39) @ StorageLive
-    StorageLive(_40) @ StorageLive
-    StorageLive(_41) @ StorageLive
-    StorageLive(_42) @ StorageLive
-    StorageLive(_43) @ StorageLive
-    StorageLive(_44) @ StorageLive
-    StorageLive(_45) @ StorageLive
-    StorageLive(_46) @ StorageLive
-    StorageLive(_47) @ StorageLive
-    Assign((_47, &amp;(*_2))) @ _47=&amp;(*_2) @ Ref
-    _46 = filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle::data(move _47) -&gt; [return: bb11, unwind: bb18] @ Call: FnDid: 20053
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_25) @ StorageLive
+    StorageLive(_26) @ StorageLive
+    Assign((_26, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _26=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _25 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _26) -&gt; [return: bb11, unwind: bb158] @ Call: FnDid: 5261
 }
 bb 11 {
 CleanUp: false
-    StorageDead(_47) @ StorageDead
-    Assign((_45, &amp;_46)) @ _45=&amp;_46 @ Ref
-    Assign((_44, &amp;(*_45))) @ _44=&amp;(*_45) @ Ref
-    _43 = core::fmt::rt::Argument::&lt;&#39;_&gt;::new_lower_hex::&lt;usize&gt;(move _44) -&gt; [return: bb12, unwind: bb18] @ Call: FnDid: 11815
+    Assign((_211, const true)) @ _211=const true @ Use
+    StorageDead(_26) @ StorageDead
+    StorageLive(_27) @ StorageLive
+    StorageLive(_28) @ StorageLive
+    Assign((_28, &amp;mut _25)) @ _28=&amp;mut _25 @ Ref
+    _27 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _28) -&gt; [return: bb12, unwind: bb154] @ Call: FnDid: 3915
 }
 bb 12 {
 CleanUp: false
-    StorageDead(_44) @ StorageDead
-    Assign((_42, [move _43])) @ _42=[move _43] @ Aggregate
-    StorageDead(_43) @ StorageDead
-    StorageLive(_48) @ StorageLive
-    StorageLive(_49) @ StorageLive
-    StorageLive(_50) @ StorageLive
-    Assign((_63, const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[1])) @ _63=const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[1] @ Use
-    Assign((_50, &amp;(*_63))) @ _50=&amp;(*_63) @ Ref
-    Assign((_49, &amp;(*_50))) @ _49=&amp;(*_50) @ Ref
-    Assign((_48, move _49 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)))) @ _48=move _49 as &amp;[&amp;str] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_49) @ StorageDead
-    StorageLive(_52) @ StorageLive
-    StorageLive(_53) @ StorageLive
-    StorageLive(_54) @ StorageLive
-    Assign((_54, &amp;_42)) @ _54=&amp;_42 @ Ref
-    Assign((_53, &amp;(*_54))) @ _53=&amp;(*_54) @ Ref
-    Assign((_52, move _53 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)))) @ _52=move _53 as &amp;[core::fmt::rt::Argument&lt;&#39;_&gt;] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_53) @ StorageDead
-    StorageLive(_55) @ StorageLive
-    StorageLive(_56) @ StorageLive
-    StorageLive(_57) @ StorageLive
-    Assign((_62, const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[0])) @ _62=const &lt;filesystem::vfs::syscall::sys_ioctl::SysIoctlHandle as syscall::table::Syscall&gt;::entry_format::promoted[0] @ Use
-    Assign((_57, &amp;(*_62))) @ _57=&amp;(*_62) @ Ref
-    Assign((_56, &amp;(*_57))) @ _56=&amp;(*_57) @ Ref
-    Assign((_55, move _56 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)))) @ _55=move _56 as &amp;[core::fmt::rt::Placeholder] (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_56) @ StorageDead
-    _41 = core::fmt::rt::&lt;impl core::fmt::Arguments&lt;&#39;_&gt;&gt;::new_v1_formatted(move _48, move _52, move _55) -&gt; [return: bb13, unwind: bb18] @ Call: FnDid: 11842
+    StorageDead(_28) @ StorageDead
+    Assign((_29, AddWithOverflow(copy ((*_27).7: u32), const 1_u32))) @ _29=AddWithOverflow(copy ((*_27).7: u32), const 1_u32) @ BinaryOp
+    assert(!move (_29.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_27).7: u32), const 1_u32) -&gt; [success: bb13, unwind: bb154] @ Assert
 }
 bb 13 {
 CleanUp: false
-    StorageDead(_57) @ StorageDead
-    StorageDead(_55) @ StorageDead
-    StorageDead(_54) @ StorageDead
-    StorageDead(_52) @ StorageDead
-    StorageDead(_50) @ StorageDead
-    StorageDead(_48) @ StorageDead
-    _40 = alloc::fmt::format(move _41) -&gt; [return: bb14, unwind: bb18] @ Call: FnDid: 5475
+    Assign((((*_27).7: u32), move (_29.0: u32))) @ ((*_27).7: u32)=move (_29.0: u32) @ Use
+    StorageDead(_27) @ StorageDead
+    StorageLive(_30) @ StorageLive
+    StorageLive(_31) @ StorageLive
+    Assign((_31, &amp;mut _25)) @ _31=&amp;mut _25 @ Ref
+    _30 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _31) -&gt; [return: bb14, unwind: bb154] @ Call: FnDid: 3915
 }
 bb 14 {
 CleanUp: false
-    StorageDead(_46) @ StorageDead
-    StorageDead(_45) @ StorageDead
-    StorageDead(_42) @ StorageDead
-    StorageDead(_41) @ StorageDead
-    _39 = core::hint::must_use::&lt;alloc::string::String&gt;(move _40) -&gt; [return: bb15, unwind: bb18] @ Call: FnDid: 1455
+    StorageDead(_31) @ StorageDead
+    Assign((((*_30).9: bool), const true)) @ ((*_30).9: bool)=const true @ Use
+    StorageDead(_30) @ StorageDead
+    StorageLive(_32) @ StorageLive
+    StorageLive(_33) @ StorageLive
+    StorageLive(_34) @ StorageLive
+    StorageLive(_35) @ StorageLive
+    Assign((_35, &amp;_25)) @ _35=&amp;_25 @ Ref
+    _34 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _35) -&gt; [return: bb15, unwind: bb154] @ Call: FnDid: 3903
 }
 bb 15 {
 CleanUp: false
-    StorageDead(_40) @ StorageDead
-    _38 = syscall::table::FormattedSyscallParam::new(const &#34;data&#34;, move _39) -&gt; [return: bb16, unwind: bb18] @ Call: FnDid: 30792
+    StorageDead(_35) @ StorageDead
+    Assign((_33, copy ((*_34).8: u32))) @ _33=copy ((*_34).8: u32) @ Use
+    Assign((_32, Gt(move _33, const 0_u32))) @ _32=Gt(move _33, const 0_u32) @ BinaryOp
+    StorageDead(_33) @ StorageDead
+    StorageDead(_34) @ StorageDead
+    StorageLive(_36) @ StorageLive
+    StorageLive(_37) @ StorageLive
+    Assign((_211, const false)) @ _211=const false @ Use
+    Assign((_37, move _25)) @ _37=move _25 @ Use
+    _36 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _37) -&gt; [return: bb16, unwind: bb154] @ Call: FnDid: 2323
 }
 bb 16 {
 CleanUp: false
-    StorageDead(_39) @ StorageDead
-    Assign((_69, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute))) @ _69=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute) @ Cast
-    Assign((_70, copy _69 as *const () (PtrToPtr))) @ _70=copy _69 as *const () (PtrToPtr) @ Cast
-    Assign((_71, copy _70 as usize (Transmute))) @ _71=copy _70 as usize (Transmute) @ Cast
-    Assign((_72, AlignOf([syscall::table::FormattedSyscallParam; 3]))) @ _72=AlignOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    Assign((_73, Sub(copy _72, const 1_usize))) @ _73=Sub(copy _72, const 1_usize) @ BinaryOp
-    Assign((_74, BitAnd(copy _71, copy _73))) @ _74=BitAnd(copy _71, copy _73) @ BinaryOp
-    Assign((_75, Eq(copy _74, const 0_usize))) @ _75=Eq(copy _74, const 0_usize) @ BinaryOp
-    assert(copy _75, &#34;misaligned pointer dereference: address must be a multiple of {} but is {}&#34;, copy _72, copy _71) -&gt; [success: bb22, unwind unreachable] @ Assert
+    StorageDead(_37) @ StorageDead
+    StorageDead(_36) @ StorageDead
+    StorageLive(_38) @ StorageLive
+    Assign((_38, copy _15)) @ _38=copy _15 @ Use
+    switchInt(move _38) -&gt; [0: bb57, otherwise: bb17] @ SwitchInt
 }
 bb 17 {
 CleanUp: false
-    StorageDead(_3) @ StorageDead
-    StorageDead(_12) @ StorageDead
-    return @ Return
+    StorageLive(_39) @ StorageLive
+    StorageLive(_40) @ StorageLive
+    Assign((_40, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _40=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_41) @ StorageLive
+    Assign((_41, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _41=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _39 = libs::wait_queue::WaitQueue::wakeup_all(move _40, move _41) -&gt; [return: bb18, unwind: bb154] @ Call: FnDid: 5651
 }
 bb 18 {
-CleanUp: true
-    drop(_14) -&gt; [return: bb19, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageDead(_41) @ StorageDead
+    StorageDead(_40) @ StorageDead
+    StorageDead(_39) @ StorageDead
+    StorageLive(_42) @ StorageLive
+    StorageLive(_43) @ StorageLive
+    Assign((_43, copy _7)) @ _43=copy _7 @ Use
+    switchInt(move _43) -&gt; [0: bb20, otherwise: bb19] @ SwitchInt
 }
 bb 19 {
-CleanUp: true
-    drop(_9) -&gt; [return: bb21, unwind terminate(cleanup)] @ Drop
+CleanUp: false
+    StorageLive(_45) @ StorageLive
+    Assign((_45, ())) @ _45=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _45))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _45) @ Aggregate
+    StorageDead(_45) @ StorageDead
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    goto -&gt; bb134 @ Goto
 }
 bb 20 {
-CleanUp: true
-    resume @ UnwindResume
+CleanUp: false
+    Assign((_42, const ())) @ _42=const () @ Use
+    StorageDead(_43) @ StorageDead
+    StorageDead(_42) @ StorageDead
+    StorageLive(_46) @ StorageLive
+    Assign((_46, copy _32)) @ _46=copy _32 @ Use
+    switchInt(move _46) -&gt; [0: bb22, otherwise: bb21] @ SwitchInt
 }
 bb 21 {
-CleanUp: true
-    Assign((_68, copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute))) @ _68=copy ((_8.0: core::ptr::Unique&lt;[syscall::table::FormattedSyscallParam; 3]&gt;).0: core::ptr::NonNull&lt;[syscall::table::FormattedSyscallParam; 3]&gt;) as *const [syscall::table::FormattedSyscallParam; 3] (Transmute) @ Cast
-    Assign((_66, &amp;mut _8)) @ _66=&amp;mut _8 @ Ref
-    _67 = &lt;alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam; 3]&gt; as core::ops::Drop&gt;::drop(move _66) -&gt; [return: bb24, unwind terminate(cleanup)] @ Call: FnDid: 3937
+CleanUp: false
+    Assign((_20, const ())) @ _20=const () @ Use
+    goto -&gt; bb56 @ Goto
 }
 bb 22 {
 CleanUp: false
-    Assign((_76, copy _69 as *const () (PtrToPtr))) @ _76=copy _69 as *const () (PtrToPtr) @ Cast
-    Assign((_77, copy _76 as usize (Transmute))) @ _77=copy _76 as usize (Transmute) @ Cast
-    Assign((_78, SizeOf([syscall::table::FormattedSyscallParam; 3]))) @ _78=SizeOf([syscall::table::FormattedSyscallParam; 3]) @ NullaryOp
-    Assign((_79, Ne(copy _78, const 0_usize))) @ _79=Ne(copy _78, const 0_usize) @ BinaryOp
-    Assign((_80, Eq(copy _77, const 0_usize))) @ _80=Eq(copy _77, const 0_usize) @ BinaryOp
-    Assign((_81, BitAnd(copy _80, copy _79))) @ _81=BitAnd(copy _80, copy _79) @ BinaryOp
-    Assign((_82, Not(copy _81))) @ _82=Not(copy _81) @ UnaryOp
-    assert(copy _82, &#34;null pointer dereference occurred&#34;) -&gt; [success: bb23, unwind unreachable] @ Assert
+    StorageLive(_47) @ StorageLive
+    StorageLive(_48) @ StorageLive
+    Assign((_204, const false)) @ _204=const false @ Use
+    Assign((_48, move _2)) @ _48=move _2 @ Use
+    _47 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt;&gt;(move _48) -&gt; [return: bb23, unwind: bb154] @ Call: FnDid: 2323
 }
 bb 23 {
 CleanUp: false
-    Assign(((*_69), [move _9, move _14, move _38])) @ (*_69)=[move _9, move _14, move _38] @ Aggregate
-    StorageDead(_38) @ StorageDead
-    StorageDead(_14) @ StorageDead
-    StorageDead(_9) @ StorageDead
-    Assign((_4, move _8)) @ _4=move _8 @ Use
-    Assign((_3, move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)))) @ _3=move _4 as alloc::boxed::Box&lt;[syscall::table::FormattedSyscallParam]&gt; (PointerCoercion(Unsize, Implicit)) @ Cast
-    StorageDead(_8) @ StorageDead
-    StorageDead(_4) @ StorageDead
-    _0 = alloc::slice::&lt;impl [syscall::table::FormattedSyscallParam]&gt;::into_vec::&lt;alloc::alloc::Global&gt;(move _3) -&gt; [return: bb17, unwind: bb20] @ Call: FnDid: 6192
+    StorageDead(_48) @ StorageDead
+    StorageDead(_47) @ StorageDead
+    StorageLive(_49) @ StorageLive
+    StorageLive(_50) @ StorageLive
+    StorageLive(_51) @ StorageLive
+    Assign((_51, ())) @ _51=() @ Aggregate
+    Assign((_50, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _51))) @ _50=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _51) @ Aggregate
+    StorageDead(_51) @ StorageDead
+    StorageLive(_52) @ StorageLive
+    StorageLive(_53) @ StorageLive
+    StorageLive(_54) @ StorageLive
+    Assign((_54, &amp;(*_1))) @ _54=&amp;(*_1) @ Ref
+    _53 = ipc::pipe::LockedPipeInode::has_writer(move _54) -&gt; [return: bb24, unwind: bb154] @ Call: FnDid: 22416
 }
 bb 24 {
+CleanUp: false
+    switchInt(move _53) -&gt; [0: bb26, otherwise: bb25] @ SwitchInt
+}
+bb 25 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    Assign((_52, const ())) @ _52=const () @ Use
+    goto -&gt; bb43 @ Goto
+}
+bb 26 {
+CleanUp: false
+    StorageDead(_54) @ StorageDead
+    StorageLive(_55) @ StorageLive
+    StorageLive(_56) @ StorageLive
+    StorageLive(_57) @ StorageLive
+    Assign((_57, ())) @ _57=() @ Aggregate
+    Assign((_56, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _57))) @ _56=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _57) @ Aggregate
+    StorageDead(_57) @ StorageDead
+    StorageLive(_58) @ StorageLive
+    Assign((_58, const true)) @ _58=const true @ Use
+    StorageLive(_59) @ StorageLive
+    goto -&gt; bb27 @ Goto
+}
+bb 27 {
+CleanUp: false
+    StorageLive(_61) @ StorageLive
+    StorageLive(_62) @ StorageLive
+    Assign((_62, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _62=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    _61 = libs::wait_queue::WaitQueue::prepare_to_wait_event(move _62, const true) -&gt; [return: bb28, unwind: bb154] @ Call: FnDid: 5622
+}
+bb 28 {
+CleanUp: false
+    StorageDead(_62) @ StorageDead
+    StorageLive(_63) @ StorageLive
+    StorageLive(_64) @ StorageLive
+    StorageLive(_65) @ StorageLive
+    Assign((_65, &amp;(*_1))) @ _65=&amp;(*_1) @ Ref
+    _64 = ipc::pipe::LockedPipeInode::has_writer(move _65) -&gt; [return: bb29, unwind: bb154] @ Call: FnDid: 22416
+}
+bb 29 {
+CleanUp: false
+    switchInt(move _64) -&gt; [0: bb31, otherwise: bb30] @ SwitchInt
+}
+bb 30 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    Assign((_59, const ())) @ _59=const () @ Use
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    goto -&gt; bb38 @ Goto
+}
+bb 31 {
+CleanUp: false
+    StorageDead(_65) @ StorageDead
+    Assign((_63, const ())) @ _63=const () @ Use
+    StorageDead(_64) @ StorageDead
+    StorageDead(_63) @ StorageDead
+    StorageLive(_67) @ StorageLive
+    StorageLive(_68) @ StorageLive
+    Assign((_68, const true)) @ _68=const true @ Use
+    switchInt(move _68) -&gt; [0: bb36, otherwise: bb32] @ SwitchInt
+}
+bb 32 {
+CleanUp: false
+    StorageLive(_69) @ StorageLive
+    StorageLive(_70) @ StorageLive
+    Assign((_70, &amp;_61)) @ _70=&amp;_61 @ Ref
+    _69 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_ok(move _70) -&gt; [return: bb33, unwind: bb154] @ Call: FnDid: 10987
+}
+bb 33 {
+CleanUp: false
+    switchInt(move _69) -&gt; [0: bb35, otherwise: bb34] @ SwitchInt
+}
+bb 34 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    goto -&gt; bb36 @ Goto
+}
+bb 35 {
+CleanUp: false
+    StorageDead(_70) @ StorageDead
+    StorageLive(_72) @ StorageLive
+    Assign((_72, move _61)) @ _72=move _61 @ Use
+    Assign((_56, move _72)) @ _56=move _72 @ Use
+    StorageDead(_72) @ StorageDead
+    Assign((_58, const false)) @ _58=const false @ Use
+    Assign((_59, const ())) @ _59=const () @ Use
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    goto -&gt; bb38 @ Goto
+}
+bb 36 {
+CleanUp: false
+    Assign((_67, const ())) @ _67=const () @ Use
+    StorageDead(_69) @ StorageDead
+    StorageDead(_68) @ StorageDead
+    StorageDead(_67) @ StorageDead
+    StorageLive(_73) @ StorageLive
+    StorageLive(_74) @ StorageLive
+    Assign((_74, const ())) @ _74=const () @ Use
+    StorageDead(_74) @ StorageDead
+    _73 = sched::schedule(const sched::SchedMode::SM_NONE) -&gt; [return: bb37, unwind: bb154] @ Call: FnDid: 30574
+}
+bb 37 {
+CleanUp: false
+    StorageDead(_73) @ StorageDead
+    Assign((_60, const ())) @ _60=const () @ Use
+    StorageDead(_61) @ StorageDead
+    goto -&gt; bb27 @ Goto
+}
+bb 38 {
+CleanUp: false
+    StorageDead(_61) @ StorageDead
+    StorageDead(_59) @ StorageDead
+    StorageLive(_75) @ StorageLive
+    StorageLive(_76) @ StorageLive
+    Assign((_76, copy _58)) @ _76=copy _58 @ Use
+    switchInt(move _76) -&gt; [0: bb41, otherwise: bb39] @ SwitchInt
+}
+bb 39 {
+CleanUp: false
+    StorageLive(_77) @ StorageLive
+    StorageLive(_78) @ StorageLive
+    Assign((_78, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _78=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    _77 = libs::wait_queue::WaitQueue::finish_wait(move _78) -&gt; [return: bb40, unwind: bb154] @ Call: FnDid: 5624
+}
+bb 40 {
+CleanUp: false
+    StorageDead(_78) @ StorageDead
+    StorageDead(_77) @ StorageDead
+    Assign((_75, const ())) @ _75=const () @ Use
+    goto -&gt; bb42 @ Goto
+}
+bb 41 {
+CleanUp: false
+    Assign((_75, const ())) @ _75=const () @ Use
+    goto -&gt; bb42 @ Goto
+}
+bb 42 {
+CleanUp: false
+    StorageDead(_76) @ StorageDead
+    StorageDead(_75) @ StorageDead
+    Assign((_55, move _56)) @ _55=move _56 @ Use
+    StorageDead(_58) @ StorageDead
+    StorageDead(_56) @ StorageDead
+    Assign((_50, move _55)) @ _50=move _55 @ Use
+    StorageDead(_55) @ StorageDead
+    Assign((_52, const ())) @ _52=const () @ Use
+    goto -&gt; bb43 @ Goto
+}
+bb 43 {
+CleanUp: false
+    StorageDead(_53) @ StorageDead
+    StorageDead(_52) @ StorageDead
+    Assign((_49, move _50)) @ _49=move _50 @ Use
+    StorageDead(_50) @ StorageDead
+    StorageLive(_79) @ StorageLive
+    StorageLive(_80) @ StorageLive
+    Assign((_80, &amp;_49)) @ _80=&amp;_49 @ Ref
+    _79 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_err(move _80) -&gt; [return: bb44, unwind: bb154] @ Call: FnDid: 10990
+}
+bb 44 {
+CleanUp: false
+    switchInt(move _79) -&gt; [0: bb55, otherwise: bb45] @ SwitchInt
+}
+bb 45 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    StorageLive(_82) @ StorageLive
+    StorageLive(_83) @ StorageLive
+    Assign((_83, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _83=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _82 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _83) -&gt; [return: bb46, unwind: bb154] @ Call: FnDid: 5261
+}
+bb 46 {
+CleanUp: false
+    Assign((_210, const true)) @ _210=const true @ Use
+    StorageDead(_83) @ StorageDead
+    StorageLive(_84) @ StorageLive
+    StorageLive(_85) @ StorageLive
+    Assign((_85, &amp;mut _82)) @ _85=&amp;mut _82 @ Ref
+    _84 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _85) -&gt; [return: bb47, unwind: bb152] @ Call: FnDid: 3915
+}
+bb 47 {
+CleanUp: false
+    StorageDead(_85) @ StorageDead
+    Assign((_86, SubWithOverflow(copy ((*_84).7: u32), const 1_u32))) @ _86=SubWithOverflow(copy ((*_84).7: u32), const 1_u32) @ BinaryOp
+    assert(!move (_86.1: bool), &#34;attempt to compute `{} - {}`, which would overflow&#34;, copy ((*_84).7: u32), const 1_u32) -&gt; [success: bb48, unwind: bb152] @ Assert
+}
+bb 48 {
+CleanUp: false
+    Assign((((*_84).7: u32), move (_86.0: u32))) @ ((*_84).7: u32)=move (_86.0: u32) @ Use
+    StorageDead(_84) @ StorageDead
+    StorageLive(_87) @ StorageLive
+    StorageLive(_88) @ StorageLive
+    StorageLive(_89) @ StorageLive
+    StorageLive(_90) @ StorageLive
+    StorageLive(_91) @ StorageLive
+    Assign((_91, &amp;_82)) @ _91=&amp;_82 @ Ref
+    _90 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _91) -&gt; [return: bb49, unwind: bb152] @ Call: FnDid: 3903
+}
+bb 49 {
+CleanUp: false
+    StorageDead(_91) @ StorageDead
+    Assign((_89, copy ((*_90).7: u32))) @ _89=copy ((*_90).7: u32) @ Use
+    Assign((_88, Eq(move _89, const 0_u32))) @ _88=Eq(move _89, const 0_u32) @ BinaryOp
+    switchInt(move _88) -&gt; [0: bb52, otherwise: bb50] @ SwitchInt
+}
+bb 50 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    StorageLive(_92) @ StorageLive
+    StorageLive(_93) @ StorageLive
+    Assign((_93, &amp;mut _82)) @ _93=&amp;mut _82 @ Ref
+    _92 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _93) -&gt; [return: bb51, unwind: bb152] @ Call: FnDid: 3915
+}
+bb 51 {
+CleanUp: false
+    StorageDead(_93) @ StorageDead
+    Assign((((*_92).9: bool), const false)) @ ((*_92).9: bool)=const false @ Use
+    StorageDead(_92) @ StorageDead
+    Assign((_87, const ())) @ _87=const () @ Use
+    goto -&gt; bb53 @ Goto
+}
+bb 52 {
+CleanUp: false
+    StorageDead(_90) @ StorageDead
+    StorageDead(_89) @ StorageDead
+    Assign((_87, const ())) @ _87=const () @ Use
+    goto -&gt; bb53 @ Goto
+}
+bb 53 {
+CleanUp: false
+    StorageDead(_88) @ StorageDead
+    StorageDead(_87) @ StorageDead
+    StorageLive(_94) @ StorageLive
+    StorageLive(_95) @ StorageLive
+    Assign((_210, const false)) @ _210=const false @ Use
+    Assign((_95, move _82)) @ _95=move _82 @ Use
+    _94 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _95) -&gt; [return: bb54, unwind: bb152] @ Call: FnDid: 2323
+}
+bb 54 {
+CleanUp: false
+    StorageDead(_95) @ StorageDead
+    StorageDead(_94) @ StorageDead
+    StorageLive(_96) @ StorageLive
+    Assign((_96, system_error::SystemError::EINTR)) @ _96=system_error::SystemError::EINTR @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _96))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _96) @ Aggregate
+    StorageDead(_96) @ StorageDead
+    Assign((_210, const false)) @ _210=const false @ Use
+    StorageDead(_82) @ StorageDead
+    StorageDead(_79) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb134 @ Goto
+}
+bb 55 {
+CleanUp: false
+    StorageDead(_80) @ StorageDead
+    Assign((_20, const ())) @ _20=const () @ Use
+    StorageDead(_79) @ StorageDead
+    StorageDead(_49) @ StorageDead
+    goto -&gt; bb56 @ Goto
+}
+bb 56 {
+CleanUp: false
+    StorageDead(_46) @ StorageDead
+    goto -&gt; bb58 @ Goto
+}
+bb 57 {
+CleanUp: false
+    Assign((_20, const ())) @ _20=const () @ Use
+    goto -&gt; bb58 @ Goto
+}
+bb 58 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    Assign((_211, const false)) @ _211=const false @ Use
+    StorageDead(_25) @ StorageDead
+    goto -&gt; bb131 @ Goto
+}
+bb 59 {
+CleanUp: false
+    StorageDead(_23) @ StorageDead
+    StorageDead(_22) @ StorageDead
+    StorageLive(_97) @ StorageLive
+    StorageLive(_98) @ StorageLive
+    Assign((_98, &amp;_5)) @ _98=&amp;_5 @ Ref
+    StorageLive(_99) @ StorageLive
+    Assign((_202, const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open::promoted[1])) @ _202=const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open::promoted[1] @ Use
+    Assign((_99, &amp;(*_202))) @ _99=&amp;(*_202) @ Ref
+    _97 = &lt;filesystem::vfs::file::FileFlags as core::cmp::PartialEq&gt;::eq(move _98, move _99) -&gt; [return: bb60, unwind: bb158] @ Call: FnDid: 3170
+}
+bb 60 {
+CleanUp: false
+    switchInt(move _97) -&gt; [0: bb114, otherwise: bb61] @ SwitchInt
+}
+bb 61 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageLive(_101) @ StorageLive
+    Assign((_101, copy _15)) @ _101=copy _15 @ Use
+    switchInt(move _101) -&gt; [0: bb108, otherwise: bb62] @ SwitchInt
+}
+bb 62 {
+CleanUp: false
+    StorageLive(_102) @ StorageLive
+    StorageLive(_103) @ StorageLive
+    Assign((_103, copy _7)) @ _103=copy _7 @ Use
+    switchInt(move _103) -&gt; [0: bb71, otherwise: bb63] @ SwitchInt
+}
+bb 63 {
+CleanUp: false
+    StorageLive(_104) @ StorageLive
+    StorageLive(_105) @ StorageLive
+    Assign((_105, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _105=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _104 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _105) -&gt; [return: bb64, unwind: bb158] @ Call: FnDid: 5261
+}
+bb 64 {
+CleanUp: false
+    Assign((_209, const true)) @ _209=const true @ Use
+    StorageDead(_105) @ StorageDead
+    StorageLive(_106) @ StorageLive
+    StorageLive(_107) @ StorageLive
+    StorageLive(_108) @ StorageLive
+    StorageLive(_109) @ StorageLive
+    StorageLive(_110) @ StorageLive
+    Assign((_110, &amp;_104)) @ _110=&amp;_104 @ Ref
+    _109 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _110) -&gt; [return: bb65, unwind: bb150] @ Call: FnDid: 3903
+}
+bb 65 {
+CleanUp: false
+    StorageDead(_110) @ StorageDead
+    Assign((_108, copy ((*_109).7: u32))) @ _108=copy ((*_109).7: u32) @ Use
+    Assign((_107, Eq(move _108, const 0_u32))) @ _107=Eq(move _108, const 0_u32) @ BinaryOp
+    switchInt(move _107) -&gt; [0: bb67, otherwise: bb66] @ SwitchInt
+}
+bb 66 {
+CleanUp: false
+    StorageDead(_109) @ StorageDead
+    StorageDead(_108) @ StorageDead
+    StorageLive(_112) @ StorageLive
+    Assign((_112, system_error::SystemError::ENXIO)) @ _112=system_error::SystemError::ENXIO @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _112))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _112) @ Aggregate
+    StorageDead(_112) @ StorageDead
+    StorageDead(_107) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    drop(_104) -&gt; [return: bb132, unwind: bb158] @ Drop
+}
+bb 67 {
+CleanUp: false
+    StorageDead(_109) @ StorageDead
+    StorageDead(_108) @ StorageDead
+    Assign((_106, const ())) @ _106=const () @ Use
+    StorageDead(_107) @ StorageDead
+    StorageDead(_106) @ StorageDead
+    StorageLive(_113) @ StorageLive
+    StorageLive(_114) @ StorageLive
+    Assign((_114, &amp;mut _104)) @ _114=&amp;mut _104 @ Ref
+    _113 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _114) -&gt; [return: bb68, unwind: bb150] @ Call: FnDid: 3915
+}
+bb 68 {
+CleanUp: false
+    StorageDead(_114) @ StorageDead
+    Assign((_115, AddWithOverflow(copy ((*_113).8: u32), const 1_u32))) @ _115=AddWithOverflow(copy ((*_113).8: u32), const 1_u32) @ BinaryOp
+    assert(!move (_115.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_113).8: u32), const 1_u32) -&gt; [success: bb69, unwind: bb150] @ Assert
+}
+bb 69 {
+CleanUp: false
+    Assign((((*_113).8: u32), move (_115.0: u32))) @ ((*_113).8: u32)=move (_115.0: u32) @ Use
+    StorageDead(_113) @ StorageDead
+    StorageLive(_116) @ StorageLive
+    StorageLive(_117) @ StorageLive
+    Assign((_209, const false)) @ _209=const false @ Use
+    Assign((_117, move _104)) @ _117=move _104 @ Use
+    _116 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _117) -&gt; [return: bb70, unwind: bb150] @ Call: FnDid: 2323
+}
+bb 70 {
+CleanUp: false
+    StorageDead(_117) @ StorageDead
+    StorageDead(_116) @ StorageDead
+    Assign((_102, const ())) @ _102=const () @ Use
+    Assign((_209, const false)) @ _209=const false @ Use
+    StorageDead(_104) @ StorageDead
+    goto -&gt; bb106 @ Goto
+}
+bb 71 {
+CleanUp: false
+    StorageLive(_118) @ StorageLive
+    StorageLive(_119) @ StorageLive
+    Assign((_119, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _119=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _118 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _119) -&gt; [return: bb72, unwind: bb158] @ Call: FnDid: 5261
+}
+bb 72 {
+CleanUp: false
+    Assign((_208, const true)) @ _208=const true @ Use
+    StorageDead(_119) @ StorageDead
+    StorageLive(_120) @ StorageLive
+    StorageLive(_121) @ StorageLive
+    StorageLive(_122) @ StorageLive
+    StorageLive(_123) @ StorageLive
+    Assign((_123, &amp;_118)) @ _123=&amp;_118 @ Ref
+    _122 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as lazy_static::__Deref&gt;::deref(move _123) -&gt; [return: bb73, unwind: bb148] @ Call: FnDid: 3903
+}
+bb 73 {
+CleanUp: false
+    StorageDead(_123) @ StorageDead
+    Assign((_121, copy ((*_122).7: u32))) @ _121=copy ((*_122).7: u32) @ Use
+    Assign((_120, Gt(move _121, const 0_u32))) @ _120=Gt(move _121, const 0_u32) @ BinaryOp
+    StorageDead(_121) @ StorageDead
+    StorageDead(_122) @ StorageDead
+    StorageLive(_124) @ StorageLive
+    StorageLive(_125) @ StorageLive
+    Assign((_208, const false)) @ _208=const false @ Use
+    Assign((_125, move _118)) @ _125=move _118 @ Use
+    _124 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _125) -&gt; [return: bb74, unwind: bb148] @ Call: FnDid: 2323
+}
+bb 74 {
+CleanUp: false
+    StorageDead(_125) @ StorageDead
+    StorageDead(_124) @ StorageDead
+    StorageLive(_126) @ StorageLive
+    StorageLive(_127) @ StorageLive
+    Assign((_127, copy _120)) @ _127=copy _120 @ Use
+    switchInt(move _127) -&gt; [0: bb75, otherwise: bb100] @ SwitchInt
+}
+bb 75 {
+CleanUp: false
+    StorageLive(_128) @ StorageLive
+    StorageLive(_129) @ StorageLive
+    Assign((_204, const false)) @ _204=const false @ Use
+    Assign((_129, move _2)) @ _129=move _2 @ Use
+    _128 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, filesystem::vfs::file::FilePrivateData&gt;&gt;(move _129) -&gt; [return: bb76, unwind: bb148] @ Call: FnDid: 2323
+}
+bb 76 {
+CleanUp: false
+    StorageDead(_129) @ StorageDead
+    StorageDead(_128) @ StorageDead
+    StorageLive(_130) @ StorageLive
+    StorageLive(_131) @ StorageLive
+    StorageLive(_132) @ StorageLive
+    Assign((_132, ())) @ _132=() @ Aggregate
+    Assign((_131, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _132))) @ _131=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _132) @ Aggregate
+    StorageDead(_132) @ StorageDead
+    StorageLive(_133) @ StorageLive
+    StorageLive(_134) @ StorageLive
+    StorageLive(_135) @ StorageLive
+    Assign((_135, &amp;(*_1))) @ _135=&amp;(*_1) @ Ref
+    _134 = ipc::pipe::LockedPipeInode::has_reader(move _135) -&gt; [return: bb77, unwind: bb148] @ Call: FnDid: 22417
+}
+bb 77 {
+CleanUp: false
+    switchInt(move _134) -&gt; [0: bb79, otherwise: bb78] @ SwitchInt
+}
+bb 78 {
+CleanUp: false
+    StorageDead(_135) @ StorageDead
+    Assign((_133, const ())) @ _133=const () @ Use
+    goto -&gt; bb96 @ Goto
+}
+bb 79 {
+CleanUp: false
+    StorageDead(_135) @ StorageDead
+    StorageLive(_136) @ StorageLive
+    StorageLive(_137) @ StorageLive
+    StorageLive(_138) @ StorageLive
+    Assign((_138, ())) @ _138=() @ Aggregate
+    Assign((_137, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _138))) @ _137=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _138) @ Aggregate
+    StorageDead(_138) @ StorageDead
+    StorageLive(_139) @ StorageLive
+    Assign((_139, const true)) @ _139=const true @ Use
+    StorageLive(_140) @ StorageLive
+    goto -&gt; bb80 @ Goto
+}
+bb 80 {
+CleanUp: false
+    StorageLive(_141) @ StorageLive
+    StorageLive(_142) @ StorageLive
+    Assign((_142, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _142=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    _141 = libs::wait_queue::WaitQueue::prepare_to_wait_event(move _142, const true) -&gt; [return: bb81, unwind: bb148] @ Call: FnDid: 5622
+}
+bb 81 {
+CleanUp: false
+    StorageDead(_142) @ StorageDead
+    StorageLive(_143) @ StorageLive
+    StorageLive(_144) @ StorageLive
+    StorageLive(_145) @ StorageLive
+    Assign((_145, &amp;(*_1))) @ _145=&amp;(*_1) @ Ref
+    _144 = ipc::pipe::LockedPipeInode::has_reader(move _145) -&gt; [return: bb82, unwind: bb148] @ Call: FnDid: 22417
+}
+bb 82 {
+CleanUp: false
+    switchInt(move _144) -&gt; [0: bb84, otherwise: bb83] @ SwitchInt
+}
+bb 83 {
+CleanUp: false
+    StorageDead(_145) @ StorageDead
+    Assign((_140, const ())) @ _140=const () @ Use
+    StorageDead(_144) @ StorageDead
+    StorageDead(_143) @ StorageDead
+    goto -&gt; bb91 @ Goto
+}
+bb 84 {
+CleanUp: false
+    StorageDead(_145) @ StorageDead
+    Assign((_143, const ())) @ _143=const () @ Use
+    StorageDead(_144) @ StorageDead
+    StorageDead(_143) @ StorageDead
+    StorageLive(_147) @ StorageLive
+    StorageLive(_148) @ StorageLive
+    Assign((_148, const true)) @ _148=const true @ Use
+    switchInt(move _148) -&gt; [0: bb89, otherwise: bb85] @ SwitchInt
+}
+bb 85 {
+CleanUp: false
+    StorageLive(_149) @ StorageLive
+    StorageLive(_150) @ StorageLive
+    Assign((_150, &amp;_141)) @ _150=&amp;_141 @ Ref
+    _149 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_ok(move _150) -&gt; [return: bb86, unwind: bb148] @ Call: FnDid: 10987
+}
+bb 86 {
+CleanUp: false
+    switchInt(move _149) -&gt; [0: bb88, otherwise: bb87] @ SwitchInt
+}
+bb 87 {
+CleanUp: false
+    StorageDead(_150) @ StorageDead
+    goto -&gt; bb89 @ Goto
+}
+bb 88 {
+CleanUp: false
+    StorageDead(_150) @ StorageDead
+    StorageLive(_152) @ StorageLive
+    Assign((_152, move _141)) @ _152=move _141 @ Use
+    Assign((_137, move _152)) @ _137=move _152 @ Use
+    StorageDead(_152) @ StorageDead
+    Assign((_139, const false)) @ _139=const false @ Use
+    Assign((_140, const ())) @ _140=const () @ Use
+    StorageDead(_149) @ StorageDead
+    StorageDead(_148) @ StorageDead
+    StorageDead(_147) @ StorageDead
+    goto -&gt; bb91 @ Goto
+}
+bb 89 {
+CleanUp: false
+    Assign((_147, const ())) @ _147=const () @ Use
+    StorageDead(_149) @ StorageDead
+    StorageDead(_148) @ StorageDead
+    StorageDead(_147) @ StorageDead
+    StorageLive(_153) @ StorageLive
+    StorageLive(_154) @ StorageLive
+    Assign((_154, const ())) @ _154=const () @ Use
+    StorageDead(_154) @ StorageDead
+    _153 = sched::schedule(const sched::SchedMode::SM_NONE) -&gt; [return: bb90, unwind: bb148] @ Call: FnDid: 30574
+}
+bb 90 {
+CleanUp: false
+    StorageDead(_153) @ StorageDead
+    Assign((_60, const ())) @ _60=const () @ Use
+    StorageDead(_141) @ StorageDead
+    goto -&gt; bb80 @ Goto
+}
+bb 91 {
+CleanUp: false
+    StorageDead(_141) @ StorageDead
+    StorageDead(_140) @ StorageDead
+    StorageLive(_155) @ StorageLive
+    StorageLive(_156) @ StorageLive
+    Assign((_156, copy _139)) @ _156=copy _139 @ Use
+    switchInt(move _156) -&gt; [0: bb94, otherwise: bb92] @ SwitchInt
+}
+bb 92 {
+CleanUp: false
+    StorageLive(_157) @ StorageLive
+    StorageLive(_158) @ StorageLive
+    Assign((_158, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _158=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    _157 = libs::wait_queue::WaitQueue::finish_wait(move _158) -&gt; [return: bb93, unwind: bb148] @ Call: FnDid: 5624
+}
+bb 93 {
+CleanUp: false
+    StorageDead(_158) @ StorageDead
+    StorageDead(_157) @ StorageDead
+    Assign((_155, const ())) @ _155=const () @ Use
+    goto -&gt; bb95 @ Goto
+}
+bb 94 {
+CleanUp: false
+    Assign((_155, const ())) @ _155=const () @ Use
+    goto -&gt; bb95 @ Goto
+}
+bb 95 {
+CleanUp: false
+    StorageDead(_156) @ StorageDead
+    StorageDead(_155) @ StorageDead
+    Assign((_136, move _137)) @ _136=move _137 @ Use
+    StorageDead(_139) @ StorageDead
+    StorageDead(_137) @ StorageDead
+    Assign((_131, move _136)) @ _131=move _136 @ Use
+    StorageDead(_136) @ StorageDead
+    Assign((_133, const ())) @ _133=const () @ Use
+    goto -&gt; bb96 @ Goto
+}
+bb 96 {
+CleanUp: false
+    StorageDead(_134) @ StorageDead
+    StorageDead(_133) @ StorageDead
+    Assign((_130, move _131)) @ _130=move _131 @ Use
+    StorageDead(_131) @ StorageDead
+    StorageLive(_159) @ StorageLive
+    StorageLive(_160) @ StorageLive
+    Assign((_160, &amp;_130)) @ _160=&amp;_130 @ Ref
+    _159 = core::result::Result::&lt;(), system_error::SystemError&gt;::is_err(move _160) -&gt; [return: bb97, unwind: bb148] @ Call: FnDid: 10990
+}
+bb 97 {
+CleanUp: false
+    switchInt(move _159) -&gt; [0: bb99, otherwise: bb98] @ SwitchInt
+}
+bb 98 {
+CleanUp: false
+    StorageDead(_160) @ StorageDead
+    StorageLive(_162) @ StorageLive
+    Assign((_162, system_error::SystemError::EINTR)) @ _162=system_error::SystemError::EINTR @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _162))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Err(move _162) @ Aggregate
+    StorageDead(_162) @ StorageDead
+    StorageDead(_159) @ StorageDead
+    StorageDead(_130) @ StorageDead
+    StorageDead(_127) @ StorageDead
+    StorageDead(_126) @ StorageDead
+    StorageDead(_120) @ StorageDead
+    Assign((_208, const false)) @ _208=const false @ Use
+    StorageDead(_118) @ StorageDead
+    goto -&gt; bb133 @ Goto
+}
+bb 99 {
+CleanUp: false
+    StorageDead(_160) @ StorageDead
+    Assign((_126, const ())) @ _126=const () @ Use
+    StorageDead(_159) @ StorageDead
+    StorageDead(_130) @ StorageDead
+    goto -&gt; bb101 @ Goto
+}
+bb 100 {
+CleanUp: false
+    Assign((_126, const ())) @ _126=const () @ Use
+    goto -&gt; bb101 @ Goto
+}
+bb 101 {
+CleanUp: false
+    StorageDead(_127) @ StorageDead
+    StorageDead(_126) @ StorageDead
+    StorageLive(_163) @ StorageLive
+    StorageLive(_164) @ StorageLive
+    Assign((_164, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _164=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _163 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _164) -&gt; [return: bb102, unwind: bb148] @ Call: FnDid: 5261
+}
+bb 102 {
+CleanUp: false
+    Assign((_207, const true)) @ _207=const true @ Use
+    StorageDead(_164) @ StorageDead
+    StorageLive(_165) @ StorageLive
+    StorageLive(_166) @ StorageLive
+    Assign((_166, &amp;mut _163)) @ _166=&amp;mut _163 @ Ref
+    _165 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _166) -&gt; [return: bb103, unwind: bb146] @ Call: FnDid: 3915
+}
+bb 103 {
+CleanUp: false
+    StorageDead(_166) @ StorageDead
+    Assign((_167, AddWithOverflow(copy ((*_165).8: u32), const 1_u32))) @ _167=AddWithOverflow(copy ((*_165).8: u32), const 1_u32) @ BinaryOp
+    assert(!move (_167.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_165).8: u32), const 1_u32) -&gt; [success: bb104, unwind: bb146] @ Assert
+}
+bb 104 {
+CleanUp: false
+    Assign((((*_165).8: u32), move (_167.0: u32))) @ ((*_165).8: u32)=move (_167.0: u32) @ Use
+    StorageDead(_165) @ StorageDead
+    StorageLive(_168) @ StorageLive
+    StorageLive(_169) @ StorageLive
+    Assign((_207, const false)) @ _207=const false @ Use
+    Assign((_169, move _163)) @ _169=move _163 @ Use
+    _168 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _169) -&gt; [return: bb105, unwind: bb146] @ Call: FnDid: 2323
+}
+bb 105 {
+CleanUp: false
+    StorageDead(_169) @ StorageDead
+    StorageDead(_168) @ StorageDead
+    Assign((_102, const ())) @ _102=const () @ Use
+    Assign((_207, const false)) @ _207=const false @ Use
+    StorageDead(_163) @ StorageDead
+    StorageDead(_120) @ StorageDead
+    Assign((_208, const false)) @ _208=const false @ Use
+    StorageDead(_118) @ StorageDead
+    goto -&gt; bb106 @ Goto
+}
+bb 106 {
+CleanUp: false
+    StorageDead(_103) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageLive(_170) @ StorageLive
+    StorageLive(_171) @ StorageLive
+    Assign((_171, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _171=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_172) @ StorageLive
+    Assign((_172, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _172=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _170 = libs::wait_queue::WaitQueue::wakeup_all(move _171, move _172) -&gt; [return: bb107, unwind: bb158] @ Call: FnDid: 5651
+}
+bb 107 {
+CleanUp: false
+    StorageDead(_172) @ StorageDead
+    StorageDead(_171) @ StorageDead
+    StorageDead(_170) @ StorageDead
+    Assign((_20, const ())) @ _20=const () @ Use
+    goto -&gt; bb113 @ Goto
+}
+bb 108 {
+CleanUp: false
+    StorageLive(_173) @ StorageLive
+    StorageLive(_174) @ StorageLive
+    Assign((_174, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _174=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _173 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _174) -&gt; [return: bb109, unwind: bb158] @ Call: FnDid: 5261
+}
+bb 109 {
+CleanUp: false
+    Assign((_206, const true)) @ _206=const true @ Use
+    StorageDead(_174) @ StorageDead
+    StorageLive(_175) @ StorageLive
+    StorageLive(_176) @ StorageLive
+    Assign((_176, &amp;mut _173)) @ _176=&amp;mut _173 @ Ref
+    _175 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _176) -&gt; [return: bb110, unwind: bb144] @ Call: FnDid: 3915
+}
+bb 110 {
+CleanUp: false
+    StorageDead(_176) @ StorageDead
+    Assign((_177, AddWithOverflow(copy ((*_175).8: u32), const 1_u32))) @ _177=AddWithOverflow(copy ((*_175).8: u32), const 1_u32) @ BinaryOp
+    assert(!move (_177.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_175).8: u32), const 1_u32) -&gt; [success: bb111, unwind: bb144] @ Assert
+}
+bb 111 {
+CleanUp: false
+    Assign((((*_175).8: u32), move (_177.0: u32))) @ ((*_175).8: u32)=move (_177.0: u32) @ Use
+    StorageDead(_175) @ StorageDead
+    StorageLive(_178) @ StorageLive
+    StorageLive(_179) @ StorageLive
+    Assign((_206, const false)) @ _206=const false @ Use
+    Assign((_179, move _173)) @ _179=move _173 @ Use
+    _178 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _179) -&gt; [return: bb112, unwind: bb144] @ Call: FnDid: 2323
+}
+bb 112 {
+CleanUp: false
+    StorageDead(_179) @ StorageDead
+    StorageDead(_178) @ StorageDead
+    Assign((_20, const ())) @ _20=const () @ Use
+    Assign((_206, const false)) @ _206=const false @ Use
+    StorageDead(_173) @ StorageDead
+    goto -&gt; bb113 @ Goto
+}
+bb 113 {
+CleanUp: false
+    StorageDead(_101) @ StorageDead
+    goto -&gt; bb130 @ Goto
+}
+bb 114 {
+CleanUp: false
+    StorageDead(_99) @ StorageDead
+    StorageDead(_98) @ StorageDead
+    StorageLive(_180) @ StorageLive
+    StorageLive(_181) @ StorageLive
+    Assign((_181, &amp;_5)) @ _181=&amp;_5 @ Ref
+    StorageLive(_182) @ StorageLive
+    Assign((_201, const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open::promoted[0])) @ _201=const &lt;ipc::pipe::LockedPipeInode as filesystem::vfs::IndexNode&gt;::open::promoted[0] @ Use
+    Assign((_182, &amp;(*_201))) @ _182=&amp;(*_201) @ Ref
+    _180 = &lt;filesystem::vfs::file::FileFlags as core::cmp::PartialEq&gt;::eq(move _181, move _182) -&gt; [return: bb115, unwind: bb158] @ Call: FnDid: 3170
+}
+bb 115 {
+CleanUp: false
+    switchInt(move _180) -&gt; [0: bb128, otherwise: bb116] @ SwitchInt
+}
+bb 116 {
+CleanUp: false
+    StorageDead(_182) @ StorageDead
+    StorageDead(_181) @ StorageDead
+    StorageLive(_184) @ StorageLive
+    StorageLive(_185) @ StorageLive
+    Assign((_185, &amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;))) @ _185=&amp;((*_1).0: libs::spinlock::SpinLock&lt;ipc::pipe::InnerPipeInode&gt;) @ Ref
+    _184 = libs::spinlock::SpinLock::&lt;ipc::pipe::InnerPipeInode&gt;::lock(move _185) -&gt; [return: bb117, unwind: bb158] @ Call: FnDid: 5261
+}
+bb 117 {
+CleanUp: false
+    Assign((_205, const true)) @ _205=const true @ Use
+    StorageDead(_185) @ StorageDead
+    StorageLive(_186) @ StorageLive
+    StorageLive(_187) @ StorageLive
+    Assign((_187, &amp;mut _184)) @ _187=&amp;mut _184 @ Ref
+    _186 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _187) -&gt; [return: bb118, unwind: bb142] @ Call: FnDid: 3915
+}
+bb 118 {
+CleanUp: false
+    StorageDead(_187) @ StorageDead
+    Assign((_188, AddWithOverflow(copy ((*_186).7: u32), const 1_u32))) @ _188=AddWithOverflow(copy ((*_186).7: u32), const 1_u32) @ BinaryOp
+    assert(!move (_188.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_186).7: u32), const 1_u32) -&gt; [success: bb119, unwind: bb142] @ Assert
+}
+bb 119 {
+CleanUp: false
+    Assign((((*_186).7: u32), move (_188.0: u32))) @ ((*_186).7: u32)=move (_188.0: u32) @ Use
+    StorageDead(_186) @ StorageDead
+    StorageLive(_189) @ StorageLive
+    StorageLive(_190) @ StorageLive
+    Assign((_190, &amp;mut _184)) @ _190=&amp;mut _184 @ Ref
+    _189 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _190) -&gt; [return: bb120, unwind: bb142] @ Call: FnDid: 3915
+}
+bb 120 {
+CleanUp: false
+    StorageDead(_190) @ StorageDead
+    Assign((_191, AddWithOverflow(copy ((*_189).8: u32), const 1_u32))) @ _191=AddWithOverflow(copy ((*_189).8: u32), const 1_u32) @ BinaryOp
+    assert(!move (_191.1: bool), &#34;attempt to compute `{} + {}`, which would overflow&#34;, copy ((*_189).8: u32), const 1_u32) -&gt; [success: bb121, unwind: bb142] @ Assert
+}
+bb 121 {
+CleanUp: false
+    Assign((((*_189).8: u32), move (_191.0: u32))) @ ((*_189).8: u32)=move (_191.0: u32) @ Use
+    StorageDead(_189) @ StorageDead
+    StorageLive(_192) @ StorageLive
+    StorageLive(_193) @ StorageLive
+    Assign((_193, &amp;mut _184)) @ _193=&amp;mut _184 @ Ref
+    _192 = &lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt; as core::ops::DerefMut&gt;::deref_mut(move _193) -&gt; [return: bb122, unwind: bb142] @ Call: FnDid: 3915
+}
+bb 122 {
+CleanUp: false
+    StorageDead(_193) @ StorageDead
+    Assign((((*_192).9: bool), const true)) @ ((*_192).9: bool)=const true @ Use
+    StorageDead(_192) @ StorageDead
+    StorageLive(_194) @ StorageLive
+    StorageLive(_195) @ StorageLive
+    Assign((_205, const false)) @ _205=const false @ Use
+    Assign((_195, move _184)) @ _195=move _184 @ Use
+    _194 = core::mem::drop::&lt;libs::spinlock::SpinLockGuard&lt;&#39;_, ipc::pipe::InnerPipeInode&gt;&gt;(move _195) -&gt; [return: bb123, unwind: bb142] @ Call: FnDid: 2323
+}
+bb 123 {
+CleanUp: false
+    StorageDead(_195) @ StorageDead
+    StorageDead(_194) @ StorageDead
+    StorageLive(_196) @ StorageLive
+    Assign((_196, copy _15)) @ _196=copy _15 @ Use
+    switchInt(move _196) -&gt; [0: bb126, otherwise: bb124] @ SwitchInt
+}
+bb 124 {
+CleanUp: false
+    StorageLive(_197) @ StorageLive
+    StorageLive(_198) @ StorageLive
+    Assign((_198, &amp;((*_1).3: libs::wait_queue::WaitQueue))) @ _198=&amp;((*_1).3: libs::wait_queue::WaitQueue) @ Ref
+    StorageLive(_199) @ StorageLive
+    Assign((_199, core::option::Option::&lt;process::ProcessState&gt;::None)) @ _199=core::option::Option::&lt;process::ProcessState&gt;::None @ Aggregate
+    _197 = libs::wait_queue::WaitQueue::wakeup_all(move _198, move _199) -&gt; [return: bb125, unwind: bb142] @ Call: FnDid: 5651
+}
+bb 125 {
+CleanUp: false
+    StorageDead(_199) @ StorageDead
+    StorageDead(_198) @ StorageDead
+    StorageDead(_197) @ StorageDead
+    Assign((_20, const ())) @ _20=const () @ Use
+    goto -&gt; bb127 @ Goto
+}
+bb 126 {
+CleanUp: false
+    Assign((_20, const ())) @ _20=const () @ Use
+    goto -&gt; bb127 @ Goto
+}
+bb 127 {
+CleanUp: false
+    StorageDead(_196) @ StorageDead
+    Assign((_205, const false)) @ _205=const false @ Use
+    StorageDead(_184) @ StorageDead
+    goto -&gt; bb129 @ Goto
+}
+bb 128 {
+CleanUp: false
+    StorageDead(_182) @ StorageDead
+    StorageDead(_181) @ StorageDead
+    Assign((_20, const ())) @ _20=const () @ Use
+    goto -&gt; bb129 @ Goto
+}
+bb 129 {
+CleanUp: false
+    StorageDead(_180) @ StorageDead
+    goto -&gt; bb130 @ Goto
+}
+bb 130 {
+CleanUp: false
+    StorageDead(_97) @ StorageDead
+    goto -&gt; bb131 @ Goto
+}
+bb 131 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    StorageLive(_200) @ StorageLive
+    Assign((_200, ())) @ _200=() @ Aggregate
+    Assign((_0, core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _200))) @ _0=core::result::Result::&lt;(), system_error::SystemError&gt;::Ok(move _200) @ Aggregate
+    StorageDead(_200) @ StorageDead
+    goto -&gt; bb136 @ Goto
+}
+bb 132 {
+CleanUp: false
+    Assign((_209, const false)) @ _209=const false @ Use
+    StorageDead(_104) @ StorageDead
+    goto -&gt; bb133 @ Goto
+}
+bb 133 {
+CleanUp: false
+    StorageDead(_103) @ StorageDead
+    StorageDead(_102) @ StorageDead
+    StorageDead(_101) @ StorageDead
+    StorageDead(_97) @ StorageDead
+    goto -&gt; bb135 @ Goto
+}
+bb 134 {
+CleanUp: false
+    StorageDead(_38) @ StorageDead
+    StorageDead(_32) @ StorageDead
+    Assign((_211, const false)) @ _211=const false @ Use
+    StorageDead(_25) @ StorageDead
+    goto -&gt; bb135 @ Goto
+}
+bb 135 {
+CleanUp: false
+    StorageDead(_21) @ StorageDead
+    StorageDead(_20) @ StorageDead
+    goto -&gt; bb136 @ Goto
+}
+bb 136 {
+CleanUp: false
+    StorageDead(_15) @ StorageDead
+    StorageDead(_9) @ StorageDead
+    StorageDead(_7) @ StorageDead
+    StorageDead(_5) @ StorageDead
+    switchInt(copy _204) -&gt; [0: bb137, otherwise: bb140] @ SwitchInt
+}
+bb 137 {
+CleanUp: false
+    return @ Return
+}
+bb 138 {
 CleanUp: true
-    goto -&gt; bb20 @ Goto
+    drop(_18) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 139 {
+CleanUp: true
+    resume @ UnwindResume
+}
+bb 140 {
+CleanUp: false
+    drop(_2) -&gt; [return: bb137, unwind: bb139] @ Drop
+}
+bb 141 {
+CleanUp: true
+    drop(_184) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 142 {
+CleanUp: true
+    switchInt(copy _205) -&gt; [0: bb158, otherwise: bb141] @ SwitchInt
+}
+bb 143 {
+CleanUp: true
+    drop(_173) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 144 {
+CleanUp: true
+    switchInt(copy _206) -&gt; [0: bb158, otherwise: bb143] @ SwitchInt
+}
+bb 145 {
+CleanUp: true
+    drop(_163) -&gt; [return: bb148, unwind terminate(cleanup)] @ Drop
+}
+bb 146 {
+CleanUp: true
+    switchInt(copy _207) -&gt; [0: bb148, otherwise: bb145] @ SwitchInt
+}
+bb 147 {
+CleanUp: true
+    drop(_118) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 148 {
+CleanUp: true
+    switchInt(copy _208) -&gt; [0: bb158, otherwise: bb147] @ SwitchInt
+}
+bb 149 {
+CleanUp: true
+    drop(_104) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 150 {
+CleanUp: true
+    switchInt(copy _209) -&gt; [0: bb158, otherwise: bb149] @ SwitchInt
+}
+bb 151 {
+CleanUp: true
+    drop(_82) -&gt; [return: bb154, unwind terminate(cleanup)] @ Drop
+}
+bb 152 {
+CleanUp: true
+    switchInt(copy _210) -&gt; [0: bb154, otherwise: bb151] @ SwitchInt
+}
+bb 153 {
+CleanUp: true
+    drop(_25) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 154 {
+CleanUp: true
+    switchInt(copy _211) -&gt; [0: bb158, otherwise: bb153] @ SwitchInt
+}
+bb 155 {
+CleanUp: true
+    drop(_10) -&gt; [return: bb158, unwind terminate(cleanup)] @ Drop
+}
+bb 156 {
+CleanUp: true
+    switchInt(copy _212) -&gt; [0: bb158, otherwise: bb155] @ SwitchInt
+}
+bb 157 {
+CleanUp: true
+    drop(_2) -&gt; [return: bb139, unwind terminate(cleanup)] @ Drop
+}
+bb 158 {
+CleanUp: true
+    switchInt(copy _204) -&gt; [0: bb139, otherwise: bb157] @ SwitchInt
 }
 
 </div>
